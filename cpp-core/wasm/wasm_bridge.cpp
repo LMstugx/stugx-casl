@@ -302,13 +302,37 @@ std::string resultJson(const char* resultType, bool ok, const std::string& state
     return output.str();
 }
 
-casl::AssembleOutput emptyAssembled(casl::RunState runState) {
-    casl::AssembleOutput output;
-    output.state.runState = runState;
-    output.state.pr = casl::kDefaultStartAddress;
-    output.state.mar = casl::kDefaultStartAddress;
-    output.state.sp = casl::kDefaultStackPointer;
-    return output;
+std::string emptyStateJson(casl::RunState runState, const std::vector<casl::Diagnostic>& diagnostics) {
+    std::ostringstream output;
+    output << "{\n";
+    output << "  \"runState\": \"" << runStateName(runState) << "\",\n";
+    output << "  \"stepCount\": 0,\n";
+    output << "  \"pr\": " << casl::kDefaultStartAddress << ",\n";
+    output << "  \"sp\": " << casl::kDefaultStackPointer << ",\n";
+    output << "  \"ir0\": 0,\n";
+    output << "  \"ir1\": null,\n";
+    output << "  \"mar\": " << casl::kDefaultStartAddress << ",\n";
+    output << "  \"mdr\": 0,\n";
+    output << "  \"gr\": [0, 0, 0, 0, 0, 0, 0, 0],\n";
+    output << "  \"frOF\": false,\n";
+    output << "  \"frSF\": false,\n";
+    output << "  \"frZF\": false,\n";
+    output << "  \"frCF\": false,\n";
+    output << "  \"currentInstructionAddress\": null,\n";
+    output << "  \"currentSourceLineIndex\": null,\n";
+    output << "  \"currentInstructionText\": null,\n";
+    output << "  \"lastInstructionKind\": null,\n";
+    output << "  \"lastMemoryReadAddress\": null,\n";
+    output << "  \"lastMemoryWriteAddress\": null,\n";
+    output << "  \"lastRegisterWriteIndex\": null,\n";
+    output << "  \"effectiveAddress\": null,\n";
+    output << "  \"memoryWindow\": [],\n";
+    output << "  \"sourceRows\": [],\n";
+    output << "  \"diagnostics\": ";
+    writeDiagnostics(output, diagnostics, 2);
+    output << "\n";
+    output << "}";
+    return output.str();
 }
 
 std::string currentStateJson(WasmRuntime& rt) {
@@ -316,14 +340,12 @@ std::string currentStateJson(WasmRuntime& rt) {
         const auto& state = rt.loaded ? rt.vm.state() : rt.assembled->state;
         return dumpStateJson(*rt.assembled, state, rt.lastStep, rt.lastDiagnostics);
     }
-    const auto empty = emptyAssembled(casl::RunState::Idle);
-    return dumpStateJson(empty, empty.state, std::nullopt, rt.lastDiagnostics);
+    return emptyStateJson(casl::RunState::Idle, rt.lastDiagnostics);
 }
 
 std::string stateErrorJson(const std::string& message) {
     const std::vector<casl::Diagnostic> diagnostics{{0, casl::Severity::Error, message}};
-    auto empty = emptyAssembled(casl::RunState::Error);
-    return dumpStateJson(empty, empty.state, std::nullopt, diagnostics);
+    return emptyStateJson(casl::RunState::Error, diagnostics);
 }
 
 const char* setError(std::string message) {

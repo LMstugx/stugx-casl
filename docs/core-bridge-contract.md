@@ -239,3 +239,5 @@ const char* stugx_casl_get_last_error();
 ```
 
 `WasmCoreAdapter` will implement `CoreAdapter` by loading these exports, converting returned `char*` values to strings, parsing JSON into DTOs, and keeping `coreBridge.ts` unchanged.
+
+Phase 4B keeps `MockCoreAdapter` as the default backend. `VITE_CORE_BACKEND=wasm` opts into `WasmCoreAdapter` after the local WASM files have been generated.

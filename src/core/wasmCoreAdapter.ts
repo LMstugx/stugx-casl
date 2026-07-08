@@ -1,26 +1,74 @@
 import type { CoreAdapter } from "./coreAdapter";
 import type { AssembleResultDto, CometStateDto, StepResultDto } from "./coreDto";
+import { loadWasmModule, type LoadedWasmCore } from "./wasmLoader";
 
-// Phase 4A keeps this adapter disabled. Phase 4B will use wasmLoader.ts to
-// load /wasm/stugx_casl_core.js and wrap the exported C ABI JSON functions.
 export class WasmCoreAdapter implements CoreAdapter {
-  async assemble(_sourceText: string): Promise<AssembleResultDto> {
-    throw new Error("WASM core adapter is not implemented yet");
+  private corePromise: Promise<LoadedWasmCore> | null = null;
+  private initialized = false;
+  private disposed = false;
+
+  async assemble(sourceText: string): Promise<AssembleResultDto> {
+    const core = await this.ensureInitialized();
+    return parseJson<AssembleResultDto>(core.assemble(sourceText), "assemble", core);
   }
 
   async reset(): Promise<CometStateDto> {
-    throw new Error("WASM core adapter is not implemented yet");
+    const core = await this.ensureInitialized();
+    return parseJson<CometStateDto>(core.reset(), "reset", core);
   }
 
   async step(): Promise<StepResultDto> {
-    throw new Error("WASM core adapter is not implemented yet");
+    const core = await this.ensureInitialized();
+    return parseJson<StepResultDto>(core.step(), "step", core);
   }
 
-  async run(_maxSteps: number): Promise<CometStateDto> {
-    throw new Error("WASM core adapter is not implemented yet");
+  async run(maxSteps: number): Promise<CometStateDto> {
+    const core = await this.ensureInitialized();
+    return parseJson<CometStateDto>(core.run(maxSteps), "run", core);
   }
 
   async getState(): Promise<CometStateDto> {
-    throw new Error("WASM core adapter is not implemented yet");
+    const core = await this.ensureInitialized();
+    return parseJson<CometStateDto>(core.getState(), "getState", core);
+  }
+
+  async dispose(): Promise<void> {
+    if (!this.corePromise || this.disposed) return;
+    const core = await this.corePromise;
+    core.destroy();
+    this.disposed = true;
+    this.initialized = false;
+    this.corePromise = null;
+  }
+
+  private async ensureInitialized(): Promise<LoadedWasmCore> {
+    if (this.disposed) {
+      throw new Error("WASM core adapter has been disposed.");
+    }
+    this.corePromise ??= loadWasmModule();
+    const core = await this.corePromise;
+    if (!this.initialized) {
+      parseJson<CometStateDto>(core.create(), "create", core);
+      this.initialized = true;
+    }
+    return core;
+  }
+}
+
+function parseJson<T>(json: string, operation: string, core: LoadedWasmCore): T {
+  try {
+    return JSON.parse(json) as T;
+  } catch (error) {
+    const lastError = safeLastError(core);
+    const detail = lastError ? ` Last WASM error: ${lastError}` : "";
+    throw new Error(`Failed to parse WASM ${operation} JSON: ${(error as Error).message}.${detail}`);
+  }
+}
+
+function safeLastError(core: LoadedWasmCore): string {
+  try {
+    return core.getLastError();
+  } catch {
+    return "";
   }
 }

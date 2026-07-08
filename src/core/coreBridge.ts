@@ -1,7 +1,12 @@
 import type { CoreAdapter } from "./coreAdapter";
 import { MockCoreAdapter } from "./mockCoreAdapter";
+import { WasmCoreAdapter } from "./wasmCoreAdapter";
 
-let activeAdapter: CoreAdapter = new MockCoreAdapter();
+function createDefaultAdapter(): CoreAdapter {
+  return import.meta.env.VITE_CORE_BACKEND === "wasm" ? new WasmCoreAdapter() : new MockCoreAdapter();
+}
+
+let activeAdapter: CoreAdapter = createDefaultAdapter();
 
 export function getCoreAdapter(): CoreAdapter {
   return activeAdapter;

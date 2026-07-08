@@ -70,6 +70,15 @@ public/wasm/stugx_casl_core.wasm
 
 These generated files are ignored by Git. See [docs/phase4a-wasm-plan.md](docs/phase4a-wasm-plan.md).
 
+To opt into the experimental WASM backend after generating the files:
+
+```powershell
+$env:VITE_CORE_BACKEND='wasm'
+pnpm dev
+```
+
+Unset `VITE_CORE_BACKEND` or set it to `mock` to return to the default mock backend.
+
 ## Install
 
 ```bash

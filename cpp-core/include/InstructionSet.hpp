@@ -18,6 +18,8 @@ enum class Opcode {
     RET
 };
 
+using InstructionKind = Opcode;
+
 std::optional<Opcode> parseOpcode(std::string_view text);
 std::string opcodeName(Opcode opcode);
 bool isExecutableOpcode(Opcode opcode);

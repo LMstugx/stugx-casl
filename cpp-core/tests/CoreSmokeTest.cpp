@@ -2,6 +2,9 @@
 #include <cstdlib>
 #include <iostream>
 #include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
 
 #include "Assembler.hpp"
 #include "CometVm.hpp"
@@ -25,11 +28,36 @@ void require(bool condition, const char* message) {
     }
 }
 
-casl::AssembleOutput assembleSample() {
+casl::AssembleOutput assembleOrExit(const std::string& source) {
     casl::Assembler assembler;
-    const auto result = assembler.assemble(kSample);
-    require(result.ok, "sample assembly should succeed");
+    const auto result = assembler.assemble(source);
+    if (!result.ok) {
+        std::cerr << "FAILED: assembly should succeed\n";
+        for (const auto& diagnostic : result.diagnostics) {
+            std::cerr << "  line " << diagnostic.line << ": " << diagnostic.message << '\n';
+        }
+        std::exit(1);
+    }
     return result.value;
+}
+
+casl::AssembleOutput assembleSample() {
+    return assembleOrExit(kSample);
+}
+
+std::uint16_t symbolAddress(const casl::AssembleOutput& output, const std::string& label) {
+    const auto found = output.symbols.find(label);
+    require(found != output.symbols.end(), "symbol should exist");
+    return found->second;
+}
+
+bool hasError(const casl::AssembleResult& result, std::string_view fragment) {
+    for (const auto& diagnostic : result.diagnostics) {
+        if (diagnostic.severity == casl::Severity::Error && diagnostic.message.find(fragment) != std::string::npos) {
+            return true;
+        }
+    }
+    return false;
 }
 
 void AssembleSimpleProgram() {
@@ -48,56 +76,164 @@ void AssembleSimpleProgram() {
     require(output.sourceMap.lineForAddress(0x20).value_or(-1) == 2, "SourceMapBasic");
 }
 
+void AssembleChangedConstants() {
+    const auto output = assembleOrExit(R"(MAIN START
+     LD    GR1,A
+     ADDA  GR1,B
+     ST    GR1,C
+     RET
+A    DC    100
+B    DC    200
+C    DS    1
+     END)");
+    require(output.state.memory[symbolAddress(output, "A")] == 0x0064, "A should assemble to 0064");
+    require(output.state.memory[symbolAddress(output, "B")] == 0x00c8, "B should assemble to 00C8");
+}
+
+void AssembleChangedLabels() {
+    const auto output = assembleOrExit(R"(MAIN START
+     LD    GR1,X
+     ADDA  GR1,Y
+     ST    GR1,Z
+     RET
+X    DC    1
+Y    DC    2
+Z    DS    1
+     END)");
+    require(symbolAddress(output, "X") == 0x27, "X label address");
+    require(symbolAddress(output, "Y") == 0x28, "Y label address");
+    require(symbolAddress(output, "Z") == 0x29, "Z label address");
+    require(output.state.memory[0x21] == 0x27, "LD operand should point to X");
+    require(output.state.memory[0x23] == 0x28, "ADDA operand should point to Y");
+    require(output.state.memory[0x25] == 0x29, "ST operand should point to Z");
+    const auto entry = output.sourceMap.entryForAddress(0x27);
+    require(entry.has_value() && entry->label == "X", "SourceMap should keep X label");
+}
+
 void DuplicateLabel_ShouldError() {
     casl::Assembler assembler;
     const auto result = assembler.assemble("MAIN START\nA DC 1\nA DC 2\n END");
     require(!result.ok, "duplicate label should fail");
+    require(hasError(result, "Duplicate label"), "duplicate label diagnostic");
 }
 
-void UndefinedLabel_ShouldError() {
-    casl::Assembler assembler;
-    const auto result = assembler.assemble("MAIN START\n LD GR1,MISSING\n RET\n END");
-    require(!result.ok, "undefined label should fail");
-}
-
-void InvalidRegister_ShouldError() {
+void AssembleInvalidRegister() {
     casl::Assembler assembler;
     const auto result = assembler.assemble("MAIN START\n LD GR8,A\nA DC 1\n END");
     require(!result.ok, "invalid register should fail");
+    require(hasError(result, "Invalid register"), "invalid register diagnostic");
 }
 
-void StepLd_ShouldSetGR1() {
+void AssembleUndefinedLabel() {
+    casl::Assembler assembler;
+    const auto result = assembler.assemble("MAIN START\n LD GR1,MISSING\n RET\n END");
+    require(!result.ok, "undefined label should fail");
+    require(hasError(result, "Undefined label"), "undefined label diagnostic");
+}
+
+void AssembleUnknownOpcode() {
+    casl::Assembler assembler;
+    const auto result = assembler.assemble("MAIN START\n BADOP GR1,A\nA DC 1\n END");
+    require(!result.ok, "unknown opcode should fail");
+    require(hasError(result, "Unknown opcode"), "unknown opcode diagnostic");
+}
+
+void AssembleInvalidNumericLiteral() {
+    casl::Assembler assembler;
+    const auto result = assembler.assemble("MAIN START\nA DC NOPE\n END");
+    require(!result.ok, "invalid numeric literal should fail");
+    require(hasError(result, "Invalid numeric literal"), "invalid numeric literal diagnostic");
+}
+
+void StepLd() {
     casl::CometVm vm;
     vm.load(assembleSample());
     const auto step = vm.step();
     require(step.ok, "LD step should succeed");
+    require(step.instructionKind.has_value() && *step.instructionKind == casl::InstructionKind::LD, "StepResult LD kind");
     require(vm.state().pr == 0x22, "PR after LD");
+    require(vm.state().mar == 0x27, "MAR after LD");
+    require(vm.state().mdr == 0x000a, "MDR after LD");
     require(vm.state().gr[1] == 0x000a, "GR1 after LD");
+    require(vm.state().lastInstructionKind.has_value() && *vm.state().lastInstructionKind == casl::InstructionKind::LD, "state last LD kind");
+    require(vm.state().lastMemoryReadAddress.has_value() && *vm.state().lastMemoryReadAddress == 0x27, "LD read address");
+    require(vm.state().lastRegisterWriteIndex.has_value() && *vm.state().lastRegisterWriteIndex == 1, "LD write register");
     require(vm.state().visualPath == casl::VisualPathKind::LD_MemoryToMdrToGr, "LD visual path");
 }
 
-void StepAdda_ShouldSetFR() {
+void StepAdda() {
     casl::CometVm vm;
     vm.load(assembleSample());
     (void)vm.step();
     const auto step = vm.step();
     require(step.ok, "ADDA step should succeed");
+    require(step.instructionKind.has_value() && *step.instructionKind == casl::InstructionKind::ADDA, "StepResult ADDA kind");
     require(vm.state().pr == 0x24, "PR after ADDA");
     require(vm.state().gr[1] == 0x001e, "GR1 after ADDA");
     require(!vm.state().fr.z && !vm.state().fr.c && !vm.state().fr.n && !vm.state().fr.o, "FR after ADDA");
+    require(vm.state().fr.packed() == 0, "FR packed after ADDA");
+    require(vm.state().lastInstructionKind.has_value() && *vm.state().lastInstructionKind == casl::InstructionKind::ADDA, "state last ADDA kind");
+    require(vm.state().lastMemoryReadAddress.has_value() && *vm.state().lastMemoryReadAddress == 0x28, "ADDA read address");
+    require(vm.state().lastRegisterWriteIndex.has_value() && *vm.state().lastRegisterWriteIndex == 1, "ADDA write register");
     require(vm.state().visualPath == casl::VisualPathKind::ADDA_GrMdrToAluToGr, "ADDA visual path");
 }
 
-void StepStore_ShouldWriteMemory() {
+void StepStore() {
     casl::CometVm vm;
     vm.load(assembleSample());
     (void)vm.step();
     (void)vm.step();
     const auto step = vm.step();
     require(step.ok, "ST step should succeed");
+    require(step.instructionKind.has_value() && *step.instructionKind == casl::InstructionKind::ST, "StepResult ST kind");
     require(vm.state().pr == 0x26, "PR after ST");
     require(vm.state().memory[0x29] == 0x001e, "Memory[0029] after ST");
+    require(vm.state().lastInstructionKind.has_value() && *vm.state().lastInstructionKind == casl::InstructionKind::ST, "state last ST kind");
+    require(vm.state().lastMemoryWriteAddress.has_value() && *vm.state().lastMemoryWriteAddress == 0x29, "ST write address");
+    require(!vm.state().lastMemoryReadAddress.has_value(), "ST should not report a memory read");
     require(vm.state().visualPath == casl::VisualPathKind::ST_GrToMdrToMemory, "ST visual path");
+}
+
+void StepRetFinished() {
+    casl::CometVm vm;
+    vm.load(assembleSample());
+    (void)vm.step();
+    (void)vm.step();
+    (void)vm.step();
+    const auto step = vm.step();
+    require(step.ok, "RET step should succeed");
+    require(step.finished, "RET should finish");
+    require(vm.state().runState == casl::RunState::Finished, "RunState after RET");
+    require(vm.state().visualPath == casl::VisualPathKind::Finished_None, "RET visual path");
+    require(vm.state().lastInstructionKind.has_value() && *vm.state().lastInstructionKind == casl::InstructionKind::RET, "state last RET kind");
+}
+
+void ExecuteGr2Program() {
+    const auto output = assembleOrExit(R"(MAIN START
+     LD    GR2,X
+     ADDA  GR2,Y
+     ST    GR2,Z
+     RET
+X    DC    3
+Y    DC    4
+Z    DS    1
+     END)");
+
+    casl::CometVm vm;
+    vm.load(output);
+
+    (void)vm.step();
+    require(vm.state().gr[2] == 0x0003, "GR2 after LD");
+    require(vm.state().gr[1] == 0x0000, "GR1 should stay zero after GR2 LD");
+    require(vm.state().lastRegisterWriteIndex.has_value() && *vm.state().lastRegisterWriteIndex == 2, "GR2 LD write index");
+
+    (void)vm.step();
+    require(vm.state().gr[2] == 0x0007, "GR2 after ADDA");
+    require(vm.state().lastRegisterWriteIndex.has_value() && *vm.state().lastRegisterWriteIndex == 2, "GR2 ADDA write index");
+
+    (void)vm.step();
+    require(vm.state().memory[symbolAddress(output, "Z")] == 0x0007, "Z after ST");
+    require(vm.state().lastMemoryWriteAddress.has_value() && *vm.state().lastMemoryWriteAddress == symbolAddress(output, "Z"), "GR2 ST write address");
 }
 
 void Run_ShouldStopAtMaxSteps() {
@@ -117,18 +253,52 @@ void MemoryAccess_OutOfRange_ShouldError() {
     require(vm.state().runState == casl::RunState::Error, "out-of-range PR should enter error");
 }
 
+using TestFunction = void (*)();
+
+const std::vector<std::pair<std::string_view, TestFunction>>& tests() {
+    static const std::vector<std::pair<std::string_view, TestFunction>> cases{
+        {"AssembleSimpleProgram", AssembleSimpleProgram},
+        {"AssembleChangedConstants", AssembleChangedConstants},
+        {"AssembleChangedLabels", AssembleChangedLabels},
+        {"DuplicateLabel_ShouldError", DuplicateLabel_ShouldError},
+        {"AssembleInvalidRegister", AssembleInvalidRegister},
+        {"AssembleUndefinedLabel", AssembleUndefinedLabel},
+        {"AssembleUnknownOpcode", AssembleUnknownOpcode},
+        {"AssembleInvalidNumericLiteral", AssembleInvalidNumericLiteral},
+        {"StepLd", StepLd},
+        {"StepAdda", StepAdda},
+        {"StepStore", StepStore},
+        {"StepRetFinished", StepRetFinished},
+        {"ExecuteGr2Program", ExecuteGr2Program},
+        {"Run_ShouldStopAtMaxSteps", Run_ShouldStopAtMaxSteps},
+        {"MemoryAccess_OutOfRange_ShouldError", MemoryAccess_OutOfRange_ShouldError},
+    };
+    return cases;
+}
+
+void runTest(std::string_view name) {
+    for (const auto& [testName, testFunction] : tests()) {
+        if (testName == name) {
+            testFunction();
+            return;
+        }
+    }
+    std::cerr << "Unknown test: " << name << '\n';
+    std::exit(1);
+}
+
 }  // namespace
 
-int main() {
-    AssembleSimpleProgram();
-    DuplicateLabel_ShouldError();
-    UndefinedLabel_ShouldError();
-    InvalidRegister_ShouldError();
-    StepLd_ShouldSetGR1();
-    StepAdda_ShouldSetFR();
-    StepStore_ShouldWriteMemory();
-    Run_ShouldStopAtMaxSteps();
-    MemoryAccess_OutOfRange_ShouldError();
-    std::cout << "CoreSmokeTest passed\n";
+int main(int argc, char** argv) {
+    if (argc > 1) {
+        runTest(argv[1]);
+        std::cout << argv[1] << " passed\n";
+        return 0;
+    }
+
+    for (const auto& [testName, testFunction] : tests()) {
+        testFunction();
+        std::cout << testName << " passed\n";
+    }
     return 0;
 }

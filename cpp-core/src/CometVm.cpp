@@ -1,22 +1,17 @@
 #include "CometVm.hpp"
 
-#include <limits>
 #include <utility>
 
 namespace casl {
 namespace {
 
-Flags flagsForAdd(std::uint16_t lhs, std::uint16_t rhs, std::uint32_t unsignedResult) {
+Flags flagsForAdd(std::uint16_t, std::uint16_t, std::uint32_t unsignedResult) {
     const auto result = static_cast<std::uint16_t>(unsignedResult & 0xffff);
-    const auto signedLhs = static_cast<std::int16_t>(lhs);
-    const auto signedRhs = static_cast<std::int16_t>(rhs);
-    const auto signedResult = static_cast<int>(signedLhs) + static_cast<int>(signedRhs);
-
     return {
         result == 0,
         unsignedResult > 0xffff,
         (result & 0x8000) != 0,
-        signedResult < std::numeric_limits<std::int16_t>::min() || signedResult > std::numeric_limits<std::int16_t>::max()
+        false
     };
 }
 
@@ -59,8 +54,13 @@ StepResult CometVm::step() {
     result.executedAddress = instruction->address;
     result.executedLine = instruction->line;
     result.executedInstruction = instruction->source;
+    result.instructionKind = instruction->opcode;
     state_.ir = state_.memory[instruction->address];
     state_.mar = instruction->operandAddress.value_or(instruction->address);
+    state_.lastInstructionKind = instruction->opcode;
+    state_.lastMemoryReadAddress.reset();
+    state_.lastMemoryWriteAddress.reset();
+    state_.lastRegisterWriteIndex.reset();
 
     switch (instruction->opcode) {
         case Opcode::LD: {
@@ -69,8 +69,10 @@ StepResult CometVm::step() {
                 fail(result, "Invalid LD operands");
                 return result;
             }
+            state_.lastMemoryReadAddress = *instruction->operandAddress;
             state_.mdr = state_.memory[*instruction->operandAddress];
             state_.gr[gr] = state_.mdr;
+            state_.lastRegisterWriteIndex = gr;
             state_.pr = static_cast<std::uint16_t>(state_.pr + 2);
             state_.visualPath = VisualPathKind::LD_MemoryToMdrToGr;
             result.visualPath = state_.visualPath;
@@ -85,9 +87,11 @@ StepResult CometVm::step() {
                 return result;
             }
             const auto lhs = state_.gr[gr];
+            state_.lastMemoryReadAddress = *instruction->operandAddress;
             state_.mdr = state_.memory[*instruction->operandAddress];
             const auto sum = static_cast<std::uint32_t>(lhs) + state_.mdr;
             state_.gr[gr] = static_cast<std::uint16_t>(sum & 0xffff);
+            state_.lastRegisterWriteIndex = gr;
             state_.fr = flagsForAdd(lhs, state_.mdr, sum);
             state_.pr = static_cast<std::uint16_t>(state_.pr + 2);
             state_.visualPath = VisualPathKind::ADDA_GrMdrToAluToGr;
@@ -104,6 +108,7 @@ StepResult CometVm::step() {
             }
             state_.mdr = state_.gr[gr];
             state_.memory[*instruction->operandAddress] = state_.mdr;
+            state_.lastMemoryWriteAddress = *instruction->operandAddress;
             state_.pr = static_cast<std::uint16_t>(state_.pr + 2);
             state_.visualPath = VisualPathKind::ST_GrToMdrToMemory;
             result.visualPath = state_.visualPath;

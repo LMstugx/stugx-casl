@@ -41,9 +41,9 @@ std::optional<std::uint32_t> instructionSize(const ParsedLine& line, std::vector
     if (opcode == Opcode::RET) return 1;
     if (opcode == Opcode::DC) return static_cast<std::uint32_t>(std::max<std::size_t>(1, line.operands.size()));
     if (opcode == Opcode::DS) {
-        const auto count = parseNumber(line.operands.empty() ? "" : line.operands[0]);
+        const auto count = parseNumber(line.operands.empty() ? "0" : line.operands[0]);
         if (!count.has_value()) {
-            diagnostics.push_back({line.line, Severity::Error, "DS requires a numeric size"});
+            diagnostics.push_back({line.line, Severity::Error, "Invalid numeric literal for DS: " + (line.operands.empty() ? std::string{} : line.operands[0])});
             return std::nullopt;
         }
         return *count;
@@ -112,6 +112,12 @@ bool Assembler::pass1(std::vector<ParsedLine>& lines, AssembleOutput& output, st
             address = kDefaultStartAddress;
             line.address = static_cast<std::uint16_t>(address);
         } else {
+            if (opcode != Opcode::END && address >= kMemorySize) {
+                line.address = 0xffff;
+                addDiagnostic(diagnostics, line.line, "Program memory exceeds 0xFFFF");
+                ok = false;
+                continue;
+            }
             line.address = static_cast<std::uint16_t>(address);
         }
 
@@ -198,7 +204,12 @@ bool Assembler::pass2(const std::vector<ParsedLine>& lines, AssembleOutput& outp
             for (std::size_t index = 0; index < count; index += 1) {
                 const auto token = line.operands.empty() ? "0" : line.operands[index];
                 const auto value = parseNumber(token);
-                if (!value.has_value() || *value > 0xffff) {
+                if (!value.has_value()) {
+                    addDiagnostic(diagnostics, line.line, "Invalid numeric literal for DC: " + token);
+                    ok = false;
+                    continue;
+                }
+                if (*value > 0xffff) {
                     addDiagnostic(diagnostics, line.line, "DC value out of 16-bit range: " + token);
                     ok = false;
                     continue;
@@ -217,9 +228,9 @@ bool Assembler::pass2(const std::vector<ParsedLine>& lines, AssembleOutput& outp
         }
 
         if (opcode == Opcode::DS) {
-            const auto count = parseNumber(line.operands.empty() ? "" : line.operands[0]);
+            const auto count = parseNumber(line.operands.empty() ? "0" : line.operands[0]);
             if (!count.has_value()) {
-                addDiagnostic(diagnostics, line.line, "DS requires a numeric size");
+                addDiagnostic(diagnostics, line.line, "Invalid numeric literal for DS: " + (line.operands.empty() ? std::string{} : line.operands[0]));
                 ok = false;
                 continue;
             }

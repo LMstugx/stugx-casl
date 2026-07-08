@@ -2,8 +2,11 @@
 
 #include <array>
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <vector>
+
+#include "InstructionSet.hpp"
 
 namespace casl {
 
@@ -32,7 +35,9 @@ struct Result {
 
 enum class RunState {
     Idle,
+    Dirty,
     Ready,
+    Running,
     Finished,
     Error
 };
@@ -70,6 +75,27 @@ struct CometState {
     VisualPathKind visualPath = VisualPathKind::None;
     int currentLine = -1;
     std::string currentInstruction;
+    std::optional<InstructionKind> lastInstructionKind;
+    std::optional<std::uint16_t> lastMemoryReadAddress;
+    std::optional<std::uint16_t> lastMemoryWriteAddress;
+    std::optional<std::uint8_t> lastRegisterWriteIndex;
+};
+
+struct SourceRow {
+    int line = 0;
+    std::uint16_t address = 0;
+    std::vector<std::uint16_t> machineWords;
+    std::string source;
+    std::string label;
+    InstructionKind instruction = InstructionKind::DC;
+};
+
+struct MemoryRow {
+    std::uint16_t address = 0;
+    std::uint16_t value = 0;
+    std::string label;
+    bool changed = false;
+    bool current = false;
 };
 
 struct StepResult {
@@ -78,6 +104,7 @@ struct StepResult {
     std::uint16_t executedAddress = 0;
     int executedLine = -1;
     std::string executedInstruction;
+    std::optional<InstructionKind> instructionKind;
     VisualPathKind visualPath = VisualPathKind::None;
     std::vector<Diagnostic> diagnostics;
 };

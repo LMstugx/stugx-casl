@@ -22,4 +22,24 @@ enable_testing()
 add_executable(CoreSmokeTest tests/CoreSmokeTest.cpp)
 target_link_libraries(CoreSmokeTest PRIVATE casl_core)
 
-add_test(NAME CoreSmokeTest COMMAND CoreSmokeTest)
+set(CORE_TESTS
+  AssembleSimpleProgram
+  AssembleChangedConstants
+  AssembleChangedLabels
+  DuplicateLabel_ShouldError
+  AssembleInvalidRegister
+  AssembleUndefinedLabel
+  AssembleUnknownOpcode
+  AssembleInvalidNumericLiteral
+  StepLd
+  StepAdda
+  StepStore
+  StepRetFinished
+  ExecuteGr2Program
+  Run_ShouldStopAtMaxSteps
+  MemoryAccess_OutOfRange_ShouldError
+)
+
+foreach(test_name IN LISTS CORE_TESTS)
+  add_test(NAME ${test_name} COMMAND CoreSmokeTest ${test_name})
+endforeach()

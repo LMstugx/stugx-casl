@@ -12,16 +12,9 @@ import {
   formatWord,
   word
 } from "./types";
+import { DEFAULT_CASL_SOURCE } from "./defaultSource";
 
-export const DEFAULT_CASL_SOURCE = `MAIN START
-     LD    GR1,A
-     ADDA  GR1,B
-     ST    GR1,C
-     RET
-A    DC    10
-B    DC    20
-C    DS    1
-     END`;
+export { DEFAULT_CASL_SOURCE };
 
 const START_ADDRESS = 0x20;
 const MAX_TRACE_EVENTS = 1000;

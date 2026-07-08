@@ -3,8 +3,9 @@ import type { ReactNode } from "react";
 import { EventBus } from "../app/eventBus";
 import { createAppEventBus } from "../app/createAppEventBus";
 import { AppEvent, AppEvents } from "../app/events";
-import { caslCore } from "../core/coreBridge";
-import { DEFAULT_CASL_SOURCE, createEmptyCometState } from "../core/mockCaslCore";
+import { coreBridge } from "../core/coreBridge";
+import { DEFAULT_CASL_SOURCE } from "../core/defaultSource";
+import { createCometStateFromDto, createEmptyUiCometState } from "../core/coreStateAdapter";
 import { CometState, Diagnostic } from "../core/types";
 
 type AssembleStatus = "default" | "running" | "success" | "error";
@@ -50,7 +51,7 @@ export function createInitialAppState(): AppStoreState {
     lastAssembledSource: DEFAULT_CASL_SOURCE,
     isSourceDirty: false,
     assembleResult: null,
-    cometState: createEmptyCometState("Idle", ["Editor ready. Assemble to load the current source."]),
+    cometState: createEmptyUiCometState("Idle", ["Editor ready. Assemble to load the current source."]),
     diagnostics: [],
     assembleStatus: "default"
   };
@@ -65,7 +66,7 @@ export function appStoreReducer(state: AppStoreState, action: AppStoreAction): A
       isSourceDirty: true,
       assembleResult: null,
       diagnostics: [],
-      cometState: createEmptyCometState("Dirty", ["Source modified. Assemble to load the current source."]),
+      cometState: createEmptyUiCometState("Dirty", ["Source modified. Assemble to load the current source."]),
       assembleStatus: "default"
     };
   }
@@ -118,44 +119,61 @@ export function AppStoreProvider({ children, eventBus: providedEventBus }: AppSt
     () => ({
       setSourceText: (sourceText) => dispatch({ type: "setSourceText", sourceText }),
       assemble: () => {
-        eventBus.emit(AppEvent.CoreAssembleStarted, { sourceLength: state.sourceText.length });
-        const cometState = caslCore.assemble(state.sourceText);
-        if (cometState.runState === "Error") {
-          eventBus.emit(AppEvent.CoreAssembleFailed, { diagnostics: cometState.diagnostics });
-        } else {
-          eventBus.emit(AppEvent.CoreAssembleSucceeded, {
-            instructionCount: cometState.program?.length ?? 0,
-            startAddress: cometState.pr
+        void (async () => {
+          eventBus.emit(AppEvent.CoreAssembleStarted, { sourceLength: state.sourceText.length });
+          const result = await coreBridge.assemble(state.sourceText);
+          const cometState = createCometStateFromDto(result.state);
+          if (cometState.runState === "Error") {
+            eventBus.emit(AppEvent.CoreAssembleFailed, { diagnostics: cometState.diagnostics });
+          } else {
+            eventBus.emit(AppEvent.CoreAssembleSucceeded, {
+              instructionCount: cometState.program?.length ?? 0,
+              startAddress: cometState.pr
+            });
+          }
+          dispatch({
+            type: "assembled",
+            sourceText: state.sourceText,
+            cometState,
+            assembleStatus: cometState.runState === "Error" ? "error" : "success"
           });
-        }
-        dispatch({
-          type: "assembled",
-          sourceText: state.sourceText,
-          cometState,
-          assembleStatus: cometState.runState === "Error" ? "error" : "success"
-        });
+        })();
       },
       step: () => {
         if (state.isSourceDirty || !state.cometState.assembled) return;
-        const cometState = caslCore.step(state.cometState);
-        if (cometState.lastStep) {
-          eventBus.emit(AppEvent.VmStepCompleted, {
-            stepCount: cometState.stepIndex,
-            instruction: cometState.lastStep.executedInstruction
-          });
-        }
-        if (cometState.runState === "Finished") {
-          eventBus.emit(AppEvent.VmRunStopped, { reason: "finished" });
-        }
-        if (cometState.runState === "Error") {
-          eventBus.emit(AppEvent.VmError, { message: cometState.output[cometState.output.length - 1] ?? "VM error" });
-          eventBus.emit(AppEvent.VmRunStopped, { reason: "error" });
-        }
-        dispatch({ type: "stepped", cometState });
+        void (async () => {
+          const result = await coreBridge.step();
+          const output = [...state.cometState.output];
+          if (result.state.runState === "Finished" && state.cometState.runState !== "Finished") output.push("Execution finished.");
+          if (result.state.runState === "Error" && state.cometState.runState !== "Error") output.push("VM error.");
+          const cometState = createCometStateFromDto(result.state, { previous: state.cometState, output });
+          if (cometState.lastStep) {
+            eventBus.emit(AppEvent.VmStepCompleted, {
+              stepCount: cometState.stepIndex,
+              instruction: cometState.lastStep.executedInstruction
+            });
+          }
+          if (cometState.runState === "Finished") {
+            eventBus.emit(AppEvent.VmRunStopped, { reason: "finished" });
+          }
+          if (cometState.runState === "Error") {
+            eventBus.emit(AppEvent.VmError, { message: cometState.output[cometState.output.length - 1] ?? "VM error" });
+            eventBus.emit(AppEvent.VmRunStopped, { reason: "error" });
+          }
+          dispatch({ type: "stepped", cometState });
+        })();
       },
       reset: () => {
         if (state.isSourceDirty || !state.assembleResult) return;
-        dispatch({ type: "reset", cometState: caslCore.reset(state.assembleResult) });
+        void (async () => {
+          const dto = await coreBridge.reset();
+          dispatch({
+            type: "reset",
+            cometState: createCometStateFromDto(dto, {
+              output: dto.runState === "Ready" ? ["Program reset. Entry point: START (0020)"] : []
+            })
+          });
+        })();
       },
       clearOutput: () => dispatch({ type: "clearOutput" })
     }),

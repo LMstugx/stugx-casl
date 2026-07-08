@@ -1,6 +1,6 @@
 # Core Bridge Contract
 
-Phase 3B defines the JSON contract that the future C++/WASM bridge will expose to the TypeScript frontend. The frontend still uses the TypeScript mock core in this phase.
+Phase 3B defines the JSON contract that the future C++/WASM bridge will expose to the TypeScript frontend. Phase 3C adds the `CoreAdapter` abstraction so the store and UI depend on the contract rather than on the TypeScript mock implementation.
 
 The contract uses camelCase fields and transports 16-bit values as numbers. UI formatting such as `0020` belongs in the TypeScript UI layer through `formatHex16`.
 
@@ -9,14 +9,60 @@ The contract uses camelCase fields and transports 16-bit values as numbers. UI f
 The bridge boundary will expose these operations:
 
 ```ts
-assemble(sourceText: string): AssembleResultDto
-reset(): CometStateDto
-step(): StepResultDto
-run(maxSteps: number): StepResultDto
-getState(): CometStateDto
+assemble(sourceText: string): Promise<AssembleResultDto>
+reset(): Promise<CometStateDto>
+step(): Promise<StepResultDto>
+run(maxSteps: number): Promise<CometStateDto>
+getState(): Promise<CometStateDto>
 ```
 
 `assemble(sourceText)` parses, assembles, initializes state, and returns diagnostics. `step()` executes one instruction from the currently loaded state. `reset()` restores the current assembled program to its initial state. `run(maxSteps)` must stop when finished, on error, or when `maxSteps` is reached. `getState()` returns the current state without mutating it.
+
+The API is Promise-based even while the current mock implementation is synchronous. This keeps the UI stable when the core moves to WASM, a worker, or another asynchronous native bridge.
+
+## CoreAdapter Architecture
+
+`src/core/coreAdapter.ts` defines the only interface that core implementations must satisfy:
+
+```ts
+export interface CoreAdapter {
+  assemble(sourceText: string): Promise<AssembleResultDto>;
+  reset(): Promise<CometStateDto>;
+  step(): Promise<StepResultDto>;
+  run(maxSteps: number): Promise<CometStateDto>;
+  getState(): Promise<CometStateDto>;
+}
+```
+
+`src/core/coreBridge.ts` owns the active adapter:
+
+```ts
+getCoreAdapter(): CoreAdapter
+setCoreAdapter(adapter: CoreAdapter): void
+coreBridge.assemble(sourceText)
+coreBridge.reset()
+coreBridge.step()
+coreBridge.run(maxSteps)
+coreBridge.getState()
+```
+
+`setCoreAdapter` exists for tests and for the future WASM switchover. Runtime UI code should use `coreBridge` and should not import `MockCoreAdapter` or `mockCaslCore`.
+
+## MockCoreAdapter
+
+`src/core/mockCoreAdapter.ts` wraps the existing TypeScript mock core. It does not duplicate assembler or VM execution logic. It calls `mockCaslCore`, converts the resulting internal `CometState` through `src/core/coreDto.ts`, and returns DTOs.
+
+The mock adapter keeps the current core state internally so `step()`, `reset()`, and `getState()` match the future bridge shape.
+
+## WasmCoreAdapter Planned
+
+`src/core/wasmCoreAdapter.ts` implements `CoreAdapter` as a Phase 4 stub. Every method currently throws `WASM core adapter is not implemented yet`.
+
+The stub intentionally does not import Emscripten, load a `.wasm` file, or expose C++ internals. It only reserves the replacement point.
+
+## UI Dependency Rule
+
+The frontend store depends on `coreBridge` only. React components never call `mockCaslCore` directly. The current store converts DTOs into the UI `CometState` projection through `src/core/coreStateAdapter.ts`; Dirty source invalidation remains in the store because it is editor/session state, not VM execution state.
 
 ## DTO Types
 
@@ -130,7 +176,7 @@ These fixtures are generated from the current TypeScript mock DTO adapter and ar
 
 `src/core/coreDto.ts` maps the current TypeScript mock `CometState` into `CometStateDto`. This keeps parity testing separate from UI rendering state.
 
-The frontend UI still reads the existing `CometState` shape. The DTO adapter is for bridge contract tests and future WASM integration.
+The frontend UI still reads the existing `CometState` shape. `src/core/coreStateAdapter.ts` is the only DTO-to-UI-state projection used by the store.
 
 ## C++ JSON Dump
 
@@ -168,6 +214,7 @@ Planned adapter chain:
 ```text
 C++ Core
 -> WASM export
+-> WasmCoreAdapter
 -> Core DTO JSON or typed memory adapter
 -> coreBridge.ts
 -> frontend store actions

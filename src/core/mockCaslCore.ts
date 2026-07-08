@@ -1,0 +1,590 @@
+import {
+  AssembledInstruction,
+  CometState,
+  Diagnostic,
+  FlagsState,
+  InstructionKind,
+  MemoryRow,
+  RegisterState,
+  SourceMapEntry,
+  TraceEvent,
+  VisualPathKind,
+  formatWord,
+  word
+} from "./types";
+
+export const DEFAULT_CASL_SOURCE = `MAIN START
+     LD    GR1,A
+     ADDA  GR1,B
+     ST    GR1,C
+     RET
+A    DC    10
+B    DC    20
+C    DS    1
+     END`;
+
+const START_ADDRESS = 0x20;
+const MAX_TRACE_EVENTS = 1000;
+const SUPPORTED_OPS = new Set(["START", "END", "DC", "DS", "LD", "ADDA", "ST", "RET"]);
+
+type ParsedLine = {
+  line: number;
+  raw: string;
+  source: string;
+  label?: string;
+  op?: InstructionKind;
+  operands: string[];
+  address?: number;
+};
+
+type AssembleArtifacts = {
+  memory: Record<number, number>;
+  sourceMap: SourceMapEntry[];
+  program: AssembledInstruction[];
+  symbols: Record<string, number>;
+  diagnostics: Diagnostic[];
+};
+
+export interface CaslCore {
+  assemble(source: string): CometState;
+  step(state: CometState): CometState;
+  reset(state: CometState): CometState;
+}
+
+function initialFlags(): FlagsState {
+  return { z: false, c: false, n: false, o: false };
+}
+
+function cloneState(state: CometState): CometState {
+  return {
+    ...state,
+    fr: { ...state.fr },
+    gr: [...state.gr],
+    memory: { ...state.memory },
+    initialMemory: state.initialMemory ? { ...state.initialMemory } : undefined,
+    memoryRows: state.memoryRows.map((row) => ({ ...row })),
+    registers: state.registers.map((reg) => ({ ...reg })),
+    sourceMap: state.sourceMap.map((entry) => ({ ...entry, machineWords: [...entry.machineWords] })),
+    symbols: { ...state.symbols },
+    diagnostics: state.diagnostics.map((diagnostic) => ({ ...diagnostic })),
+    output: [...state.output],
+    trace: state.trace.map((event) => ({ ...event })),
+    program: state.program?.map((instruction) => ({ ...instruction })),
+    changedRegisters: [...state.changedRegisters],
+    changedMemoryAddresses: [...state.changedMemoryAddresses],
+    lastStep: state.lastStep ? { ...state.lastStep } : undefined
+  };
+}
+
+function stripComment(line: string): string {
+  return line.split(";")[0].trimEnd();
+}
+
+function parseLine(raw: string, index: number): ParsedLine {
+  const source = stripComment(raw);
+  const tokens = source.replace(/,/g, " ").trim().split(/\s+/).filter(Boolean);
+
+  if (tokens.length === 0) {
+    return { line: index + 1, raw, source: raw.trim(), operands: [] };
+  }
+
+  const first = tokens[0].toUpperCase();
+  if (SUPPORTED_OPS.has(first)) {
+    return {
+      line: index + 1,
+      raw,
+      source: source.trim(),
+      op: first as InstructionKind,
+      operands: tokens.slice(1)
+    };
+  }
+
+  const op = tokens[1]?.toUpperCase();
+  return {
+    line: index + 1,
+    raw,
+    source: source.trim(),
+    label: tokens[0],
+    op: SUPPORTED_OPS.has(op) ? (op as InstructionKind) : undefined,
+    operands: tokens.slice(2)
+  };
+}
+
+function parseNumber(token: string): number {
+  const trimmed = token.trim();
+  if (!trimmed) throw new Error("Missing numeric value");
+  if (!/^#[0-9a-f]+$/i.test(trimmed) && !/^0x[0-9a-f]+$/i.test(trimmed) && !/^[0-9]+$/.test(trimmed)) {
+    throw new Error(`Invalid numeric value: ${token}`);
+  }
+
+  let value: number;
+  if (/^#[0-9a-f]+$/i.test(trimmed)) {
+    value = parseInt(trimmed.slice(1), 16);
+  } else if (/^0x[0-9a-f]+$/i.test(trimmed)) {
+    value = parseInt(trimmed, 16);
+  } else {
+    value = parseInt(trimmed, 10);
+  }
+
+  if (!Number.isSafeInteger(value) || value < 0 || value > 0xffff) {
+    throw new Error(`Numeric value out of 16-bit range: ${token}`);
+  }
+  return value;
+}
+
+function symbolKey(label: string): string {
+  return label.toUpperCase();
+}
+
+function instructionSize(line: ParsedLine): number {
+  if (line.op === "LD" || line.op === "ADDA" || line.op === "ST") return 2;
+  if (line.op === "RET") return 1;
+  if (line.op === "DC") return Math.max(1, line.operands.length);
+  if (line.op === "DS") return Math.max(0, parseNumber(line.operands[0] ?? "0"));
+  return 0;
+}
+
+function registerNumber(token: string): number {
+  const match = /^GR([0-7])$/i.exec(token.trim());
+  if (!match) throw new Error(`Unsupported register ${token}`);
+  return Number(match[1]);
+}
+
+function encodeInstruction(op: "LD" | "ADDA" | "ST" | "RET", gr = 0): number {
+  switch (op) {
+    case "LD":
+      return 0x1000 | (gr << 4);
+    case "ADDA":
+      return 0x2000 | (gr << 4);
+    case "ST":
+      return 0x1100 | (gr << 4);
+    case "RET":
+      return 0x8100;
+  }
+}
+
+function parseProgram(source: string): ParsedLine[] {
+  return source.split(/\r?\n/).map(parseLine).filter((line) => line.op || line.label);
+}
+
+function assembleArtifacts(source: string): AssembleArtifacts {
+  const lines = parseProgram(source);
+  const diagnostics: Diagnostic[] = [];
+  const symbols: Record<string, number> = {};
+  const memory: Record<number, number> = {};
+  const sourceMap: SourceMapEntry[] = [];
+  const program: AssembledInstruction[] = [];
+  let address = START_ADDRESS;
+
+  for (const line of lines) {
+    if (!line.op) {
+      diagnostics.push({ line: line.line, message: "Unsupported or missing operation", severity: "error" });
+      continue;
+    }
+
+    line.address = address;
+    if (line.label) {
+      const key = symbolKey(line.label);
+      if (Object.prototype.hasOwnProperty.call(symbols, key)) {
+        diagnostics.push({ line: line.line, message: `Duplicate label: ${line.label}`, severity: "error" });
+      } else {
+        symbols[key] = address;
+      }
+    }
+    if (line.op === "START") {
+      line.address = START_ADDRESS;
+      if (line.label && !Object.prototype.hasOwnProperty.call(symbols, symbolKey(line.label))) symbols[symbolKey(line.label)] = START_ADDRESS;
+      address = START_ADDRESS;
+      continue;
+    }
+    if (line.op === "END") continue;
+    try {
+      const size = instructionSize(line);
+      if (address + size > 0x10000) {
+        diagnostics.push({ line: line.line, message: "Program memory exceeds 0xFFFF", severity: "error" });
+      } else {
+        address += size;
+      }
+    } catch (error) {
+      diagnostics.push({ line: line.line, message: (error as Error).message, severity: "error" });
+    }
+  }
+
+  address = START_ADDRESS;
+  for (const line of lines) {
+    if (!line.op || line.op === "START" || line.op === "END") continue;
+    const sourceText = line.source || line.raw.trim();
+
+    if (line.op === "LD" || line.op === "ADDA" || line.op === "ST") {
+      try {
+        const gr = registerNumber(line.operands[0] ?? "");
+        const operandLabel = line.operands[1];
+        const operandAddress = symbols[symbolKey(operandLabel)];
+        if (operandAddress === undefined) {
+          diagnostics.push({ line: line.line, message: `Undefined symbol: ${operandLabel}`, severity: "error" });
+          continue;
+        }
+        const machine = encodeInstruction(line.op, gr);
+        memory[address] = machine;
+        memory[address + 1] = operandAddress;
+        sourceMap.push({
+          line: line.line,
+          address,
+          machineWords: [machine, operandAddress],
+          source: sourceText,
+          label: line.label,
+          instruction: line.op
+        });
+        program.push({
+          address,
+          line: line.line,
+          op: line.op,
+          source: sourceText,
+          size: 2,
+          gr,
+          operandLabel,
+          operandAddress
+        });
+        address += 2;
+      } catch (error) {
+        diagnostics.push({ line: line.line, message: (error as Error).message, severity: "error" });
+      }
+      continue;
+    }
+
+    if (line.op === "RET") {
+      const machine = encodeInstruction("RET");
+      memory[address] = machine;
+      sourceMap.push({
+        line: line.line,
+        address,
+        machineWords: [machine],
+        source: sourceText,
+        label: line.label,
+        instruction: "RET"
+      });
+      program.push({ address, line: line.line, op: "RET", source: sourceText, size: 1 });
+      address += 1;
+      continue;
+    }
+
+    if (line.op === "DC") {
+      const values = line.operands.length ? line.operands : ["0"];
+      try {
+        const machineWords = values.map((valueToken) => word(parseNumber(valueToken)));
+        machineWords.forEach((value, valueIndex) => {
+          memory[address + valueIndex] = value;
+        });
+        sourceMap.push({
+          line: line.line,
+          address,
+          machineWords,
+          source: sourceText,
+          label: line.label,
+          instruction: "DC"
+        });
+        address += values.length;
+      } catch (error) {
+        diagnostics.push({ line: line.line, message: (error as Error).message, severity: "error" });
+      }
+      continue;
+    }
+
+    if (line.op === "DS") {
+      try {
+        const count = parseNumber(line.operands[0] ?? "0");
+        if (address + count > 0x10000) {
+          diagnostics.push({ line: line.line, message: "DS address out of range", severity: "error" });
+          continue;
+        }
+        for (let offset = 0; offset < count; offset += 1) {
+          memory[address + offset] = 0;
+        }
+        sourceMap.push({
+          line: line.line,
+          address,
+          machineWords: Array.from({ length: count }, () => 0),
+          source: sourceText,
+          label: line.label,
+          instruction: "DS"
+        });
+        address += count;
+      } catch (error) {
+        diagnostics.push({ line: line.line, message: (error as Error).message, severity: "error" });
+      }
+    }
+  }
+
+  return { memory, sourceMap, program, symbols, diagnostics };
+}
+
+function getMemory(memory: Record<number, number>, address: number): number {
+  return word(memory[address] ?? 0);
+}
+
+function setFlagsForSignedResult(value: number): FlagsState {
+  const result = word(value);
+  return {
+    z: result === 0,
+    c: value > 0xffff || value < 0,
+    n: (result & 0x8000) !== 0,
+    o: false
+  };
+}
+
+function instructionAt(state: CometState, address: number): AssembledInstruction | undefined {
+  return state.program?.find((instruction) => instruction.address === address);
+}
+
+function labelByAddress(symbols: Record<string, number>): Record<number, string> {
+  return Object.entries(symbols).reduce<Record<number, string>>((labels, [label, address]) => {
+    labels[address] = label;
+    return labels;
+  }, {});
+}
+
+function buildMemoryRows(
+  memory: Record<number, number>,
+  symbols: Record<string, number>,
+  currentAddress: number,
+  changedMemoryAddresses: number[]
+): MemoryRow[] {
+  const addresses = Object.keys(memory).map(Number);
+  const min = Math.min(START_ADDRESS, ...addresses);
+  const max = Math.max(START_ADDRESS + 10, ...addresses);
+  const labels = labelByAddress(symbols);
+  const changed = new Set(changedMemoryAddresses);
+
+  return Array.from({ length: max - min + 1 }, (_, index) => {
+    const address = min + index;
+    return {
+      address,
+      value: getMemory(memory, address),
+      label: labels[address],
+      changed: changed.has(address),
+      current: address === currentAddress
+    };
+  });
+}
+
+function buildRegisterRows(state: Pick<CometState, "gr" | "pr" | "sp" | "ir" | "mar" | "mdr" | "fr" | "changedRegisters">): RegisterState[] {
+  const changed = new Set(state.changedRegisters);
+  const rows: RegisterState[] = state.gr.map((value, index) => ({
+    name: `GR${index}`,
+    value,
+    decimal: value,
+    changed: changed.has(`GR${index}`)
+  }));
+
+  rows.push(
+    { name: "PR", value: state.pr, decimal: state.pr, changed: changed.has("PR") },
+    { name: "SP", value: state.sp, decimal: state.sp, changed: changed.has("SP") },
+    { name: "IR", value: state.ir, decimal: state.ir, changed: changed.has("IR") },
+    { name: "MAR", value: state.mar, decimal: state.mar, changed: changed.has("MAR") },
+    { name: "MDR", value: state.mdr, decimal: state.mdr, changed: changed.has("MDR") },
+    {
+      name: "FR",
+      value: (state.fr.z ? 0b100 : 0) | (state.fr.c ? 0b010 : 0) | (state.fr.n ? 0b001 : 0),
+      decimal: 0,
+      changed: changed.has("FR")
+    }
+  );
+
+  return rows;
+}
+
+function currentInstructionText(instruction?: AssembledInstruction): string | undefined {
+  if (!instruction) return undefined;
+  return instruction.source.replace(/\s+/g, " ");
+}
+
+function refreshDerivedState(state: CometState): CometState {
+  const current = instructionAt(state, state.pr);
+  const next: CometState = {
+    ...state,
+    currentAddress: current?.address,
+    currentLine: current?.line,
+    currentInstruction: currentInstructionText(current)
+  };
+  next.memoryRows = buildMemoryRows(next.memory, next.symbols, next.pr, next.changedMemoryAddresses);
+  next.registers = buildRegisterRows(next);
+  return next;
+}
+
+function createState(artifacts: AssembleArtifacts): CometState {
+  const diagnostics = artifacts.diagnostics;
+  const hasErrors = diagnostics.some((diagnostic) => diagnostic.severity === "error");
+  const state: CometState = {
+    assembled: !hasErrors,
+    runState: hasErrors ? "Error" : "Ready",
+    pr: START_ADDRESS,
+    sp: 0xfffe,
+    ir: 0,
+    mar: START_ADDRESS,
+    mdr: 0,
+    fr: initialFlags(),
+    gr: Array.from({ length: 8 }, () => 0),
+    memory: artifacts.memory,
+    initialMemory: { ...artifacts.memory },
+    memoryRows: [],
+    registers: [],
+    sourceMap: artifacts.sourceMap,
+    symbols: artifacts.symbols,
+    diagnostics,
+    output: hasErrors
+      ? ["Assemble failed.", ...diagnostics.map((diagnostic) => `Line ${diagnostic.line}: ${diagnostic.message}`)]
+      : ["Assemble succeeded. (0 errors, 0 warnings)", "Program loaded. Entry point: START (0020)"],
+    trace: [],
+    visualPath: hasErrors ? VisualPathKind.None : VisualPathKind.Ready_PrToMar,
+    stepIndex: 0,
+    program: artifacts.program,
+    changedRegisters: [],
+    changedMemoryAddresses: []
+  };
+  return refreshDerivedState(state);
+}
+
+export function createEmptyCometState(runState: CometState["runState"] = "Idle", output: string[] = []): CometState {
+  return refreshDerivedState({
+    assembled: false,
+    runState,
+    pr: START_ADDRESS,
+    sp: 0xfffe,
+    ir: 0,
+    mar: START_ADDRESS,
+    mdr: 0,
+    fr: initialFlags(),
+    gr: Array.from({ length: 8 }, () => 0),
+    memory: {},
+    initialMemory: {},
+    memoryRows: [],
+    registers: [],
+    sourceMap: [],
+    symbols: {},
+    diagnostics: [],
+    output,
+    trace: [],
+    visualPath: VisualPathKind.None,
+    stepIndex: 0,
+    program: [],
+    changedRegisters: [],
+    changedMemoryAddresses: []
+  });
+}
+
+function traceEvent(state: CometState, address: number, instruction: string, detail: string): TraceEvent {
+  return {
+    index: state.stepIndex + 1,
+    address,
+    instruction,
+    detail
+  };
+}
+
+function prependTrace(state: CometState, event: TraceEvent): void {
+  state.trace.unshift(event);
+  if (state.trace.length > MAX_TRACE_EVENTS) {
+    state.trace.length = MAX_TRACE_EVENTS;
+  }
+}
+
+export const mockCaslCore: CaslCore = {
+  assemble(source: string): CometState {
+    return createState(assembleArtifacts(source));
+  },
+
+  step(state: CometState): CometState {
+    const next = cloneState(state);
+    if (!next.assembled || next.runState === "Finished" || next.runState === "Error") return refreshDerivedState(next);
+
+    const instruction = instructionAt(next, next.pr);
+    if (!instruction) {
+      next.runState = "Error";
+      next.output.push(`No instruction at ${formatWord(next.pr)}.`);
+      return refreshDerivedState(next);
+    }
+
+    next.changedRegisters = ["PR", "IR"];
+    next.changedMemoryAddresses = [];
+    next.ir = getMemory(next.memory, instruction.address);
+    next.mar = instruction.operandAddress ?? instruction.address;
+    next.lastStep = {
+      executedAddress: instruction.address,
+      executedLine: instruction.line,
+      executedInstruction: instruction.source,
+      visualPath: VisualPathKind.None
+    };
+
+    if (instruction.op === "LD") {
+      const value = getMemory(next.memory, instruction.operandAddress!);
+      next.mdr = value;
+      next.gr[instruction.gr!] = value;
+      next.pr = word(next.pr + 2);
+      next.visualPath = VisualPathKind.LD_MemoryToMdrToGr;
+      next.lastStep.visualPath = next.visualPath;
+      next.changedRegisters.push(`GR${instruction.gr}`, "MAR", "MDR");
+      prependTrace(next, traceEvent(next, instruction.address, "LD", `Memory[${formatWord(instruction.operandAddress!)}] -> MDR -> GR${instruction.gr}`));
+    }
+
+    if (instruction.op === "ADDA") {
+      const value = getMemory(next.memory, instruction.operandAddress!);
+      const result = next.gr[instruction.gr!] + value;
+      next.mdr = value;
+      next.gr[instruction.gr!] = word(result);
+      next.fr = setFlagsForSignedResult(result);
+      next.pr = word(next.pr + 2);
+      next.visualPath = VisualPathKind.ADDA_GrMdrToAluToGr;
+      next.lastStep.visualPath = next.visualPath;
+      next.changedRegisters.push(`GR${instruction.gr}`, "MAR", "MDR", "FR");
+      prependTrace(next, traceEvent(next, instruction.address, "ADDA", `GR${instruction.gr} + MDR -> ALU -> GR${instruction.gr}`));
+    }
+
+    if (instruction.op === "ST") {
+      const value = next.gr[instruction.gr!];
+      next.mdr = value;
+      next.memory[instruction.operandAddress!] = value;
+      next.pr = word(next.pr + 2);
+      next.visualPath = VisualPathKind.ST_GrToMdrToMemory;
+      next.lastStep.visualPath = next.visualPath;
+      next.changedRegisters.push("MAR", "MDR");
+      next.changedMemoryAddresses = [instruction.operandAddress!];
+      prependTrace(next, traceEvent(next, instruction.address, "ST", `GR${instruction.gr} -> MDR -> Memory[${formatWord(instruction.operandAddress!)}]`));
+    }
+
+    if (instruction.op === "RET") {
+      next.runState = "Finished";
+      next.visualPath = VisualPathKind.Finished_None;
+      next.lastStep.visualPath = next.visualPath;
+      prependTrace(next, traceEvent(next, instruction.address, "RET", "Program finished without jumping to an invalid address."));
+      next.output.push("Execution finished.");
+    }
+
+    next.stepIndex += 1;
+    return refreshDerivedState(next);
+  },
+
+  reset(state: CometState): CometState {
+    const resetState: CometState = {
+      ...cloneState(state),
+      runState: state.assembled ? "Ready" : "Idle",
+      pr: START_ADDRESS,
+      sp: 0xfffe,
+      ir: 0,
+      mar: START_ADDRESS,
+      mdr: 0,
+      fr: initialFlags(),
+      gr: Array.from({ length: 8 }, () => 0),
+      trace: [],
+      output: state.assembled ? ["Program reset. Entry point: START (0020)"] : [],
+      visualPath: state.assembled ? VisualPathKind.Ready_PrToMar : VisualPathKind.None,
+      stepIndex: 0,
+      lastStep: undefined,
+      changedRegisters: [],
+      changedMemoryAddresses: []
+    };
+
+    resetState.memory = state.initialMemory ? { ...state.initialMemory } : { ...state.memory };
+
+    return refreshDerivedState(resetState);
+  }
+};

@@ -1,0 +1,89 @@
+import { Check, FolderOpen, Loader2, Moon, Play, Plus, RotateCcw, Save, Square, StepForward, Sun } from "lucide-react";
+import { useEffect, useState } from "react";
+import type { ReactNode } from "react";
+
+type ToolbarProps = {
+  assembleStatus: "default" | "running" | "success" | "error";
+  canStep: boolean;
+  canReset: boolean;
+  isRunning: boolean;
+  onAssemble: () => void;
+  onStep: () => void;
+  onReset: () => void;
+};
+
+type ButtonProps = {
+  label: string;
+  icon: ReactNode;
+  variant?: "primary" | "success" | "danger";
+  disabled?: boolean;
+  active?: boolean;
+  loading?: boolean;
+  onClick?: () => void;
+};
+
+function ToolButton({ label, icon, variant, disabled, active, loading, onClick }: ButtonProps) {
+  return (
+    <button className={`tool-button ${variant ?? ""} ${active ? "active" : ""} ${loading ? "loading" : ""}`} disabled={disabled} onClick={onClick} title={label}>
+      {loading ? <Loader2 className="spinner" size={17} /> : icon}
+      <span>{label}</span>
+    </button>
+  );
+}
+
+export default function Toolbar({ assembleStatus, canStep, canReset, isRunning, onAssemble, onStep, onReset }: ToolbarProps) {
+  const [showAssembleSuccess, setShowAssembleSuccess] = useState(false);
+
+  useEffect(() => {
+    if (assembleStatus !== "success") return;
+    setShowAssembleSuccess(true);
+    const timeout = window.setTimeout(() => setShowAssembleSuccess(false), 1400);
+    return () => window.clearTimeout(timeout);
+  }, [assembleStatus]);
+
+  const assembleLabel = assembleStatus === "running" ? "Assembling..." : showAssembleSuccess ? "Assembled" : "Assemble";
+
+  return (
+    <header className="toolbar">
+      <div className="brand">
+        <div className="brand-mark">stugx.CASL</div>
+        <div>
+          <h1>CASL Studio Next</h1>
+          <p>CASL II / COMET II learning IDE</p>
+        </div>
+      </div>
+
+      <nav className="toolbar-actions" aria-label="Primary commands">
+        <ToolButton label="New" icon={<Plus size={18} />} variant="primary" disabled />
+        <ToolButton label="Open" icon={<FolderOpen size={18} />} disabled />
+        <ToolButton label="Save" icon={<Save size={18} />} disabled />
+        <ToolButton
+          label={assembleLabel}
+          icon={<Check size={18} />}
+          variant="success"
+          active={showAssembleSuccess}
+          loading={assembleStatus === "running"}
+          disabled={assembleStatus === "running"}
+          onClick={onAssemble}
+        />
+        <ToolButton label="Run" icon={<Play size={18} />} variant="primary" disabled />
+        <ToolButton label="Step" icon={<StepForward size={18} />} variant="primary" disabled={!canStep} onClick={onStep} />
+        <ToolButton label="Reset" icon={<RotateCcw size={18} />} disabled={!canReset} onClick={onReset} />
+        <ToolButton label="Stop" icon={<Square size={18} />} variant="danger" disabled={!isRunning} />
+      </nav>
+
+      <div className="toolbar-meta">
+        <div className="segmented" aria-label="Language selector">
+          <button disabled>JP</button>
+          <button className="selected">EN</button>
+          <button disabled>CN</button>
+        </div>
+        <button className="theme-toggle" disabled title="Theme toggle">
+          <Sun size={16} />
+          <span />
+          <Moon size={16} />
+        </button>
+      </div>
+    </header>
+  );
+}

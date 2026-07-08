@@ -24,6 +24,7 @@ export function selectGeneratedCaslRows(source: string, mapping: CppToCaslMap[] 
       mappingKinds.includes("generated-label") ||
       mappingKinds.includes("loop-label") ||
       mappingKinds.includes("loop-back-jump") ||
+      mappingKinds.includes("loop-continue-label") ||
       mappingKinds.includes("for-label") ||
       mappingKinds.includes("for-back-jump") ||
       mappingKinds.includes("constant");

@@ -187,4 +187,38 @@ describe("C++ subset parser", () => {
       expression: { kind: "BinaryExpression", operator: "-", right: { kind: "IntegerLiteral", value: 1 } }
     });
   });
+
+  it("parse_break_statement", () => {
+    const result = parseCpp(`int main() {
+    int i = 0;
+    while (i < 3) {
+        break;
+    }
+    return i;
+}`);
+
+    expect(result.diagnostics).toEqual([]);
+    const whileStatement = result.program?.main.body.find((statement) => statement.kind === "WhileStatement");
+    expect(whileStatement).toMatchObject({
+      kind: "WhileStatement",
+      body: [expect.objectContaining({ kind: "BreakStatement" })]
+    });
+  });
+
+  it("parse_continue_statement", () => {
+    const result = parseCpp(`int main() {
+    int i = 0;
+    while (i < 3) {
+        continue;
+    }
+    return i;
+}`);
+
+    expect(result.diagnostics).toEqual([]);
+    const whileStatement = result.program?.main.body.find((statement) => statement.kind === "WhileStatement");
+    expect(whileStatement).toMatchObject({
+      kind: "WhileStatement",
+      body: [expect.objectContaining({ kind: "ContinueStatement" })]
+    });
+  });
 });

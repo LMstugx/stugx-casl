@@ -269,4 +269,32 @@ describe("machine code rows", () => {
     expect(explanation.register).toBe(1);
     expect(explanation.meaning).toContain("GR1");
   });
+
+  it("machine_code_rows_break_continue_jump", () => {
+    const program = getDemoProgram("cpp-break-continue");
+    expect(program).toBeDefined();
+    const prepared = prepareSourceForCoreAssembly(program!.source, "cpp");
+    expect(prepared.ok).toBe(true);
+    const state = stateFromRaw(mockCaslCore.assemble(prepared.coreSourceText));
+    const rows = selectMachineCodeRows(state, prepared.mapping);
+
+    expect(rows.some((row) => row.sourceText.includes("JUMP FOR_CONTINUE_0") && row.relatedCppLine === 6)).toBe(true);
+    expect(rows.some((row) => row.sourceText.includes("JUMP FOR_END_0") && row.relatedCppLine === 10)).toBe(true);
+  });
+
+  it("machine_code_explanation_break_continue_jump", () => {
+    const program = getDemoProgram("cpp-break-continue");
+    expect(program).toBeDefined();
+    const prepared = prepareSourceForCoreAssembly(program!.source, "cpp");
+    expect(prepared.ok).toBe(true);
+    const state = stateFromRaw(mockCaslCore.assemble(prepared.coreSourceText));
+    const rows = selectMachineCodeRows(state, prepared.mapping);
+
+    const continueJump = rows.find((row) => row.sourceText.includes("JUMP FOR_CONTINUE_0") && row.kind === "instruction");
+    const breakJump = rows.find((row) => row.sourceText.includes("JUMP FOR_END_0") && row.kind === "instruction");
+    expect(continueJump).toBeDefined();
+    expect(breakJump).toBeDefined();
+    expect(explainMachineCodeRow(continueJump!).meaning).toContain("FOR_CONTINUE_0");
+    expect(explainMachineCodeRow(breakJump!).meaning).toContain("FOR_END_0");
+  });
 });

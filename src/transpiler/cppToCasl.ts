@@ -39,12 +39,19 @@ type ConstantEntry = {
   cppLine: number;
 };
 
+type LoopContext = {
+  breakTarget: string;
+  continueTarget: string;
+  kind: "while" | "for";
+};
+
 type GeneratorContext = {
   labels: Map<string, string>;
   constants: Map<number, ConstantEntry>;
   usedLabels: Set<string>;
   lines: GeneratedLine[];
   pendingLabels: PendingLabel[];
+  loopStack: LoopContext[];
   nextIfId: number;
   nextLoopId: number;
 };
@@ -56,6 +63,7 @@ export function generateCaslFromCpp(program: CppProgram, variables: CppVariableS
     usedLabels: new Set(["MAIN", ...variables.map((variable) => variable.label)]),
     lines: [{ text: "MAIN START", mappings: [] }],
     pendingLabels: [],
+    loopStack: [],
     nextIfId: 0,
     nextLoopId: 0
   };
@@ -129,6 +137,16 @@ function emitStatement(context: GeneratorContext, statement: CppStatement, branc
 
   if (statement.kind === "ForStatement") {
     emitFor(context, statement);
+    return;
+  }
+
+  if (statement.kind === "BreakStatement") {
+    emitBreak(context, statement);
+    return;
+  }
+
+  if (statement.kind === "ContinueStatement") {
+    emitContinue(context, statement);
   }
 }
 
@@ -185,7 +203,9 @@ function emitWhile(context: GeneratorContext, statement: Extract<CppStatement, {
   emitLabel(context, beginLabel, statement.line, "loop begin label", "loop-label");
   emitConditionJump(context, statement.condition, bodyLabel, endLabel, "while-condition", "while condition");
   emitLabel(context, bodyLabel, statement.line, "loop body label", "loop-label");
+  context.loopStack.push({ kind: "while", breakTarget: endLabel, continueTarget: beginLabel });
   emitStatements(context, statement.body, "while-body");
+  context.loopStack.pop();
   emit(context, `     JUMP  ${beginLabel}`, { cppLine: statement.line, reason: "repeat while loop", kind: "loop-back-jump" });
   emitLabel(context, endLabel, statement.line, "loop end label", "loop-label");
 }
@@ -195,6 +215,7 @@ function emitFor(context: GeneratorContext, statement: Extract<CppStatement, { k
   context.nextLoopId += 1;
   const beginLabel = uniqueLabel(context, `FOR_BEGIN_${id}`);
   const bodyLabel = uniqueLabel(context, `FOR_BODY_${id}`);
+  const continueLabel = uniqueLabel(context, `FOR_CONTINUE_${id}`);
   const endLabel = uniqueLabel(context, `FOR_END_${id}`);
 
   if (statement.initializer?.kind === "VarDecl") {
@@ -207,10 +228,25 @@ function emitFor(context: GeneratorContext, statement: Extract<CppStatement, { k
   if (!statement.condition) throw new Error("for without condition is not supported yet");
   emitConditionJump(context, statement.condition, bodyLabel, endLabel, "for-condition", "for condition");
   emitLabel(context, bodyLabel, statement.line, "for body label", "for-label");
+  context.loopStack.push({ kind: "for", breakTarget: endLabel, continueTarget: continueLabel });
   emitStatements(context, statement.body, "for-body");
+  context.loopStack.pop();
+  emitLabel(context, continueLabel, statement.line, "for continue label", "loop-continue-label");
   if (statement.increment) emitAssignment(context, statement.increment, "for-increment");
   emit(context, `     JUMP  ${beginLabel}`, { cppLine: statement.line, reason: "repeat for loop", kind: "for-back-jump" });
   emitLabel(context, endLabel, statement.line, "for end label", "for-label");
+}
+
+function emitBreak(context: GeneratorContext, statement: Extract<CppStatement, { kind: "BreakStatement" }>): void {
+  const loop = context.loopStack[context.loopStack.length - 1];
+  if (!loop) throw new Error("break is only supported inside a loop");
+  emit(context, `     JUMP  ${loop.breakTarget}`, { cppLine: statement.line, reason: `break ${loop.kind} loop`, kind: "break-statement" });
+}
+
+function emitContinue(context: GeneratorContext, statement: Extract<CppStatement, { kind: "ContinueStatement" }>): void {
+  const loop = context.loopStack[context.loopStack.length - 1];
+  if (!loop) throw new Error("continue is only supported inside a loop");
+  emit(context, `     JUMP  ${loop.continueTarget}`, { cppLine: statement.line, reason: `continue ${loop.kind} loop`, kind: "continue-statement" });
 }
 
 function emitConditionJump(

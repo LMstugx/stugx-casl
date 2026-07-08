@@ -47,7 +47,7 @@ The current subset still rejects:
 - `for` without condition
 - multiple initializer expressions
 - multiple increment expressions
-- `break` / `continue`
+- `break` / `continue` outside loops
 - `do while`
 - `&&`, `||`, unary `!`
 - arrays, pointers, references, function calls, classes, structs, templates
@@ -64,6 +64,7 @@ condition
 false -> FOR_END_n
 FOR_BODY_n
 body
+FOR_CONTINUE_n
 increment
 JUMP FOR_BEGIN_n
 FOR_END_n
@@ -95,7 +96,7 @@ FOR_BEGIN_0 LD    GR1,I
 FOR_BODY_0 LD    GR1,SUM
      ADDA  GR1,I
      ST    GR1,SUM
-     LD    GR1,I
+FOR_CONTINUE_0 LD    GR1,I
      ADDA  GR1,CONST_1
      ST    GR1,I
      JUMP  FOR_BEGIN_0
@@ -121,6 +122,8 @@ New mapping kinds:
 
 The for source line maps to initializer, condition, increment, generated labels, and the back jump. Body statements map to their own C++ source lines. The Generated CASL panel marks generated labels and back jumps as low-emphasis metadata. Machine Code rows use the same mapping to show related C++ lines.
 
+Phase 7E adds `FOR_CONTINUE_n` so `continue;` in a for body jumps to the increment block before returning to `FOR_BEGIN_n`.
+
 ## Machine Code Observation
 
 After assembly, the Machine Code tab shows the words generated for:
@@ -138,9 +141,9 @@ The Phase 7B explanation panel continues to decode opcode, register, operand wor
 - `for` is syntax sugar only; no new VM behavior was added.
 - For declaration initializer variables are statically allocated and initialized by generated CASL before `FOR_BEGIN_n`.
 - No nested scope model is implemented.
-- `break` and `continue` remain unsupported.
+- `break` and `continue` are supported only inside loops.
 
 ## Next Steps
 
-- Add `break` / `continue` only after mapping and max-step behavior remain stable.
+- Keep break / continue mapping stable across Generated CASL, Machine Code, and Trace.
 - Consider a compact control-flow graph view if generated label flow becomes hard to follow.

@@ -91,13 +91,13 @@ Machine Code and Machine Code Explanation require no special handling. The synta
 
 ## Current Limits
 
-- No `break` or `continue`.
+- `break` and `continue` are supported only inside loops as of Phase 7E.
 - No `do while`.
 - No arrays or function calls.
 - No `&&`, `||`, or unary `!`.
 - Compound assignment currently accepts only integer literal or declared identifier as the step.
 - No full C++ scope model.
 
-## Why Break / Continue Are Still Deferred
+## Break / Continue Interaction
 
-`break` and `continue` require explicit target-label mapping for nested loops and careful source mapping for Generated CASL and Machine Code views. They should be added only after the current loop mapping remains stable.
+Phase 7E lowers `break` and `continue` into CASL `JUMP` instructions. Syntax sugar remains normalized before CASL generation, so `for (...; ...; i++)` and `for (...; ...; i += step)` still use the same increment block that `continue` targets through `FOR_CONTINUE_n`.

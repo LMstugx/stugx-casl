@@ -2,7 +2,15 @@ import type { Diagnostic } from "../core/types";
 
 export type CppExpression = CppIdentifier | CppIntegerLiteral | CppBinaryExpression;
 
-export type CppStatement = CppVarDecl | CppAssignment | CppReturn | CppIfStatement | CppWhileStatement | CppForStatement;
+export type CppStatement =
+  | CppVarDecl
+  | CppAssignment
+  | CppReturn
+  | CppIfStatement
+  | CppWhileStatement
+  | CppForStatement
+  | CppBreakStatement
+  | CppContinueStatement;
 export type CppConditionOperator = "==" | "!=" | "<" | "<=" | ">" | ">=";
 export type CppToCaslMapKind =
   | "declaration"
@@ -24,7 +32,10 @@ export type CppToCaslMapKind =
   | "for-label"
   | "for-back-jump"
   | "update-expression"
-  | "compound-assignment";
+  | "compound-assignment"
+  | "break-statement"
+  | "continue-statement"
+  | "loop-continue-label";
 
 export interface CppProgram {
   kind: "Program";
@@ -82,6 +93,16 @@ export interface CppForStatement {
   condition: CppCondition | null;
   increment: CppAssignment | null;
   body: CppStatement[];
+}
+
+export interface CppBreakStatement {
+  kind: "BreakStatement";
+  line: number;
+}
+
+export interface CppContinueStatement {
+  kind: "ContinueStatement";
+  line: number;
 }
 
 export interface CppCondition {

@@ -122,6 +122,32 @@ C    DS    1
     whatThisShows: "Common C/C++ loop syntax sugar is normalized into assignment, add, store, and jump instructions.",
     expectedResult: "SUM = 0006 and GR0 = 0006 when the program finishes.",
     suggestedActions: ["Click Assemble.", "Open Generated CASL.", "Open Machine Code.", "Click Run.", "Confirm GR0 = 0006."]
+  },
+  {
+    id: "cpp-break-continue",
+    name: "C++: Break Continue",
+    mode: "cpp",
+    source: `int main() {
+    int sum = 0;
+
+    for (int i = 1; i <= 5; i++) {
+        if (i == 2) {
+            continue;
+        }
+
+        if (i == 4) {
+            break;
+        }
+
+        sum += i;
+    }
+
+    return sum;
+}`,
+    description: "Break and continue lowering into CASL jumps.",
+    whatThisShows: "break and continue are lowered into CASL JUMP instructions.",
+    expectedResult: "SUM = 0004 and GR0 = 0004 when the program finishes.",
+    suggestedActions: ["Click Assemble.", "Open Generated CASL.", "Open Machine Code.", "Step through continue and break.", "Check Trace and Memory."]
   }
 ];
 

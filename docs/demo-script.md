@@ -174,6 +174,36 @@ Suggested actions:
 4. Open `Machine Code`.
 5. Click `Run`.
 6. Check `Trace`, `Memory`, and `GR0`.
+
+## Appendix: Demo 7 - C++ Break Continue
+
+Select:
+
+```text
+C++: Break Continue
+```
+
+Talking points:
+
+- This demo uses `continue` to skip `i == 2` and `break` to exit at `i == 4`.
+- stugx.CASL lowers both statements into ordinary CASL `JUMP` instructions.
+- Open `Generated CASL` and point out `FOR_CONTINUE_0`, `FOR_END_0`, and the generated `JUMP` rows.
+- Open `Machine Code` and show that these jumps are normal COMET II machine words with opcode and operand explanations.
+- Run the program and confirm:
+
+```text
+SUM = 0004
+GR0 = 0004
+```
+
+Suggested actions:
+
+1. Load `C++: Break Continue`.
+2. Click `Assemble`.
+3. Open `Generated CASL`.
+4. Open `Machine Code`.
+5. Step through the `continue` and `break` paths, or click `Run`.
+6. Check `Trace`, `Memory`, and `GR0`.
 ## Appendix: Demo 6 - C++ For Sum Sugar
 
 Select:

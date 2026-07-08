@@ -116,6 +116,7 @@ Currently supported:
 - `while` with `==`, `!=`, `<`, `<=`, `>`, `>=`
 - `for` loops with one initializer, one comparison condition, and one assignment increment
 - loop syntax sugar: `i++`, `++i`, `i--`, `--i`, `i += step`, `i -= step`
+- `break;` and `continue;` inside `while` / `for` loops, including inside nested `if` / `else` blocks
 - `return 0;`
 - `return variable;`
 
@@ -148,7 +149,7 @@ C DS    1
      END
 ```
 
-Unsupported C++ features include classes, structs, pointers, references, templates, arrays, function calls, `std::cout`, strings, floats, `do while`, `break`, `continue`, complex boolean expressions, and full scope rules. See [docs/phase5b-cpp-subset-transpiler.md](docs/phase5b-cpp-subset-transpiler.md), [docs/phase5c-if-else-lowering.md](docs/phase5c-if-else-lowering.md), [docs/phase5d-while-lowering.md](docs/phase5d-while-lowering.md), [docs/phase5f-run-stop-trace.md](docs/phase5f-run-stop-trace.md), [docs/phase7c-for-lowering.md](docs/phase7c-for-lowering.md), and [docs/phase7d-loop-syntax-sugar.md](docs/phase7d-loop-syntax-sugar.md).
+Unsupported C++ features include classes, structs, pointers, references, templates, arrays, function calls, `std::cout`, strings, floats, `do while`, `switch`, complex boolean expressions, full scope rules, and loop-control statements outside loops. See [docs/phase5b-cpp-subset-transpiler.md](docs/phase5b-cpp-subset-transpiler.md), [docs/phase5c-if-else-lowering.md](docs/phase5c-if-else-lowering.md), [docs/phase5d-while-lowering.md](docs/phase5d-while-lowering.md), [docs/phase5f-run-stop-trace.md](docs/phase5f-run-stop-trace.md), [docs/phase7c-for-lowering.md](docs/phase7c-for-lowering.md), [docs/phase7d-loop-syntax-sugar.md](docs/phase7d-loop-syntax-sugar.md), and [docs/phase7e-break-continue.md](docs/phase7e-break-continue.md).
 
 ## Run / Stop
 
@@ -213,6 +214,7 @@ The app includes demo programs for recording walkthroughs:
 - `C++: While Sum`
 - `C++: For Sum`
 - `C++: For Sum Sugar`
+- `C++: Break Continue`
 
 Use the Demo selector above the Source Editor to load one. Loading a demo marks the runtime as `Dirty`; click `Assemble` to generate CASL and load the COMET state. C++ subset demos automatically open the `Generated CASL` dock after assembly.
 
@@ -381,9 +383,10 @@ See [docs/phase7a-machine-code-view.md](docs/phase7a-machine-code-view.md) for t
 See [docs/phase7b-machine-code-explanation.md](docs/phase7b-machine-code-explanation.md) for opcode and operand explanation details.
 See [docs/phase7c-for-lowering.md](docs/phase7c-for-lowering.md) for for loop lowering.
 See [docs/phase7d-loop-syntax-sugar.md](docs/phase7d-loop-syntax-sugar.md) for loop syntax sugar.
+See [docs/phase7e-break-continue.md](docs/phase7e-break-continue.md) for break / continue lowering.
 
 ## Suggested Next Phase
 
-1. Consider `break` / `continue` with explicit mapping and max-step protection.
+1. Consider a compact control-flow view for generated labels and jumps.
 2. Expand C++ / generated CASL dual highlighting interactions.
 3. Add a bit-level machine-code visualizer if students need deeper opcode inspection.

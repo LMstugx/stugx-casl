@@ -37,7 +37,7 @@ export function checkCppSemantics(program: CppProgram | null, parseDiagnostics: 
   return { ok: diagnostics.every((diagnostic) => diagnostic.severity !== "error"), diagnostics, variables: [...variables.values()] };
 }
 
-function validateStatements(statements: CppStatement[], variables: Map<string, CppVariableSymbol>, usedLabels: Set<string>, diagnostics: Diagnostic[]): void {
+function validateStatements(statements: CppStatement[], variables: Map<string, CppVariableSymbol>, usedLabels: Set<string>, diagnostics: Diagnostic[], loopDepth = 0): void {
   for (const statement of statements) {
     if (statement.kind === "VarDecl") {
       validateVarDecl(statement, variables, usedLabels, diagnostics, true);
@@ -56,14 +56,14 @@ function validateStatements(statements: CppStatement[], variables: Map<string, C
 
     if (statement.kind === "IfStatement") {
       validateCondition(statement.condition, variables, diagnostics);
-      validateStatements(statement.thenBody, variables, usedLabels, diagnostics);
-      if (statement.elseBody) validateStatements(statement.elseBody, variables, usedLabels, diagnostics);
+      validateStatements(statement.thenBody, variables, usedLabels, diagnostics, loopDepth);
+      if (statement.elseBody) validateStatements(statement.elseBody, variables, usedLabels, diagnostics, loopDepth);
       continue;
     }
 
     if (statement.kind === "WhileStatement") {
       validateCondition(statement.condition, variables, diagnostics);
-      validateStatements(statement.body, variables, usedLabels, diagnostics);
+      validateStatements(statement.body, variables, usedLabels, diagnostics, loopDepth + 1);
       continue;
     }
 
@@ -84,7 +84,17 @@ function validateStatements(statements: CppStatement[], variables: Map<string, C
         validateAssignment(statement.increment, variables, diagnostics);
         validateForIncrement(statement.increment, variables, diagnostics);
       }
-      validateStatements(statement.body, variables, usedLabels, diagnostics);
+      validateStatements(statement.body, variables, usedLabels, diagnostics, loopDepth + 1);
+      continue;
+    }
+
+    if (statement.kind === "BreakStatement") {
+      if (loopDepth === 0) diagnostics.push({ line: statement.line, message: "break is only supported inside a loop", severity: "error" });
+      continue;
+    }
+
+    if (statement.kind === "ContinueStatement") {
+      if (loopDepth === 0) diagnostics.push({ line: statement.line, message: "continue is only supported inside a loop", severity: "error" });
     }
   }
 }

@@ -1,8 +1,10 @@
 import type { Diagnostic } from "../core/types";
 import type {
   CppAssignment,
+  CppBreakStatement,
   CppBinaryExpression,
   CppCondition,
+  CppContinueStatement,
   CppConditionOperator,
   CppExpression,
   CppForStatement,
@@ -85,6 +87,8 @@ class Parser {
     if (this.checkKeyword("if")) return this.parseIf();
     if (this.checkKeyword("while")) return this.parseWhile();
     if (this.checkKeyword("for")) return this.parseFor();
+    if (this.checkKeyword("break")) return this.parseBreak();
+    if (this.checkKeyword("continue")) return this.parseContinue();
     if (this.check("identifier") || this.checkSymbol("++") || this.checkSymbol("--")) return this.parseAssignmentLike();
 
     const token = this.current();
@@ -206,6 +210,18 @@ class Parser {
     this.consumeSymbol(";", "Expected ';' after return expression.");
     if (!expression) return null;
     return { kind: "Return", line: start.line, expression };
+  }
+
+  private parseBreak(): CppBreakStatement {
+    const start = this.advance();
+    this.consumeSymbol(";", "Expected ';' after break.");
+    return { kind: "BreakStatement", line: start.line };
+  }
+
+  private parseContinue(): CppContinueStatement {
+    const start = this.advance();
+    this.consumeSymbol(";", "Expected ';' after continue.");
+    return { kind: "ContinueStatement", line: start.line };
   }
 
   private parseIf(): CppIfStatement | null {

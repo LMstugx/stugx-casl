@@ -256,7 +256,6 @@ describe("C++ subset to CASL generator", () => {
     return c;
 }`);
     const state = runToEnd(result.caslSource);
-
     expect(state.runState).toBe("Finished");
     expect(state.memory[state.symbols.C]).toBe(0x0001);
     expect(state.gr[0]).toBe(0x0001);
@@ -665,5 +664,187 @@ describe("C++ subset to CASL generator", () => {
     expect(state.runState).toBe("Finished");
     expect(state.memory[state.symbols.SUM]).toBe(0x0006);
     expect(state.gr[0]).toBe(0x0006);
+  });
+
+  it("transpile_while_break", () => {
+    const result = expectOk(`int main() {
+    int i = 0;
+    while (i < 3) {
+        break;
+    }
+    return i;
+}`);
+
+    expect(result.caslSource).toContain("     JUMP  LOOP_END_0");
+    expect(result.mapping.some((entry) => entry.kind === "break-statement" && entry.cppLine === 4)).toBe(true);
+  });
+
+  it("transpile_while_continue", () => {
+    const result = expectOk(`int main() {
+    int i = 0;
+    while (i < 3) {
+        i++;
+        continue;
+    }
+    return i;
+}`);
+
+    expect(result.caslSource).toContain("     JUMP  LOOP_BEGIN_0");
+    expect(result.mapping.some((entry) => entry.kind === "continue-statement" && entry.cppLine === 5)).toBe(true);
+  });
+
+  it("transpile_for_break", () => {
+    const result = expectOk(`int main() {
+    int sum = 0;
+    for (int i = 1; i <= 3; i++) {
+        break;
+    }
+    return sum;
+}`);
+
+    expect(result.caslSource).toContain("     JUMP  FOR_END_0");
+    expect(result.mapping.some((entry) => entry.kind === "break-statement" && entry.cppLine === 4)).toBe(true);
+  });
+
+  it("transpile_for_continue_jumps_to_increment_label", () => {
+    const result = expectOk(`int main() {
+    int sum = 0;
+    for (int i = 1; i <= 3; i++) {
+        continue;
+        sum += i;
+    }
+    return sum;
+}`);
+
+    const lines = result.caslSource.split("\n");
+    const continueJump = result.mapping.find((entry) => entry.kind === "continue-statement");
+    expect(continueJump).toBeDefined();
+    expect(lines[continueJump!.caslLines[0] - 1]).toContain("JUMP  FOR_CONTINUE_0");
+    expect(result.caslSource).toContain("FOR_CONTINUE_0 LD    GR1,I");
+    expect(result.mapping.some((entry) => entry.kind === "loop-continue-label" && entry.cppLine === 3)).toBe(true);
+  });
+
+  it("transpile_nested_loop_break_targets_inner_loop", () => {
+    const result = expectOk(`int main() {
+    int sum = 0;
+    while (sum < 3) {
+        for (int i = 1; i <= 3; i++) {
+            break;
+        }
+        sum++;
+    }
+    return sum;
+}`);
+
+    const lines = result.caslSource.split("\n");
+    const breakJump = result.mapping.find((entry) => entry.kind === "break-statement");
+    expect(breakJump).toBeDefined();
+    expect(lines[breakJump!.caslLines[0] - 1]).toContain("JUMP  FOR_END_1");
+    expect(lines[breakJump!.caslLines[0] - 1]).not.toContain("LOOP_END_0");
+  });
+
+  it("transpile_nested_loop_continue_targets_inner_loop", () => {
+    const result = expectOk(`int main() {
+    int sum = 0;
+    while (sum < 3) {
+        for (int i = 1; i <= 3; i++) {
+            continue;
+        }
+        sum++;
+    }
+    return sum;
+}`);
+
+    const lines = result.caslSource.split("\n");
+    const continueJump = result.mapping.find((entry) => entry.kind === "continue-statement");
+    expect(continueJump).toBeDefined();
+    expect(lines[continueJump!.caslLines[0] - 1]).toContain("JUMP  FOR_CONTINUE_1");
+    expect(lines[continueJump!.caslLines[0] - 1]).not.toContain("LOOP_BEGIN_0");
+  });
+
+  it("cpp_for_break_continue_sum", () => {
+    const result = expectOk(`int main() {
+    int sum = 0;
+    for (int i = 1; i <= 5; i++) {
+        if (i == 2) {
+            continue;
+        }
+        if (i == 4) {
+            break;
+        }
+        sum += i;
+    }
+    return sum;
+}`);
+    const state = runToEnd(result.caslSource);
+
+    expect(state.runState).toBe("Finished");
+    expect(state.memory[state.symbols.SUM]).toBe(0x0004);
+    expect(state.gr[0]).toBe(0x0004);
+  });
+
+  it("cpp_while_break_sum", () => {
+    const result = expectOk(`int main() {
+    int i = 1;
+    int sum = 0;
+    while (i <= 5) {
+        if (i == 4) {
+            break;
+        }
+        sum += i;
+        i++;
+    }
+    return sum;
+}`);
+    const state = runToEnd(result.caslSource);
+
+    expect(state.runState).toBe("Finished");
+    expect(state.memory[state.symbols.SUM]).toBe(0x0006);
+    expect(state.gr[0]).toBe(0x0006);
+  });
+
+  it("cpp_while_continue_sum", () => {
+    const result = expectOk(`int main() {
+    int i = 0;
+    int sum = 0;
+    while (i < 5) {
+        i++;
+        if (i == 2) {
+            continue;
+        }
+        sum += i;
+    }
+    return sum;
+}`);
+    const state = runToEnd(result.caslSource);
+
+    expect(state.runState).toBe("Finished");
+    expect(state.memory[state.symbols.SUM]).toBe(0x000d);
+    expect(state.gr[0]).toBe(0x000d);
+  });
+
+  it("cpp_nested_loop_break_only_inner", () => {
+    const result = expectOk(`int main() {
+    int outer = 0;
+    int inner = 0;
+    int sum = 0;
+    while (outer < 2) {
+        inner = 0;
+        while (inner < 3) {
+            if (inner == 1) {
+                break;
+            }
+            sum += 1;
+            inner++;
+        }
+        outer++;
+    }
+    return sum;
+}`);
+    const state = runToEnd(result.caslSource);
+
+    expect(state.runState).toBe("Finished");
+    expect(state.memory[state.symbols.SUM]).toBe(0x0002);
+    expect(state.gr[0]).toBe(0x0002);
   });
 });

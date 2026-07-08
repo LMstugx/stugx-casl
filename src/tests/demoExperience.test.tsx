@@ -41,7 +41,8 @@ describe("demo recording experience", () => {
       "C++: If Else",
       "C++: While Sum",
       "C++: For Sum",
-      "C++: For Sum Sugar"
+      "C++: For Sum Sugar",
+      "C++: Break Continue"
     ]);
   });
 
@@ -138,6 +139,21 @@ describe("demo recording experience", () => {
 
     expect(state.runState).toBe("Finished");
     expect(state.gr[0]).toBe(0x0006);
+  });
+
+  it("demo_break_continue_run_finishes", () => {
+    const program = getDemoProgram("cpp-break-continue");
+    expect(program).toBeDefined();
+    const prepared = prepareSourceForCoreAssembly(program!.source, "cpp");
+    expect(prepared.ok).toBe(true);
+
+    let state = mockCaslCore.assemble(prepared.coreSourceText);
+    for (let step = 0; step < 200 && state.runState !== "Finished"; step += 1) {
+      state = mockCaslCore.step(state);
+    }
+
+    expect(state.runState).toBe("Finished");
+    expect(state.gr[0]).toBe(0x0004);
   });
 
   it("demo_guide_displays_expected_result", () => {

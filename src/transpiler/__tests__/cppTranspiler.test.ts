@@ -124,6 +124,58 @@ describe("C++ subset transpiler diagnostics", () => {
     expect(result.diagnostics.map((diagnostic) => diagnostic.message).join("\n")).toContain("not declared");
   });
 
+  it("semantic_break_outside_loop_reports_error", () => {
+    const result = transpileCppToCasl(`int main() {
+    break;
+    return 0;
+}`);
+
+    expect(result.ok).toBe(false);
+    expect(result.diagnostics.map((diagnostic) => diagnostic.message).join("\n")).toContain("break is only supported inside a loop");
+  });
+
+  it("semantic_continue_outside_loop_reports_error", () => {
+    const result = transpileCppToCasl(`int main() {
+    continue;
+    return 0;
+}`);
+
+    expect(result.ok).toBe(false);
+    expect(result.diagnostics.map((diagnostic) => diagnostic.message).join("\n")).toContain("continue is only supported inside a loop");
+  });
+
+  it("semantic_break_inside_if_inside_loop_is_valid", () => {
+    const result = transpileCppToCasl(`int main() {
+    int i = 0;
+    while (i < 3) {
+        if (i == 1) {
+            break;
+        }
+        i++;
+    }
+    return i;
+}`);
+
+    expect(result.ok).toBe(true);
+    expect(result.diagnostics).toEqual([]);
+  });
+
+  it("semantic_continue_inside_if_inside_loop_is_valid", () => {
+    const result = transpileCppToCasl(`int main() {
+    int sum = 0;
+    for (int i = 1; i <= 3; i++) {
+        if (i == 2) {
+            continue;
+        }
+        sum += i;
+    }
+    return sum;
+}`);
+
+    expect(result.ok).toBe(true);
+    expect(result.diagnostics).toEqual([]);
+  });
+
   it("transpile_invalid_syntax", () => {
     const result = transpileCppToCasl(`int main() {
     int* p;

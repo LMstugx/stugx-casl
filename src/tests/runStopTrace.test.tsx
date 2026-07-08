@@ -109,7 +109,10 @@ describe("Run / Stop / Trace UX", () => {
     expect(store.cometState.stepIndex).toBe(4);
     expect(store.cometState.gr[1]).toBe(0x001e);
     expect(store.cometState.memoryRows.find((row) => row.label === "C")?.value).toBe(0x001e);
+    expect(store.cometState.output).toContain("Run started. Max steps: 1000.");
     expect(store.cometState.output).toContain("Run finished after 4 steps.");
+    expect(store.cometState.trace).toHaveLength(4);
+    expect(store.cometState.trace[0].instruction).toBe("RET");
   });
 
   it("run_finishes_while_sum", async () => {
@@ -122,6 +125,8 @@ describe("Run / Stop / Trace UX", () => {
 
     expect(store.cometState.gr[0]).toBe(0x0006);
     expect(store.cometState.output).toContain("Run finished after 36 steps.");
+    expect(store.cometState.trace).toHaveLength(36);
+    expect(store.cometState.trace[0].index).toBe(36);
   });
 
   it("run_stops_at_max_steps and output_logs_max_steps", async () => {
@@ -135,6 +140,8 @@ describe("Run / Stop / Trace UX", () => {
     expect(store.cometState.output.join("\n")).toContain("Max steps reached. Possible infinite loop.");
     expect(store.cometState.stepIndex).toBe(25);
     expect(store.runStopReason).toBe("maxSteps");
+    expect(store.cometState.trace).toHaveLength(25);
+    expect(store.cometState.trace[0].index).toBe(25);
   });
 
   it("stop_interrupts_running", async () => {
@@ -224,6 +231,29 @@ describe("Toolbar run states", () => {
     expect(markup).toMatch(/data-testid="run-button"[^>]*disabled/);
     expect(markup).toMatch(/data-testid="step-button"[^>]*disabled/);
     expect(markup).not.toMatch(/data-testid="reset-button"[^>]*disabled/);
+    expect(markup).toMatch(/data-testid="stop-button"[^>]*disabled/);
+  });
+
+  it("toolbar_state_dirty_disables_run_step", () => {
+    const markup = renderToStaticMarkup(
+      <Toolbar
+        assembleStatus="default"
+        canRun={false}
+        canStep={false}
+        canReset={false}
+        isRunning={false}
+        onAssemble={() => undefined}
+        onRun={() => undefined}
+        onStep={() => undefined}
+        onReset={() => undefined}
+        onStop={() => undefined}
+      />
+    );
+
+    expect(markup).not.toMatch(/data-testid="assemble-button"[^>]*disabled/);
+    expect(markup).toMatch(/data-testid="run-button"[^>]*disabled/);
+    expect(markup).toMatch(/data-testid="step-button"[^>]*disabled/);
+    expect(markup).toMatch(/data-testid="reset-button"[^>]*disabled/);
     expect(markup).toMatch(/data-testid="stop-button"[^>]*disabled/);
   });
 });

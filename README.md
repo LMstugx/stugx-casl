@@ -158,6 +158,8 @@ Max steps reached. Possible infinite loop.
 
 Stop interrupts an active Run between batches. A manual stop can continue with Step or Run; a max-step safety stop disables Step/Run until Reset reloads the current assembled program.
 
+The Trace tab stores the detailed instruction history for Step and Run. Output intentionally stays as a summary log so long while programs do not flood the bottom dock.
+
 While example:
 
 ```cpp
@@ -326,6 +328,7 @@ See [docs/phase5c-if-else-lowering.md](docs/phase5c-if-else-lowering.md) for if 
 See [docs/phase5d-while-lowering.md](docs/phase5d-while-lowering.md) for while lowering.
 See [docs/phase5e-run-stop-trace.md](docs/phase5e-run-stop-trace.md) for the initial Run / Stop UX.
 See [docs/phase5f-run-stop-trace.md](docs/phase5f-run-stop-trace.md) for stabilized Run / Stop / maxSteps behavior.
+See [docs/phase5h-run-stop-trace.md](docs/phase5h-run-stop-trace.md) for the current Run / Stop / Trace stabilization checkpoint.
 See [docs/phase-memory-viewer.md](docs/phase-memory-viewer.md) for the detailed Inspector Memory viewer.
 
 ## Suggested Next Phase

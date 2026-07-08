@@ -1,5 +1,13 @@
 import { word } from "../core/types";
-import type { CppExpression, CppProgram, CppStatement, CppToCaslMap, CppVariableSymbol } from "./cppAst";
+import type {
+  CppCondition,
+  CppExpression,
+  CppProgram,
+  CppStatement,
+  CppToCaslMap,
+  CppToCaslMapKind,
+  CppVariableSymbol
+} from "./cppAst";
 import { hasExplicitReturn, variableLabelMap } from "./cppSemantic";
 
 export interface GenerateCaslResult {
@@ -7,103 +15,248 @@ export interface GenerateCaslResult {
   mapping: CppToCaslMap[];
 }
 
+type MappingInput = {
+  cppLine: number;
+  reason: string;
+  kind: CppToCaslMapKind;
+};
+
+type PendingLabel = {
+  label: string;
+  cppLine: number;
+  reason: string;
+};
+
 type GeneratedLine = {
   text: string;
-  cppLine?: number;
-  reason?: string;
+  mappings: MappingInput[];
+};
+
+type ConstantEntry = {
+  label: string;
+  value: number;
+  cppLine: number;
+};
+
+type GeneratorContext = {
+  labels: Map<string, string>;
+  constants: Map<number, ConstantEntry>;
+  usedLabels: Set<string>;
+  lines: GeneratedLine[];
+  pendingLabels: PendingLabel[];
+  nextIfId: number;
 };
 
 export function generateCaslFromCpp(program: CppProgram, variables: CppVariableSymbol[]): GenerateCaslResult {
-  const labels = variableLabelMap(variables);
-  const constants = new Map<number, string>();
-  const lines: GeneratedLine[] = [{ text: "MAIN START" }];
+  const context: GeneratorContext = {
+    labels: variableLabelMap(variables),
+    constants: new Map(),
+    usedLabels: new Set(["MAIN", ...variables.map((variable) => variable.label)]),
+    lines: [{ text: "MAIN START", mappings: [] }],
+    pendingLabels: [],
+    nextIfId: 0
+  };
 
-  for (const statement of program.main.body) {
-    if (statement.kind === "Assignment") {
-      emitExpression(lines, statement.expression, "GR1", labels, constants, statement.line);
-      emit(lines, `     ST    GR1,${labels.get(statement.target) ?? statement.target.toUpperCase()}`, statement.line, `store ${statement.target}`);
-      continue;
-    }
-
-    if (statement.kind === "Return") {
-      emitExpression(lines, statement.expression, "GR0", labels, constants, statement.line);
-      emit(lines, "     RET", statement.line, "return from main");
-    }
-  }
+  emitStatements(context, program.main.body);
 
   if (!hasExplicitReturn(program.main.body)) {
-    emit(lines, "     LAD   GR0,0", program.main.line, "implicit return 0");
-    emit(lines, "     RET", program.main.line, "return from main");
+    emit(context, "     LAD   GR0,0", { cppLine: program.main.line, reason: "implicit return 0", kind: "return" });
+    emit(context, "     RET", { cppLine: program.main.line, reason: "return from main", kind: "return" });
   }
 
   for (const variable of variables) {
     const value = variable.initializer;
     emit(
-      lines,
+      context,
       value === undefined ? `${variable.label} DS    1` : `${variable.label} DC    ${formatCaslLiteral(value)}`,
-      variable.declarationLine,
-      value === undefined ? `reserve ${variable.name}` : `initialize ${variable.name}`
+      {
+        cppLine: variable.declarationLine,
+        reason: value === undefined ? `reserve ${variable.name}` : `initialize ${variable.name}`,
+        kind: "declaration"
+      }
     );
   }
 
-  for (const [value, label] of constants) {
-    lines.push({ text: `${label} DC    ${formatCaslLiteral(value)}` });
+  for (const constant of context.constants.values()) {
+    emit(context, `${constant.label} DC    ${formatCaslLiteral(constant.value)}`, {
+      cppLine: constant.cppLine,
+      reason: `constant ${constant.value}`,
+      kind: "constant"
+    });
   }
 
-  lines.push({ text: "     END" });
+  emitRaw(context, "     END");
 
   return {
-    caslSource: lines.map((line) => line.text).join("\n"),
-    mapping: buildMapping(lines)
+    caslSource: context.lines.map((line) => line.text).join("\n"),
+    mapping: buildMapping(context.lines)
   };
 }
 
-function emit(lines: GeneratedLine[], text: string, cppLine: number, reason: string): void {
-  lines.push({ text, cppLine, reason });
+function emitStatements(context: GeneratorContext, statements: CppStatement[], branchKind?: "if-then" | "if-else"): void {
+  for (const statement of statements) {
+    emitStatement(context, statement, branchKind);
+  }
+}
+
+function emitStatement(context: GeneratorContext, statement: CppStatement, branchKind?: "if-then" | "if-else"): void {
+  if (statement.kind === "Assignment") {
+    const kind = branchKind ?? "assignment";
+    emitExpression(context, statement.expression, "GR1", statement.line, kind);
+    emit(context, `     ST    GR1,${context.labels.get(statement.target) ?? statement.target.toUpperCase()}`, {
+      cppLine: statement.line,
+      reason: `store ${statement.target}`,
+      kind
+    });
+    return;
+  }
+
+  if (statement.kind === "Return") {
+    const kind = branchKind ?? "return";
+    emitExpression(context, statement.expression, "GR0", statement.line, kind);
+    emit(context, "     RET", { cppLine: statement.line, reason: "return from main", kind });
+    return;
+  }
+
+  if (statement.kind === "IfStatement") {
+    emitIf(context, statement);
+  }
+}
+
+function emitIf(context: GeneratorContext, statement: Extract<CppStatement, { kind: "IfStatement" }>): void {
+  const id = context.nextIfId;
+  context.nextIfId += 1;
+  const trueLabel = uniqueLabel(context, `IF_TRUE_${id}`);
+  const endLabel = uniqueLabel(context, `IF_END_${id}`);
+
+  emitCondition(context, statement.condition, trueLabel);
+
+  if (statement.elseBody) {
+    emitStatements(context, statement.elseBody, "if-else");
+    emit(context, `     JUMP  ${endLabel}`, { cppLine: statement.line, reason: "skip then branch", kind: "if-else" });
+    emitLabel(context, trueLabel, statement.line, "if true label");
+    emitStatements(context, statement.thenBody, "if-then");
+    emitLabel(context, endLabel, statement.line, "if end label");
+    return;
+  }
+
+  emit(context, `     JUMP  ${endLabel}`, { cppLine: statement.line, reason: "skip if body", kind: "if-condition" });
+  emitLabel(context, trueLabel, statement.line, "if true label");
+  emitStatements(context, statement.thenBody, "if-then");
+  emitLabel(context, endLabel, statement.line, "if end label");
+}
+
+function emitCondition(context: GeneratorContext, condition: CppCondition, trueLabel: string): void {
+  emitExpression(context, condition.left, "GR1", condition.line, "if-condition");
+  const rightOperand = operandForExpression(context, condition.right, condition.line);
+  emit(context, `     CPA   GR1,${rightOperand}`, { cppLine: condition.line, reason: "compare if condition", kind: "if-condition" });
+
+  for (const jump of trueJumpsForCondition(condition.operator)) {
+    emit(context, `     ${jump.padEnd(5, " ")} ${trueLabel}`, {
+      cppLine: condition.line,
+      reason: `branch if ${condition.operator}`,
+      kind: "if-condition"
+    });
+  }
+}
+
+function trueJumpsForCondition(operator: CppCondition["operator"]): string[] {
+  switch (operator) {
+    case "==":
+      return ["JZE"];
+    case "!=":
+      return ["JNZ"];
+    case "<":
+      return ["JMI"];
+    case ">":
+      return ["JPL"];
+    case "<=":
+      return ["JMI", "JZE"];
+    case ">=":
+      return ["JPL", "JZE"];
+  }
 }
 
 function emitExpression(
-  lines: GeneratedLine[],
+  context: GeneratorContext,
   expression: CppExpression,
   targetRegister: "GR0" | "GR1",
-  labels: Map<string, string>,
-  constants: Map<number, string>,
-  cppLine: number
+  cppLine: number,
+  kind: CppToCaslMapKind
 ): void {
   if (expression.kind === "IntegerLiteral") {
-    emit(lines, `     LAD   ${targetRegister},${formatCaslLiteral(expression.value)}`, cppLine, "load integer literal");
+    emit(context, `     LAD   ${targetRegister},${formatCaslLiteral(expression.value)}`, { cppLine, reason: "load integer literal", kind });
     return;
   }
 
   if (expression.kind === "Identifier") {
-    emit(lines, `     LD    ${targetRegister},${labels.get(expression.name) ?? expression.name.toUpperCase()}`, cppLine, `load ${expression.name}`);
+    emit(context, `     LD    ${targetRegister},${context.labels.get(expression.name) ?? expression.name.toUpperCase()}`, {
+      cppLine,
+      reason: `load ${expression.name}`,
+      kind
+    });
     return;
   }
 
-  emitExpression(lines, expression.left, targetRegister, labels, constants, cppLine);
-  const rightOperand = operandForExpression(expression.right, labels, constants);
+  emitExpression(context, expression.left, targetRegister, cppLine, kind);
+  const rightOperand = operandForExpression(context, expression.right, cppLine);
   const op = expression.operator === "+" ? "ADDA" : "SUBA";
-  emit(lines, `     ${op.padEnd(5, " ")} ${targetRegister},${rightOperand}`, cppLine, expression.operator === "+" ? "add expression" : "subtract expression");
+  emit(context, `     ${op.padEnd(5, " ")} ${targetRegister},${rightOperand}`, {
+    cppLine,
+    reason: expression.operator === "+" ? "add expression" : "subtract expression",
+    kind
+  });
 }
 
-function operandForExpression(expression: CppExpression, labels: Map<string, string>, constants: Map<number, string>): string {
-  if (expression.kind === "Identifier") return labels.get(expression.name) ?? expression.name.toUpperCase();
-  if (expression.kind === "IntegerLiteral") return constantLabel(expression.value, constants);
+function operandForExpression(context: GeneratorContext, expression: CppExpression, cppLine: number): string {
+  if (expression.kind === "Identifier") return context.labels.get(expression.name) ?? expression.name.toUpperCase();
+  if (expression.kind === "IntegerLiteral") return constantLabel(context, expression.value, cppLine);
   throw new Error("Nested binary right-hand expressions are not supported by the C++ subset generator.");
 }
 
-function constantLabel(value: number, constants: Map<number, string>): string {
-  const existing = constants.get(value);
-  if (existing) return existing;
+function constantLabel(context: GeneratorContext, value: number, cppLine: number): string {
+  const existing = context.constants.get(value);
+  if (existing) return existing.label;
   const base = value < 0 ? `CONST_M${Math.abs(value)}` : `CONST_${value}`;
+  const label = uniqueLabel(context, base);
+  context.constants.set(value, { label, value, cppLine });
+  return label;
+}
+
+function uniqueLabel(context: GeneratorContext, base: string): string {
   let label = base;
   let suffix = 2;
-  while ([...constants.values()].includes(label)) {
+  while (context.usedLabels.has(label)) {
     label = `${base}_${suffix}`;
     suffix += 1;
   }
-  constants.set(value, label);
+  context.usedLabels.add(label);
   return label;
+}
+
+function emitLabel(context: GeneratorContext, label: string, cppLine: number, reason: string): void {
+  context.pendingLabels.push({ label, cppLine, reason });
+}
+
+function emit(context: GeneratorContext, text: string, mapping: MappingInput): void {
+  const mappings = [mapping];
+  const finalText = applyPendingLabels(context, text, mappings);
+  context.lines.push({ text: finalText, mappings });
+}
+
+function emitRaw(context: GeneratorContext, text: string): void {
+  const mappings: MappingInput[] = [];
+  const finalText = applyPendingLabels(context, text, mappings);
+  context.lines.push({ text: finalText, mappings });
+}
+
+function applyPendingLabels(context: GeneratorContext, text: string, mappings: MappingInput[]): string {
+  if (context.pendingLabels.length === 0) return text;
+  const labels = context.pendingLabels.splice(0);
+  for (const label of labels) {
+    mappings.push({ cppLine: label.cppLine, reason: label.reason, kind: "generated-label" });
+  }
+  return `${labels.map((label) => label.label).join(" ")} ${text.trimStart()}`;
 }
 
 function formatCaslLiteral(value: number): string {
@@ -114,14 +267,15 @@ function formatCaslLiteral(value: number): string {
 function buildMapping(lines: GeneratedLine[]): CppToCaslMap[] {
   const map = new Map<string, CppToCaslMap>();
   lines.forEach((line, index) => {
-    if (line.cppLine === undefined || line.reason === undefined) return;
-    const key = `${line.cppLine}:${line.reason}`;
-    const existing = map.get(key);
-    if (existing) {
-      existing.caslLines.push(index + 1);
-      return;
+    for (const mapping of line.mappings) {
+      const key = `${mapping.cppLine}:${mapping.kind}:${mapping.reason}`;
+      const existing = map.get(key);
+      if (existing) {
+        existing.caslLines.push(index + 1);
+        continue;
+      }
+      map.set(key, { cppLine: mapping.cppLine, caslLines: [index + 1], reason: mapping.reason, kind: mapping.kind });
     }
-    map.set(key, { cppLine: line.cppLine, caslLines: [index + 1], reason: line.reason });
   });
   return [...map.values()];
 }

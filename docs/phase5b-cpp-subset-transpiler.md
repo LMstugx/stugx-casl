@@ -19,6 +19,8 @@ Statements:
 - `a = 10;`
 - `c = a + b;`
 - `c = a - b;`
+- `if (a == b) { ... }` is added in Phase 5C
+- `if (a == b) { ... } else { ... }` is added in Phase 5C
 - `return c;`
 - `return 0;`
 
@@ -43,6 +45,7 @@ The MVP intentionally rejects:
 - `std::cout`, `iostream`, `std::vector`
 - `float`, `double`, `char`, `string`
 - `while` / `for`
+- complex boolean expressions
 - complex scope rules
 
 Unsupported syntax returns diagnostics instead of crashing.
@@ -191,10 +194,11 @@ type CppToCaslMap = {
   cppLine: number;
   caslLines: number[];
   reason: string;
+  kind: "declaration" | "assignment" | "return" | "if-condition" | "if-then" | "if-else" | "generated-label" | "constant";
 };
 ```
 
-The UI stores this mapping. Phase 5B uses it only for basic current-line projection in C++ mode. Full bidirectional highlighting is reserved for a later phase.
+The UI stores this mapping. Phase 5C uses it to project the current generated CASL row back to the C++ editor and to highlight the active generated CASL range.
 
 ## UI Integration
 
@@ -210,18 +214,20 @@ In C++ subset mode:
 
 ## Current Limits
 
-- No `if` / `else` yet.
 - No `while` / `for` yet.
+- No `else if` yet.
+- No complex boolean expressions.
 - No stack frame.
 - No arrays.
 - No function calls.
 - No complete C++ grammar.
 - Generated CASL is intentionally straightforward and not optimized.
 
-## Next Phase
+## Phase 5C Follow-Up
 
-Phase 5C should add:
+Phase 5C adds:
 
 - `if` / `else` lowering using `CPA`, `JZE`, `JNZ`, `JPL`, and `JMI`.
 - C++ line to CASL line dual highlighting.
-- Optional `while` lowering after branch visualization is stable.
+
+`while` lowering remains a future phase.

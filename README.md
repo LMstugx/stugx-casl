@@ -112,6 +112,7 @@ Currently supported:
 - identifier expressions
 - assignment
 - binary `+` and `-`
+- `if` / `else` with `==`, `!=`, `<`, `<=`, `>`, `>=`
 - `return 0;`
 - `return variable;`
 
@@ -144,7 +145,7 @@ C DS    1
      END
 ```
 
-Unsupported C++ features include classes, structs, pointers, references, templates, arrays, function calls, `std::cout`, strings, floats, loops, and full scope rules. See [docs/phase5b-cpp-subset-transpiler.md](docs/phase5b-cpp-subset-transpiler.md).
+Unsupported C++ features include classes, structs, pointers, references, templates, arrays, function calls, `std::cout`, strings, floats, loops, complex boolean expressions, and full scope rules. See [docs/phase5b-cpp-subset-transpiler.md](docs/phase5b-cpp-subset-transpiler.md) and [docs/phase5c-if-else-lowering.md](docs/phase5c-if-else-lowering.md).
 
 ## Install
 
@@ -284,9 +285,10 @@ See [docs/phase1-status.md](docs/phase1-status.md) for the Phase 1 checkpoint.
 See [docs/phase4c-wasm-runtime.md](docs/phase4c-wasm-runtime.md) for the current WASM runtime workflow.
 See [docs/phase5a-instruction-expansion.md](docs/phase5a-instruction-expansion.md) for the Phase 5A instruction subset.
 See [docs/phase5b-cpp-subset-transpiler.md](docs/phase5b-cpp-subset-transpiler.md) for the C++ subset transpiler MVP.
+See [docs/phase5c-if-else-lowering.md](docs/phase5c-if-else-lowering.md) for if / else lowering and source mapping.
 
 ## Suggested Next Phase
 
-1. Add `if` / `else` lowering through `CPA` and conditional jumps.
-2. Add `while` lowering after conditional branch mapping is stable.
-3. Add C++ line to generated CASL dual highlighting.
+1. Add `while` lowering after conditional branch mapping is stable.
+2. Expand C++ / generated CASL dual highlighting interactions.
+3. Add selected logical operators only if the teaching flow requires them.

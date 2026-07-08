@@ -2,7 +2,9 @@ import type { Diagnostic } from "../core/types";
 
 export type CppExpression = CppIdentifier | CppIntegerLiteral | CppBinaryExpression;
 
-export type CppStatement = CppVarDecl | CppAssignment | CppReturn;
+export type CppStatement = CppVarDecl | CppAssignment | CppReturn | CppIfStatement;
+export type CppConditionOperator = "==" | "!=" | "<" | "<=" | ">" | ">=";
+export type CppToCaslMapKind = "declaration" | "assignment" | "return" | "if-condition" | "if-then" | "if-else" | "generated-label" | "constant";
 
 export interface CppProgram {
   kind: "Program";
@@ -35,6 +37,22 @@ export interface CppReturn {
   kind: "Return";
   line: number;
   expression: CppExpression;
+}
+
+export interface CppIfStatement {
+  kind: "IfStatement";
+  line: number;
+  condition: CppCondition;
+  thenBody: CppStatement[];
+  elseBody?: CppStatement[];
+}
+
+export interface CppCondition {
+  kind: "Condition";
+  line: number;
+  left: CppExpression;
+  operator: CppConditionOperator;
+  right: CppExpression;
 }
 
 export interface CppIdentifier {
@@ -75,6 +93,7 @@ export interface CppToCaslMap {
   cppLine: number;
   caslLines: number[];
   reason: string;
+  kind: CppToCaslMapKind;
 }
 
 export interface TranspileResult {

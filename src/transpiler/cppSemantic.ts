@@ -1,5 +1,5 @@
 import type { Diagnostic } from "../core/types";
-import type { CppExpression, CppProgram, CppStatement, CppVariableSymbol, SemanticResult } from "./cppAst";
+import type { CppCondition, CppExpression, CppProgram, CppStatement, CppVariableSymbol, SemanticResult } from "./cppAst";
 
 const INT16_MIN = -32768;
 const INT16_MAX = 32767;
@@ -32,7 +32,13 @@ export function checkCppSemantics(program: CppProgram | null, parseDiagnostics: 
     return { ok: false, diagnostics, variables: [] };
   }
 
-  for (const statement of program.main.body) {
+  validateStatements(program.main.body, variables, usedLabels, diagnostics);
+
+  return { ok: diagnostics.every((diagnostic) => diagnostic.severity !== "error"), diagnostics, variables: [...variables.values()] };
+}
+
+function validateStatements(statements: CppStatement[], variables: Map<string, CppVariableSymbol>, usedLabels: Set<string>, diagnostics: Diagnostic[]): void {
+  for (const statement of statements) {
     if (statement.kind === "VarDecl") {
       if (variables.has(statement.name)) {
         diagnostics.push({ line: statement.line, message: `Duplicate variable declaration: ${statement.name}`, severity: "error" });
@@ -66,10 +72,15 @@ export function checkCppSemantics(program: CppProgram | null, parseDiagnostics: 
 
     if (statement.kind === "Return") {
       validateExpression(statement.expression, variables, diagnostics);
+      continue;
+    }
+
+    if (statement.kind === "IfStatement") {
+      validateCondition(statement.condition, variables, diagnostics);
+      validateStatements(statement.thenBody, variables, usedLabels, diagnostics);
+      if (statement.elseBody) validateStatements(statement.elseBody, variables, usedLabels, diagnostics);
     }
   }
-
-  return { ok: diagnostics.every((diagnostic) => diagnostic.severity !== "error"), diagnostics, variables: [...variables.values()] };
 }
 
 function validateExpression(expression: CppExpression, variables: Map<string, CppVariableSymbol>, diagnostics: Diagnostic[]): void {
@@ -87,6 +98,16 @@ function validateExpression(expression: CppExpression, variables: Map<string, Cp
 
   validateExpression(expression.left, variables, diagnostics);
   validateExpression(expression.right, variables, diagnostics);
+}
+
+function validateCondition(condition: CppCondition, variables: Map<string, CppVariableSymbol>, diagnostics: Diagnostic[]): void {
+  if (condition.left.kind === "BinaryExpression" || condition.right.kind === "BinaryExpression") {
+    diagnostics.push({ line: condition.line, message: "Current C++ subset if conditions support only identifiers and integer literals.", severity: "error" });
+    return;
+  }
+
+  validateExpression(condition.left, variables, diagnostics);
+  validateExpression(condition.right, variables, diagnostics);
 }
 
 function validateIntegerLiteral(value: number, line: number, diagnostics: Diagnostic[]): void {

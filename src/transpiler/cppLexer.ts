@@ -14,8 +14,8 @@ export interface LexResult {
   diagnostics: Diagnostic[];
 }
 
-const keywords = new Set(["int", "return"]);
-const symbols = new Set(["(", ")", "{", "}", ";", "=", "+", "-", "*", ","]);
+const keywords = new Set(["int", "return", "if", "else"]);
+const symbols = new Set(["(", ")", "{", "}", ";", "=", "+", "-", "*", ",", "!", "<", ">"]);
 
 export function lexCpp(source: string): LexResult {
   const tokens: CppToken[] = [];
@@ -83,6 +83,14 @@ export function lexCpp(source: string): LexResult {
       let value = "";
       while (/[0-9]/.test(peek())) value += advance();
       push("integer", value, startLine, startColumn);
+      continue;
+    }
+
+    const twoChar = `${ch}${peek(1)}`;
+    if (twoChar === "==" || twoChar === "!=" || twoChar === "<=" || twoChar === ">=") {
+      push("symbol", twoChar, line, column);
+      advance();
+      advance();
       continue;
     }
 

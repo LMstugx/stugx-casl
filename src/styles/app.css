@@ -812,6 +812,27 @@ button {
   color: var(--color-muted);
 }
 
+.generated-casl-line {
+  grid-template-columns: 34px minmax(0, 1fr);
+}
+
+.generated-casl-line.related {
+  background: rgba(37, 99, 235, 0.07);
+  border-radius: var(--radius-sm);
+}
+
+.generated-casl-line.current {
+  color: var(--color-primary);
+  background: var(--color-active-bg);
+  box-shadow: inset 3px 0 0 var(--color-primary);
+  border-radius: var(--radius-sm);
+  font-weight: 750;
+}
+
+.generated-casl-line.generated-meta:not(.current) {
+  color: var(--color-muted);
+}
+
 .status-bar {
   min-height: 24px;
   display: flex;

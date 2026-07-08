@@ -23,6 +23,20 @@ describe("C++ subset transpiler diagnostics", () => {
     expect(result.diagnostics.map((diagnostic) => diagnostic.message).join("\n")).toContain("Duplicate variable");
   });
 
+  it("semantic_if_undeclared_variable", () => {
+    const result = transpileCppToCasl(`int main() {
+    int a = 10;
+    int c;
+    if (a == b) {
+        c = 1;
+    }
+    return c;
+}`);
+
+    expect(result.ok).toBe(false);
+    expect(result.diagnostics.map((diagnostic) => diagnostic.message).join("\n")).toContain("used before declaration");
+  });
+
   it("transpile_invalid_syntax", () => {
     const result = transpileCppToCasl(`int main() {
     int* p;

@@ -1,5 +1,18 @@
 import type { Diagnostic } from "../core/types";
-import type { CppAssignment, CppBinaryExpression, CppExpression, CppFunction, CppIntegerLiteral, CppProgram, CppReturn, CppStatement, CppVarDecl } from "./cppAst";
+import type {
+  CppAssignment,
+  CppBinaryExpression,
+  CppCondition,
+  CppConditionOperator,
+  CppExpression,
+  CppFunction,
+  CppIfStatement,
+  CppIntegerLiteral,
+  CppProgram,
+  CppReturn,
+  CppStatement,
+  CppVarDecl
+} from "./cppAst";
 import { CppToken, lexCpp } from "./cppLexer";
 
 export interface ParseResult {
@@ -67,6 +80,7 @@ class Parser {
   private parseStatement(): CppStatement | null {
     if (this.checkKeyword("int")) return this.parseVarDecl();
     if (this.checkKeyword("return")) return this.parseReturn();
+    if (this.checkKeyword("if")) return this.parseIf();
     if (this.check("identifier")) return this.parseAssignment();
 
     const token = this.current();
@@ -115,6 +129,50 @@ class Parser {
     this.consumeSymbol(";", "Expected ';' after return expression.");
     if (!expression) return null;
     return { kind: "Return", line: start.line, expression };
+  }
+
+  private parseIf(): CppIfStatement | null {
+    const start = this.advance();
+    this.consumeSymbol("(", "Expected '(' after if.");
+    const condition = this.parseCondition();
+    this.consumeSymbol(")", "Expected ')' after if condition.");
+    const thenBody = this.parseBlock("if then body");
+    let elseBody: CppStatement[] | undefined;
+    if (this.matchKeyword("else")) {
+      if (this.checkKeyword("if")) {
+        this.error(this.current(), "Current C++ subset does not support else if.");
+        this.synchronize();
+        return null;
+      }
+      elseBody = this.parseBlock("else body");
+    }
+    if (!condition) return null;
+    return { kind: "IfStatement", line: start.line, condition, thenBody, elseBody };
+  }
+
+  private parseBlock(name: string): CppStatement[] {
+    this.consumeSymbol("{", `Expected '{' to start ${name}.`);
+    const body: CppStatement[] = [];
+    while (!this.is("eof") && !this.checkSymbol("}")) {
+      const statement = this.parseStatement();
+      if (statement) body.push(statement);
+    }
+    this.consumeSymbol("}", `Expected '}' to close ${name}.`);
+    return body;
+  }
+
+  private parseCondition(): CppCondition | undefined {
+    const left = this.parseExpression();
+    if (!left) return undefined;
+    const operator = this.current();
+    if (!this.isConditionOperator(operator.value)) {
+      this.error(operator, "Expected comparison operator ==, !=, <, <=, >, or >= in if condition.");
+      return undefined;
+    }
+    this.advance();
+    const right = this.parseExpression();
+    if (!right) return undefined;
+    return { kind: "Condition", line: left.line, left, operator: operator.value, right };
   }
 
   private parseExpression(): CppExpression | undefined {
@@ -202,6 +260,10 @@ class Parser {
   private checkSymbol(value: string): boolean {
     const token = this.current();
     return token.kind === "symbol" && token.value === value;
+  }
+
+  private isConditionOperator(value: string): value is CppConditionOperator {
+    return value === "==" || value === "!=" || value === "<" || value === "<=" || value === ">" || value === ">=";
   }
 
   private is(kind: CppToken["kind"]): boolean {

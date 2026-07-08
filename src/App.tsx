@@ -8,7 +8,7 @@ import CometCircuitSvg from "./visual/CometCircuitSvg";
 import { formatWord } from "./core/types";
 import { summarizeCurrentInstruction } from "./visual/visualState";
 import { AppStoreProvider, useAppStore } from "./store/useAppStore";
-import type { CppToCaslMap } from "./transpiler/cppTranspiler";
+import { cppLineForCaslLine } from "./transpiler/cppMapping";
 
 export default function App() {
   return (
@@ -125,13 +125,16 @@ function StudioShell() {
         </aside>
       </main>
 
-      <OutputPanel lines={state.output} messages={diagnostics.map((diagnostic) => `Line ${diagnostic.line}: ${diagnostic.message}`)} generatedCaslSource={generatedCaslSource} onClear={clearOutput} />
+      <OutputPanel
+        lines={state.output}
+        messages={diagnostics.map((diagnostic) => `Line ${diagnostic.line}: ${diagnostic.message}`)}
+        generatedCaslSource={generatedCaslSource}
+        cppToCaslMapping={cppToCaslMapping}
+        currentCaslLine={sourceMode === "cpp" ? state.currentLine : undefined}
+        currentCppLine={editorCurrentLine}
+        onClear={clearOutput}
+      />
       <StatusBar state={state} backendInfo={backendInfo} />
     </div>
   );
-}
-
-function cppLineForCaslLine(mapping: CppToCaslMap[], caslLine?: number): number | undefined {
-  if (!caslLine) return undefined;
-  return mapping.find((entry) => entry.caslLines.includes(caslLine))?.cppLine;
 }

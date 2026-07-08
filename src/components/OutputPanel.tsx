@@ -1,9 +1,15 @@
 import { useState } from "react";
+import type { CppToCaslMap } from "../transpiler/cppAst";
+import { caslLinesForCppLine, mappingKindsForCaslLine } from "../transpiler/cppMapping";
 
 type OutputPanelProps = {
   lines: string[];
   messages?: string[];
   generatedCaslSource?: string;
+  cppToCaslMapping?: CppToCaslMap[];
+  currentCaslLine?: number;
+  currentCppLine?: number;
+  initialTab?: OutputTab;
   onClear: () => void;
 };
 
@@ -30,8 +36,17 @@ function linePrefix(tab: OutputTab, line: string): string {
   return lineTone(line) === "success" ? "ok" : lineTone(line) === "danger" ? "!!" : "--";
 }
 
-export default function OutputPanel({ lines, messages = [], generatedCaslSource = "", onClear }: OutputPanelProps) {
-  const [activeTab, setActiveTab] = useState<OutputTab>("output");
+export default function OutputPanel({
+  lines,
+  messages = [],
+  generatedCaslSource = "",
+  cppToCaslMapping = [],
+  currentCaslLine,
+  currentCppLine,
+  initialTab = "output",
+  onClear
+}: OutputPanelProps) {
+  const [activeTab, setActiveTab] = useState<OutputTab>(initialTab);
   const visibleLines =
     activeTab === "output"
       ? lines.length
@@ -46,6 +61,7 @@ export default function OutputPanel({ lines, messages = [], generatedCaslSource 
           : generatedCaslSource
             ? generatedCaslSource.split(/\r?\n/)
             : ["No generated CASL. Switch to C++ subset mode and assemble."];
+  const relatedCaslLines = caslLinesForCppLine(cppToCaslMapping, currentCppLine);
 
   return (
     <section className="output-panel">
@@ -69,12 +85,33 @@ export default function OutputPanel({ lines, messages = [], generatedCaslSource 
         </button>
       </header>
       <div className={`console-lines ${activeTab}`} aria-label={`${activeTab} log`} data-testid={activeTab === "generated" ? "generated-casl-output" : undefined}>
-        {visibleLines.map((line, index) => (
-          <div key={`${line}-${index}`} className={`console-line ${lineTone(line)}`}>
-            <span className="console-prefix">{linePrefix(activeTab, line)}</span>
-            <span>{line}</span>
-          </div>
-        ))}
+        {activeTab === "generated"
+          ? visibleLines.map((line, index) => {
+              const lineNumber = index + 1;
+              const isCurrent = currentCaslLine === lineNumber;
+              const isRelated = relatedCaslLines.has(lineNumber);
+              const kinds = mappingKindsForCaslLine(cppToCaslMapping, lineNumber);
+              const isGenerated = kinds.has("generated-label") || kinds.has("constant");
+              return (
+                <div
+                  key={`${line}-${index}`}
+                  className={`console-line generated-casl-line ${isCurrent ? "current" : ""} ${isRelated ? "related" : ""} ${isGenerated ? "generated-meta" : ""}`}
+                  data-testid={isCurrent ? "generated-casl-line-current" : "generated-casl-line"}
+                  data-line={lineNumber}
+                  data-current={isCurrent ? "true" : "false"}
+                  data-related={isRelated ? "true" : "false"}
+                >
+                  <span className="console-prefix">{String(lineNumber).padStart(2, "0")}</span>
+                  <span>{line}</span>
+                </div>
+              );
+            })
+          : visibleLines.map((line, index) => (
+              <div key={`${line}-${index}`} className={`console-line ${lineTone(line)}`}>
+                <span className="console-prefix">{linePrefix(activeTab, line)}</span>
+                <span>{line}</span>
+              </div>
+            ))}
       </div>
     </section>
   );

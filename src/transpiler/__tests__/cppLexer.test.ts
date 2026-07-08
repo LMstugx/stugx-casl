@@ -15,4 +15,11 @@ describe("C++ subset lexer", () => {
       ["eof", ""]
     ]);
   });
+
+  it("lexes if comparison operators", () => {
+    const result = lexCpp("if (a == b) { c = 1; } else { c = 0; }");
+
+    expect(result.diagnostics).toEqual([]);
+    expect(result.tokens.map((token) => token.value)).toEqual(["if", "(", "a", "==", "b", ")", "{", "c", "=", "1", ";", "}", "else", "{", "c", "=", "0", ";", "}", ""]);
+  });
 });

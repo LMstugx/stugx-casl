@@ -479,6 +479,7 @@ button {
 }
 
 .circuit-module-active rect,
+.circuit-module-active polygon,
 .register-row.changed rect,
 .memory-svg-row.changed rect {
   fill: #fff1f2;
@@ -539,10 +540,10 @@ button {
 
 .wire {
   fill: none;
-  stroke-width: 1.8;
+  stroke-width: 1.7;
   stroke-linecap: round;
   stroke-linejoin: round;
-  opacity: 0.34;
+  opacity: 0.28;
   transition:
     stroke var(--motion-base) var(--ease-standard),
     stroke-width var(--motion-base) var(--ease-standard),
@@ -564,9 +565,9 @@ button {
 
 .wire-active {
   stroke: var(--color-active-red);
-  stroke-width: 4.8;
-  opacity: 1;
-  filter: drop-shadow(0 0 5px rgba(239, 68, 68, 0.44));
+  stroke-width: 2.8;
+  opacity: 0.96;
+  filter: drop-shadow(0 0 3px rgba(239, 68, 68, 0.32));
 }
 
 .learning-flow {

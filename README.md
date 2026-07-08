@@ -143,6 +143,36 @@ WASM-only adapter tests:
 pnpm test:wasm
 ```
 
+## Browser E2E Smoke Tests
+
+Install the Playwright browser once on a development machine:
+
+```powershell
+pnpm exec playwright install chromium
+```
+
+Mock and WASM browser smoke tests:
+
+```powershell
+pnpm build:wasm
+pnpm test:e2e
+```
+
+WASM-only browser smoke test:
+
+```powershell
+pnpm build:wasm
+pnpm test:e2e:wasm
+```
+
+The WASM E2E test writes success screenshots to:
+
+```text
+artifacts/e2e/wasm-ready.png
+artifacts/e2e/wasm-step1.png
+artifacts/e2e/wasm-edited.png
+```
+
 Equivalent bundled command:
 
 ```powershell

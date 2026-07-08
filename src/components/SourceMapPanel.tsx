@@ -17,13 +17,21 @@ export default function SourceMapPanel({ state, embedded = false }: { state: Com
           </tr>
         </thead>
         <tbody>
-          {state.sourceMap.map((entry) => (
-            <tr key={`${entry.line}-${entry.address}`} className={entry.line === state.currentLine ? "current" : ""}>
+          {state.sourceMap.map((entry) => {
+            const isCurrent = entry.line === state.currentLine;
+            return (
+            <tr
+              key={`${entry.line}-${entry.address}`}
+              className={isCurrent ? "current" : ""}
+              data-testid={isCurrent ? "source-row-current" : undefined}
+              data-instruction={entry.source}
+            >
               <td>{entry.line}</td>
               <td className="hex">{formatWord(entry.address)}</td>
               <td className="hex">{entry.machineWords.map((word) => formatWord(word)).join(" ")}</td>
             </tr>
-          ))}
+            );
+          })}
         </tbody>
       </table>
     </section>

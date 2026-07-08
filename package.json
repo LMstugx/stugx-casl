@@ -11,7 +11,9 @@
     "preview": "vite preview --host 127.0.0.1",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:wasm": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"$env:VITE_CORE_BACKEND='wasm'; pnpm exec vitest run src/tests/wasmCoreAdapter.test.ts\""
+    "test:wasm": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"$env:VITE_CORE_BACKEND='wasm'; pnpm exec vitest run src/tests/wasmCoreAdapter.test.ts\"",
+    "test:e2e": "playwright test",
+    "test:e2e:wasm": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"$env:E2E_BACKEND='wasm'; pnpm exec playwright test tests/e2e/wasm-smoke.spec.ts\""
   },
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",
@@ -21,6 +23,7 @@
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
     "@vitejs/plugin-react": "^4.3.4",

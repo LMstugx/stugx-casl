@@ -54,7 +54,7 @@ export default function SourceEditor({ source, currentLine, onChange }: SourceEd
   }, [currentLine]);
 
   return (
-    <div className="source-editor">
+    <div className="source-editor" data-testid="source-editor">
       <Editor
         height="100%"
         language="plaintext"

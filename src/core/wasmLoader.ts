@@ -3,6 +3,7 @@ export type WasmExportedFunction = (...args: unknown[]) => unknown;
 export interface StugxCaslWasmModule {
   cwrap: (name: string, returnType: string | null, argTypes: string[]) => WasmExportedFunction;
   UTF8ToString: (pointer: number) => string;
+  HEAPU8?: Uint8Array;
 }
 
 type EmscriptenModuleFactory = (moduleArgs?: Record<string, unknown>) => Promise<StugxCaslWasmModule>;
@@ -49,7 +50,9 @@ function projectFilePath(relativePath: string): string {
 
 async function importModuleFactory(moduleUrl: string): Promise<EmscriptenModuleFactory> {
   try {
-    const imported = (await import(/* @vite-ignore */ moduleUrl)) as { default?: unknown };
+    const imported = isNodeRuntime()
+      ? ((await import(/* @vite-ignore */ moduleUrl)) as { default?: unknown })
+      : await browserRuntimeImport(moduleUrl);
     if (typeof imported.default !== "function") {
       throw new Error("WASM module did not export an Emscripten factory function.");
     }
@@ -57,6 +60,11 @@ async function importModuleFactory(moduleUrl: string): Promise<EmscriptenModuleF
   } catch (error) {
     throw new Error(`Failed to load WASM module JS from ${moduleUrl}: ${(error as Error).message}. ${WASM_BUILD_HINT}`);
   }
+}
+
+function browserRuntimeImport(moduleUrl: string): Promise<{ default?: unknown }> {
+  const dynamicImport = new Function("moduleUrl", "return import(moduleUrl)") as (url: string) => Promise<{ default?: unknown }>;
+  return dynamicImport(moduleUrl);
 }
 
 function pathToFileHref(path: string): string {
@@ -93,12 +101,26 @@ function wrapStringFunction(module: StugxCaslWasmModule, name: string, argTypes:
     if (!pointer) {
       throw new Error(`${name} returned a null string pointer. ${WASM_BUILD_HINT}`);
     }
-    const json = module.UTF8ToString(pointer);
+    const json = readCString(module, pointer);
     if (!json && !options.allowEmpty) {
       throw new Error(`${name} returned an empty JSON string. ${WASM_BUILD_HINT}`);
     }
     return json;
   };
+}
+
+function readCString(module: StugxCaslWasmModule, pointer: number): string {
+  if (!module.HEAPU8) return module.UTF8ToString(pointer);
+
+  const heap = module.HEAPU8;
+  let end = pointer;
+  while (end < heap.length && heap[end] !== 0) end += 1;
+  if (end >= heap.length) {
+    throw new Error("WASM string pointer was not null-terminated.");
+  }
+
+  const bytes = Uint8Array.from(heap.subarray(pointer, end));
+  return new TextDecoder().decode(bytes);
 }
 
 function wrapJsonFunction(module: StugxCaslWasmModule, name: string, argTypes: string[]) {

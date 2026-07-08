@@ -15,6 +15,7 @@ type ToolbarProps = {
 type ButtonProps = {
   label: string;
   icon: ReactNode;
+  testId?: string;
   variant?: "primary" | "success" | "danger";
   emphasis?: boolean;
   disabled?: boolean;
@@ -24,9 +25,9 @@ type ButtonProps = {
   onClick?: () => void;
 };
 
-function ToolButton({ label, icon, variant, emphasis, disabled, active, loading, title, onClick }: ButtonProps) {
+function ToolButton({ label, icon, testId, variant, emphasis, disabled, active, loading, title, onClick }: ButtonProps) {
   return (
-    <button className={`tool-button ${variant ?? ""} ${emphasis ? "emphasis" : ""} ${active ? "active" : ""} ${loading ? "loading" : ""}`} disabled={disabled} onClick={onClick} title={title ?? label}>
+    <button data-testid={testId} className={`tool-button ${variant ?? ""} ${emphasis ? "emphasis" : ""} ${active ? "active" : ""} ${loading ? "loading" : ""}`} disabled={disabled} onClick={onClick} title={title ?? label}>
       {loading ? <Loader2 className="spinner" size={17} /> : icon}
       <span>{label}</span>
     </button>
@@ -67,11 +68,12 @@ export default function Toolbar({ assembleStatus, canStep, canReset, isRunning, 
           active={showAssembleSuccess}
           loading={assembleStatus === "running"}
           disabled={assembleStatus === "running"}
+          testId="assemble-button"
           onClick={onAssemble}
         />
         <ToolButton label="Run" icon={<Play size={18} />} disabled title="Run is not implemented in Phase 2B" />
-        <ToolButton label="Step" icon={<StepForward size={18} />} variant="primary" emphasis disabled={!canStep} onClick={onStep} />
-        <ToolButton label="Reset" icon={<RotateCcw size={18} />} emphasis disabled={!canReset} onClick={onReset} />
+        <ToolButton label="Step" icon={<StepForward size={18} />} variant="primary" emphasis disabled={!canStep} testId="step-button" onClick={onStep} />
+        <ToolButton label="Reset" icon={<RotateCcw size={18} />} emphasis disabled={!canReset} testId="reset-button" onClick={onReset} />
         <ToolButton label="Stop" icon={<Square size={18} />} variant="danger" disabled={!isRunning} title="Stop is enabled only while running" />
       </nav>
 

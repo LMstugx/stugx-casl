@@ -1,0 +1,54 @@
+import { test, expect } from "@playwright/test";
+import { mkdirSync } from "node:fs";
+import {
+  assemble,
+  expectCurrentSourceInstruction,
+  expectRegister,
+  gr2SourceWithA100,
+  openStudio,
+  setSource,
+  sourceWithA100,
+  step
+} from "./caslSmokeHelpers";
+
+test.beforeAll(() => {
+  mkdirSync("artifacts/e2e", { recursive: true });
+});
+
+test("WASM backend completes assemble, step, reset, dirty, and edited-source loops in the browser UI", async ({ page }) => {
+  await openStudio(page, "WASM Core");
+
+  await expect(page.getByTestId("step-button")).toBeDisabled();
+  await assemble(page);
+  await expectRegister(page, "register-pr", "0020");
+  await expectCurrentSourceInstruction(page, /LD\s+GR1,A/);
+  await page.screenshot({ path: "artifacts/e2e/wasm-ready.png", fullPage: true });
+
+  await step(page);
+  await expectRegister(page, "register-gr1", "000A");
+  await expectRegister(page, "register-pr", "0022");
+  await expectCurrentSourceInstruction(page, /ADDA\s+GR1,B/);
+  await page.screenshot({ path: "artifacts/e2e/wasm-step1.png", fullPage: true });
+
+  await page.getByTestId("reset-button").click();
+  await expect(page.getByTestId("run-state")).toHaveText("Ready");
+  await expectRegister(page, "register-gr1", "0000");
+  await expectRegister(page, "register-pr", "0020");
+
+  await setSource(page, sourceWithA100);
+  await expect(page.getByTestId("run-state")).toHaveText("Dirty");
+  await expect(page.getByTestId("step-button")).toBeDisabled();
+
+  await assemble(page);
+  await step(page);
+  await expectRegister(page, "register-gr1", "0064");
+  await page.screenshot({ path: "artifacts/e2e/wasm-edited.png", fullPage: true });
+
+  await setSource(page, gr2SourceWithA100);
+  await expect(page.getByTestId("run-state")).toHaveText("Dirty");
+
+  await assemble(page);
+  await step(page);
+  await expectRegister(page, "register-gr2", "0064");
+  await expectRegister(page, "register-gr1", "0000");
+});

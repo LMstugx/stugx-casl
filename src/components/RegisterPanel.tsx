@@ -23,7 +23,7 @@ export default function RegisterPanel({ state, embedded = false }: { state: Come
         </thead>
         <tbody>
           {general.map((register) => (
-            <tr key={register.name} className={register.changed ? "changed" : ""}>
+            <tr key={register.name} className={register.changed ? "changed" : ""} data-testid={`register-${register.name.toLowerCase()}`}>
               <td>{register.name}</td>
               <td className="hex">{formatWord(register.value)}</td>
               <td>{register.decimal}</td>
@@ -36,7 +36,7 @@ export default function RegisterPanel({ state, embedded = false }: { state: Come
       <table className="data-table compact">
         <tbody>
           {other.map((register) => (
-            <tr key={register.name} className={register.changed ? "changed" : ""}>
+            <tr key={register.name} className={register.changed ? "changed" : ""} data-testid={`register-${register.name.toLowerCase()}`}>
               <td>{register.name}</td>
               <td className="hex">{formatRegisterDisplay(register, state)}</td>
             </tr>

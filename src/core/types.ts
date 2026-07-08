@@ -8,11 +8,33 @@ export enum VisualPathKind {
   LD_MemoryToMdrToGr = "LD_MemoryToMdrToGr",
   ST_GrToMdrToMemory = "ST_GrToMdrToMemory",
   ADDA_GrMdrToAluToGr = "ADDA_GrMdrToAluToGr",
+  LAD_AddressToGr = "LAD_AddressToGr",
+  SUBA_GrMdrToAluToGr = "SUBA_GrMdrToAluToGr",
+  CPA_GrMdrToAluToFr = "CPA_GrMdrToAluToFr",
+  Jump_AddressToPr = "Jump_AddressToPr",
+  ConditionalJump_AddressToPr = "ConditionalJump_AddressToPr",
+  ConditionalJump_NotTaken = "ConditionalJump_NotTaken",
   Finished_None = "Finished_None"
 }
 
 export type RunState = "Idle" | "Dirty" | "Ready" | "Running" | "Finished" | "Error";
-export type InstructionKind = "START" | "END" | "DC" | "DS" | "LD" | "ADDA" | "ST" | "RET";
+export type InstructionKind =
+  | "START"
+  | "END"
+  | "DC"
+  | "DS"
+  | "LD"
+  | "LAD"
+  | "ADDA"
+  | "SUBA"
+  | "CPA"
+  | "ST"
+  | "JUMP"
+  | "JZE"
+  | "JNZ"
+  | "JPL"
+  | "JMI"
+  | "RET";
 
 export interface FlagsState {
   z: boolean;
@@ -61,7 +83,7 @@ export interface Diagnostic {
 export interface AssembledInstruction {
   address: number;
   line: number;
-  op: "LD" | "ADDA" | "ST" | "RET";
+  op: "LD" | "LAD" | "ADDA" | "SUBA" | "CPA" | "ST" | "JUMP" | "JZE" | "JNZ" | "JPL" | "JMI" | "RET";
   source: string;
   size: number;
   gr?: number;

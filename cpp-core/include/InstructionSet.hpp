@@ -13,8 +13,16 @@ enum class Opcode {
     DC,
     DS,
     LD,
+    LAD,
     ADDA,
+    SUBA,
+    CPA,
     ST,
+    JUMP,
+    JZE,
+    JNZ,
+    JPL,
+    JMI,
     RET
 };
 

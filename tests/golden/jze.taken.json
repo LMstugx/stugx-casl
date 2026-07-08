@@ -1,0 +1,195 @@
+{
+  "runState": "Ready",
+  "stepCount": 3,
+  "pr": 41,
+  "sp": 65534,
+  "ir0": 25344,
+  "ir1": 41,
+  "mar": 41,
+  "mdr": 10,
+  "gr": [0, 10, 0, 0, 0, 0, 0, 0],
+  "frOF": false,
+  "frSF": false,
+  "frZF": true,
+  "frCF": false,
+  "currentInstructionAddress": 41,
+  "currentSourceLineIndex": 7,
+  "currentInstructionText": "SAME LAD GR2,1",
+  "lastInstructionKind": "JZE",
+  "lastMemoryReadAddress": null,
+  "lastMemoryWriteAddress": null,
+  "lastRegisterWriteIndex": null,
+  "effectiveAddress": 41,
+  "memoryWindow": [
+      {
+        "address": 32,
+        "value": 4112,
+        "label": "MAIN",
+        "isCurrent": false,
+        "isChanged": false
+      },
+      {
+        "address": 33,
+        "value": 44,
+        "label": null,
+        "isCurrent": false,
+        "isChanged": false
+      },
+      {
+        "address": 34,
+        "value": 16400,
+        "label": null,
+        "isCurrent": false,
+        "isChanged": false
+      },
+      {
+        "address": 35,
+        "value": 45,
+        "label": null,
+        "isCurrent": false,
+        "isChanged": false
+      },
+      {
+        "address": 36,
+        "value": 25344,
+        "label": null,
+        "isCurrent": false,
+        "isChanged": false
+      },
+      {
+        "address": 37,
+        "value": 41,
+        "label": null,
+        "isCurrent": false,
+        "isChanged": false
+      },
+      {
+        "address": 38,
+        "value": 4640,
+        "label": null,
+        "isCurrent": false,
+        "isChanged": false
+      },
+      {
+        "address": 39,
+        "value": 0,
+        "label": null,
+        "isCurrent": false,
+        "isChanged": false
+      },
+      {
+        "address": 40,
+        "value": 33024,
+        "label": null,
+        "isCurrent": false,
+        "isChanged": false
+      },
+      {
+        "address": 41,
+        "value": 4640,
+        "label": "SAME",
+        "isCurrent": true,
+        "isChanged": false
+      },
+      {
+        "address": 42,
+        "value": 1,
+        "label": null,
+        "isCurrent": false,
+        "isChanged": false
+      }
+    ],
+  "sourceRows": [
+      {
+        "line": 2,
+        "address": 32,
+        "machineWords": [4112, 44],
+        "source": "LD    GR1,A",
+        "label": null,
+        "instruction": "LD",
+        "operandAddress": 44,
+        "isCurrent": false
+      },
+      {
+        "line": 3,
+        "address": 34,
+        "machineWords": [16400, 45],
+        "source": "CPA   GR1,B",
+        "label": null,
+        "instruction": "CPA",
+        "operandAddress": 45,
+        "isCurrent": false
+      },
+      {
+        "line": 4,
+        "address": 36,
+        "machineWords": [25344, 41],
+        "source": "JZE   SAME",
+        "label": null,
+        "instruction": "JZE",
+        "operandAddress": 41,
+        "isCurrent": false
+      },
+      {
+        "line": 5,
+        "address": 38,
+        "machineWords": [4640, 0],
+        "source": "LAD   GR2,0",
+        "label": null,
+        "instruction": "LAD",
+        "operandAddress": 0,
+        "isCurrent": false
+      },
+      {
+        "line": 6,
+        "address": 40,
+        "machineWords": [33024],
+        "source": "RET",
+        "label": null,
+        "instruction": "RET",
+        "operandAddress": null,
+        "isCurrent": false
+      },
+      {
+        "line": 7,
+        "address": 41,
+        "machineWords": [4640, 1],
+        "source": "SAME LAD   GR2,1",
+        "label": "SAME",
+        "instruction": "LAD",
+        "operandAddress": 1,
+        "isCurrent": true
+      },
+      {
+        "line": 8,
+        "address": 43,
+        "machineWords": [33024],
+        "source": "RET",
+        "label": null,
+        "instruction": "RET",
+        "operandAddress": null,
+        "isCurrent": false
+      },
+      {
+        "line": 9,
+        "address": 44,
+        "machineWords": [10],
+        "source": "A    DC    10",
+        "label": "A",
+        "instruction": "DC",
+        "operandAddress": null,
+        "isCurrent": false
+      },
+      {
+        "line": 10,
+        "address": 45,
+        "machineWords": [10],
+        "source": "B    DC    10",
+        "label": "B",
+        "instruction": "DC",
+        "operandAddress": null,
+        "isCurrent": false
+      }
+    ],
+  "diagnostics": []
+}

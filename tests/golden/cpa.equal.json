@@ -1,0 +1,155 @@
+{
+  "runState": "Ready",
+  "stepCount": 2,
+  "pr": 36,
+  "sp": 65534,
+  "ir0": 16400,
+  "ir1": 38,
+  "mar": 38,
+  "mdr": 10,
+  "gr": [0, 10, 0, 0, 0, 0, 0, 0],
+  "frOF": false,
+  "frSF": false,
+  "frZF": true,
+  "frCF": false,
+  "currentInstructionAddress": 36,
+  "currentSourceLineIndex": 4,
+  "currentInstructionText": "RET",
+  "lastInstructionKind": "CPA",
+  "lastMemoryReadAddress": 38,
+  "lastMemoryWriteAddress": null,
+  "lastRegisterWriteIndex": null,
+  "effectiveAddress": 38,
+  "memoryWindow": [
+      {
+        "address": 32,
+        "value": 4112,
+        "label": "MAIN",
+        "isCurrent": false,
+        "isChanged": false
+      },
+      {
+        "address": 33,
+        "value": 37,
+        "label": null,
+        "isCurrent": false,
+        "isChanged": false
+      },
+      {
+        "address": 34,
+        "value": 16400,
+        "label": null,
+        "isCurrent": false,
+        "isChanged": false
+      },
+      {
+        "address": 35,
+        "value": 38,
+        "label": null,
+        "isCurrent": false,
+        "isChanged": false
+      },
+      {
+        "address": 36,
+        "value": 33024,
+        "label": null,
+        "isCurrent": true,
+        "isChanged": false
+      },
+      {
+        "address": 37,
+        "value": 10,
+        "label": "A",
+        "isCurrent": false,
+        "isChanged": false
+      },
+      {
+        "address": 38,
+        "value": 10,
+        "label": "B",
+        "isCurrent": false,
+        "isChanged": false
+      },
+      {
+        "address": 39,
+        "value": 0,
+        "label": null,
+        "isCurrent": false,
+        "isChanged": false
+      },
+      {
+        "address": 40,
+        "value": 0,
+        "label": null,
+        "isCurrent": false,
+        "isChanged": false
+      },
+      {
+        "address": 41,
+        "value": 0,
+        "label": null,
+        "isCurrent": false,
+        "isChanged": false
+      },
+      {
+        "address": 42,
+        "value": 0,
+        "label": null,
+        "isCurrent": false,
+        "isChanged": false
+      }
+    ],
+  "sourceRows": [
+      {
+        "line": 2,
+        "address": 32,
+        "machineWords": [4112, 37],
+        "source": "LD    GR1,A",
+        "label": null,
+        "instruction": "LD",
+        "operandAddress": 37,
+        "isCurrent": false
+      },
+      {
+        "line": 3,
+        "address": 34,
+        "machineWords": [16400, 38],
+        "source": "CPA   GR1,B",
+        "label": null,
+        "instruction": "CPA",
+        "operandAddress": 38,
+        "isCurrent": false
+      },
+      {
+        "line": 4,
+        "address": 36,
+        "machineWords": [33024],
+        "source": "RET",
+        "label": null,
+        "instruction": "RET",
+        "operandAddress": null,
+        "isCurrent": true
+      },
+      {
+        "line": 5,
+        "address": 37,
+        "machineWords": [10],
+        "source": "A    DC    10",
+        "label": "A",
+        "instruction": "DC",
+        "operandAddress": null,
+        "isCurrent": false
+      },
+      {
+        "line": 6,
+        "address": 38,
+        "machineWords": [10],
+        "source": "B    DC    10",
+        "label": "B",
+        "instruction": "DC",
+        "operandAddress": null,
+        "isCurrent": false
+      }
+    ],
+  "diagnostics": []
+}

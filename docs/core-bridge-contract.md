@@ -54,11 +54,11 @@ coreBridge.getState()
 
 The mock adapter keeps the current core state internally so `step()`, `reset()`, and `getState()` match the future bridge shape.
 
-## WasmCoreAdapter Planned
+## WasmCoreAdapter
 
-`src/core/wasmCoreAdapter.ts` implements `CoreAdapter` as a Phase 4 stub. Every method currently throws `WASM core adapter is not implemented yet`.
+`src/core/wasmCoreAdapter.ts` implements `CoreAdapter` for the experimental C++/WASM backend. It lazy-loads the generated Emscripten module, calls the exported C ABI, parses JSON DTO strings, and keeps the UI behind `coreBridge`.
 
-The stub intentionally does not import Emscripten, load a `.wasm` file, or expose C++ internals. It only reserves the replacement point.
+The default backend remains `MockCoreAdapter`; `VITE_CORE_BACKEND=wasm` or `pnpm dev:wasm` opts into WASM after `pnpm build:wasm` has generated local artifacts.
 
 ## UI Dependency Rule
 
@@ -79,7 +79,12 @@ type SourceRowDto = {
   machineWords: number[];
   source: string;
   label: string | null;
-  instruction: "START" | "END" | "DC" | "DS" | "LD" | "ADDA" | "ST" | "RET" | null;
+  instruction:
+    | "START" | "END" | "DC" | "DS"
+    | "LD" | "LAD" | "ADDA" | "SUBA" | "CPA" | "ST"
+    | "JUMP" | "JZE" | "JNZ" | "JPL" | "JMI"
+    | "RET"
+    | null;
   operandAddress: number | null;
   isCurrent: boolean;
 };
@@ -109,7 +114,11 @@ type CometStateDto = {
   currentInstructionAddress: number | null;
   currentSourceLineIndex: number | null;
   currentInstructionText: string | null;
-  lastInstructionKind: "LD" | "ADDA" | "ST" | "RET" | null;
+  lastInstructionKind:
+    | "LD" | "LAD" | "ADDA" | "SUBA" | "CPA" | "ST"
+    | "JUMP" | "JZE" | "JNZ" | "JPL" | "JMI"
+    | "RET"
+    | null;
   lastMemoryReadAddress: number | null;
   lastMemoryWriteAddress: number | null;
   lastRegisterWriteIndex: number | null;
@@ -141,9 +150,10 @@ type StepResultDto = {
 - `frOF`, `frSF`, `frZF`, and `frCF` map to overflow, sign, zero, and carry.
 - `currentSourceLineIndex` currently uses the 1-based source line number used by the parser and SourceMap.
 - `effectiveAddress` is the resolved operand address for the last executed instruction, when present.
-- `lastMemoryReadAddress` is set for `LD` and `ADDA`.
+- `lastMemoryReadAddress` is set for `LD`, `ADDA`, `SUBA`, and `CPA`.
 - `lastMemoryWriteAddress` is set for `ST`.
-- `lastRegisterWriteIndex` is set for `LD` and `ADDA`.
+- `lastRegisterWriteIndex` is set for `LD`, `LAD`, `ADDA`, and `SUBA`.
+- Jump instructions report their resolved target through `effectiveAddress`.
 
 ## Memory Transfer Strategy
 
@@ -169,8 +179,15 @@ The current golden fixtures live in `tests/golden/`:
 - `simple.step3.json`
 - `simple.finished.json`
 - `gr2.step1.json`
+- `lada.step1.json`
+- `suba.step1.json`
+- `cpa.equal.json`
+- `jump.taken.json`
+- `jze.taken.json`
+- `jze.not-taken.json`
+- `jmi.taken.json`
 
-These fixtures are generated from the current TypeScript mock DTO adapter and are byte-level compatible with the C++ `core_dump` output for the same scenarios.
+These fixtures are verified against the TypeScript mock DTO adapter, C++ `core_dump`, and the WASM adapter when local WASM artifacts are present.
 
 ## TypeScript DTO Adapter
 
@@ -192,6 +209,13 @@ cmake --build cpp-core/build
 .\cpp-core\build\Debug\core_dump.exe --scenario simple-step3
 .\cpp-core\build\Debug\core_dump.exe --scenario simple-finished
 .\cpp-core\build\Debug\core_dump.exe --scenario gr2-step1
+.\cpp-core\build\Debug\core_dump.exe --scenario lada-step1
+.\cpp-core\build\Debug\core_dump.exe --scenario suba-step1
+.\cpp-core\build\Debug\core_dump.exe --scenario cpa-equal
+.\cpp-core\build\Debug\core_dump.exe --scenario jump-taken
+.\cpp-core\build\Debug\core_dump.exe --scenario jze-taken
+.\cpp-core\build\Debug\core_dump.exe --scenario jze-not-taken
+.\cpp-core\build\Debug\core_dump.exe --scenario jmi-taken
 ```
 
 Supported dump scenarios:
@@ -202,14 +226,21 @@ Supported dump scenarios:
 - `simple-step3`
 - `simple-finished`
 - `gr2-step1`
+- `lada-step1`
+- `suba-step1`
+- `cpa-equal`
+- `jump-taken`
+- `jze-taken`
+- `jze-not-taken`
+- `jmi-taken`
 
 The dump tool uses a small handwritten JSON writer to avoid adding a third-party JSON dependency in Phase 3B.
 
-## WASM Bridge Plan
+## WASM Bridge Status
 
-The WASM bridge should reuse this DTO contract without exposing C++ internal classes to React.
+The WASM bridge reuses this DTO contract without exposing C++ internal classes to React.
 
-Phase 4A prepares a C ABI plus JSON string bridge. The JSON DTO contract in this document remains the source of truth for both TypeScript mock and C++/WASM output.
+Phase 4A prepared a C ABI plus JSON string bridge. The JSON DTO contract in this document remains the source of truth for both TypeScript mock and C++/WASM output.
 
 Planned adapter chain:
 
@@ -238,6 +269,6 @@ const char* stugx_casl_get_state();
 const char* stugx_casl_get_last_error();
 ```
 
-`WasmCoreAdapter` will implement `CoreAdapter` by loading these exports, converting returned `char*` values to strings, parsing JSON into DTOs, and keeping `coreBridge.ts` unchanged.
+`WasmCoreAdapter` implements `CoreAdapter` by loading these exports, converting returned `char*` values to strings, parsing JSON into DTOs, and keeping `coreBridge.ts` unchanged.
 
 Phase 4B keeps `MockCoreAdapter` as the default backend. `VITE_CORE_BACKEND=wasm` opts into `WasmCoreAdapter` after the local WASM files have been generated.

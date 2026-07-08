@@ -37,7 +37,7 @@ std::optional<std::uint32_t> parseNumber(const std::string& text) {
 std::optional<std::uint32_t> instructionSize(const ParsedLine& line, std::vector<Diagnostic>& diagnostics) {
     if (!line.opcode.has_value()) return 0;
     const auto opcode = *line.opcode;
-    if (opcode == Opcode::LD || opcode == Opcode::ADDA || opcode == Opcode::ST) return 2;
+    if (hasAddressOperand(opcode)) return 2;
     if (opcode == Opcode::RET) return 1;
     if (opcode == Opcode::DC) return static_cast<std::uint32_t>(std::max<std::size_t>(1, line.operands.size()));
     if (opcode == Opcode::DS) {
@@ -69,6 +69,39 @@ std::string symbolKey(const std::string& label) {
         return static_cast<char>(std::toupper(ch));
     });
     return key;
+}
+
+bool isRegisterAddressOpcode(Opcode opcode) {
+    return opcode == Opcode::LD || opcode == Opcode::LAD || opcode == Opcode::ADDA ||
+           opcode == Opcode::SUBA || opcode == Opcode::CPA || opcode == Opcode::ST;
+}
+
+bool isJumpOpcode(Opcode opcode) {
+    return opcode == Opcode::JUMP || opcode == Opcode::JZE || opcode == Opcode::JNZ ||
+           opcode == Opcode::JPL || opcode == Opcode::JMI;
+}
+
+std::optional<std::uint16_t> resolveAddressOperand(
+    const std::string& token,
+    const std::unordered_map<std::string, std::uint16_t>& symbols,
+    std::vector<Diagnostic>& diagnostics,
+    int line
+) {
+    const auto numeric = parseNumber(token);
+    if (numeric.has_value()) {
+        if (*numeric > 0xffff) {
+            addDiagnostic(diagnostics, line, "Address operand out of 16-bit range: " + token);
+            return std::nullopt;
+        }
+        return static_cast<std::uint16_t>(*numeric);
+    }
+
+    const auto symbol = symbols.find(symbolKey(token));
+    if (symbol == symbols.end()) {
+        addDiagnostic(diagnostics, line, "Undefined label: " + token);
+        return std::nullopt;
+    }
+    return symbol->second;
 }
 
 }  // namespace
@@ -160,9 +193,9 @@ bool Assembler::pass2(const std::vector<ParsedLine>& lines, AssembleOutput& outp
         const auto opcode = *line.opcode;
         if (opcode == Opcode::START || opcode == Opcode::END) continue;
 
-        if (opcode == Opcode::LD || opcode == Opcode::ADDA || opcode == Opcode::ST) {
+        if (isRegisterAddressOpcode(opcode)) {
             if (line.operands.size() != 2) {
-                addDiagnostic(diagnostics, line.line, opcodeName(opcode) + " requires register and label operands");
+                addDiagnostic(diagnostics, line.line, opcodeName(opcode) + " requires register and address operands");
                 ok = false;
                 continue;
             }
@@ -174,18 +207,38 @@ bool Assembler::pass2(const std::vector<ParsedLine>& lines, AssembleOutput& outp
                 continue;
             }
 
-            const auto symbol = output.symbols.find(symbolKey(line.operands[1]));
-            if (symbol == output.symbols.end()) {
-                addDiagnostic(diagnostics, line.line, "Undefined label: " + line.operands[1]);
+            const auto operandAddress = resolveAddressOperand(line.operands[1], output.symbols, diagnostics, line.line);
+            if (!operandAddress.has_value()) {
                 ok = false;
                 continue;
             }
 
             const auto machine = encodeInstruction(opcode, *gr);
             output.state.memory[line.address] = machine;
-            output.state.memory[static_cast<std::uint16_t>(line.address + 1)] = symbol->second;
-            output.sourceMap.add({line.line, line.address, {machine, symbol->second}, line.source, line.label, opcode});
-            output.instructions.push_back({line.address, line.line, opcode, line.source, *gr, symbol->second, line.operands[1], 2});
+            output.state.memory[static_cast<std::uint16_t>(line.address + 1)] = *operandAddress;
+            output.sourceMap.add({line.line, line.address, {machine, *operandAddress}, line.source, line.label, opcode});
+            output.instructions.push_back({line.address, line.line, opcode, line.source, *gr, *operandAddress, line.operands[1], 2});
+            continue;
+        }
+
+        if (isJumpOpcode(opcode)) {
+            if (line.operands.size() != 1) {
+                addDiagnostic(diagnostics, line.line, opcodeName(opcode) + " requires an address operand");
+                ok = false;
+                continue;
+            }
+
+            const auto operandAddress = resolveAddressOperand(line.operands[0], output.symbols, diagnostics, line.line);
+            if (!operandAddress.has_value()) {
+                ok = false;
+                continue;
+            }
+
+            const auto machine = encodeInstruction(opcode, 0);
+            output.state.memory[line.address] = machine;
+            output.state.memory[static_cast<std::uint16_t>(line.address + 1)] = *operandAddress;
+            output.sourceMap.add({line.line, line.address, {machine, *operandAddress}, line.source, line.label, opcode});
+            output.instructions.push_back({line.address, line.line, opcode, line.source, 0, *operandAddress, line.operands[0], 2});
             continue;
         }
 

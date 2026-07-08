@@ -20,8 +20,16 @@ The supported CASL II subset is deliberately small:
 - `DC`
 - `DS`
 - `LD`
+- `LAD`
 - `ADDA`
+- `SUBA`
+- `CPA`
 - `ST`
+- `JUMP`
+- `JZE`
+- `JNZ`
+- `JPL`
+- `JMI`
 - `RET`
 
 The sample program assembles at address `0020` and produces:
@@ -47,7 +55,7 @@ The active backend is shown in the bottom status bar as `Mock Core`, `WASM Core`
 
 ## C++ Core
 
-`cpp-core/` contains a C++20 parser, assembler, VM, source map model, instruction set helpers, and smoke tests for the same vertical slice. The frontend is not yet linked to this C++ core.
+`cpp-core/` contains a C++20 parser, assembler, VM, source map model, instruction set helpers, JSON dump tooling, and smoke tests for the same vertical slice. The default frontend backend remains `MockCoreAdapter`, and the experimental WASM backend can opt into the C++ core through the same CoreAdapter contract.
 
 The next bridge milestone is:
 
@@ -228,10 +236,10 @@ When source changes, the VM becomes `Dirty`, the old assembled state is invalida
 
 See [docs/phase1-status.md](docs/phase1-status.md) for the Phase 1 checkpoint.
 See [docs/phase4c-wasm-runtime.md](docs/phase4c-wasm-runtime.md) for the current WASM runtime workflow.
+See [docs/phase5a-instruction-expansion.md](docs/phase5a-instruction-expansion.md) for the Phase 5A instruction subset.
 
 ## Suggested Next Phase
 
-1. Add a stable C ABI / embind surface for the C++ core.
-2. Compile `cpp-core` with Emscripten and replace the mock bridge behind `coreBridge.ts`.
-3. Expand diagnostics, file operations, and SourceMap interaction.
-4. Add Playwright UI tests for assemble/step/highlight behavior.
+1. Use the Phase 5A subset as the input target for a small C++ subset translator.
+2. Keep Mock/WASM golden parity before enabling any larger instruction set.
+3. Add new CASL II instructions only when translator or teaching flows require them.

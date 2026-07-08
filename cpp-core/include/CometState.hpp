@@ -48,6 +48,12 @@ enum class VisualPathKind {
     LD_MemoryToMdrToGr,
     ST_GrToMdrToMemory,
     ADDA_GrMdrToAluToGr,
+    LAD_AddressToGr,
+    SUBA_GrMdrToAluToGr,
+    CPA_GrMdrToAluToFr,
+    Jump_AddressToPr,
+    ConditionalJump_AddressToPr,
+    ConditionalJump_NotTaken,
     Finished_None
 };
 

@@ -126,9 +126,9 @@ export function toCometStateDto(state: CometState, memoryStart = 0x20, memoryEnd
   const currentInstruction = instructionAtCurrentAddress(state);
   const lastInstructionKind = lastInstruction?.op ?? null;
   const effectiveAddress = lastInstruction?.operandAddress ?? null;
-  const lastMemoryReadAddress = lastInstructionKind === "LD" || lastInstructionKind === "ADDA" ? effectiveAddress : null;
+  const lastMemoryReadAddress = lastInstructionKind === "LD" || lastInstructionKind === "ADDA" || lastInstructionKind === "SUBA" || lastInstructionKind === "CPA" ? effectiveAddress : null;
   const lastMemoryWriteAddress = lastInstructionKind === "ST" ? effectiveAddress : null;
-  const lastRegisterWriteIndex = lastInstructionKind === "LD" || lastInstructionKind === "ADDA" ? lastInstruction?.gr ?? null : null;
+  const lastRegisterWriteIndex = lastInstructionKind === "LD" || lastInstructionKind === "LAD" || lastInstructionKind === "ADDA" || lastInstructionKind === "SUBA" ? lastInstruction?.gr ?? null : null;
 
   return {
     runState: state.runState,

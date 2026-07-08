@@ -45,4 +45,65 @@ describe("visual path resolver", () => {
     expect(active.has("mdr-to-alu")).toBe(true);
     expect(active.has("alu-to-gr")).toBe(true);
   });
+
+  it("resolves LAD active wires", () => {
+    const source = `MAIN START
+     LAD   GR1,VALUE
+     RET
+VALUE DC   10
+     END`;
+    const state = mockCaslCore.step(mockCaslCore.assemble(source));
+    const active = resolveActiveWireIds(resolveVisualPath(state));
+
+    expect(active.has("address-to-gr")).toBe(true);
+  });
+
+  it("resolves SUBA active wires", () => {
+    const source = `MAIN START
+     LD    GR1,A
+     SUBA  GR1,B
+     RET
+A    DC    20
+B    DC    5
+     END`;
+    let state = mockCaslCore.assemble(source);
+    state = mockCaslCore.step(state);
+    state = mockCaslCore.step(state);
+    const active = resolveActiveWireIds(resolveVisualPath(state));
+
+    expect(active.has("gr-to-alu")).toBe(true);
+    expect(active.has("mdr-to-alu")).toBe(true);
+    expect(active.has("alu-to-gr")).toBe(true);
+  });
+
+  it("resolves CPA active wires", () => {
+    const source = `MAIN START
+     LD    GR1,A
+     CPA   GR1,B
+     RET
+A    DC    10
+B    DC    10
+     END`;
+    let state = mockCaslCore.assemble(source);
+    state = mockCaslCore.step(state);
+    state = mockCaslCore.step(state);
+    const active = resolveActiveWireIds(resolveVisualPath(state));
+
+    expect(active.has("gr-to-alu")).toBe(true);
+    expect(active.has("mdr-to-alu")).toBe(true);
+    expect(active.has("alu-to-fr")).toBe(true);
+  });
+
+  it("resolves JUMP active wires", () => {
+    const source = `MAIN START
+     JUMP  TARGET
+     LAD   GR1,0
+TARGET LAD GR1,1
+     RET
+     END`;
+    const state = mockCaslCore.step(mockCaslCore.assemble(source));
+    const active = resolveActiveWireIds(resolveVisualPath(state));
+
+    expect(active.has("address-to-pr")).toBe(true);
+  });
 });

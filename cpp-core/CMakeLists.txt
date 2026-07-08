@@ -61,8 +61,17 @@ else()
     AssembleUndefinedLabel
     AssembleUnknownOpcode
     AssembleInvalidNumericLiteral
+    AssembleLad
     StepLd
     StepAdda
+    StepLad
+    StepSuba
+    StepCpaEqual
+    StepCpaNegative
+    StepJump
+    StepJzeTaken
+    StepJzeNotTaken
+    StepJmiTaken
     StepStore
     StepRetFinished
     ExecuteGr2Program

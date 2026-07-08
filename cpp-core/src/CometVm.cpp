@@ -5,14 +5,53 @@
 namespace casl {
 namespace {
 
-Flags flagsForAdd(std::uint16_t, std::uint16_t, std::uint32_t unsignedResult) {
-    const auto result = static_cast<std::uint16_t>(unsignedResult & 0xffff);
+std::int32_t toSigned16(std::uint16_t value) {
+    return (value & 0x8000) != 0 ? static_cast<std::int32_t>(value) - 0x10000 : static_cast<std::int32_t>(value);
+}
+
+bool signedAddOverflow(std::uint16_t lhs, std::uint16_t rhs, std::uint32_t result) {
+    const auto left = toSigned16(lhs);
+    const auto right = toSigned16(rhs);
+    const auto signedResult = toSigned16(static_cast<std::uint16_t>(result & 0xffff));
+    return (left >= 0 && right >= 0 && signedResult < 0) || (left < 0 && right < 0 && signedResult >= 0);
+}
+
+bool signedSubOverflow(std::uint16_t lhs, std::uint16_t rhs, std::int32_t result) {
+    const auto left = toSigned16(lhs);
+    const auto right = toSigned16(rhs);
+    const auto signedResult = toSigned16(static_cast<std::uint16_t>(result & 0xffff));
+    return (left >= 0 && right < 0 && signedResult < 0) || (left < 0 && right >= 0 && signedResult >= 0);
+}
+
+Flags flagsForArithmetic(std::int32_t value, bool overflow) {
+    const auto result = static_cast<std::uint16_t>(value & 0xffff);
     return {
         result == 0,
-        unsignedResult > 0xffff,
+        value > 0xffff || value < 0,
         (result & 0x8000) != 0,
+        overflow
+    };
+}
+
+Flags flagsForCompare(std::uint16_t lhs, std::uint16_t rhs) {
+    const auto diff = toSigned16(lhs) - toSigned16(rhs);
+    return {
+        diff == 0,
+        false,
+        diff < 0,
         false
     };
+}
+
+bool isJumpTaken(Opcode opcode, const Flags& flags) {
+    switch (opcode) {
+        case Opcode::JUMP: return true;
+        case Opcode::JZE: return flags.z;
+        case Opcode::JNZ: return !flags.z;
+        case Opcode::JPL: return !flags.n && !flags.z;
+        case Opcode::JMI: return flags.n;
+        default: return false;
+    }
 }
 
 }  // namespace
@@ -80,6 +119,21 @@ StepResult CometVm::step() {
             pushTrace("LD");
             break;
         }
+        case Opcode::LAD: {
+            const auto gr = instruction->gr;
+            if (gr >= kGeneralRegisterCount || !instruction->operandAddress.has_value()) {
+                fail(result, "Invalid LAD operands");
+                return result;
+            }
+            state_.gr[gr] = *instruction->operandAddress;
+            state_.lastRegisterWriteIndex = gr;
+            state_.pr = static_cast<std::uint16_t>(state_.pr + 2);
+            state_.visualPath = VisualPathKind::LAD_AddressToGr;
+            result.visualPath = state_.visualPath;
+            result.ok = true;
+            pushTrace("LAD");
+            break;
+        }
         case Opcode::ADDA: {
             const auto gr = instruction->gr;
             if (gr >= kGeneralRegisterCount || !instruction->operandAddress.has_value()) {
@@ -92,12 +146,48 @@ StepResult CometVm::step() {
             const auto sum = static_cast<std::uint32_t>(lhs) + state_.mdr;
             state_.gr[gr] = static_cast<std::uint16_t>(sum & 0xffff);
             state_.lastRegisterWriteIndex = gr;
-            state_.fr = flagsForAdd(lhs, state_.mdr, sum);
+            state_.fr = flagsForArithmetic(static_cast<std::int32_t>(sum), signedAddOverflow(lhs, state_.mdr, sum));
             state_.pr = static_cast<std::uint16_t>(state_.pr + 2);
             state_.visualPath = VisualPathKind::ADDA_GrMdrToAluToGr;
             result.visualPath = state_.visualPath;
             result.ok = true;
             pushTrace("ADDA");
+            break;
+        }
+        case Opcode::SUBA: {
+            const auto gr = instruction->gr;
+            if (gr >= kGeneralRegisterCount || !instruction->operandAddress.has_value()) {
+                fail(result, "Invalid SUBA operands");
+                return result;
+            }
+            const auto lhs = state_.gr[gr];
+            state_.lastMemoryReadAddress = *instruction->operandAddress;
+            state_.mdr = state_.memory[*instruction->operandAddress];
+            const auto diff = static_cast<std::int32_t>(lhs) - static_cast<std::int32_t>(state_.mdr);
+            state_.gr[gr] = static_cast<std::uint16_t>(diff & 0xffff);
+            state_.lastRegisterWriteIndex = gr;
+            state_.fr = flagsForArithmetic(diff, signedSubOverflow(lhs, state_.mdr, diff));
+            state_.pr = static_cast<std::uint16_t>(state_.pr + 2);
+            state_.visualPath = VisualPathKind::SUBA_GrMdrToAluToGr;
+            result.visualPath = state_.visualPath;
+            result.ok = true;
+            pushTrace("SUBA");
+            break;
+        }
+        case Opcode::CPA: {
+            const auto gr = instruction->gr;
+            if (gr >= kGeneralRegisterCount || !instruction->operandAddress.has_value()) {
+                fail(result, "Invalid CPA operands");
+                return result;
+            }
+            state_.lastMemoryReadAddress = *instruction->operandAddress;
+            state_.mdr = state_.memory[*instruction->operandAddress];
+            state_.fr = flagsForCompare(state_.gr[gr], state_.mdr);
+            state_.pr = static_cast<std::uint16_t>(state_.pr + 2);
+            state_.visualPath = VisualPathKind::CPA_GrMdrToAluToFr;
+            result.visualPath = state_.visualPath;
+            result.ok = true;
+            pushTrace("CPA");
             break;
         }
         case Opcode::ST: {
@@ -114,6 +204,27 @@ StepResult CometVm::step() {
             result.visualPath = state_.visualPath;
             result.ok = true;
             pushTrace("ST");
+            break;
+        }
+        case Opcode::JUMP:
+        case Opcode::JZE:
+        case Opcode::JNZ:
+        case Opcode::JPL:
+        case Opcode::JMI: {
+            if (!instruction->operandAddress.has_value()) {
+                fail(result, "Invalid jump operand");
+                return result;
+            }
+            const auto taken = isJumpTaken(instruction->opcode, state_.fr);
+            state_.pr = taken ? *instruction->operandAddress : static_cast<std::uint16_t>(state_.pr + 2);
+            state_.visualPath = instruction->opcode == Opcode::JUMP
+                ? VisualPathKind::Jump_AddressToPr
+                : taken
+                    ? VisualPathKind::ConditionalJump_AddressToPr
+                    : VisualPathKind::ConditionalJump_NotTaken;
+            result.visualPath = state_.visualPath;
+            result.ok = true;
+            pushTrace(opcodeName(instruction->opcode));
             break;
         }
         case Opcode::RET:

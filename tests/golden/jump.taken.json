@@ -1,0 +1,145 @@
+{
+  "runState": "Ready",
+  "stepCount": 1,
+  "pr": 36,
+  "sp": 65534,
+  "ir0": 25600,
+  "ir1": 36,
+  "mar": 36,
+  "mdr": 0,
+  "gr": [0, 0, 0, 0, 0, 0, 0, 0],
+  "frOF": false,
+  "frSF": false,
+  "frZF": false,
+  "frCF": false,
+  "currentInstructionAddress": 36,
+  "currentSourceLineIndex": 4,
+  "currentInstructionText": "TARGET LAD GR1,1",
+  "lastInstructionKind": "JUMP",
+  "lastMemoryReadAddress": null,
+  "lastMemoryWriteAddress": null,
+  "lastRegisterWriteIndex": null,
+  "effectiveAddress": 36,
+  "memoryWindow": [
+      {
+        "address": 32,
+        "value": 25600,
+        "label": "MAIN",
+        "isCurrent": false,
+        "isChanged": false
+      },
+      {
+        "address": 33,
+        "value": 36,
+        "label": null,
+        "isCurrent": false,
+        "isChanged": false
+      },
+      {
+        "address": 34,
+        "value": 4624,
+        "label": null,
+        "isCurrent": false,
+        "isChanged": false
+      },
+      {
+        "address": 35,
+        "value": 0,
+        "label": null,
+        "isCurrent": false,
+        "isChanged": false
+      },
+      {
+        "address": 36,
+        "value": 4624,
+        "label": "TARGET",
+        "isCurrent": true,
+        "isChanged": false
+      },
+      {
+        "address": 37,
+        "value": 1,
+        "label": null,
+        "isCurrent": false,
+        "isChanged": false
+      },
+      {
+        "address": 38,
+        "value": 33024,
+        "label": null,
+        "isCurrent": false,
+        "isChanged": false
+      },
+      {
+        "address": 39,
+        "value": 0,
+        "label": null,
+        "isCurrent": false,
+        "isChanged": false
+      },
+      {
+        "address": 40,
+        "value": 0,
+        "label": null,
+        "isCurrent": false,
+        "isChanged": false
+      },
+      {
+        "address": 41,
+        "value": 0,
+        "label": null,
+        "isCurrent": false,
+        "isChanged": false
+      },
+      {
+        "address": 42,
+        "value": 0,
+        "label": null,
+        "isCurrent": false,
+        "isChanged": false
+      }
+    ],
+  "sourceRows": [
+      {
+        "line": 2,
+        "address": 32,
+        "machineWords": [25600, 36],
+        "source": "JUMP  TARGET",
+        "label": null,
+        "instruction": "JUMP",
+        "operandAddress": 36,
+        "isCurrent": false
+      },
+      {
+        "line": 3,
+        "address": 34,
+        "machineWords": [4624, 0],
+        "source": "LAD   GR1,0",
+        "label": null,
+        "instruction": "LAD",
+        "operandAddress": 0,
+        "isCurrent": false
+      },
+      {
+        "line": 4,
+        "address": 36,
+        "machineWords": [4624, 1],
+        "source": "TARGET LAD GR1,1",
+        "label": "TARGET",
+        "instruction": "LAD",
+        "operandAddress": 1,
+        "isCurrent": true
+      },
+      {
+        "line": 5,
+        "address": 38,
+        "machineWords": [33024],
+        "source": "RET",
+        "label": null,
+        "instruction": "RET",
+        "operandAddress": null,
+        "isCurrent": false
+      }
+    ],
+  "diagnostics": []
+}

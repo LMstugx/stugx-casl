@@ -22,6 +22,8 @@ export const wirePaths: readonly WirePath[] = Object.freeze([
   { id: "mdr-to-alu", role: "data", d: "M 852 298 C 820 298 820 300 800 300" },
   { id: "alu-to-gr", role: "data", d: "M 610 356 C 554 356 542 384 480 384" },
   { id: "alu-to-fr", role: "control", d: "M 706 402 L 706 478" },
+  { id: "address-to-gr", role: "data", d: "M 808 108 C 704 142 590 220 480 254" },
+  { id: "address-to-pr", role: "control", d: "M 808 66 C 670 28 518 44 466 72" },
   { id: "ir-to-decoder", role: "control", d: "M 117 118 L 117 150" },
   { id: "decoder-to-controller", role: "control", d: "M 117 266 L 117 300" },
   { id: "controller-to-pr", role: "control", d: "M 190 346 C 244 346 248 82 350 82" },
@@ -34,5 +36,11 @@ export const activeWireIdsByKind: Record<VisualPathKind, string[]> = {
   [VisualPathKind.LD_MemoryToMdrToGr]: ["memory-to-mdr", "mdr-to-gr"],
   [VisualPathKind.ST_GrToMdrToMemory]: ["gr-to-mdr", "mdr-to-memory"],
   [VisualPathKind.ADDA_GrMdrToAluToGr]: ["gr-to-alu", "mdr-to-alu", "alu-to-gr", "alu-to-fr"],
+  [VisualPathKind.LAD_AddressToGr]: ["pr-to-mar", "address-to-gr"],
+  [VisualPathKind.SUBA_GrMdrToAluToGr]: ["gr-to-alu", "mdr-to-alu", "alu-to-gr", "alu-to-fr"],
+  [VisualPathKind.CPA_GrMdrToAluToFr]: ["gr-to-alu", "mdr-to-alu", "alu-to-fr"],
+  [VisualPathKind.Jump_AddressToPr]: ["pr-to-mar", "address-to-pr"],
+  [VisualPathKind.ConditionalJump_AddressToPr]: ["pr-to-mar", "address-to-pr"],
+  [VisualPathKind.ConditionalJump_NotTaken]: ["pr-to-plus2"],
   [VisualPathKind.Finished_None]: []
 };

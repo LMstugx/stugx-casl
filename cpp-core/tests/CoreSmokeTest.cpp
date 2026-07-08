@@ -178,6 +178,177 @@ void StepAdda() {
     require(vm.state().visualPath == casl::VisualPathKind::ADDA_GrMdrToAluToGr, "ADDA visual path");
 }
 
+void AssembleLad() {
+    const auto output = assembleOrExit(R"(MAIN START
+     LAD   GR1,VALUE
+     RET
+VALUE DC   10
+     END)");
+    require(output.state.memory[0x20] == 0x1210, "LAD machine word");
+    require(output.state.memory[0x21] == symbolAddress(output, "VALUE"), "LAD operand address");
+    require(output.sourceMap.lineForAddress(0x20).value_or(-1) == 2, "LAD source map");
+}
+
+void StepLad() {
+    const auto output = assembleOrExit(R"(MAIN START
+     LAD   GR1,VALUE
+     RET
+VALUE DC   10
+     END)");
+    casl::CometVm vm;
+    vm.load(output);
+    const auto step = vm.step();
+    require(step.ok, "LAD step should succeed");
+    require(vm.state().gr[1] == symbolAddress(output, "VALUE"), "LAD should load effective address");
+    require(vm.state().pr == 0x22, "PR after LAD");
+    require(vm.state().lastRegisterWriteIndex.has_value() && *vm.state().lastRegisterWriteIndex == 1, "LAD write register");
+    require(!vm.state().lastMemoryReadAddress.has_value(), "LAD should not read memory");
+    require(vm.state().visualPath == casl::VisualPathKind::LAD_AddressToGr, "LAD visual path");
+}
+
+void StepSuba() {
+    const auto output = assembleOrExit(R"(MAIN START
+     LD    GR1,A
+     SUBA  GR1,B
+     RET
+A    DC    20
+B    DC    5
+     END)");
+    casl::CometVm vm;
+    vm.load(output);
+    (void)vm.step();
+    const auto step = vm.step();
+    require(step.ok, "SUBA step should succeed");
+    require(vm.state().gr[1] == 0x000f, "GR1 after SUBA");
+    require(vm.state().pr == 0x24, "PR after SUBA");
+    require(!vm.state().fr.z && !vm.state().fr.c && !vm.state().fr.n && !vm.state().fr.o, "FR after SUBA positive");
+    require(vm.state().lastMemoryReadAddress.has_value() && *vm.state().lastMemoryReadAddress == symbolAddress(output, "B"), "SUBA read address");
+    require(vm.state().lastRegisterWriteIndex.has_value() && *vm.state().lastRegisterWriteIndex == 1, "SUBA write register");
+    require(vm.state().visualPath == casl::VisualPathKind::SUBA_GrMdrToAluToGr, "SUBA visual path");
+}
+
+void StepCpaEqual() {
+    const auto output = assembleOrExit(R"(MAIN START
+     LD    GR1,A
+     CPA   GR1,B
+     RET
+A    DC    10
+B    DC    10
+     END)");
+    casl::CometVm vm;
+    vm.load(output);
+    (void)vm.step();
+    const auto step = vm.step();
+    require(step.ok, "CPA equal should succeed");
+    require(vm.state().gr[1] == 0x000a, "CPA should not modify GR1");
+    require(vm.state().fr.z && !vm.state().fr.n && !vm.state().fr.o, "CPA equal flags");
+    require(!vm.state().lastRegisterWriteIndex.has_value(), "CPA should not write register");
+    require(vm.state().visualPath == casl::VisualPathKind::CPA_GrMdrToAluToFr, "CPA visual path");
+}
+
+void StepCpaNegative() {
+    const auto output = assembleOrExit(R"(MAIN START
+     LD    GR1,A
+     CPA   GR1,B
+     RET
+A    DC    5
+B    DC    10
+     END)");
+    casl::CometVm vm;
+    vm.load(output);
+    (void)vm.step();
+    const auto step = vm.step();
+    require(step.ok, "CPA negative should succeed");
+    require(vm.state().fr.n && !vm.state().fr.z && !vm.state().fr.o, "CPA negative flags");
+}
+
+void StepJump() {
+    const auto output = assembleOrExit(R"(MAIN START
+     JUMP  TARGET
+     LAD   GR1,0
+TARGET LAD GR1,1
+     RET
+     END)");
+    casl::CometVm vm;
+    vm.load(output);
+    const auto step = vm.step();
+    require(step.ok, "JUMP step should succeed");
+    require(vm.state().pr == symbolAddress(output, "TARGET"), "JUMP target PR");
+    require(vm.state().visualPath == casl::VisualPathKind::Jump_AddressToPr, "JUMP visual path");
+}
+
+void StepJzeTaken() {
+    const auto output = assembleOrExit(R"(MAIN START
+     LD    GR1,A
+     CPA   GR1,B
+     JZE   SAME
+     LAD   GR2,0
+     RET
+SAME LAD   GR2,1
+     RET
+A    DC    10
+B    DC    10
+     END)");
+    casl::CometVm vm;
+    vm.load(output);
+    (void)vm.step();
+    (void)vm.step();
+    const auto step = vm.step();
+    require(step.ok, "JZE taken should succeed");
+    require(vm.state().pr == symbolAddress(output, "SAME"), "JZE should jump to SAME");
+    require(vm.state().visualPath == casl::VisualPathKind::ConditionalJump_AddressToPr, "JZE taken visual path");
+    (void)vm.step();
+    require(vm.state().gr[2] == 0x0001, "GR2 after taken branch LAD");
+}
+
+void StepJzeNotTaken() {
+    const auto output = assembleOrExit(R"(MAIN START
+     LD    GR1,A
+     CPA   GR1,B
+     JZE   SAME
+     LAD   GR2,0
+     RET
+SAME LAD   GR2,1
+     RET
+A    DC    10
+B    DC    20
+     END)");
+    casl::CometVm vm;
+    vm.load(output);
+    (void)vm.step();
+    (void)vm.step();
+    const auto step = vm.step();
+    require(step.ok, "JZE not taken should succeed");
+    require(vm.state().pr == 0x26, "JZE should advance to next instruction");
+    require(vm.state().visualPath == casl::VisualPathKind::ConditionalJump_NotTaken, "JZE not taken visual path");
+    (void)vm.step();
+    require(vm.state().gr[2] == 0x0000, "GR2 after not-taken branch LAD");
+}
+
+void StepJmiTaken() {
+    const auto output = assembleOrExit(R"(MAIN START
+     LD    GR1,A
+     CPA   GR1,B
+     JMI   LESS
+     LAD   GR2,0
+     RET
+LESS LAD   GR2,1
+     RET
+A    DC    5
+B    DC    10
+     END)");
+    casl::CometVm vm;
+    vm.load(output);
+    (void)vm.step();
+    (void)vm.step();
+    const auto step = vm.step();
+    require(step.ok, "JMI taken should succeed");
+    require(vm.state().pr == symbolAddress(output, "LESS"), "JMI should jump to LESS");
+    require(vm.state().visualPath == casl::VisualPathKind::ConditionalJump_AddressToPr, "JMI taken visual path");
+    (void)vm.step();
+    require(vm.state().gr[2] == 0x0001, "GR2 after JMI taken branch LAD");
+}
+
 void StepStore() {
     casl::CometVm vm;
     vm.load(assembleSample());
@@ -265,8 +436,17 @@ const std::vector<std::pair<std::string_view, TestFunction>>& tests() {
         {"AssembleUndefinedLabel", AssembleUndefinedLabel},
         {"AssembleUnknownOpcode", AssembleUnknownOpcode},
         {"AssembleInvalidNumericLiteral", AssembleInvalidNumericLiteral},
+        {"AssembleLad", AssembleLad},
         {"StepLd", StepLd},
         {"StepAdda", StepAdda},
+        {"StepLad", StepLad},
+        {"StepSuba", StepSuba},
+        {"StepCpaEqual", StepCpaEqual},
+        {"StepCpaNegative", StepCpaNegative},
+        {"StepJump", StepJump},
+        {"StepJzeTaken", StepJzeTaken},
+        {"StepJzeNotTaken", StepJzeNotTaken},
+        {"StepJmiTaken", StepJmiTaken},
         {"StepStore", StepStore},
         {"StepRetFinished", StepRetFinished},
         {"ExecuteGr2Program", ExecuteGr2Program},

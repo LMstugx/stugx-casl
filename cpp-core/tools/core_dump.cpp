@@ -33,6 +33,71 @@ Y    DC    4
 Z    DS    1
      END)";
 
+const std::string kLadSource = R"(MAIN START
+     LAD   GR1,VALUE
+     RET
+VALUE DC   10
+     END)";
+
+const std::string kSubaSource = R"(MAIN START
+     LD    GR1,A
+     SUBA  GR1,B
+     RET
+A    DC    20
+B    DC    5
+     END)";
+
+const std::string kCpaEqualSource = R"(MAIN START
+     LD    GR1,A
+     CPA   GR1,B
+     RET
+A    DC    10
+B    DC    10
+     END)";
+
+const std::string kJumpSource = R"(MAIN START
+     JUMP  TARGET
+     LAD   GR1,0
+TARGET LAD GR1,1
+     RET
+     END)";
+
+const std::string kJzeTakenSource = R"(MAIN START
+     LD    GR1,A
+     CPA   GR1,B
+     JZE   SAME
+     LAD   GR2,0
+     RET
+SAME LAD   GR2,1
+     RET
+A    DC    10
+B    DC    10
+     END)";
+
+const std::string kJzeNotTakenSource = R"(MAIN START
+     LD    GR1,A
+     CPA   GR1,B
+     JZE   SAME
+     LAD   GR2,0
+     RET
+SAME LAD   GR2,1
+     RET
+A    DC    10
+B    DC    20
+     END)";
+
+const std::string kJmiTakenSource = R"(MAIN START
+     LD    GR1,A
+     CPA   GR1,B
+     JMI   LESS
+     LAD   GR2,0
+     RET
+LESS LAD   GR2,1
+     RET
+A    DC    5
+B    DC    10
+     END)";
+
 std::string jsonEscape(const std::string& text) {
     std::string escaped;
     escaped.reserve(text.size() + 8);
@@ -253,7 +318,28 @@ casl::AssembleOutput assembleOrExit(const std::string& source) {
 }
 
 std::string dumpScenario(const std::string& scenario) {
-    const auto source = scenario.rfind("gr2-", 0) == 0 ? kGr2Source : kSimpleSource;
+    const std::unordered_map<std::string, std::string> sources{
+        {"simple-ready", kSimpleSource},
+        {"simple-step1", kSimpleSource},
+        {"simple-step2", kSimpleSource},
+        {"simple-step3", kSimpleSource},
+        {"simple-finished", kSimpleSource},
+        {"gr2-step1", kGr2Source},
+        {"lada-step1", kLadSource},
+        {"suba-step1", kSubaSource},
+        {"cpa-equal", kCpaEqualSource},
+        {"jump-taken", kJumpSource},
+        {"jze-taken", kJzeTakenSource},
+        {"jze-not-taken", kJzeNotTakenSource},
+        {"jmi-taken", kJmiTakenSource},
+    };
+    const auto sourceEntry = sources.find(scenario);
+    if (sourceEntry == sources.end()) {
+        std::cerr << "Unknown scenario: " << scenario << '\n';
+        std::exit(2);
+    }
+
+    const auto& source = sourceEntry->second;
     auto assembled = assembleOrExit(source);
     casl::CometVm vm;
     vm.load(assembled);
@@ -264,11 +350,11 @@ std::string dumpScenario(const std::string& scenario) {
     }
 
     int steps = 0;
-    if (scenario == "simple-step1" || scenario == "gr2-step1") {
+    if (scenario == "simple-step1" || scenario == "gr2-step1" || scenario == "lada-step1" || scenario == "jump-taken") {
         steps = 1;
-    } else if (scenario == "simple-step2") {
+    } else if (scenario == "simple-step2" || scenario == "suba-step1" || scenario == "cpa-equal") {
         steps = 2;
-    } else if (scenario == "simple-step3") {
+    } else if (scenario == "simple-step3" || scenario == "jze-taken" || scenario == "jze-not-taken" || scenario == "jmi-taken") {
         steps = 3;
     } else if (scenario == "simple-finished") {
         steps = 4;
@@ -299,7 +385,7 @@ int main(int argc, char** argv) {
             index += 1;
             continue;
         }
-        std::cerr << "Usage: core_dump --scenario <simple-ready|simple-step1|simple-step2|simple-step3|simple-finished|gr2-step1>\n";
+        std::cerr << "Usage: core_dump --scenario <simple-ready|simple-step1|simple-step2|simple-step3|simple-finished|gr2-step1|lada-step1|suba-step1|cpa-equal|jump-taken|jze-taken|jze-not-taken|jmi-taken>\n";
         return 2;
     }
 

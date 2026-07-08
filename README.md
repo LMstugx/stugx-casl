@@ -174,6 +174,17 @@ int main() {
 
 The program finishes with `GR0 = 0006`.
 
+## Main Memory Viewer
+
+The COMET circuit keeps a compact Memory module for the current execution neighborhood. The Inspector `Memory` tab is the detailed memory viewer:
+
+- Defaults to the current program start address with 64 rows.
+- Supports custom hexadecimal start address and row counts of `32`, `64`, `128`, or `256`.
+- Provides jumps to Program, PR, MAR, last read, and last write.
+- Highlights PR, MAR, last read, last write, labels, and changed memory values.
+
+The viewer generates a bounded window from `CometState` and does not render all 65536 memory words. See [docs/phase-memory-viewer.md](docs/phase-memory-viewer.md).
+
 ## Install
 
 ```bash
@@ -315,6 +326,7 @@ See [docs/phase5c-if-else-lowering.md](docs/phase5c-if-else-lowering.md) for if 
 See [docs/phase5d-while-lowering.md](docs/phase5d-while-lowering.md) for while lowering.
 See [docs/phase5e-run-stop-trace.md](docs/phase5e-run-stop-trace.md) for the initial Run / Stop UX.
 See [docs/phase5f-run-stop-trace.md](docs/phase5f-run-stop-trace.md) for stabilized Run / Stop / maxSteps behavior.
+See [docs/phase-memory-viewer.md](docs/phase-memory-viewer.md) for the detailed Inspector Memory viewer.
 
 ## Suggested Next Phase
 

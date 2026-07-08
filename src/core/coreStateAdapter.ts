@@ -1,8 +1,6 @@
 import type { CometStateDto, DiagnosticDto, SourceRowDto } from "./coreDto";
-import {
-  VisualPathKind,
-  formatWord
-} from "./types";
+import { MEMORY_VIEW_DEFAULT_ROWS, selectMemoryWindow } from "./selectors";
+import { VisualPathKind, formatWord } from "./types";
 import type { AssembledInstruction, CometState, Diagnostic, FlagsState, MemoryRow, RegisterState, SourceMapEntry, TraceEvent } from "./types";
 
 const START_ADDRESS = 0x20;
@@ -27,11 +25,28 @@ function flagsFromDto(dto: CometStateDto): FlagsState {
   };
 }
 
-function memoryFromRows(rows: MemoryRow[]): Record<number, number> {
-  return rows.reduce<Record<number, number>>((memory, row) => {
+function memoryFromDto(dto: CometStateDto, previous?: CometState): Record<number, number> {
+  const memory: Record<number, number> = previous?.memory ? { ...previous.memory } : {};
+
+  for (const row of dto.sourceRows) {
+    row.machineWords.forEach((word, offset) => {
+      memory[(row.address + offset) & 0xffff] = word;
+    });
+  }
+
+  for (const row of dto.memoryWindow) {
     memory[row.address] = row.value;
-    return memory;
-  }, {});
+  }
+
+  if (dto.lastMemoryReadAddress !== null) {
+    memory[dto.lastMemoryReadAddress] = dto.mdr;
+  }
+
+  if (dto.lastMemoryWriteAddress !== null) {
+    memory[dto.lastMemoryWriteAddress] = dto.mdr;
+  }
+
+  return memory;
 }
 
 function sourceMapFromDto(rows: SourceRowDto[]): SourceMapEntry[] {
@@ -142,14 +157,9 @@ function registerRowsFromDto(dto: CometStateDto, changedRegisters: string[]): Re
   ];
 }
 
-function memoryRowsFromDto(dto: CometStateDto): MemoryRow[] {
-  return dto.memoryWindow.map((row) => ({
-    address: row.address,
-    value: row.value,
-    label: row.label ?? undefined,
-    current: row.isCurrent,
-    changed: row.isChanged
-  }));
+function memoryRowsForDefaultWindow(state: Pick<CometState, "memory" | "memoryRows" | "sourceMap" | "changedMemoryAddresses" | "currentAddress" | "pr" | "mar" | "lastMemoryReadAddress" | "lastMemoryWriteAddress">): MemoryRow[] {
+  const start = state.sourceMap.length > 0 ? Math.min(...state.sourceMap.map((row) => row.address)) : START_ADDRESS;
+  return selectMemoryWindow(state as CometState, start, Math.min(0xffff, start + MEMORY_VIEW_DEFAULT_ROWS - 1));
 }
 
 function findLastInstructionRow(dto: CometStateDto): SourceRowDto | undefined {
@@ -225,12 +235,27 @@ function lastStepFromDto(dto: CometStateDto) {
 }
 
 export function createCometStateFromDto(dto: CometStateDto, options: StateFromDtoOptions = {}): CometState {
-  const memoryRows = memoryRowsFromDto(dto);
-  const memory = memoryFromRows(memoryRows);
+  const memory = memoryFromDto(dto, options.previous);
   const changedRegisters = changedRegistersFromDto(dto);
-  const changedMemoryAddresses = dto.memoryWindow.filter((row) => row.isChanged).map((row) => row.address);
+  const changedMemoryAddresses = [
+    ...dto.memoryWindow.filter((row) => row.isChanged).map((row) => row.address),
+    ...(dto.lastMemoryWriteAddress !== null ? [dto.lastMemoryWriteAddress] : [])
+  ].filter((address, index, addresses) => addresses.indexOf(address) === index);
   const assembled = dto.runState !== "Idle" && dto.runState !== "Dirty" && dto.runState !== "Error" && dto.sourceRows.length > 0;
   const output = options.output ?? (options.previous ? [...options.previous.output] : defaultOutput(dto));
+  const sourceMap = sourceMapFromDto(dto.sourceRows);
+  const partialStateForMemoryRows = {
+    memory,
+    memoryRows: [] as MemoryRow[],
+    sourceMap,
+    changedMemoryAddresses,
+    currentAddress: dto.currentInstructionAddress ?? undefined,
+    pr: dto.pr,
+    mar: dto.mar,
+    lastMemoryReadAddress: dto.lastMemoryReadAddress ?? undefined,
+    lastMemoryWriteAddress: dto.lastMemoryWriteAddress ?? undefined
+  };
+  const memoryRows = memoryRowsForDefaultWindow(partialStateForMemoryRows);
 
   return {
     assembled,
@@ -246,7 +271,7 @@ export function createCometStateFromDto(dto: CometStateDto, options: StateFromDt
     initialMemory: options.previous?.initialMemory ? { ...options.previous.initialMemory } : { ...memory },
     memoryRows,
     registers: registerRowsFromDto(dto, changedRegisters),
-    sourceMap: sourceMapFromDto(dto.sourceRows),
+    sourceMap,
     symbols: symbolsFromRows(memoryRows, dto.sourceRows),
     diagnostics: diagnosticsFromDto(dto.diagnostics),
     output,
@@ -257,6 +282,8 @@ export function createCometStateFromDto(dto: CometStateDto, options: StateFromDt
     currentAddress: dto.currentInstructionAddress ?? undefined,
     currentInstruction: dto.currentInstructionText ?? undefined,
     lastStep: lastStepFromDto(dto),
+    lastMemoryReadAddress: dto.lastMemoryReadAddress ?? undefined,
+    lastMemoryWriteAddress: dto.lastMemoryWriteAddress ?? undefined,
     program: programFromDto(dto.sourceRows),
     changedRegisters,
     changedMemoryAddresses

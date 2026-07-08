@@ -49,6 +49,10 @@ export interface MemoryRow {
   label?: string;
   changed?: boolean;
   current?: boolean;
+  isPr?: boolean;
+  isMar?: boolean;
+  isLastRead?: boolean;
+  isLastWrite?: boolean;
 }
 
 export interface RegisterState {
@@ -129,6 +133,8 @@ export interface CometState {
   currentAddress?: number;
   currentInstruction?: string;
   lastStep?: StepResult;
+  lastMemoryReadAddress?: number;
+  lastMemoryWriteAddress?: number;
   program?: AssembledInstruction[];
   changedRegisters: string[];
   changedMemoryAddresses: number[];

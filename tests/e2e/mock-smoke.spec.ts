@@ -99,3 +99,25 @@ test("Mock backend stops runaway while programs at maxSteps and can reset", asyn
   await page.getByTestId("reset-button").click();
   await expect(page.getByTestId("run-state")).toHaveText("Ready");
 });
+
+test("Mock backend memory viewer can inspect an extended range and highlight writes", async ({ page }) => {
+  await openStudio(page, "Mock Core");
+  await assemble(page);
+
+  await page.getByRole("tab", { name: "Memory" }).click();
+  await page.getByTestId("memory-start-input").fill("0020");
+  await page.getByTestId("memory-row-count").selectOption("64");
+  await page.getByTestId("memory-go-button").click();
+
+  await expect(page.getByTestId("memory-view-row-0020")).toContainText("0020");
+  await expect(page.getByTestId("memory-view-row-002B")).toContainText("002B");
+
+  await step(page);
+  await step(page);
+  await step(page);
+
+  const cRow = page.getByTestId("memory-view-row-0029");
+  await expect(cRow).toContainText("001E");
+  await expect(cRow).toContainText("C");
+  await expect(cRow).toHaveAttribute("data-write", "true");
+});

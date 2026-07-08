@@ -2,6 +2,8 @@
 
 Phase 5E stabilizes execution controls for loop-heavy programs. It does not add new C++ syntax, change CASL VM instruction semantics, change while lowering, or alter the CoreAdapter contract.
 
+Phase 5F refines this behavior by distinguishing manual `Stopped` from max-step safety `Stopped`. See [phase5f-run-stop-trace.md](phase5f-run-stop-trace.md) for the current button-state contract.
+
 ## Run / Stop Design
 
 The UI-level `Run` action executes the current assembled program in small batches of `step()` calls through `coreBridge`.

@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { MockCoreAdapter } from "../core/mockCoreAdapter";
 import { mockCaslCore } from "../core/mockCaslCore";
 import { setCoreAdapter } from "../core/coreBridge";
+import { DEFAULT_CASL_SOURCE } from "../core/defaultSource";
 import { AppStoreProvider, useAppStore } from "../store/useAppStore";
 import type { CometState } from "../core/types";
 import Toolbar from "../components/Toolbar";
@@ -91,6 +92,26 @@ describe("Run / Stop / Trace UX", () => {
     setCoreAdapter(new MockCoreAdapter());
   });
 
+  it("run_finishes_simple_program and output_logs_run_finished", async () => {
+    await act(async () => {
+      store.setSourceText(DEFAULT_CASL_SOURCE);
+    });
+    await act(async () => {
+      store.assemble();
+    });
+    await waitFor(() => store.cometState.runState === "Ready");
+
+    await act(async () => {
+      store.run();
+    });
+    await waitFor(() => store.cometState.runState === "Finished");
+
+    expect(store.cometState.stepIndex).toBe(4);
+    expect(store.cometState.gr[1]).toBe(0x001e);
+    expect(store.cometState.memoryRows.find((row) => row.label === "C")?.value).toBe(0x001e);
+    expect(store.cometState.output).toContain("Run finished after 4 steps.");
+  });
+
   it("run_finishes_while_sum", async () => {
     await loadCppSource(whileSumSource);
 
@@ -113,13 +134,14 @@ describe("Run / Stop / Trace UX", () => {
 
     expect(store.cometState.output.join("\n")).toContain("Max steps reached. Possible infinite loop.");
     expect(store.cometState.stepIndex).toBe(25);
+    expect(store.runStopReason).toBe("maxSteps");
   });
 
   it("stop_interrupts_running", async () => {
     await loadCppSource(infiniteLoopSource);
 
     await act(async () => {
-      store.run(1000);
+      store.run(100000);
     });
     await waitFor(() => store.cometState.runState === "Running");
     await act(async () => {
@@ -128,12 +150,19 @@ describe("Run / Stop / Trace UX", () => {
     await waitFor(() => store.cometState.runState === "Stopped");
 
     expect(store.cometState.output.join("\n")).toContain("Run stopped after");
-    expect(store.cometState.stepIndex).toBeLessThan(1000);
+    expect(store.cometState.stepIndex).toBeLessThan(100000);
+    expect(store.runStopReason).toBe("manual");
+
+    await act(async () => {
+      store.step();
+    });
+    await waitFor(() => store.cometState.runState === "Ready");
+    expect(store.runStopReason).toBeNull();
   });
 });
 
 describe("Trace limits", () => {
-  it("trace_keeps_recent_steps", () => {
+  it("trace_keeps_recent_1000_steps", () => {
     let state: CometState = mockCaslCore.assemble(`MAIN START
 LOOP LAD   GR1,1
      JUMP  LOOP
@@ -174,5 +203,27 @@ describe("Toolbar run states", () => {
     expect(markup).toMatch(/data-testid="step-button"[^>]*disabled/);
     expect(markup).toMatch(/data-testid="reset-button"[^>]*disabled/);
     expect(markup).not.toMatch(/data-testid="stop-button"[^>]*disabled/);
+  });
+
+  it("toolbar_state_finished", () => {
+    const markup = renderToStaticMarkup(
+      <Toolbar
+        assembleStatus="success"
+        canRun={false}
+        canStep={false}
+        canReset
+        isRunning={false}
+        onAssemble={() => undefined}
+        onRun={() => undefined}
+        onStep={() => undefined}
+        onReset={() => undefined}
+        onStop={() => undefined}
+      />
+    );
+
+    expect(markup).toMatch(/data-testid="run-button"[^>]*disabled/);
+    expect(markup).toMatch(/data-testid="step-button"[^>]*disabled/);
+    expect(markup).not.toMatch(/data-testid="reset-button"[^>]*disabled/);
+    expect(markup).toMatch(/data-testid="stop-button"[^>]*disabled/);
   });
 });

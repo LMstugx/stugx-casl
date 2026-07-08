@@ -27,6 +27,7 @@ function StudioShell() {
     diagnostics: storeDiagnostics,
     cometState: state,
     assembleStatus,
+    runStopReason,
     backendInfo,
     generatedCaslSource,
     cppToCaslMapping,
@@ -40,8 +41,9 @@ function StudioShell() {
     clearOutput
   } = useAppStore();
   const isRunning = state.runState === "Running";
-  const canRun = !isSourceDirty && state.assembled && state.runState === "Ready";
-  const canStep = !isSourceDirty && state.assembled && state.runState === "Ready";
+  const canExecute = state.runState === "Ready" || (state.runState === "Stopped" && runStopReason === "manual");
+  const canRun = !isSourceDirty && state.assembled && canExecute;
+  const canStep = !isSourceDirty && state.assembled && canExecute;
   const canReset = !isSourceDirty && !isRunning && (state.assembled || state.runState === "Finished" || state.runState === "Stopped" || state.sourceMap.length > 0);
   const diagnostics = useMemo(() => storeDiagnostics.filter((diagnostic) => diagnostic.severity === "error"), [storeDiagnostics]);
   const editorCurrentLine = sourceMode === "cpp" ? cppLineForCaslLine(cppToCaslMapping, state.currentLine) : state.currentLine;

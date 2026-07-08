@@ -146,7 +146,7 @@ C DS    1
      END
 ```
 
-Unsupported C++ features include classes, structs, pointers, references, templates, arrays, function calls, `std::cout`, strings, floats, `for`, `do while`, `break`, `continue`, complex boolean expressions, and full scope rules. See [docs/phase5b-cpp-subset-transpiler.md](docs/phase5b-cpp-subset-transpiler.md), [docs/phase5c-if-else-lowering.md](docs/phase5c-if-else-lowering.md), [docs/phase5d-while-lowering.md](docs/phase5d-while-lowering.md), and [docs/phase5e-run-stop-trace.md](docs/phase5e-run-stop-trace.md).
+Unsupported C++ features include classes, structs, pointers, references, templates, arrays, function calls, `std::cout`, strings, floats, `for`, `do while`, `break`, `continue`, complex boolean expressions, and full scope rules. See [docs/phase5b-cpp-subset-transpiler.md](docs/phase5b-cpp-subset-transpiler.md), [docs/phase5c-if-else-lowering.md](docs/phase5c-if-else-lowering.md), [docs/phase5d-while-lowering.md](docs/phase5d-while-lowering.md), and [docs/phase5f-run-stop-trace.md](docs/phase5f-run-stop-trace.md).
 
 ## Run / Stop
 
@@ -156,7 +156,7 @@ Run is enabled after a successful Assemble. The UI executes in small batches wit
 Max steps reached. Possible infinite loop.
 ```
 
-Stop interrupts an active Run between batches. Reset reloads the current assembled program.
+Stop interrupts an active Run between batches. A manual stop can continue with Step or Run; a max-step safety stop disables Step/Run until Reset reloads the current assembled program.
 
 While example:
 
@@ -313,7 +313,8 @@ See [docs/phase5a-instruction-expansion.md](docs/phase5a-instruction-expansion.m
 See [docs/phase5b-cpp-subset-transpiler.md](docs/phase5b-cpp-subset-transpiler.md) for the C++ subset transpiler MVP.
 See [docs/phase5c-if-else-lowering.md](docs/phase5c-if-else-lowering.md) for if / else lowering and source mapping.
 See [docs/phase5d-while-lowering.md](docs/phase5d-while-lowering.md) for while lowering.
-See [docs/phase5e-run-stop-trace.md](docs/phase5e-run-stop-trace.md) for Run / Stop / maxSteps behavior.
+See [docs/phase5e-run-stop-trace.md](docs/phase5e-run-stop-trace.md) for the initial Run / Stop UX.
+See [docs/phase5f-run-stop-trace.md](docs/phase5f-run-stop-trace.md) for stabilized Run / Stop / maxSteps behavior.
 
 ## Suggested Next Phase
 

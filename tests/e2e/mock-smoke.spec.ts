@@ -72,3 +72,30 @@ test("Mock backend executes C++ subset while sum in the browser UI", async ({ pa
   await page.getByRole("tab", { name: "Output" }).click();
   await expect(page.getByText("Run finished after")).toBeVisible();
 });
+
+test("Mock backend stops runaway while programs at maxSteps and can reset", async ({ page }) => {
+  await openStudio(page, "Mock Core");
+  await page.getByTestId("source-mode-cpp").click();
+  await setSource(
+    page,
+    `int main() {
+    int i = 1;
+    while (i > 0) {
+        i = i + 1;
+    }
+    return i;
+}`
+  );
+
+  await assemble(page);
+  await run(page);
+
+  await expect(page.getByTestId("run-state")).toHaveText("Stopped", { timeout: 15_000 });
+  await expect(page.getByText("Max steps reached. Possible infinite loop.")).toBeVisible();
+  await expect(page.getByTestId("run-button")).toBeDisabled();
+  await expect(page.getByTestId("step-button")).toBeDisabled();
+  await expect(page.getByTestId("reset-button")).toBeEnabled();
+
+  await page.getByTestId("reset-button").click();
+  await expect(page.getByTestId("run-state")).toHaveText("Ready");
+});

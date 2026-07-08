@@ -176,6 +176,8 @@ function StudioShell() {
         cppToCaslMapping={cppToCaslMapping}
         currentCaslLine={sourceMode === "cpp" ? state.currentLine : undefined}
         currentCppLine={editorCurrentLine}
+        state={state}
+        sourceMode={sourceMode}
         autoOpenGenerated={sourceMode === "cpp" && !isSourceDirty && Boolean(generatedCaslSource)}
         onClear={clearOutput}
       />

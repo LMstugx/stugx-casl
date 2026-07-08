@@ -27,14 +27,31 @@ describe("Generated CASL panel", () => {
         cppToCaslMapping: result.mapping,
         currentCaslLine,
         currentCppLine: 5,
+        sourceMode: "cpp",
         initialTab: "generated",
         onClear: () => undefined
       })
     );
 
+    expect(markup).toContain("Generated CASL II Assembly");
     expect(markup).toContain('data-testid="generated-casl-output"');
+    expect(markup).toContain("This CASL II code was generated from the C++ subset source.");
     expect(markup).toContain('data-testid="generated-casl-line-current"');
     expect(markup).toContain('data-current="true"');
     expect(markup).toContain('data-related="true"');
+  });
+
+  it("generated_casl_tab_title", () => {
+    const markup = renderToStaticMarkup(
+      createElement(OutputPanel, {
+        lines: [],
+        generatedCaslSource: "MAIN START\n     RET\n     END",
+        initialTab: "generated",
+        onClear: () => undefined
+      })
+    );
+
+    expect(markup).toContain("Generated CASL II Assembly");
+    expect(markup).not.toContain("This CASL II code was generated from the C++ subset source.");
   });
 });

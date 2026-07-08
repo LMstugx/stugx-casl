@@ -83,12 +83,13 @@ describe("demo recording experience", () => {
         lines={["Assemble succeeded."]}
         generatedCaslSource={result.caslSource}
         cppToCaslMapping={result.mapping}
+        sourceMode="cpp"
         autoOpenGenerated
         onClear={() => undefined}
       />
     );
 
-    expect(container?.querySelector('[data-testid="generated-casl-output"]')?.textContent).toContain("Generated from C++ subset");
+    expect(container?.querySelector('[data-testid="generated-casl-output"]')?.textContent).toContain("generated from the C++ subset source");
     expect(container?.querySelector('[data-testid="generated-casl-output"]')?.textContent).toContain("ADDA");
   });
 

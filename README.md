@@ -200,6 +200,21 @@ Use the Demo selector above the Source Editor to load one. Loading a demo marks 
 
 See [docs/demo-script.md](docs/demo-script.md) for a Japanese recording script.
 
+## Generated Assembly And Machine Code
+
+C++ subset mode exposes the learning pipeline directly:
+
+```text
+C++ subset source -> Generated CASL II Assembly -> COMET II Machine Code -> Execution
+```
+
+The Output dock includes:
+
+- `Generated CASL`: structured CASL II assembly generated from the C++ subset source.
+- `Machine Code`: COMET II address/word rows derived from the current assembled program.
+
+The machine-code rows show source text, labels, opcode/operand/data meaning, current PR, current IR words, last read, last write, and related C++ line when available. This is still a C++ subset learning pipeline, not a complete C++ compiler.
+
 ## Install
 
 ```bash
@@ -344,6 +359,7 @@ See [docs/phase5f-run-stop-trace.md](docs/phase5f-run-stop-trace.md) for stabili
 See [docs/phase5h-run-stop-trace.md](docs/phase5h-run-stop-trace.md) for the current Run / Stop / Trace stabilization checkpoint.
 See [docs/phase-memory-viewer.md](docs/phase-memory-viewer.md) for the detailed Inspector Memory viewer.
 See [docs/demo-script.md](docs/demo-script.md) for the demo recording script.
+See [docs/phase7a-machine-code-view.md](docs/phase7a-machine-code-view.md) for the generated assembly and machine-code view.
 
 ## Suggested Next Phase
 

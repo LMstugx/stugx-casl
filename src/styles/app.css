@@ -1093,8 +1093,12 @@ button {
   color: var(--color-muted);
 }
 
-.generated-casl-line {
-  grid-template-columns: 34px minmax(0, 1fr);
+.generated-casl-title {
+  margin-bottom: 6px;
+  color: #10233d;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 12px;
+  font-weight: 800;
 }
 
 .generated-casl-heading {
@@ -1105,6 +1109,47 @@ button {
   font-weight: 750;
   text-transform: uppercase;
   letter-spacing: 0.04em;
+}
+
+.code-table {
+  display: grid;
+  gap: 1px;
+  min-width: 720px;
+}
+
+.code-table-header,
+.code-table-row {
+  display: grid;
+  gap: 8px;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 7px;
+}
+
+.code-table-header {
+  color: var(--color-muted);
+  background: #eef2f7;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.code-table-row {
+  color: #334155;
+  border-bottom: 1px solid #edf0f5;
+}
+
+.generated-casl-table .code-table-header,
+.generated-casl-table .code-table-row {
+  grid-template-columns: 44px 96px 80px minmax(150px, 1fr) 170px 54px;
+}
+
+.machine-code-table .code-table-header,
+.machine-code-table .code-table-row {
+  grid-template-columns: 72px 72px minmax(160px, 1fr) 84px 150px 54px;
 }
 
 .generated-casl-line.related {
@@ -1122,6 +1167,24 @@ button {
 
 .generated-casl-line.generated-meta:not(.current) {
   color: var(--color-muted);
+}
+
+.machine-code-row.current-pr {
+  background: var(--color-active-bg);
+  box-shadow: inset 3px 0 0 var(--color-primary);
+  font-weight: 750;
+}
+
+.machine-code-row.current-ir {
+  background: rgba(37, 99, 235, 0.08);
+}
+
+.machine-code-row.read {
+  background: #e8f6ed;
+}
+
+.machine-code-row.written {
+  background: #fcecec;
 }
 
 .status-bar {

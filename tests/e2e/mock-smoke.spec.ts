@@ -45,6 +45,27 @@ test("Mock backend executes C++ subset if else lowering in the browser UI", asyn
   await expectRegister(page, "register-gr0", "0001");
 });
 
+test("Mock backend shows generated CASL and machine code for C++ addition", async ({ page }) => {
+  await openStudio(page, "Mock Core");
+  await selectDemoProgram(page, "cpp-addition");
+
+  await assemble(page);
+  await expect(page.getByTestId("generated-casl-output")).toContainText("Generated CASL II Assembly");
+  await expect(page.getByTestId("generated-casl-output")).toContainText("LD");
+  await expect(page.getByTestId("generated-casl-output")).toContainText("ADDA");
+
+  await page.getByRole("tab", { name: "Machine Code" }).click();
+  await expect(page.getByTestId("machine-code-output")).toContainText("0020");
+  await expect(page.getByTestId("machine-code-output")).toContainText("1010");
+  await expect(page.getByTestId("machine-code-output")).toContainText("0027");
+  await expect(page.getByTestId("machine-code-output")).toContainText("LD GR1,A");
+  await expect(page.getByTestId("machine-code-row-current-pr")).toHaveAttribute("data-address", "0020");
+
+  await step(page);
+  await page.getByRole("tab", { name: "Machine Code" }).click();
+  await expect(page.getByTestId("machine-code-row-current-pr")).toHaveAttribute("data-address", "0022");
+});
+
 test("Mock backend executes C++ subset while sum in the browser UI", async ({ page }) => {
   await openStudio(page, "Mock Core");
   await selectDemoProgram(page, "cpp-while-sum");
@@ -52,7 +73,7 @@ test("Mock backend executes C++ subset while sum in the browser UI", async ({ pa
   await expect(page.getByTestId("demo-guide-expected-result")).toContainText("GR0 = 0006");
 
   await assemble(page);
-  await expect(page.getByTestId("generated-casl-heading")).toHaveText("Generated from C++ subset");
+  await expect(page.getByTestId("generated-casl-heading")).toHaveText("This CASL II code was generated from the C++ subset source.");
   await expect(page.getByTestId("generated-casl-output")).toContainText("LOOP_BEGIN_0");
 
   await run(page);

@@ -1,6 +1,10 @@
 import { useEffect, useRef, useState } from "react";
+import type { CometState } from "../core/types";
+import { formatWord } from "../core/types";
+import { selectGeneratedCaslRows } from "../core/generatedCaslRows";
+import { selectMachineCodeRows } from "../core/machineCodeRows";
 import type { CppToCaslMap } from "../transpiler/cppAst";
-import { caslLinesForCppLine, mappingKindsForCaslLine } from "../transpiler/cppMapping";
+import type { SourceMode } from "../store/useAppStore";
 
 type OutputPanelProps = {
   lines: string[];
@@ -9,18 +13,21 @@ type OutputPanelProps = {
   cppToCaslMapping?: CppToCaslMap[];
   currentCaslLine?: number;
   currentCppLine?: number;
+  state?: CometState;
+  sourceMode?: SourceMode;
   initialTab?: OutputTab;
   autoOpenGenerated?: boolean;
   onClear: () => void;
 };
 
-type OutputTab = "output" | "console" | "messages" | "generated";
+type OutputTab = "output" | "console" | "messages" | "generated" | "machine";
 
 const tabs: Array<{ id: OutputTab; label: string }> = [
   { id: "output", label: "Output" },
   { id: "console", label: "Console" },
   { id: "messages", label: "Messages" },
-  { id: "generated", label: "Generated CASL" }
+  { id: "generated", label: "Generated CASL" },
+  { id: "machine", label: "Machine Code" }
 ];
 
 function lineTone(line: string): "success" | "danger" | "warn" | "muted" | "default" {
@@ -49,6 +56,8 @@ export default function OutputPanel({
   cppToCaslMapping = [],
   currentCaslLine,
   currentCppLine,
+  state,
+  sourceMode = "casl",
   initialTab = "output",
   autoOpenGenerated = false,
   onClear
@@ -72,10 +81,13 @@ export default function OutputPanel({
           ? messages.length
             ? messages
             : ["No diagnostics or system messages."]
+          : activeTab === "machine"
+            ? []
           : generatedCaslSource
             ? generatedCaslSource.split(/\r?\n/)
             : ["No generated CASL. Switch to C++ subset mode and assemble."];
-  const relatedCaslLines = caslLinesForCppLine(cppToCaslMapping, currentCppLine);
+  const generatedRows = selectGeneratedCaslRows(generatedCaslSource, cppToCaslMapping, currentCaslLine, currentCppLine);
+  const machineRows = state ? selectMachineCodeRows(state, cppToCaslMapping) : [];
 
   return (
     <section className="output-panel">
@@ -98,37 +110,96 @@ export default function OutputPanel({
           Clear
         </button>
       </header>
-      <div className={`console-lines ${activeTab}`} aria-label={`${activeTab} log`} data-testid={activeTab === "generated" ? "generated-casl-output" : undefined}>
+      <div className={`console-lines ${activeTab}`} aria-label={`${activeTab} log`} data-testid={activeTab === "generated" ? "generated-casl-output" : activeTab === "machine" ? "machine-code-output" : undefined}>
         {activeTab === "generated"
           ? (
               <>
-                {generatedCaslSource ? (
+                <div className="generated-casl-title" data-testid="generated-casl-title">
+                  Generated CASL II Assembly
+                </div>
+                {generatedCaslSource && sourceMode === "cpp" ? (
                   <div className="generated-casl-heading" data-testid="generated-casl-heading">
-                    Generated from C++ subset
+                    This CASL II code was generated from the C++ subset source.
                   </div>
                 ) : null}
-                {visibleLines.map((line, index) => {
-                  const lineNumber = index + 1;
-                  const isCurrent = currentCaslLine === lineNumber;
-                  const isRelated = relatedCaslLines.has(lineNumber);
-                  const kinds = mappingKindsForCaslLine(cppToCaslMapping, lineNumber);
-                  const isGenerated = kinds.has("generated-label") || kinds.has("loop-label") || kinds.has("constant");
-                  return (
-                    <div
-                      key={`${line}-${index}`}
-                      className={`console-line generated-casl-line ${isCurrent ? "current" : ""} ${isRelated ? "related" : ""} ${isGenerated ? "generated-meta" : ""}`}
-                      data-testid={isCurrent ? "generated-casl-line-current" : "generated-casl-line"}
-                      data-line={lineNumber}
-                      data-current={isCurrent ? "true" : "false"}
-                      data-related={isRelated ? "true" : "false"}
-                    >
-                      <span className="console-prefix">{String(lineNumber).padStart(2, "0")}</span>
-                      <span>{line}</span>
+                {generatedCaslSource ? (
+                  <div className="code-table generated-casl-table">
+                    <div className="code-table-header">
+                      <span>Line</span>
+                      <span>Label</span>
+                      <span>Opcode</span>
+                      <span>Operand</span>
+                      <span>Mapping</span>
+                      <span>C++</span>
                     </div>
-                  );
-                })}
+                    {generatedRows.map((row) => (
+                      <div
+                        key={`${row.lineNumber}-${row.raw}`}
+                        className={`code-table-row generated-casl-line ${row.isCurrent ? "current" : ""} ${row.isRelated ? "related" : ""} ${row.isGeneratedMeta ? "generated-meta" : ""}`}
+                        data-testid={row.isCurrent ? "generated-casl-line-current" : "generated-casl-line"}
+                        data-line={row.lineNumber}
+                        data-current={row.isCurrent ? "true" : "false"}
+                        data-related={row.isRelated ? "true" : "false"}
+                      >
+                        <span className="console-prefix">{String(row.lineNumber).padStart(2, "0")}</span>
+                        <span>{row.label || "-"}</span>
+                        <span>{row.opcode || "-"}</span>
+                        <span>{row.operand || "-"}</span>
+                        <span>{row.mappingKinds.join(", ") || "-"}</span>
+                        <span>{row.relatedCppLine ? `L${row.relatedCppLine}` : "-"}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="console-line muted">
+                    <span className="console-prefix">info</span>
+                    <span>No generated CASL. Switch to C++ subset mode and assemble.</span>
+                  </div>
+                )}
               </>
             )
+          : activeTab === "machine"
+            ? (
+                <>
+                  <div className="generated-casl-title">COMET II Machine Code</div>
+                  {machineRows.length ? (
+                    <div className="code-table machine-code-table">
+                      <div className="code-table-header">
+                        <span>Address</span>
+                        <span>Word</span>
+                        <span>Source</span>
+                        <span>Label</span>
+                        <span>Meaning</span>
+                        <span>C++</span>
+                      </div>
+                      {machineRows.map((row) => (
+                        <div
+                          key={`${row.address}-${row.sourceLineIndex}`}
+                          className={`code-table-row machine-code-row ${row.isCurrentPr ? "current-pr" : ""} ${row.isCurrentIr ? "current-ir" : ""} ${row.isRead ? "read" : ""} ${row.isWritten ? "written" : ""}`}
+                          data-testid={row.isCurrentPr ? "machine-code-row-current-pr" : "machine-code-row"}
+                          data-address={formatWord(row.address)}
+                          data-pr={row.isCurrentPr ? "true" : "false"}
+                          data-ir={row.isCurrentIr ? "true" : "false"}
+                          data-read={row.isRead ? "true" : "false"}
+                          data-write={row.isWritten ? "true" : "false"}
+                        >
+                          <span className="hex">{formatWord(row.address)}</span>
+                          <span className="hex">{formatWord(row.word)}</span>
+                          <span>{row.sourceText}</span>
+                          <span>{row.label ?? "-"}</span>
+                          <span>{row.meaning}</span>
+                          <span>{row.relatedCppLine ? `L${row.relatedCppLine}` : "-"}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="console-line muted">
+                      <span className="console-prefix">info</span>
+                      <span>Assemble a program to view machine code.</span>
+                    </div>
+                  )}
+                </>
+              )
           : visibleLines.map((line, index) => (
               <div key={`${line}-${index}`} className={`console-line ${lineTone(line)}`}>
                 <span className="console-prefix">{linePrefix(activeTab, line)}</span>

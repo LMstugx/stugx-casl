@@ -1,4 +1,5 @@
 import { CometState, formatWord } from "../core/types";
+import { selectMachineCodeRows } from "../core/machineCodeRows";
 import type { SourceMode } from "../store/useAppStore";
 import type { CppToCaslMap } from "../transpiler/cppAst";
 import { cppLineForCaslLine } from "../transpiler/cppMapping";
@@ -22,9 +23,10 @@ function generatedCaslLine(generatedCaslSource: string, line?: number): string {
 }
 
 function currentMachineWords(state: CometState): string {
-  const entry = state.sourceMap.find((row) => row.line === state.currentLine || row.address === state.currentAddress);
-  if (!entry) return "---- : ----";
-  return `${formatWord(entry.address)} : ${entry.machineWords.map((word) => formatWord(word)).join(" ")}`;
+  const rows = selectMachineCodeRows(state);
+  const current = rows.find((row) => row.isCurrentPr) ?? rows.find((row) => row.isCurrentIr) ?? rows.find((row) => row.address === state.currentAddress);
+  if (!current) return "---- : ----";
+  return `${formatWord(current.address)} : ${formatWord(current.word)} (${current.meaning})`;
 }
 
 export default function LearningFlowPanel({

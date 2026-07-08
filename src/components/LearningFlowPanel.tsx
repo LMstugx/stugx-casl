@@ -1,5 +1,5 @@
 import { CometState, formatWord } from "../core/types";
-import { selectMachineCodeRows } from "../core/machineCodeRows";
+import { explainMachineCodeRow, selectMachineCodeRows } from "../core/machineCodeRows";
 import type { SourceMode } from "../store/useAppStore";
 import type { CppToCaslMap } from "../transpiler/cppAst";
 import { cppLineForCaslLine } from "../transpiler/cppMapping";
@@ -26,7 +26,11 @@ function currentMachineWords(state: CometState): string {
   const rows = selectMachineCodeRows(state);
   const current = rows.find((row) => row.isCurrentPr) ?? rows.find((row) => row.isCurrentIr) ?? rows.find((row) => row.address === state.currentAddress);
   if (!current) return "---- : ----";
-  return `${formatWord(current.address)} : ${formatWord(current.word)} (${current.meaning})`;
+  const explanation = explainMachineCodeRow(current);
+  const register = explanation.register !== undefined ? ` / GR${explanation.register}` : "";
+  const operand = explanation.operandAddress !== undefined ? " / operand next word" : "";
+  const mnemonic = explanation.mnemonic ?? explanation.wordRole;
+  return `${formatWord(current.address)} : ${formatWord(current.word)} | ${mnemonic}${register}${operand}`;
 }
 
 export default function LearningFlowPanel({

@@ -1152,6 +1152,13 @@ button {
   grid-template-columns: 72px 72px minmax(160px, 1fr) 84px 150px 54px;
 }
 
+.machine-code-content {
+  display: grid;
+  grid-template-columns: minmax(720px, 1fr) minmax(260px, 320px);
+  gap: 10px;
+  align-items: start;
+}
+
 .generated-casl-line.related {
   background: rgba(37, 99, 235, 0.07);
   border-radius: var(--radius-sm);
@@ -1175,6 +1182,21 @@ button {
   font-weight: 750;
 }
 
+.machine-code-row {
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+}
+
+.machine-code-row:hover {
+  background: #f1f5f9;
+}
+
+.machine-code-row:focus-visible,
+.machine-code-row.selected {
+  outline: 1px solid var(--color-primary);
+  outline-offset: -1px;
+}
+
 .machine-code-row.current-ir {
   background: rgba(37, 99, 235, 0.08);
 }
@@ -1185,6 +1207,59 @@ button {
 
 .machine-code-row.written {
   background: #fcecec;
+}
+
+.machine-code-explanation {
+  min-width: 0;
+  padding: 9px 10px;
+  color: #26364d;
+  background: #f8fafc;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.machine-code-explanation-title {
+  margin-bottom: 8px;
+  color: #10233d;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.machine-code-explanation dl {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 10px;
+  margin: 0;
+}
+
+.machine-code-explanation dl > div {
+  min-width: 0;
+}
+
+.machine-code-explanation dt {
+  color: var(--color-muted);
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.machine-code-explanation dd {
+  margin: 1px 0 0;
+  font-family: "Cascadia Mono", Consolas, monospace;
+  font-size: 12px;
+  color: #10233d;
+  word-break: break-word;
+}
+
+.machine-code-explanation-wide {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 1100px) {
+  .machine-code-content {
+    grid-template-columns: 1fr;
+  }
 }
 
 .status-bar {

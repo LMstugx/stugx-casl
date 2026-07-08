@@ -59,11 +59,18 @@ test("Mock backend shows generated CASL and machine code for C++ addition", asyn
   await expect(page.getByTestId("machine-code-output")).toContainText("1010");
   await expect(page.getByTestId("machine-code-output")).toContainText("0027");
   await expect(page.getByTestId("machine-code-output")).toContainText("LD GR1,A");
-  await expect(page.getByTestId("machine-code-row-current-pr")).toHaveAttribute("data-address", "0020");
+  await expect(page.getByTestId("machine-code-row-0020")).toHaveAttribute("data-pr", "true");
+  await page.getByTestId("machine-code-row-0020").click();
+  await expect(page.getByTestId("machine-code-explanation")).toContainText("LD");
+  await expect(page.getByTestId("machine-code-explanation")).toContainText("GR1");
+  await expect(page.getByTestId("machine-code-explanation")).toContainText("Operand");
+  await page.getByTestId("machine-code-row-0021").click();
+  await expect(page.getByTestId("machine-code-explanation")).toContainText("operand word");
+  await expect(page.getByTestId("machine-code-explanation")).toContainText("address of A");
 
   await step(page);
   await page.getByRole("tab", { name: "Machine Code" }).click();
-  await expect(page.getByTestId("machine-code-row-current-pr")).toHaveAttribute("data-address", "0022");
+  await expect(page.getByTestId("machine-code-row-0022")).toHaveAttribute("data-pr", "true");
 });
 
 test("Mock backend executes C++ subset while sum in the browser UI", async ({ page }) => {

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { CometState } from "../core/types";
 import { formatWord } from "../core/types";
 import { selectGeneratedCaslRows } from "../core/generatedCaslRows";
-import { selectMachineCodeRows } from "../core/machineCodeRows";
+import { explainMachineCodeRow, selectDefaultMachineCodeRow, selectMachineCodeRows } from "../core/machineCodeRows";
 import type { CppToCaslMap } from "../transpiler/cppAst";
 import type { SourceMode } from "../store/useAppStore";
 
@@ -88,6 +88,10 @@ export default function OutputPanel({
             : ["No generated CASL. Switch to C++ subset mode and assemble."];
   const generatedRows = selectGeneratedCaslRows(generatedCaslSource, cppToCaslMapping, currentCaslLine, currentCppLine);
   const machineRows = state ? selectMachineCodeRows(state, cppToCaslMapping) : [];
+  const [selectedMachineAddress, setSelectedMachineAddress] = useState<number | null>(null);
+  const selectedMachineRow =
+    machineRows.find((row) => row.address === selectedMachineAddress) ?? selectDefaultMachineCodeRow(machineRows);
+  const machineExplanation = selectedMachineRow ? explainMachineCodeRow(selectedMachineRow) : undefined;
 
   return (
     <section className="output-panel">
@@ -163,34 +167,102 @@ export default function OutputPanel({
                 <>
                   <div className="generated-casl-title">COMET II Machine Code</div>
                   {machineRows.length ? (
-                    <div className="code-table machine-code-table">
-                      <div className="code-table-header">
-                        <span>Address</span>
-                        <span>Word</span>
-                        <span>Source</span>
-                        <span>Label</span>
-                        <span>Meaning</span>
-                        <span>C++</span>
-                      </div>
-                      {machineRows.map((row) => (
-                        <div
-                          key={`${row.address}-${row.sourceLineIndex}`}
-                          className={`code-table-row machine-code-row ${row.isCurrentPr ? "current-pr" : ""} ${row.isCurrentIr ? "current-ir" : ""} ${row.isRead ? "read" : ""} ${row.isWritten ? "written" : ""}`}
-                          data-testid={row.isCurrentPr ? "machine-code-row-current-pr" : "machine-code-row"}
-                          data-address={formatWord(row.address)}
-                          data-pr={row.isCurrentPr ? "true" : "false"}
-                          data-ir={row.isCurrentIr ? "true" : "false"}
-                          data-read={row.isRead ? "true" : "false"}
-                          data-write={row.isWritten ? "true" : "false"}
-                        >
-                          <span className="hex">{formatWord(row.address)}</span>
-                          <span className="hex">{formatWord(row.word)}</span>
-                          <span>{row.sourceText}</span>
-                          <span>{row.label ?? "-"}</span>
-                          <span>{row.meaning}</span>
-                          <span>{row.relatedCppLine ? `L${row.relatedCppLine}` : "-"}</span>
+                    <div className="machine-code-content">
+                      <div className="code-table machine-code-table">
+                        <div className="code-table-header">
+                          <span>Address</span>
+                          <span>Word</span>
+                          <span>Source</span>
+                          <span>Label</span>
+                          <span>Meaning</span>
+                          <span>C++</span>
                         </div>
-                      ))}
+                        {machineRows.map((row) => {
+                          const isSelected = selectedMachineRow?.address === row.address;
+                          return (
+                            <div
+                              key={`${row.address}-${row.sourceLineIndex}`}
+                              className={`code-table-row machine-code-row ${row.isCurrentPr ? "current-pr" : ""} ${row.isCurrentIr ? "current-ir" : ""} ${row.isRead ? "read" : ""} ${row.isWritten ? "written" : ""} ${isSelected ? "selected" : ""}`}
+                              data-testid={`machine-code-row-${formatWord(row.address)}`}
+                              data-address={formatWord(row.address)}
+                              data-pr={row.isCurrentPr ? "true" : "false"}
+                              data-ir={row.isCurrentIr ? "true" : "false"}
+                              data-read={row.isRead ? "true" : "false"}
+                              data-write={row.isWritten ? "true" : "false"}
+                              data-selected={isSelected ? "true" : "false"}
+                              role="button"
+                              tabIndex={0}
+                              onClick={() => setSelectedMachineAddress(row.address)}
+                              onKeyDown={(event) => {
+                                if (event.key === "Enter" || event.key === " ") {
+                                  event.preventDefault();
+                                  setSelectedMachineAddress(row.address);
+                                }
+                              }}
+                            >
+                              <span className="hex">{formatWord(row.address)}</span>
+                              <span className="hex">{formatWord(row.word)}</span>
+                              <span>{row.sourceText}</span>
+                              <span>{row.label ?? "-"}</span>
+                              <span>{row.meaning}</span>
+                              <span>{row.relatedCppLine ? `L${row.relatedCppLine}` : "-"}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      {machineExplanation ? (
+                        <section className="machine-code-explanation" data-testid="machine-code-explanation" aria-label="Selected word explanation">
+                          <div className="machine-code-explanation-title">
+                            Selected Word Explanation
+                          </div>
+                          <dl>
+                            <div>
+                              <dt>Address</dt>
+                              <dd>{formatWord(machineExplanation.address)}</dd>
+                            </div>
+                            <div>
+                              <dt>Word</dt>
+                              <dd>{formatWord(machineExplanation.word)}</dd>
+                            </div>
+                            <div>
+                              <dt>Role</dt>
+                              <dd>{machineExplanation.wordRole === "instruction" ? "instruction word" : machineExplanation.wordRole === "operand" ? "operand word" : machineExplanation.wordRole === "data" ? "data word" : "reserved word"}</dd>
+                            </div>
+                            <div>
+                              <dt>Opcode</dt>
+                              <dd>{machineExplanation.opcode !== undefined ? `${formatWord(machineExplanation.opcode, 2)} = ${machineExplanation.mnemonic ?? "unknown"}` : "-"}</dd>
+                            </div>
+                            <div>
+                              <dt>Register</dt>
+                              <dd>{machineExplanation.register !== undefined ? `GR${machineExplanation.register}` : "-"}</dd>
+                            </div>
+                            <div>
+                              <dt>Index</dt>
+                              <dd>{machineExplanation.indexRegister ? `GR${machineExplanation.indexRegister}` : "none"}</dd>
+                            </div>
+                            <div>
+                              <dt>Operand</dt>
+                              <dd>
+                                {machineExplanation.operandAddress !== undefined
+                                  ? `${formatWord(machineExplanation.operandAddress)}${machineExplanation.resolvedLabel ? ` = address of ${machineExplanation.resolvedLabel}` : ""}`
+                                  : "-"}
+                              </dd>
+                            </div>
+                            <div>
+                              <dt>Binary</dt>
+                              <dd>{machineExplanation.binaryText}</dd>
+                            </div>
+                            <div className="machine-code-explanation-wide">
+                              <dt>Source</dt>
+                              <dd>{machineExplanation.sourceText || "-"}</dd>
+                            </div>
+                            <div className="machine-code-explanation-wide">
+                              <dt>Meaning</dt>
+                              <dd>{machineExplanation.meaning}</dd>
+                            </div>
+                          </dl>
+                        </section>
+                      ) : null}
                     </div>
                   ) : (
                     <div className="console-line muted">

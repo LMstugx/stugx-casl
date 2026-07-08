@@ -213,7 +213,7 @@ The Output dock includes:
 - `Generated CASL`: structured CASL II assembly generated from the C++ subset source.
 - `Machine Code`: COMET II address/word rows derived from the current assembled program.
 
-The machine-code rows show source text, labels, opcode/operand/data meaning, current PR, current IR words, last read, last write, and related C++ line when available. This is still a C++ subset learning pipeline, not a complete C++ compiler.
+The machine-code rows show source text, labels, opcode/operand/data meaning, current PR, current IR words, last read, last write, and related C++ line when available. Selecting a machine-code row opens a word explanation panel with opcode, register field, index field, operand address, resolved label, binary text, and a human-readable meaning. This is still a C++ subset learning pipeline, not a complete C++ compiler.
 
 ## Install
 
@@ -360,6 +360,7 @@ See [docs/phase5h-run-stop-trace.md](docs/phase5h-run-stop-trace.md) for the cur
 See [docs/phase-memory-viewer.md](docs/phase-memory-viewer.md) for the detailed Inspector Memory viewer.
 See [docs/demo-script.md](docs/demo-script.md) for the demo recording script.
 See [docs/phase7a-machine-code-view.md](docs/phase7a-machine-code-view.md) for the generated assembly and machine-code view.
+See [docs/phase7b-machine-code-explanation.md](docs/phase7b-machine-code-explanation.md) for opcode and operand explanation details.
 
 ## Suggested Next Phase
 

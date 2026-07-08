@@ -6,7 +6,7 @@ import { describe, expect, it, afterEach } from "vitest";
 import OutputPanel from "../components/OutputPanel";
 import { createCometStateFromDto } from "../core/coreStateAdapter";
 import { toAssembleResultDto, toStepResultDto } from "../core/coreDto";
-import { selectMachineCodeRows } from "../core/machineCodeRows";
+import { explainMachineCodeRow, selectMachineCodeRows } from "../core/machineCodeRows";
 import { DEFAULT_CASL_SOURCE, mockCaslCore } from "../core/mockCaslCore";
 import { getDemoProgram } from "../examples/demoPrograms";
 import { prepareSourceForCoreAssembly } from "../store/useAppStore";
@@ -88,6 +88,100 @@ describe("machine code rows", () => {
 
     expect(container?.querySelector('[data-testid="machine-code-output"]')?.textContent).toContain("COMET II Machine Code");
     expect(container?.querySelector('[data-testid="machine-code-output"]')?.textContent).toContain("1010");
+  });
+
+  it("decode_ld_instruction_word", () => {
+    const state = stateFromRaw(mockCaslCore.assemble(DEFAULT_CASL_SOURCE));
+    const rows = selectMachineCodeRows(state);
+    const explanation = explainMachineCodeRow(rows.find((row) => row.address === 0x20)!);
+
+    expect(explanation.mnemonic).toBe("LD");
+    expect(explanation.wordRole).toBe("instruction");
+    expect(explanation.opcode).toBe(0x10);
+    expect(explanation.register).toBe(1);
+    expect(explanation.indexRegister).toBe(0);
+    expect(explanation.operandAddress).toBe(0x27);
+    expect(explanation.resolvedLabel).toBe("A");
+    expect(explanation.meaning).toContain("GR1");
+  });
+
+  it("decode_ld_operand_word", () => {
+    const state = stateFromRaw(mockCaslCore.assemble(DEFAULT_CASL_SOURCE));
+    const rows = selectMachineCodeRows(state);
+    const explanation = explainMachineCodeRow(rows.find((row) => row.address === 0x21)!);
+
+    expect(explanation.wordRole).toBe("operand");
+    expect(explanation.operandAddress).toBe(0x27);
+    expect(explanation.resolvedLabel).toBe("A");
+    expect(explanation.meaning).toContain("address of A");
+  });
+
+  it("decode_adda_instruction_word", () => {
+    const state = stateFromRaw(mockCaslCore.assemble(DEFAULT_CASL_SOURCE));
+    const rows = selectMachineCodeRows(state);
+    const explanation = explainMachineCodeRow(rows.find((row) => row.address === 0x22)!);
+
+    expect(explanation.mnemonic).toBe("ADDA");
+    expect(explanation.opcode).toBe(0x20);
+    expect(explanation.register).toBe(1);
+    expect(explanation.operandAddress).toBe(0x28);
+    expect(explanation.resolvedLabel).toBe("B");
+  });
+
+  it("decode_ret_word", () => {
+    const state = stateFromRaw(mockCaslCore.assemble(DEFAULT_CASL_SOURCE));
+    const rows = selectMachineCodeRows(state);
+    const explanation = explainMachineCodeRow(rows.find((row) => row.address === 0x26)!);
+
+    expect(explanation.mnemonic).toBe("RET");
+    expect(explanation.wordRole).toBe("instruction");
+    expect(explanation.opcode).toBe(0x81);
+    expect(explanation.meaning).toContain("finish execution");
+  });
+
+  it("decode_data_word", () => {
+    const state = stateFromRaw(mockCaslCore.assemble(DEFAULT_CASL_SOURCE));
+    const rows = selectMachineCodeRows(state);
+    const explanation = explainMachineCodeRow(rows.find((row) => row.address === 0x27)!);
+
+    expect(explanation.wordRole).toBe("data");
+    expect(explanation.resolvedLabel).toBe("A");
+    expect(explanation.meaning).toContain("Data value");
+  });
+
+  it("machine_code_explanation_resolves_label", () => {
+    const state = stateFromRaw(mockCaslCore.assemble(DEFAULT_CASL_SOURCE));
+    const rows = selectMachineCodeRows(state);
+    const row = rows.find((entry) => entry.address === 0x23);
+
+    expect(row?.resolvedLabel).toBe("B");
+    expect(explainMachineCodeRow(row!).meaning).toContain("address of B");
+  });
+
+  it("machine_code_panel_defaults_to_current_pr", async () => {
+    const state = stateFromRaw(mockCaslCore.assemble(DEFAULT_CASL_SOURCE));
+
+    await renderOutputPanel(<OutputPanel lines={[]} state={state} initialTab="machine" onClear={() => undefined} />);
+
+    expect(container?.querySelector('[data-testid="machine-code-row-0020"]')?.getAttribute("data-selected")).toBe("true");
+    const explanationText = container?.querySelector('[data-testid="machine-code-explanation"]')?.textContent ?? "";
+    expect(explanationText).toContain("0020");
+    expect(explanationText).toContain("LD");
+    expect(explanationText).toContain("GR1");
+  });
+
+  it("machine_code_panel_updates_on_row_select", async () => {
+    const state = stateFromRaw(mockCaslCore.assemble(DEFAULT_CASL_SOURCE));
+
+    await renderOutputPanel(<OutputPanel lines={[]} state={state} initialTab="machine" onClear={() => undefined} />);
+    await act(async () => {
+      (container?.querySelector('[data-testid="machine-code-row-0021"]') as HTMLDivElement).click();
+    });
+
+    expect(container?.querySelector('[data-testid="machine-code-row-0021"]')?.getAttribute("data-selected")).toBe("true");
+    const explanationText = container?.querySelector('[data-testid="machine-code-explanation"]')?.textContent ?? "";
+    expect(explanationText).toContain("operand word");
+    expect(explanationText).toContain("address of A");
   });
 
   it("cpp_addition_shows_generated_casl_and_machine_code", async () => {

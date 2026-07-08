@@ -8,6 +8,7 @@ import CometCircuitSvg from "./visual/CometCircuitSvg";
 import { formatWord } from "./core/types";
 import { summarizeCurrentInstruction } from "./visual/visualState";
 import { AppStoreProvider, useAppStore } from "./store/useAppStore";
+import type { CppToCaslMap } from "./transpiler/cppTranspiler";
 
 export default function App() {
   return (
@@ -18,10 +19,27 @@ export default function App() {
 }
 
 function StudioShell() {
-  const { sourceText, isSourceDirty, diagnostics: storeDiagnostics, cometState: state, assembleStatus, backendInfo, setSourceText, assemble, step, reset, clearOutput } = useAppStore();
+  const {
+    sourceText,
+    sourceMode,
+    isSourceDirty,
+    diagnostics: storeDiagnostics,
+    cometState: state,
+    assembleStatus,
+    backendInfo,
+    generatedCaslSource,
+    cppToCaslMapping,
+    setSourceText,
+    setSourceMode,
+    assemble,
+    step,
+    reset,
+    clearOutput
+  } = useAppStore();
   const canStep = !isSourceDirty && state.assembled && state.runState !== "Finished" && state.runState !== "Error";
   const canReset = !isSourceDirty && (state.assembled || state.runState === "Finished");
   const diagnostics = useMemo(() => storeDiagnostics.filter((diagnostic) => diagnostic.severity === "error"), [storeDiagnostics]);
+  const editorCurrentLine = sourceMode === "cpp" ? cppLineForCaslLine(cppToCaslMapping, state.currentLine) : state.currentLine;
 
   return (
     <div className="app-shell">
@@ -32,9 +50,19 @@ function StudioShell() {
           <section className="panel source-panel">
             <header className="panel-header">
               <h2>Source Editor</h2>
-              <span>example.casl</span>
+              <div className="source-header-actions">
+                <div className="segmented source-mode" aria-label="Source mode">
+                  <button type="button" className={sourceMode === "casl" ? "selected" : ""} data-testid="source-mode-casl" onClick={() => setSourceMode("casl")}>
+                    CASL
+                  </button>
+                  <button type="button" className={sourceMode === "cpp" ? "selected" : ""} data-testid="source-mode-cpp" onClick={() => setSourceMode("cpp")}>
+                    C++ subset
+                  </button>
+                </div>
+                <span>{sourceMode === "cpp" ? "example.cpp" : "example.casl"}</span>
+              </div>
             </header>
-            <SourceEditor source={sourceText} currentLine={state.currentLine} onChange={setSourceText} />
+            <SourceEditor source={sourceText} language={sourceMode} currentLine={editorCurrentLine} onChange={setSourceText} />
           </section>
 
           <section className="panel current-panel">
@@ -66,7 +94,7 @@ function StudioShell() {
             <header className="panel-header">
               <div>
                 <h2>COMET II Simulator</h2>
-                <span>{isSourceDirty ? "Modified / Not assembled" : "State-driven SVG circuit"}</span>
+              <span>{isSourceDirty ? "Modified / Not assembled" : sourceMode === "cpp" ? "Generated CASL driving COMET-II" : "State-driven SVG circuit"}</span>
               </div>
               <span className={`run-pill ${state.runState.toLowerCase()}`}>{state.runState}</span>
             </header>
@@ -97,8 +125,13 @@ function StudioShell() {
         </aside>
       </main>
 
-      <OutputPanel lines={state.output} messages={diagnostics.map((diagnostic) => `Line ${diagnostic.line}: ${diagnostic.message}`)} onClear={clearOutput} />
+      <OutputPanel lines={state.output} messages={diagnostics.map((diagnostic) => `Line ${diagnostic.line}: ${diagnostic.message}`)} generatedCaslSource={generatedCaslSource} onClear={clearOutput} />
       <StatusBar state={state} backendInfo={backendInfo} />
     </div>
   );
+}
+
+function cppLineForCaslLine(mapping: CppToCaslMap[], caslLine?: number): number | undefined {
+  if (!caslLine) return undefined;
+  return mapping.find((entry) => entry.caslLines.includes(caslLine))?.cppLine;
 }

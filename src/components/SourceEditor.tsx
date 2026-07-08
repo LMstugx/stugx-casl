@@ -4,11 +4,12 @@ import type { editor } from "monaco-editor";
 
 type SourceEditorProps = {
   source: string;
+  language?: "casl" | "cpp";
   currentLine?: number;
   onChange: (source: string) => void;
 };
 
-export default function SourceEditor({ source, currentLine, onChange }: SourceEditorProps) {
+export default function SourceEditor({ source, language = "casl", currentLine, onChange }: SourceEditorProps) {
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
   const decorationIds = useRef<string[]>([]);
 
@@ -57,7 +58,7 @@ export default function SourceEditor({ source, currentLine, onChange }: SourceEd
     <div className="source-editor" data-testid="source-editor">
       <Editor
         height="100%"
-        language="plaintext"
+        language={language === "cpp" ? "cpp" : "plaintext"}
         value={source}
         onMount={handleMount}
         onChange={(value) => onChange(value ?? "")}

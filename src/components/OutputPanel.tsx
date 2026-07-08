@@ -3,15 +3,17 @@ import { useState } from "react";
 type OutputPanelProps = {
   lines: string[];
   messages?: string[];
+  generatedCaslSource?: string;
   onClear: () => void;
 };
 
-type OutputTab = "output" | "console" | "messages";
+type OutputTab = "output" | "console" | "messages" | "generated";
 
 const tabs: Array<{ id: OutputTab; label: string }> = [
   { id: "output", label: "Output" },
   { id: "console", label: "Console" },
-  { id: "messages", label: "Messages" }
+  { id: "messages", label: "Messages" },
+  { id: "generated", label: "Generated CASL" }
 ];
 
 function lineTone(line: string): "success" | "danger" | "muted" | "default" {
@@ -28,7 +30,7 @@ function linePrefix(tab: OutputTab, line: string): string {
   return lineTone(line) === "success" ? "ok" : lineTone(line) === "danger" ? "!!" : "--";
 }
 
-export default function OutputPanel({ lines, messages = [], onClear }: OutputPanelProps) {
+export default function OutputPanel({ lines, messages = [], generatedCaslSource = "", onClear }: OutputPanelProps) {
   const [activeTab, setActiveTab] = useState<OutputTab>("output");
   const visibleLines =
     activeTab === "output"
@@ -37,9 +39,13 @@ export default function OutputPanel({ lines, messages = [], onClear }: OutputPan
         : ["Ready. Assemble the program to begin."]
       : activeTab === "console"
         ? ["Console is reserved for future runtime logs."]
-        : messages.length
-          ? messages
-          : ["No diagnostics or system messages."];
+        : activeTab === "messages"
+          ? messages.length
+            ? messages
+            : ["No diagnostics or system messages."]
+          : generatedCaslSource
+            ? generatedCaslSource.split(/\r?\n/)
+            : ["No generated CASL. Switch to C++ subset mode and assemble."];
 
   return (
     <section className="output-panel">
@@ -62,7 +68,7 @@ export default function OutputPanel({ lines, messages = [], onClear }: OutputPan
           Clear
         </button>
       </header>
-      <div className={`console-lines ${activeTab}`} aria-label={`${activeTab} log`}>
+      <div className={`console-lines ${activeTab}`} aria-label={`${activeTab} log`} data-testid={activeTab === "generated" ? "generated-casl-output" : undefined}>
         {visibleLines.map((line, index) => (
           <div key={`${line}-${index}`} className={`console-line ${lineTone(line)}`}>
             <span className="console-prefix">{linePrefix(activeTab, line)}</span>

@@ -100,6 +100,52 @@ pnpm test:wasm
 
 If `public/wasm/stugx_casl_core.js` or `.wasm` is missing, the app reports a `WASM Error` status and instructs you to run `scripts/build-wasm.ps1`.
 
+## Experimental C++ Subset Mode
+
+The editor can switch between `CASL` and `C++ subset` mode. C++ subset mode is a small teaching-oriented transpiler, not a complete C++ compiler.
+
+Currently supported:
+
+- `int main() { ... }`
+- local `int` variables
+- integer literals
+- identifier expressions
+- assignment
+- binary `+` and `-`
+- `return 0;`
+- `return variable;`
+
+The frontend transpiles C++ subset source to CASL first, shows the generated CASL in the Output dock, and then sends that CASL through the existing `coreBridge` to Mock or WASM backend.
+
+Example:
+
+```cpp
+int main() {
+    int a = 10;
+    int b = 20;
+    int c;
+    c = a + b;
+    return c;
+}
+```
+
+Generates CASL shaped like:
+
+```text
+MAIN START
+     LD    GR1,A
+     ADDA  GR1,B
+     ST    GR1,C
+     LD    GR0,C
+     RET
+A DC    10
+B DC    20
+C DS    1
+     END
+```
+
+Unsupported C++ features include classes, structs, pointers, references, templates, arrays, function calls, `std::cout`, strings, floats, loops, and full scope rules. See [docs/phase5b-cpp-subset-transpiler.md](docs/phase5b-cpp-subset-transpiler.md).
+
 ## Install
 
 ```bash
@@ -230,16 +276,17 @@ When source changes, the VM becomes `Dirty`, the old assembled state is invalida
 - WASM generated files are local build artifacts and are not committed.
 - Run is not implemented in Phase 1 and remains disabled.
 - New / Open / Save / Stop / language / theme controls are placeholders or disabled.
-- No C++ subset transpiler.
+- C++ subset mode is experimental and intentionally small.
 - No full CASL II instruction set.
 - No desktop packaging.
 
 See [docs/phase1-status.md](docs/phase1-status.md) for the Phase 1 checkpoint.
 See [docs/phase4c-wasm-runtime.md](docs/phase4c-wasm-runtime.md) for the current WASM runtime workflow.
 See [docs/phase5a-instruction-expansion.md](docs/phase5a-instruction-expansion.md) for the Phase 5A instruction subset.
+See [docs/phase5b-cpp-subset-transpiler.md](docs/phase5b-cpp-subset-transpiler.md) for the C++ subset transpiler MVP.
 
 ## Suggested Next Phase
 
-1. Use the Phase 5A subset as the input target for a small C++ subset translator.
-2. Keep Mock/WASM golden parity before enabling any larger instruction set.
-3. Add new CASL II instructions only when translator or teaching flows require them.
+1. Add `if` / `else` lowering through `CPA` and conditional jumps.
+2. Add `while` lowering after conditional branch mapping is stable.
+3. Add C++ line to generated CASL dual highlighting.

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { mockCaslCore } from "../core/mockCaslCore";
-import { appStoreReducer, createInitialAppState } from "../store/useAppStore";
+import { appStoreReducer, createInitialAppState, prepareSourceForCoreAssembly } from "../store/useAppStore";
 
 const changedConstantsSource = `MAIN START
      LD    GR1,A
@@ -108,5 +108,23 @@ A    DC 1
     expect(undefinedLabel.runState).toBe("Error");
     expect(undefinedLabel.assembled).toBe(false);
     expect(undefinedLabel.diagnostics.length).toBeGreaterThan(0);
+  });
+
+  it("cpp_mode_assemble_uses_generated_casl", () => {
+    const prepared = prepareSourceForCoreAssembly(`int main() {
+    int a = 10;
+    int b = 20;
+    int c;
+    c = a + b;
+    return c;
+}`, "cpp");
+
+    expect(prepared.ok).toBe(true);
+    expect(prepared.coreSourceText).toContain("     ADDA  GR1,B");
+    expect(prepared.generatedCaslSource).toBe(prepared.coreSourceText);
+
+    let state = mockCaslCore.assemble(prepared.coreSourceText);
+    state = mockCaslCore.step(state);
+    expect(state.currentInstruction).toContain("ADDA");
   });
 });

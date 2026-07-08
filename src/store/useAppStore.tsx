@@ -7,11 +7,32 @@ import { coreBridge, getCoreBackendInfo, type CoreBackendInfo } from "../core/co
 import { DEFAULT_CASL_SOURCE } from "../core/defaultSource";
 import { createCometStateFromDto, createEmptyUiCometState } from "../core/coreStateAdapter";
 import { CometState, Diagnostic } from "../core/types";
+import { CppToCaslMap, transpileCppToCasl } from "../transpiler/cppTranspiler";
 
 type AssembleStatus = "default" | "running" | "success" | "error";
+export type SourceMode = "casl" | "cpp";
+
+export type PreparedCoreSource =
+  | {
+      ok: true;
+      coreSourceText: string;
+      generatedCaslSource: string;
+      mapping: CppToCaslMap[];
+      diagnostics: Diagnostic[];
+      outputPrefix: string[];
+    }
+  | {
+      ok: false;
+      coreSourceText: "";
+      generatedCaslSource: string;
+      mapping: CppToCaslMap[];
+      diagnostics: Diagnostic[];
+      outputPrefix: string[];
+    };
 
 type AppStoreState = {
   sourceText: string;
+  sourceMode: SourceMode;
   lastAssembledSource: string;
   isSourceDirty: boolean;
   assembleResult: CometState | null;
@@ -19,10 +40,13 @@ type AppStoreState = {
   diagnostics: Diagnostic[];
   assembleStatus: AssembleStatus;
   backendInfo: CoreBackendInfo;
+  generatedCaslSource: string;
+  cppToCaslMapping: CppToCaslMap[];
 };
 
 type AppStoreActions = {
   setSourceText: (sourceText: string) => void;
+  setSourceMode: (sourceMode: SourceMode) => void;
   assemble: () => void;
   step: () => void;
   reset: () => void;
@@ -33,7 +57,9 @@ type AppStore = AppStoreState & AppStoreActions;
 
 export type AppStoreAction =
   | { type: "setSourceText"; sourceText: string }
-  | { type: "assembled"; sourceText: string; cometState: CometState; assembleStatus: AssembleStatus }
+  | { type: "setSourceMode"; sourceMode: SourceMode }
+  | { type: "assembled"; sourceText: string; cometState: CometState; assembleStatus: AssembleStatus; generatedCaslSource?: string; cppToCaslMapping?: CppToCaslMap[] }
+  | { type: "transpileFailed"; diagnostics: Diagnostic[]; generatedCaslSource: string; cppToCaslMapping: CppToCaslMap[]; output: string[] }
   | { type: "stepped"; cometState: CometState }
   | { type: "reset"; cometState: CometState }
   | { type: "coreError"; message: string }
@@ -50,13 +76,50 @@ const AppEventBusContext = createContext<EventBus<AppEvents> | null>(null);
 export function createInitialAppState(): AppStoreState {
   return {
     sourceText: DEFAULT_CASL_SOURCE,
+    sourceMode: "casl",
     lastAssembledSource: DEFAULT_CASL_SOURCE,
     isSourceDirty: false,
     assembleResult: null,
     cometState: createEmptyUiCometState("Idle", ["Editor ready. Assemble to load the current source."]),
     diagnostics: [],
     assembleStatus: "default",
-    backendInfo: getCoreBackendInfo()
+    backendInfo: getCoreBackendInfo(),
+    generatedCaslSource: "",
+    cppToCaslMapping: []
+  };
+}
+
+export function prepareSourceForCoreAssembly(sourceText: string, sourceMode: SourceMode): PreparedCoreSource {
+  if (sourceMode === "casl") {
+    return {
+      ok: true,
+      coreSourceText: sourceText,
+      generatedCaslSource: "",
+      mapping: [],
+      diagnostics: [],
+      outputPrefix: []
+    };
+  }
+
+  const result = transpileCppToCasl(sourceText);
+  if (!result.ok) {
+    return {
+      ok: false,
+      coreSourceText: "",
+      generatedCaslSource: result.caslSource,
+      mapping: result.mapping,
+      diagnostics: result.diagnostics,
+      outputPrefix: ["C++ subset transpile failed.", ...result.diagnostics.map((diagnostic) => `Line ${diagnostic.line}: ${diagnostic.message}`)]
+    };
+  }
+
+  return {
+    ok: true,
+    coreSourceText: result.caslSource,
+    generatedCaslSource: result.caslSource,
+    mapping: result.mapping,
+    diagnostics: [],
+    outputPrefix: ["C++ subset transpiled to CASL.", `Generated CASL lines: ${result.caslSource.split(/\r?\n/).length}`]
   };
 }
 
@@ -70,7 +133,24 @@ export function appStoreReducer(state: AppStoreState, action: AppStoreAction): A
       assembleResult: null,
       diagnostics: [],
       cometState: createEmptyUiCometState("Dirty", ["Source modified. Assemble to load the current source."]),
-      assembleStatus: "default"
+      assembleStatus: "default",
+      generatedCaslSource: "",
+      cppToCaslMapping: []
+    };
+  }
+
+  if (action.type === "setSourceMode") {
+    if (action.sourceMode === state.sourceMode) return state;
+    return {
+      ...state,
+      sourceMode: action.sourceMode,
+      isSourceDirty: true,
+      assembleResult: null,
+      diagnostics: [],
+      cometState: createEmptyUiCometState("Dirty", [`Source mode changed to ${action.sourceMode === "cpp" ? "C++ subset" : "CASL"}. Assemble to load the current source.`]),
+      assembleStatus: "default",
+      generatedCaslSource: "",
+      cppToCaslMapping: []
     };
   }
 
@@ -85,7 +165,22 @@ export function appStoreReducer(state: AppStoreState, action: AppStoreAction): A
       cometState: action.cometState,
       diagnostics,
       assembleStatus: action.assembleStatus,
-      backendInfo: getCoreBackendInfo()
+      backendInfo: getCoreBackendInfo(),
+      generatedCaslSource: action.generatedCaslSource ?? "",
+      cppToCaslMapping: action.cppToCaslMapping ?? []
+    };
+  }
+
+  if (action.type === "transpileFailed") {
+    return {
+      ...state,
+      assembleResult: null,
+      diagnostics: action.diagnostics,
+      assembleStatus: "error",
+      cometState: createEmptyUiCometState("Error", action.output),
+      backendInfo: getCoreBackendInfo(),
+      generatedCaslSource: action.generatedCaslSource,
+      cppToCaslMapping: action.cppToCaslMapping
     };
   }
 
@@ -136,12 +231,26 @@ export function AppStoreProvider({ children, eventBus: providedEventBus }: AppSt
   const actions = useMemo<AppStoreActions>(
     () => ({
       setSourceText: (sourceText) => dispatch({ type: "setSourceText", sourceText }),
+      setSourceMode: (sourceMode) => dispatch({ type: "setSourceMode", sourceMode }),
       assemble: () => {
         void (async () => {
           try {
             eventBus.emit(AppEvent.CoreAssembleStarted, { sourceLength: state.sourceText.length });
-            const result = await coreBridge.assemble(state.sourceText);
-            const cometState = createCometStateFromDto(result.state);
+            const prepared = prepareSourceForCoreAssembly(state.sourceText, state.sourceMode);
+            if (!prepared.ok) {
+              eventBus.emit(AppEvent.CoreAssembleFailed, { diagnostics: prepared.diagnostics });
+              dispatch({
+                type: "transpileFailed",
+                diagnostics: prepared.diagnostics,
+                generatedCaslSource: prepared.generatedCaslSource,
+                cppToCaslMapping: prepared.mapping,
+                output: prepared.outputPrefix
+              });
+              return;
+            }
+            const result = await coreBridge.assemble(prepared.coreSourceText);
+            const baseState = createCometStateFromDto(result.state);
+            const cometState = prepared.outputPrefix.length ? { ...baseState, output: [...prepared.outputPrefix, ...baseState.output] } : baseState;
             if (cometState.runState === "Error") {
               eventBus.emit(AppEvent.CoreAssembleFailed, { diagnostics: cometState.diagnostics });
             } else {
@@ -154,7 +263,9 @@ export function AppStoreProvider({ children, eventBus: providedEventBus }: AppSt
               type: "assembled",
               sourceText: state.sourceText,
               cometState,
-              assembleStatus: cometState.runState === "Error" ? "error" : "success"
+              assembleStatus: cometState.runState === "Error" ? "error" : "success",
+              generatedCaslSource: prepared.generatedCaslSource,
+              cppToCaslMapping: prepared.mapping
             });
           } catch (error) {
             const message = coreErrorMessage(error);
@@ -213,7 +324,7 @@ export function AppStoreProvider({ children, eventBus: providedEventBus }: AppSt
       },
       clearOutput: () => dispatch({ type: "clearOutput" })
     }),
-    [eventBus, state.assembleResult, state.cometState, state.isSourceDirty, state.sourceText]
+    [eventBus, state.assembleResult, state.cometState, state.isSourceDirty, state.sourceMode, state.sourceText]
   );
 
   const value = useMemo<AppStore>(() => ({ ...state, ...actions }), [state, actions]);

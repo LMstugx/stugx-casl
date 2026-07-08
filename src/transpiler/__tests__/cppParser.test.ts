@@ -66,4 +66,44 @@ describe("C++ subset parser", () => {
       body: [expect.objectContaining({ kind: "Assignment", target: "i" })]
     });
   });
+
+  it("parse_for_with_int_initializer", () => {
+    const result = parseCpp(`int main() {
+    int sum = 0;
+    for (int i = 1; i <= 3; i = i + 1) {
+        sum = sum + i;
+    }
+    return sum;
+}`);
+
+    expect(result.diagnostics).toEqual([]);
+    const forStatement = result.program?.main.body.find((statement) => statement.kind === "ForStatement");
+    expect(forStatement).toMatchObject({
+      kind: "ForStatement",
+      initializer: { kind: "VarDecl", name: "i" },
+      condition: { operator: "<=" },
+      increment: { kind: "Assignment", target: "i" },
+      body: [expect.objectContaining({ kind: "Assignment", target: "sum" })]
+    });
+  });
+
+  it("parse_for_with_assignment_initializer", () => {
+    const result = parseCpp(`int main() {
+    int i;
+    int sum = 0;
+    for (i = 1; i <= 3; i = i + 1) {
+        sum = sum + i;
+    }
+    return sum;
+}`);
+
+    expect(result.diagnostics).toEqual([]);
+    const forStatement = result.program?.main.body.find((statement) => statement.kind === "ForStatement");
+    expect(forStatement).toMatchObject({
+      kind: "ForStatement",
+      initializer: { kind: "Assignment", target: "i" },
+      condition: { operator: "<=" },
+      increment: { kind: "Assignment", target: "i" }
+    });
+  });
 });

@@ -208,4 +208,35 @@ describe("machine code rows", () => {
     expect(text).toContain("1010");
     expect(text).toContain("L5");
   });
+
+  it("machine_code_rows_for_sum", () => {
+    const program = getDemoProgram("cpp-for-sum");
+    expect(program).toBeDefined();
+    const prepared = prepareSourceForCoreAssembly(program!.source, "cpp");
+    expect(prepared.ok).toBe(true);
+    const state = stateFromRaw(mockCaslCore.assemble(prepared.coreSourceText));
+
+    const rows = selectMachineCodeRows(state, prepared.mapping);
+
+    expect(rows.some((row) => row.sourceText.includes("FOR_BEGIN_0 LD GR1,I"))).toBe(true);
+    expect(rows.some((row) => row.sourceText.includes("JUMP FOR_BEGIN_0"))).toBe(true);
+    expect(rows.some((row) => row.relatedCppLine === 4 && row.sourceText.includes("CPA"))).toBe(true);
+  });
+
+  it("machine_code_explanation_for_for_generated_jump", () => {
+    const program = getDemoProgram("cpp-for-sum");
+    expect(program).toBeDefined();
+    const prepared = prepareSourceForCoreAssembly(program!.source, "cpp");
+    expect(prepared.ok).toBe(true);
+    const state = stateFromRaw(mockCaslCore.assemble(prepared.coreSourceText));
+    const rows = selectMachineCodeRows(state, prepared.mapping);
+
+    const jumpRow = rows.find((row) => row.sourceText.includes("JUMP FOR_BEGIN_0") && row.kind === "instruction");
+    expect(jumpRow).toBeDefined();
+    const explanation = explainMachineCodeRow(jumpRow!);
+
+    expect(explanation.mnemonic).toBe("JUMP");
+    expect(explanation.opcode).toBe(0x64);
+    expect(explanation.meaning).toContain("FOR_BEGIN_0");
+  });
 });

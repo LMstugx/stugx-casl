@@ -39,7 +39,8 @@ describe("demo recording experience", () => {
       "CASL: GR2 Addition",
       "C++: Addition",
       "C++: If Else",
-      "C++: While Sum"
+      "C++: While Sum",
+      "C++: For Sum"
     ]);
   });
 
@@ -101,6 +102,21 @@ describe("demo recording experience", () => {
 
     let state = mockCaslCore.assemble(prepared.coreSourceText);
     for (let step = 0; step < 100 && state.runState !== "Finished"; step += 1) {
+      state = mockCaslCore.step(state);
+    }
+
+    expect(state.runState).toBe("Finished");
+    expect(state.gr[0]).toBe(0x0006);
+  });
+
+  it("demo_for_sum_run_finishes", () => {
+    const program = getDemoProgram("cpp-for-sum");
+    expect(program).toBeDefined();
+    const prepared = prepareSourceForCoreAssembly(program!.source, "cpp");
+    expect(prepared.ok).toBe(true);
+
+    let state = mockCaslCore.assemble(prepared.coreSourceText);
+    for (let step = 0; step < 120 && state.runState !== "Finished"; step += 1) {
       state = mockCaslCore.step(state);
     }
 

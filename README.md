@@ -114,6 +114,7 @@ Currently supported:
 - binary `+` and `-`
 - `if` / `else` with `==`, `!=`, `<`, `<=`, `>`, `>=`
 - `while` with `==`, `!=`, `<`, `<=`, `>`, `>=`
+- `for` loops with one initializer, one comparison condition, and one assignment increment
 - `return 0;`
 - `return variable;`
 
@@ -146,7 +147,7 @@ C DS    1
      END
 ```
 
-Unsupported C++ features include classes, structs, pointers, references, templates, arrays, function calls, `std::cout`, strings, floats, `for`, `do while`, `break`, `continue`, complex boolean expressions, and full scope rules. See [docs/phase5b-cpp-subset-transpiler.md](docs/phase5b-cpp-subset-transpiler.md), [docs/phase5c-if-else-lowering.md](docs/phase5c-if-else-lowering.md), [docs/phase5d-while-lowering.md](docs/phase5d-while-lowering.md), and [docs/phase5f-run-stop-trace.md](docs/phase5f-run-stop-trace.md).
+Unsupported C++ features include classes, structs, pointers, references, templates, arrays, function calls, `std::cout`, strings, floats, `do while`, `break`, `continue`, `i++`, `++i`, `+=`, complex boolean expressions, and full scope rules. See [docs/phase5b-cpp-subset-transpiler.md](docs/phase5b-cpp-subset-transpiler.md), [docs/phase5c-if-else-lowering.md](docs/phase5c-if-else-lowering.md), [docs/phase5d-while-lowering.md](docs/phase5d-while-lowering.md), [docs/phase5f-run-stop-trace.md](docs/phase5f-run-stop-trace.md), and [docs/phase7c-for-lowering.md](docs/phase7c-for-lowering.md).
 
 ## Run / Stop
 
@@ -176,6 +177,20 @@ int main() {
 
 The program finishes with `GR0 = 0006`.
 
+For example:
+
+```cpp
+int main() {
+    int sum = 0;
+    for (int i = 1; i <= 3; i = i + 1) {
+        sum = sum + i;
+    }
+    return sum;
+}
+```
+
+The program also finishes with `GR0 = 0006`.
+
 ## Main Memory Viewer
 
 The COMET circuit keeps a compact Memory module for the current execution neighborhood. The Inspector `Memory` tab is the detailed memory viewer:
@@ -195,6 +210,7 @@ The app includes demo programs for recording walkthroughs:
 - `C++: Addition`
 - `C++: If Else`
 - `C++: While Sum`
+- `C++: For Sum`
 
 Use the Demo selector above the Source Editor to load one. Loading a demo marks the runtime as `Dirty`; click `Assemble` to generate CASL and load the COMET state. C++ subset demos automatically open the `Generated CASL` dock after assembly.
 
@@ -361,9 +377,10 @@ See [docs/phase-memory-viewer.md](docs/phase-memory-viewer.md) for the detailed 
 See [docs/demo-script.md](docs/demo-script.md) for the demo recording script.
 See [docs/phase7a-machine-code-view.md](docs/phase7a-machine-code-view.md) for the generated assembly and machine-code view.
 See [docs/phase7b-machine-code-explanation.md](docs/phase7b-machine-code-explanation.md) for opcode and operand explanation details.
+See [docs/phase7c-for-lowering.md](docs/phase7c-for-lowering.md) for for loop lowering.
 
 ## Suggested Next Phase
 
-1. Add `for` only after the while lowering remains stable.
-2. Consider `break` / `continue` with explicit mapping and max-step protection.
-3. Expand C++ / generated CASL dual highlighting interactions.
+1. Consider `break` / `continue` with explicit mapping and max-step protection.
+2. Expand C++ / generated CASL dual highlighting interactions.
+3. Add a bit-level machine-code visualizer if students need deeper opcode inspection.

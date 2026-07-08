@@ -86,6 +86,24 @@ C    DS    1
     whatThisShows: "C++ while loop is lowered into CASL labels and conditional jumps.",
     expectedResult: "SUM = 0006 and GR0 = 0006 when the program finishes.",
     suggestedActions: ["Click Assemble.", "Open Generated CASL.", "Click Run.", "Watch Trace and Memory Viewer."]
+  },
+  {
+    id: "cpp-for-sum",
+    name: "C++: For Sum",
+    mode: "cpp",
+    source: `int main() {
+    int sum = 0;
+
+    for (int i = 1; i <= 3; i = i + 1) {
+        sum = sum + i;
+    }
+
+    return sum;
+}`,
+    description: "For loop lowering into labels, conditional jumps, and a back jump.",
+    whatThisShows: "C++ for loop syntax is lowered into CASL labels and jumps.",
+    expectedResult: "SUM = 0006 and GR0 = 0006 when the program finishes.",
+    suggestedActions: ["Click Assemble.", "Open Generated CASL.", "Open Machine Code.", "Click Run.", "Check Trace and Memory."]
   }
 ];
 

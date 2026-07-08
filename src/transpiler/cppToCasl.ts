@@ -96,21 +96,17 @@ export function generateCaslFromCpp(program: CppProgram, variables: CppVariableS
   };
 }
 
-function emitStatements(context: GeneratorContext, statements: CppStatement[], branchKind?: "if-then" | "if-else" | "while-body"): void {
+type StatementMappingKind = "if-then" | "if-else" | "while-body" | "for-body";
+
+function emitStatements(context: GeneratorContext, statements: CppStatement[], branchKind?: StatementMappingKind): void {
   for (const statement of statements) {
     emitStatement(context, statement, branchKind);
   }
 }
 
-function emitStatement(context: GeneratorContext, statement: CppStatement, branchKind?: "if-then" | "if-else" | "while-body"): void {
+function emitStatement(context: GeneratorContext, statement: CppStatement, branchKind?: StatementMappingKind): void {
   if (statement.kind === "Assignment") {
-    const kind = branchKind ?? "assignment";
-    emitExpression(context, statement.expression, "GR1", statement.line, kind);
-    emit(context, `     ST    GR1,${context.labels.get(statement.target) ?? statement.target.toUpperCase()}`, {
-      cppLine: statement.line,
-      reason: `store ${statement.target}`,
-      kind
-    });
+    emitAssignment(context, statement, branchKind ?? "assignment");
     return;
   }
 
@@ -128,7 +124,31 @@ function emitStatement(context: GeneratorContext, statement: CppStatement, branc
 
   if (statement.kind === "WhileStatement") {
     emitWhile(context, statement);
+    return;
   }
+
+  if (statement.kind === "ForStatement") {
+    emitFor(context, statement);
+  }
+}
+
+function emitAssignment(context: GeneratorContext, statement: Extract<CppStatement, { kind: "Assignment" }>, kind: CppToCaslMapKind): void {
+  emitExpression(context, statement.expression, "GR1", statement.line, kind);
+  emit(context, `     ST    GR1,${context.labels.get(statement.target) ?? statement.target.toUpperCase()}`, {
+    cppLine: statement.line,
+    reason: `store ${statement.target}`,
+    kind
+  });
+}
+
+function emitVarInitializer(context: GeneratorContext, statement: Extract<CppStatement, { kind: "VarDecl" }>, kind: CppToCaslMapKind): void {
+  if (!statement.initializer) return;
+  emitExpression(context, statement.initializer, "GR1", statement.line, kind);
+  emit(context, `     ST    GR1,${context.labels.get(statement.name) ?? statement.name.toUpperCase()}`, {
+    cppLine: statement.line,
+    reason: `initialize ${statement.name}`,
+    kind
+  });
 }
 
 function emitIf(context: GeneratorContext, statement: Extract<CppStatement, { kind: "IfStatement" }>): void {
@@ -170,13 +190,36 @@ function emitWhile(context: GeneratorContext, statement: Extract<CppStatement, {
   emitLabel(context, endLabel, statement.line, "loop end label", "loop-label");
 }
 
+function emitFor(context: GeneratorContext, statement: Extract<CppStatement, { kind: "ForStatement" }>): void {
+  const id = context.nextLoopId;
+  context.nextLoopId += 1;
+  const beginLabel = uniqueLabel(context, `FOR_BEGIN_${id}`);
+  const bodyLabel = uniqueLabel(context, `FOR_BODY_${id}`);
+  const endLabel = uniqueLabel(context, `FOR_END_${id}`);
+
+  if (statement.initializer?.kind === "VarDecl") {
+    emitVarInitializer(context, statement.initializer, "for-initializer");
+  } else if (statement.initializer?.kind === "Assignment") {
+    emitAssignment(context, statement.initializer, "for-initializer");
+  }
+
+  emitLabel(context, beginLabel, statement.line, "for begin label", "for-label");
+  if (!statement.condition) throw new Error("for without condition is not supported yet");
+  emitConditionJump(context, statement.condition, bodyLabel, endLabel, "for-condition", "for condition");
+  emitLabel(context, bodyLabel, statement.line, "for body label", "for-label");
+  emitStatements(context, statement.body, "for-body");
+  if (statement.increment) emitAssignment(context, statement.increment, "for-increment");
+  emit(context, `     JUMP  ${beginLabel}`, { cppLine: statement.line, reason: "repeat for loop", kind: "for-back-jump" });
+  emitLabel(context, endLabel, statement.line, "for end label", "for-label");
+}
+
 function emitConditionJump(
   context: GeneratorContext,
   condition: CppCondition,
   trueLabel: string,
   falseLabel: string,
-  kind: "if-condition" | "while-condition",
-  reasonPrefix: "if condition" | "while condition"
+  kind: "if-condition" | "while-condition" | "for-condition",
+  reasonPrefix: "if condition" | "while condition" | "for condition"
 ): void {
   emitExpression(context, condition.left, "GR1", condition.line, kind);
   const rightOperand = operandForExpression(context, condition.right, condition.line);

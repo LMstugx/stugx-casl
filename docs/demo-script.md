@@ -144,3 +144,33 @@ C++ subset source
 - 必要に応じた配布・デプロイ形態の検討
 
 この段階では、デプロイよりも学習体験と実行の正確性を優先しています。
+
+## Appendix: Demo 5 - C++ For Sum
+
+Select:
+
+```text
+C++: For Sum
+```
+
+Talking points:
+
+- The `for` statement is syntax sugar in this version.
+- stugx.CASL lowers it into `FOR_BEGIN_0`, `FOR_BODY_0`, `FOR_END_0`, condition jumps, increment code, and a back jump.
+- Open `Generated CASL` to show the lowering.
+- Open `Machine Code` to show that the generated CASL is assembled into normal COMET II words.
+- Run the program and confirm:
+
+```text
+SUM = 0006
+GR0 = 0006
+```
+
+Suggested actions:
+
+1. Load `C++: For Sum`.
+2. Click `Assemble`.
+3. Open `Generated CASL`.
+4. Open `Machine Code`.
+5. Click `Run`.
+6. Check `Trace`, `Memory`, and `GR0`.

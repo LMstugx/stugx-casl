@@ -5,6 +5,7 @@ import type {
   CppCondition,
   CppConditionOperator,
   CppExpression,
+  CppForStatement,
   CppFunction,
   CppIfStatement,
   CppIntegerLiteral,
@@ -83,6 +84,7 @@ class Parser {
     if (this.checkKeyword("return")) return this.parseReturn();
     if (this.checkKeyword("if")) return this.parseIf();
     if (this.checkKeyword("while")) return this.parseWhile();
+    if (this.checkKeyword("for")) return this.parseFor();
     if (this.check("identifier")) return this.parseAssignment();
 
     const token = this.current();
@@ -92,6 +94,10 @@ class Parser {
   }
 
   private parseVarDecl(): CppVarDecl | null {
+    return this.parseVarDeclInternal(true);
+  }
+
+  private parseVarDeclInternal(expectSemicolon: boolean): CppVarDecl | null {
     const start = this.advance();
     if (this.matchSymbol("*")) {
       this.error(this.previous(), "Current C++ subset does not support pointer variables.");
@@ -107,11 +113,15 @@ class Parser {
 
     let initializer: CppExpression | undefined;
     if (this.matchSymbol("=")) initializer = this.parseExpression();
-    this.consumeSymbol(";", "Expected ';' after variable declaration.");
+    if (expectSemicolon) this.consumeSymbol(";", "Expected ';' after variable declaration.");
     return { kind: "VarDecl", line: start.line, name: name.value, initializer };
   }
 
   private parseAssignment(): CppAssignment | null {
+    return this.parseAssignmentInternal(true);
+  }
+
+  private parseAssignmentInternal(expectSemicolon: boolean): CppAssignment | null {
     const target = this.advance();
     if (this.checkSymbol("(")) {
       this.error(target, "Current C++ subset does not support function calls.");
@@ -120,7 +130,7 @@ class Parser {
     }
     this.consumeSymbol("=", "Expected '=' in assignment.");
     const expression = this.parseExpression();
-    this.consumeSymbol(";", "Expected ';' after assignment.");
+    if (expectSemicolon) this.consumeSymbol(";", "Expected ';' after assignment.");
     if (!expression) return null;
     return { kind: "Assignment", line: target.line, target: target.value, expression };
   }
@@ -162,6 +172,49 @@ class Parser {
     return { kind: "WhileStatement", line: start.line, condition, body };
   }
 
+  private parseFor(): CppForStatement | null {
+    const start = this.advance();
+    this.consumeSymbol("(", "Expected '(' after for.");
+
+    let initializer: CppVarDecl | CppAssignment | null = null;
+    if (this.matchSymbol(";")) {
+      initializer = null;
+    } else if (this.checkKeyword("int")) {
+      initializer = this.parseVarDeclInternal(false);
+      this.consumeSymbol(";", "Expected ';' after for initializer.");
+    } else if (this.check("identifier")) {
+      initializer = this.parseAssignmentInternal(false);
+      this.consumeSymbol(";", "Expected ';' after for initializer.");
+    } else {
+      this.error(this.current(), "Current C++ subset supports only one int declaration or assignment in for initializer.");
+      this.synchronizeForHeader();
+      this.consumeSymbol(";", "Expected ';' after for initializer.");
+    }
+
+    let condition: CppCondition | null = null;
+    if (this.checkSymbol(";")) {
+      this.error(this.current(), "for without condition is not supported yet");
+      this.advance();
+    } else {
+      condition = this.parseCondition("for") ?? null;
+      this.consumeSymbol(";", "Expected ';' after for condition.");
+    }
+
+    let increment: CppAssignment | null = null;
+    if (!this.checkSymbol(")")) {
+      if (this.check("identifier")) {
+        increment = this.parseAssignmentInternal(false);
+      } else {
+        this.error(this.current(), "Current C++ subset supports only one assignment in for increment.");
+        this.synchronizeForHeader();
+      }
+    }
+
+    this.consumeSymbol(")", "Expected ')' after for increment.");
+    const body = this.parseBlock("for body");
+    return { kind: "ForStatement", line: start.line, initializer, condition, increment, body };
+  }
+
   private parseBlock(name: string): CppStatement[] {
     this.consumeSymbol("{", `Expected '{' to start ${name}.`);
     const body: CppStatement[] = [];
@@ -173,7 +226,7 @@ class Parser {
     return body;
   }
 
-  private parseCondition(owner: "if" | "while" = "if"): CppCondition | undefined {
+  private parseCondition(owner: "if" | "while" | "for" = "if"): CppCondition | undefined {
     const left = this.parseExpression();
     if (!left) return undefined;
     const operator = this.current();
@@ -228,6 +281,10 @@ class Parser {
   private synchronize() {
     while (!this.is("eof") && !this.checkSymbol(";") && !this.checkSymbol("}")) this.advance();
     if (this.checkSymbol(";")) this.advance();
+  }
+
+  private synchronizeForHeader() {
+    while (!this.is("eof") && !this.checkSymbol(";") && !this.checkSymbol(")")) this.advance();
   }
 
   private consume(kind: CppToken["kind"], message: string): CppToken | null {

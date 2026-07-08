@@ -1,5 +1,5 @@
 import type { Diagnostic } from "../core/types";
-import type { CppCondition, CppExpression, CppProgram, CppStatement, CppVariableSymbol, SemanticResult } from "./cppAst";
+import type { CppAssignment, CppCondition, CppExpression, CppProgram, CppStatement, CppVarDecl, CppVariableSymbol, SemanticResult } from "./cppAst";
 
 const INT16_MIN = -32768;
 const INT16_MAX = 32767;
@@ -40,33 +40,12 @@ export function checkCppSemantics(program: CppProgram | null, parseDiagnostics: 
 function validateStatements(statements: CppStatement[], variables: Map<string, CppVariableSymbol>, usedLabels: Set<string>, diagnostics: Diagnostic[]): void {
   for (const statement of statements) {
     if (statement.kind === "VarDecl") {
-      if (variables.has(statement.name)) {
-        diagnostics.push({ line: statement.line, message: `Duplicate variable declaration: ${statement.name}`, severity: "error" });
-        continue;
-      }
-      const initializer = statement.initializer;
-      if (initializer && initializer.kind !== "IntegerLiteral") {
-        diagnostics.push({
-          line: statement.line,
-          message: "Variable initializers in the current C++ subset must be integer literals.",
-          severity: "error"
-        });
-      }
-      if (initializer?.kind === "IntegerLiteral") validateIntegerLiteral(initializer.value, initializer.line, diagnostics);
-      variables.set(statement.name, {
-        name: statement.name,
-        label: makeSafeLabel(statement.name, usedLabels),
-        declarationLine: statement.line,
-        initializer: initializer?.kind === "IntegerLiteral" ? initializer.value : undefined
-      });
+      validateVarDecl(statement, variables, usedLabels, diagnostics, true);
       continue;
     }
 
     if (statement.kind === "Assignment") {
-      if (!variables.has(statement.target)) {
-        diagnostics.push({ line: statement.line, message: `Assignment target '${statement.target}' is not declared.`, severity: "error" });
-      }
-      validateExpression(statement.expression, variables, diagnostics);
+      validateAssignment(statement, variables, diagnostics);
       continue;
     }
 
@@ -85,7 +64,86 @@ function validateStatements(statements: CppStatement[], variables: Map<string, C
     if (statement.kind === "WhileStatement") {
       validateCondition(statement.condition, variables, diagnostics);
       validateStatements(statement.body, variables, usedLabels, diagnostics);
+      continue;
     }
+
+    if (statement.kind === "ForStatement") {
+      if (statement.initializer?.kind === "VarDecl") {
+        validateVarDecl(statement.initializer, variables, usedLabels, diagnostics, false);
+      } else if (statement.initializer?.kind === "Assignment") {
+        validateAssignment(statement.initializer, variables, diagnostics);
+      }
+
+      if (!statement.condition) {
+        diagnostics.push({ line: statement.line, message: "for without condition is not supported yet", severity: "error" });
+      } else {
+        validateCondition(statement.condition, variables, diagnostics);
+      }
+
+      if (statement.increment) {
+        validateAssignment(statement.increment, variables, diagnostics);
+        validateForIncrement(statement.increment, variables, diagnostics);
+      }
+      validateStatements(statement.body, variables, usedLabels, diagnostics);
+    }
+  }
+}
+
+function validateVarDecl(
+  statement: CppVarDecl,
+  variables: Map<string, CppVariableSymbol>,
+  usedLabels: Set<string>,
+  diagnostics: Diagnostic[],
+  storeLiteralInitializer: boolean
+): void {
+  if (variables.has(statement.name)) {
+    diagnostics.push({ line: statement.line, message: `Duplicate variable declaration: ${statement.name}`, severity: "error" });
+    return;
+  }
+  const initializer = statement.initializer;
+  if (initializer && initializer.kind !== "IntegerLiteral") {
+    diagnostics.push({
+      line: statement.line,
+      message: "Variable initializers in the current C++ subset must be integer literals.",
+      severity: "error"
+    });
+  }
+  if (initializer?.kind === "IntegerLiteral") validateIntegerLiteral(initializer.value, initializer.line, diagnostics);
+  variables.set(statement.name, {
+    name: statement.name,
+    label: makeSafeLabel(statement.name, usedLabels),
+    declarationLine: statement.line,
+    initializer: storeLiteralInitializer && initializer?.kind === "IntegerLiteral" ? initializer.value : undefined
+  });
+}
+
+function validateAssignment(statement: CppAssignment, variables: Map<string, CppVariableSymbol>, diagnostics: Diagnostic[]): void {
+  if (!variables.has(statement.target)) {
+    diagnostics.push({ line: statement.line, message: `Assignment target '${statement.target}' is not declared.`, severity: "error" });
+  }
+  validateExpression(statement.expression, variables, diagnostics);
+}
+
+function validateForIncrement(statement: CppAssignment, variables: Map<string, CppVariableSymbol>, diagnostics: Diagnostic[]): void {
+  const expression = statement.expression;
+  if (expression.kind !== "BinaryExpression" || expression.left.kind !== "Identifier" || expression.left.name !== statement.target) {
+    diagnostics.push({
+      line: statement.line,
+      message: "Current C++ subset supports for increment only as i = i + step or i = i - step.",
+      severity: "error"
+    });
+    return;
+  }
+  if (expression.right.kind !== "Identifier" && expression.right.kind !== "IntegerLiteral") {
+    diagnostics.push({
+      line: statement.line,
+      message: "Current C++ subset supports for increment step only as integer literal or declared variable.",
+      severity: "error"
+    });
+    return;
+  }
+  if (expression.right.kind === "Identifier" && !variables.has(expression.right.name)) {
+    diagnostics.push({ line: expression.right.line, message: `Variable '${expression.right.name}' is used before declaration.`, severity: "error" });
   }
 }
 

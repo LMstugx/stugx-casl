@@ -20,7 +20,13 @@ export function selectGeneratedCaslRows(source: string, mapping: CppToCaslMap[] 
     const lineNumber = index + 1;
     const parsed = parseCaslLine(raw);
     const mappingKinds = Array.from(mappingKindsForCaslLine(mapping, lineNumber));
-    const isGeneratedMeta = mappingKinds.includes("generated-label") || mappingKinds.includes("loop-label") || mappingKinds.includes("constant");
+    const isGeneratedMeta =
+      mappingKinds.includes("generated-label") ||
+      mappingKinds.includes("loop-label") ||
+      mappingKinds.includes("loop-back-jump") ||
+      mappingKinds.includes("for-label") ||
+      mappingKinds.includes("for-back-jump") ||
+      mappingKinds.includes("constant");
     return {
       lineNumber,
       raw,

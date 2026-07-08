@@ -96,6 +96,26 @@ test("Mock backend executes C++ subset while sum in the browser UI", async ({ pa
   await expect(page.getByText("Run finished after")).toBeVisible();
 });
 
+test("Mock backend executes C++ subset for sum and shows generated machine code", async ({ page }) => {
+  await openStudio(page, "Mock Core");
+  await selectDemoProgram(page, "cpp-for-sum");
+
+  await assemble(page);
+  await page.getByRole("tab", { name: "Generated CASL" }).click();
+  await expect(page.getByTestId("generated-casl-output")).toContainText("FOR_BEGIN_0");
+  await expect(page.getByTestId("generated-casl-output")).toContainText("FOR_BODY_0");
+  await expect(page.getByTestId("generated-casl-output")).toContainText("FOR_END_0");
+
+  await page.getByRole("tab", { name: "Machine Code" }).click();
+  await expect(page.getByTestId("machine-code-output")).toContainText("JUMP FOR_BEGIN_0");
+  await page.getByTestId("machine-code-row-0020").click();
+  await expect(page.getByTestId("machine-code-explanation")).toContainText("Opcode");
+
+  await run(page);
+  await expect(page.getByTestId("run-state")).toHaveText("Finished");
+  await expectRegister(page, "register-gr0", "0006");
+});
+
 test("Mock backend stops runaway while programs at maxSteps and can reset", async ({ page }) => {
   await openStudio(page, "Mock Core");
   await page.getByTestId("source-mode-cpp").click();

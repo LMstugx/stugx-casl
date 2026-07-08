@@ -9,25 +9,25 @@ export type WirePath = {
 };
 
 export const wirePaths: readonly WirePath[] = Object.freeze([
-  { id: "pr-to-mar", role: "control", d: "M 466 82 C 560 82 700 82 808 82" },
-  { id: "pr-to-plus2", role: "control", d: "M 466 82 L 502 82" },
-  { id: "plus2-to-sp", role: "control", d: "M 600 82 L 640 82" },
-  { id: "sp-to-mar", role: "control", d: "M 756 82 L 808 82" },
-  { id: "mar-to-memory", role: "control", d: "M 934 82 C 982 82 982 164 996 164" },
-  { id: "memory-to-mdr", role: "data", d: "M 996 278 C 972 278 972 298 962 298" },
-  { id: "mdr-to-gr", role: "data", d: "M 852 298 C 760 298 760 318 480 318" },
-  { id: "gr-to-mdr", role: "data", d: "M 480 350 C 616 350 746 330 852 298" },
-  { id: "mdr-to-memory", role: "data", d: "M 962 298 C 980 298 980 340 996 340" },
-  { id: "gr-to-alu", role: "data", d: "M 480 286 C 548 286 562 272 610 272" },
-  { id: "mdr-to-alu", role: "data", d: "M 852 298 C 820 298 820 300 800 300" },
-  { id: "alu-to-gr", role: "data", d: "M 610 356 C 554 356 542 384 480 384" },
-  { id: "alu-to-fr", role: "control", d: "M 706 402 L 706 478" },
-  { id: "address-to-gr", role: "data", d: "M 808 108 C 704 142 590 220 480 254" },
-  { id: "address-to-pr", role: "control", d: "M 808 66 C 670 28 518 44 466 72" },
-  { id: "ir-to-decoder", role: "control", d: "M 117 118 L 117 150" },
-  { id: "decoder-to-controller", role: "control", d: "M 117 266 L 117 300" },
-  { id: "controller-to-pr", role: "control", d: "M 190 346 C 244 346 248 82 350 82" },
-  { id: "source-to-display", role: "inactive", d: "M 536 548 C 580 548 580 520 610 520" }
+  { id: "pr-to-mar", role: "control", d: "M 442 71 C 535 71 655 71 760 71" },
+  { id: "pr-to-plus2", role: "control", d: "M 442 71 L 476 71" },
+  { id: "plus2-to-sp", role: "control", d: "M 576 71 L 612 71" },
+  { id: "sp-to-mar", role: "control", d: "M 732 71 L 760 71" },
+  { id: "mar-to-memory", role: "control", d: "M 892 71 C 930 74 930 150 944 150" },
+  { id: "memory-to-mdr", role: "data", d: "M 944 280 C 924 280 926 284 926 284" },
+  { id: "mdr-to-gr", role: "data", d: "M 810 284 C 720 284 620 306 464 306" },
+  { id: "gr-to-mdr", role: "data", d: "M 464 334 C 590 340 708 318 810 284" },
+  { id: "mdr-to-memory", role: "data", d: "M 926 284 C 936 300 936 330 944 330" },
+  { id: "gr-to-alu", role: "data", d: "M 464 262 C 506 262 514 246 546 246" },
+  { id: "mdr-to-alu", role: "data", d: "M 810 284 C 790 284 790 284 776 284" },
+  { id: "alu-to-gr", role: "data", d: "M 546 350 C 510 350 502 378 464 378" },
+  { id: "alu-to-fr", role: "control", d: "M 662 398 L 662 450" },
+  { id: "address-to-gr", role: "data", d: "M 760 104 C 690 130 572 214 464 244" },
+  { id: "address-to-pr", role: "control", d: "M 760 58 C 650 22 500 36 442 62" },
+  { id: "ir-to-decoder", role: "control", d: "M 112 108 L 112 132" },
+  { id: "decoder-to-controller", role: "control", d: "M 112 244 L 112 270" },
+  { id: "controller-to-pr", role: "control", d: "M 186 316 C 236 318 246 71 322 71" },
+  { id: "source-to-display", role: "inactive", d: "M 548 492 C 578 492 578 484 590 484" }
 ]);
 
 export const activeWireIdsByKind: Record<VisualPathKind, string[]> = {

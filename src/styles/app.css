@@ -4,7 +4,7 @@
 
 body {
   margin: 0;
-  min-width: 1080px;
+  min-width: 1180px;
   background: var(--color-bg);
   color: var(--color-text);
 }
@@ -23,19 +23,19 @@ button {
   height: 100vh;
   min-height: 720px;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) 132px auto;
-  gap: 10px;
+  grid-template-rows: auto minmax(0, 1fr) 140px auto;
+  gap: 9px;
   padding: 12px;
   overflow: hidden;
 }
 
 .toolbar {
   display: grid;
-  grid-template-columns: minmax(224px, 280px) 1fr auto;
-  gap: 10px;
+  grid-template-columns: minmax(260px, 320px) 1fr auto;
+  gap: 12px;
   align-items: center;
-  min-height: 62px;
-  padding: 8px 10px;
+  min-height: 74px;
+  padding: 9px 12px;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
@@ -45,27 +45,27 @@ button {
 .brand {
   display: flex;
   align-items: center;
-  gap: 11px;
+  gap: 13px;
   min-width: 0;
 }
 
 .brand-mark {
   display: grid;
   place-items: center;
-  width: 48px;
-  height: 42px;
-  border-radius: var(--radius-md);
+  width: 58px;
+  height: 58px;
+  border-radius: 13px;
   color: #ffffff;
-  background: linear-gradient(145deg, #2563eb 0%, #1d4ed8 100%);
+  background: linear-gradient(145deg, #60a5fa 0%, #2563eb 58%, #1d4ed8 100%);
   font-weight: 800;
-  font-size: 12px;
+  font-size: 13px;
   letter-spacing: 0;
-  box-shadow: inset 0 -10px 22px rgba(15, 23, 42, 0.16), 0 10px 18px rgba(37, 99, 235, 0.18);
+  box-shadow: inset 0 -12px 24px rgba(15, 23, 42, 0.18), 0 12px 22px rgba(37, 99, 235, 0.2);
 }
 
 .brand h1 {
   margin: 0;
-  font-size: 19px;
+  font-size: 22px;
   line-height: 1.1;
   letter-spacing: 0;
 }
@@ -79,10 +79,10 @@ button {
 .toolbar-actions {
   display: flex;
   flex-wrap: nowrap;
-  gap: 5px;
+  gap: 8px;
   justify-content: center;
   min-width: 0;
-  padding: 0 8px;
+  padding: 0 12px;
   border-left: 1px solid var(--color-border);
   border-right: 1px solid var(--color-border);
 }
@@ -113,16 +113,16 @@ button {
 
 .tool-button {
   gap: 7px;
-  min-height: 36px;
-  padding: 0 9px;
+  min-height: 39px;
+  padding: 0 12px;
   font-size: 13px;
   font-weight: 650;
   box-shadow: var(--shadow-soft);
 }
 
 .tool-button.emphasis:not(:disabled) {
-  min-height: 38px;
-  padding-inline: 11px;
+  min-height: 41px;
+  padding-inline: 14px;
   border-color: #bfdbfe;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06), 0 8px 18px rgba(37, 99, 235, 0.1);
 }
@@ -184,6 +184,12 @@ button {
   color: var(--color-danger);
   background: var(--color-danger-soft);
   border-color: #fecaca;
+}
+
+.tool-button.danger:not(:disabled) {
+  color: #ffffff;
+  background: var(--color-danger);
+  border-color: var(--color-danger);
 }
 
 .spinner {
@@ -253,7 +259,7 @@ button {
 
 .workspace {
   display: grid;
-  grid-template-columns: minmax(300px, 24%) minmax(650px, 1fr) minmax(286px, 22%);
+  grid-template-columns: clamp(280px, 23vw, 340px) minmax(620px, 1fr) clamp(280px, 22vw, 340px);
   gap: 10px;
   min-height: 0;
 }
@@ -268,7 +274,7 @@ button {
 
 .center-column {
   display: grid;
-  grid-template-rows: minmax(0, 1fr) 96px;
+  grid-template-rows: minmax(330px, 1fr) 116px 108px;
   gap: 10px;
   min-height: 0;
 }
@@ -277,7 +283,7 @@ button {
 .output-panel {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
+  border-radius: 12px;
   box-shadow: var(--shadow-card);
   overflow: hidden;
 }
@@ -295,7 +301,7 @@ button {
 
 .panel-header h2 {
   margin: 0;
-  font-size: 14px;
+  font-size: 15px;
   line-height: 1.2;
   color: #15336d;
 }
@@ -305,6 +311,14 @@ button {
   align-items: center;
   gap: 8px;
   min-width: 0;
+}
+
+.source-header-actions > span {
+  max-width: 92px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  opacity: 0.75;
 }
 
 .source-mode button {
@@ -354,12 +368,12 @@ button {
 }
 
 .current-panel {
-  min-height: 96px;
+  min-height: 106px;
 }
 
 .errors-panel {
   min-height: 92px;
-  max-height: 142px;
+  max-height: 132px;
 }
 
 .current-instruction {
@@ -399,7 +413,7 @@ button {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   border-color: #bfdbfe;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05), 0 20px 42px rgba(37, 99, 235, 0.12);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05), 0 22px 46px rgba(37, 99, 235, 0.13);
 }
 
 .circuit-panel .panel-header {
@@ -457,7 +471,7 @@ button {
   fill: #ffffff;
   stroke: #cfd8e6;
   stroke-width: 1.2;
-  filter: drop-shadow(0 9px 15px rgba(15, 23, 42, 0.08));
+  filter: drop-shadow(0 10px 16px rgba(15, 23, 42, 0.09));
   transition:
     fill var(--motion-base) var(--ease-standard),
     stroke var(--motion-base) var(--ease-standard),
@@ -474,6 +488,8 @@ button {
 
 .alu-module polygon {
   fill: #ffffff;
+  stroke-width: 1.5;
+  filter: drop-shadow(0 14px 22px rgba(15, 23, 42, 0.1));
 }
 
 .module-title {
@@ -491,13 +507,13 @@ button {
 }
 
 .module-value {
-  fill: var(--color-success);
+  fill: var(--color-code-green);
   font-size: 18px;
   font-weight: 800;
 }
 
 .module-green {
-  fill: var(--color-success);
+  fill: var(--color-code-green);
 }
 
 .module-blue {
@@ -523,7 +539,7 @@ button {
 
 .wire {
   fill: none;
-  stroke-width: 1.6;
+  stroke-width: 1.8;
   stroke-linecap: round;
   stroke-linejoin: round;
   opacity: 0.34;
@@ -534,7 +550,7 @@ button {
 }
 
 .wire-control {
-  stroke: #7aa2f7;
+  stroke: #6f9cf7;
 }
 
 .wire-data {
@@ -548,8 +564,72 @@ button {
 
 .wire-active {
   stroke: var(--color-active-red);
-  stroke-width: 4.4;
+  stroke-width: 4.8;
   opacity: 1;
+  filter: drop-shadow(0 0 5px rgba(239, 68, 68, 0.44));
+}
+
+.learning-flow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 22px minmax(0, 1fr) 22px minmax(0, 1fr) 22px minmax(0, 0.95fr);
+  align-items: stretch;
+  gap: 8px;
+  min-height: 0;
+  padding: 12px 14px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-card);
+}
+
+.flow-card {
+  min-width: 0;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+}
+
+.flow-card span {
+  color: #15336d;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.flow-card strong {
+  color: var(--color-muted);
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.flow-card code {
+  min-width: 0;
+  color: var(--color-text);
+  font-family: "Cascadia Mono", Consolas, monospace;
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.now-card {
+  background: linear-gradient(180deg, #fff7f7 0%, #fff1f2 100%);
+  border-color: #fecaca;
+}
+
+.now-card code {
+  color: var(--color-danger);
+}
+
+.flow-arrow {
+  display: grid;
+  place-items: center;
+  color: #94a3b8;
+  font-size: 24px;
+  font-weight: 400;
 }
 
 .marker-blue {
@@ -571,7 +651,7 @@ button {
   grid-template-columns: repeat(5, 1fr);
   gap: 8px;
   align-items: center;
-  padding: 9px 14px;
+  padding: 10px 14px 12px;
 }
 
 .timeline-node {
@@ -614,6 +694,10 @@ button {
 .timeline-node strong {
   font-size: 12px;
   font-weight: 750;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .timeline-node.completed {
@@ -649,6 +733,7 @@ button {
 
 .inspector-header {
   border-bottom: 0;
+  background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
 }
 
 .tab-list {
@@ -658,7 +743,7 @@ button {
 }
 
 .compact-tabs {
-  padding: 0 8px 8px;
+  padding: 0 10px 9px;
   border-bottom: 1px solid var(--color-border);
 }
 
@@ -667,13 +752,14 @@ button {
 }
 
 .tab-button {
-  min-height: 32px;
-  padding: 0 10px;
+  min-height: 34px;
+  padding: 0 11px;
   color: var(--color-muted);
   background: transparent;
   border-color: transparent;
   font-size: 12px;
   font-weight: 700;
+  border-radius: var(--radius-sm);
 }
 
 .tab-button.active {
@@ -695,13 +781,17 @@ button {
 .data-table {
   width: calc(100% - 24px);
   margin: 0 12px 12px;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   font-size: 12.5px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
 }
 
 .data-table th,
 .data-table td {
-  height: 30px;
+  height: 31px;
   padding: 6px 8px;
   border-bottom: 1px solid #edf2f7;
   text-align: left;
@@ -710,8 +800,12 @@ button {
 
 .data-table th {
   color: #334155;
-  background: #f8fafc;
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
   font-weight: 750;
+}
+
+.data-table tbody tr:last-child td {
+  border-bottom: 0;
 }
 
 .data-table tr.changed td,
@@ -722,7 +816,7 @@ button {
 }
 
 .hex {
-  color: var(--color-success);
+  color: var(--color-code-green);
   font-family: "Cascadia Mono", Consolas, monospace;
 }
 
@@ -764,7 +858,7 @@ button {
 .output-panel {
   min-height: 0;
   display: grid;
-  grid-template-rows: 36px minmax(0, 1fr);
+  grid-template-rows: 38px minmax(0, 1fr);
 }
 
 .dock-header {
@@ -782,11 +876,11 @@ button {
 
 .console-lines {
   overflow: auto;
-  padding: 10px 14px;
+  padding: 9px 14px;
   background: #fbfdff;
   font-family: "Cascadia Mono", Consolas, monospace;
   font-size: 12px;
-  line-height: 1.5;
+  line-height: 1.45;
   animation: tabIn var(--motion-base) var(--ease-standard);
 }
 
@@ -795,7 +889,7 @@ button {
   grid-template-columns: 34px minmax(0, 1fr);
   gap: 10px;
   align-items: start;
-  min-height: 22px;
+  min-height: 21px;
   color: #334155;
 }
 
@@ -807,6 +901,10 @@ button {
 
 .console-line.success {
   color: #166534;
+}
+
+.console-line.warn {
+  color: #92400e;
 }
 
 .console-line.danger {

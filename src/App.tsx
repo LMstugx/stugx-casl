@@ -4,6 +4,7 @@ import SourceEditor from "./components/SourceEditor";
 import InspectorPanel from "./components/InspectorPanel";
 import OutputPanel from "./components/OutputPanel";
 import StatusBar from "./components/StatusBar";
+import LearningFlowPanel from "./components/LearningFlowPanel";
 import CometCircuitSvg from "./visual/CometCircuitSvg";
 import { formatWord } from "./core/types";
 import { summarizeCurrentInstruction } from "./visual/visualState";
@@ -45,8 +46,15 @@ function StudioShell() {
   const diagnostics = useMemo(() => storeDiagnostics.filter((diagnostic) => diagnostic.severity === "error"), [storeDiagnostics]);
   const editorCurrentLine = sourceMode === "cpp" ? cppLineForCaslLine(cppToCaslMapping, state.currentLine) : state.currentLine;
   const timelineItems = useMemo(() => {
-    if (state.trace.length === 0) {
-      return ["Ready", "LD", "ADDA", "ST", "RET"].map((label, index) => ({ key: label, index, label, phase: state.stepIndex === index ? "current" : state.stepIndex > index ? "completed" : "pending" }));
+    const compactProgram = state.program && state.program.length > 0 && state.program.length <= 4 ? ["Ready", ...state.program.map((instruction) => instruction.op)] : [];
+    if (compactProgram.length > 0 || state.trace.length === 0) {
+      const labels = compactProgram.length > 0 ? compactProgram : ["Ready", "LD", "ADDA", "ST", "RET"];
+      return labels.map((label, index) => ({
+        key: label,
+        index,
+        label,
+        phase: state.runState === "Finished" || state.stepIndex > index ? "completed" : state.stepIndex === index ? "current" : "pending"
+      }));
     }
     return state.trace
       .slice(0, 5)
@@ -57,7 +65,7 @@ function StudioShell() {
         label: event.instruction,
         phase: event.index === state.stepIndex && state.runState !== "Finished" ? "current" : "completed"
       }));
-  }, [state.runState, state.stepIndex, state.trace]);
+  }, [state.program, state.runState, state.stepIndex, state.trace]);
 
   return (
     <div className="app-shell">
@@ -118,6 +126,8 @@ function StudioShell() {
             </header>
             <CometCircuitSvg state={state} />
           </section>
+
+          <LearningFlowPanel state={state} sourceMode={sourceMode} sourceText={sourceText} generatedCaslSource={generatedCaslSource} cppToCaslMapping={cppToCaslMapping} />
 
           <section className="panel timeline-panel">
             <header className="panel-header">

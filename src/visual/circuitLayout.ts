@@ -1,4 +1,4 @@
-export const CIRCUIT_VIEWBOX = { width: 1160, height: 640 };
+export const CIRCUIT_VIEWBOX = { width: 1100, height: 560 };
 
 export type RectLayout = {
   x: number;
@@ -8,32 +8,32 @@ export type RectLayout = {
 };
 
 export const circuitLayout = {
-  ir: { x: 44, y: 48, w: 146, h: 70 },
-  decoder: { x: 44, y: 150, w: 146, h: 116 },
-  controller: { x: 44, y: 300, w: 146, h: 92 },
-  display: { x: 44, y: 442, w: 210, h: 94 },
-  pr: { x: 350, y: 48, w: 116, h: 68 },
-  addressResult: { x: 502, y: 58, w: 98, h: 48 },
-  sp: { x: 640, y: 48, w: 116, h: 68 },
-  mar: { x: 808, y: 48, w: 126, h: 68 },
-  gr: { x: 290, y: 182, w: 190, h: 274 },
-  alu: { x: 610, y: 214, w: 190, h: 188 },
-  mdr: { x: 852, y: 262, w: 110, h: 72 },
-  fr: { x: 610, y: 478, w: 140, h: 70 },
-  memory: { x: 996, y: 120, w: 126, h: 390 },
-  sourceMap: { x: 300, y: 520, w: 236, h: 86 }
+  ir: { x: 38, y: 40, w: 148, h: 68 },
+  decoder: { x: 38, y: 132, w: 148, h: 112 },
+  controller: { x: 38, y: 270, w: 148, h: 90 },
+  display: { x: 38, y: 402, w: 204, h: 84 },
+  pr: { x: 322, y: 38, w: 120, h: 66 },
+  addressResult: { x: 476, y: 48, w: 100, h: 46 },
+  sp: { x: 612, y: 38, w: 120, h: 66 },
+  mar: { x: 760, y: 38, w: 132, h: 66 },
+  gr: { x: 262, y: 160, w: 202, h: 272 },
+  alu: { x: 546, y: 172, w: 230, h: 226 },
+  mdr: { x: 810, y: 248, w: 116, h: 72 },
+  fr: { x: 590, y: 450, w: 158, h: 68 },
+  memory: { x: 944, y: 104, w: 138, h: 372 },
+  sourceMap: { x: 268, y: 466, w: 280, h: 78 }
 } satisfies Record<string, RectLayout>;
 
 export const aluPolygonPoints = [
-  [610, 214],
-  [668, 214],
-  [684, 250],
-  [736, 250],
-  [800, 214],
-  [760, 308],
-  [800, 402],
-  [610, 402],
-  [650, 308]
+  [546, 172],
+  [616, 172],
+  [636, 218],
+  [710, 218],
+  [776, 172],
+  [734, 285],
+  [776, 398],
+  [546, 398],
+  [590, 285]
 ]
   .map(([x, y]) => `${x},${y}`)
   .join(" ");

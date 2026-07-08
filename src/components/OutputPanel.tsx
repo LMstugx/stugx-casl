@@ -22,18 +22,23 @@ const tabs: Array<{ id: OutputTab; label: string }> = [
   { id: "generated", label: "Generated CASL" }
 ];
 
-function lineTone(line: string): "success" | "danger" | "muted" | "default" {
+function lineTone(line: string): "success" | "danger" | "warn" | "muted" | "default" {
   const normalized = line.toLowerCase();
-  if (normalized.includes("failed") || normalized.includes("error")) return "danger";
+  if (/\b(failed|error:|runtime error|undefined|invalid|max steps)\b/.test(normalized)) return "danger";
+  if (/\b(warning:|warn)\b/.test(normalized) && !normalized.includes("0 warnings")) return "warn";
   if (normalized.includes("succeeded") || normalized.includes("loaded") || normalized.includes("finished") || normalized.includes("reset")) return "success";
   if (normalized.includes("reserved") || normalized.includes("ready")) return "muted";
   return "default";
 }
 
 function linePrefix(tab: OutputTab, line: string): string {
-  if (tab === "messages") return lineTone(line) === "danger" ? "!" : "i";
+  const tone = lineTone(line);
+  if (tab === "messages") return tone === "danger" ? "error" : tone === "warn" ? "warn" : "info";
   if (tab === "console") return ">";
-  return lineTone(line) === "success" ? "ok" : lineTone(line) === "danger" ? "!!" : "--";
+  if (tone === "success") return "ok";
+  if (tone === "danger") return "error";
+  if (tone === "warn") return "warn";
+  return "info";
 }
 
 export default function OutputPanel({

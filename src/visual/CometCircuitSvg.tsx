@@ -1,6 +1,6 @@
 import { memo } from "react";
 import { selectMemoryWindow } from "../core/selectors";
-import { CometState, formatFlags, formatWord } from "../core/types";
+import { CometState, VisualPathKind, formatFlags, formatWord } from "../core/types";
 import { CIRCUIT_VIEWBOX, circuitLayout, aluPolygonPoints, RectLayout } from "./circuitLayout";
 import { resolveActiveWireIds, resolveVisualPath } from "./visualPathResolver";
 import { wirePaths } from "./wirePaths";
@@ -102,8 +102,12 @@ function GeneralRegisters({ state }: { state: CometState }) {
 }
 
 function AluModule({ state }: { state: CometState }) {
+  const active =
+    state.visualPath === VisualPathKind.ADDA_GrMdrToAluToGr ||
+    state.visualPath === VisualPathKind.SUBA_GrMdrToAluToGr ||
+    state.visualPath === VisualPathKind.CPA_GrMdrToAluToFr;
   return (
-    <g className="circuit-module alu-module" data-testid="module-alu">
+    <g className={active ? "circuit-module circuit-module-active alu-module" : "circuit-module alu-module"} data-testid="module-alu" data-active={active ? "true" : "false"}>
       <polygon points={aluPolygonPoints} />
       <text className="module-title" x={circuitLayout.alu.x + circuitLayout.alu.w / 2} y={circuitLayout.alu.y + 64} textAnchor="middle">
         ALU
@@ -132,17 +136,18 @@ function AluModule({ state }: { state: CometState }) {
 
 function MemoryModule({ state }: { state: CometState }) {
   const rows = selectMemoryWindow(state, 0x20, 0x2a).slice(0, 11);
+  const activeMemory = state.visualPath === VisualPathKind.LD_MemoryToMdrToGr || state.visualPath === VisualPathKind.ST_GrToMdrToMemory || state.changedMemoryAddresses.length > 0;
   return (
-    <Module layout={circuitLayout.memory} title="Memory" testId="module-memory">
+    <Module layout={circuitLayout.memory} title="Memory" accent={activeMemory} testId="module-memory">
       {rows.map((row, index) => {
         const active = row.changed || row.current || row.address === state.mar;
         return (
         <g key={row.address} className={active ? "memory-svg-row changed" : "memory-svg-row"} data-testid={`memory-row-${formatWord(row.address)}`} data-active={active ? "true" : "false"}>
-          <rect x={circuitLayout.memory.x + 12} y={circuitLayout.memory.y + 36 + index * 28} width="102" height="26" rx="4" />
-          <text className="module-small module-blue" x={circuitLayout.memory.x + 34} y={circuitLayout.memory.y + 54 + index * 28} textAnchor="middle">
+          <rect x={circuitLayout.memory.x + 12} y={circuitLayout.memory.y + 36 + index * 28} width={circuitLayout.memory.w - 24} height="26" rx="4" />
+          <text className="module-small module-blue" x={circuitLayout.memory.x + 38} y={circuitLayout.memory.y + 54 + index * 28} textAnchor="middle">
             {formatWord(row.address)}
           </text>
-          <text className="module-small module-green" x={circuitLayout.memory.x + 82} y={circuitLayout.memory.y + 54 + index * 28} textAnchor="middle">
+          <text className="module-small module-green" x={circuitLayout.memory.x + 94} y={circuitLayout.memory.y + 54 + index * 28} textAnchor="middle">
             {formatWord(row.value)}
           </text>
         </g>

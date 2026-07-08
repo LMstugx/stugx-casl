@@ -19,12 +19,13 @@ type ButtonProps = {
   disabled?: boolean;
   active?: boolean;
   loading?: boolean;
+  title?: string;
   onClick?: () => void;
 };
 
-function ToolButton({ label, icon, variant, disabled, active, loading, onClick }: ButtonProps) {
+function ToolButton({ label, icon, variant, disabled, active, loading, title, onClick }: ButtonProps) {
   return (
-    <button className={`tool-button ${variant ?? ""} ${active ? "active" : ""} ${loading ? "loading" : ""}`} disabled={disabled} onClick={onClick} title={label}>
+    <button className={`tool-button ${variant ?? ""} ${active ? "active" : ""} ${loading ? "loading" : ""}`} disabled={disabled} onClick={onClick} title={title ?? label}>
       {loading ? <Loader2 className="spinner" size={17} /> : icon}
       <span>{label}</span>
     </button>
@@ -55,8 +56,8 @@ export default function Toolbar({ assembleStatus, canStep, canReset, isRunning, 
 
       <nav className="toolbar-actions" aria-label="Primary commands">
         <ToolButton label="New" icon={<Plus size={18} />} variant="primary" disabled />
-        <ToolButton label="Open" icon={<FolderOpen size={18} />} disabled />
-        <ToolButton label="Save" icon={<Save size={18} />} disabled />
+        <ToolButton label="Open" icon={<FolderOpen size={18} />} disabled title="File open is not implemented in Phase 2A" />
+        <ToolButton label="Save" icon={<Save size={18} />} disabled title="File save is not implemented in Phase 2A" />
         <ToolButton
           label={assembleLabel}
           icon={<Check size={18} />}
@@ -66,10 +67,10 @@ export default function Toolbar({ assembleStatus, canStep, canReset, isRunning, 
           disabled={assembleStatus === "running"}
           onClick={onAssemble}
         />
-        <ToolButton label="Run" icon={<Play size={18} />} variant="primary" disabled />
+        <ToolButton label="Run" icon={<Play size={18} />} variant="primary" disabled title="Run is not implemented in Phase 2A" />
         <ToolButton label="Step" icon={<StepForward size={18} />} variant="primary" disabled={!canStep} onClick={onStep} />
         <ToolButton label="Reset" icon={<RotateCcw size={18} />} disabled={!canReset} onClick={onReset} />
-        <ToolButton label="Stop" icon={<Square size={18} />} variant="danger" disabled={!isRunning} />
+        <ToolButton label="Stop" icon={<Square size={18} />} variant="danger" disabled={!isRunning} title="Stop is enabled only while running" />
       </nav>
 
       <div className="toolbar-meta">

@@ -97,7 +97,7 @@ function StudioShell() {
         </aside>
       </main>
 
-      <OutputPanel lines={state.output} onClear={clearOutput} />
+      <OutputPanel lines={state.output} messages={diagnostics.map((diagnostic) => `Line ${diagnostic.line}: ${diagnostic.message}`)} onClear={clearOutput} />
       <StatusBar state={state} />
     </div>
   );

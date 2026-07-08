@@ -2,6 +2,7 @@ import { useState } from "react";
 
 type OutputPanelProps = {
   lines: string[];
+  messages?: string[];
   onClear: () => void;
 };
 
@@ -13,7 +14,7 @@ const tabs: Array<{ id: OutputTab; label: string }> = [
   { id: "messages", label: "Messages" }
 ];
 
-export default function OutputPanel({ lines, onClear }: OutputPanelProps) {
+export default function OutputPanel({ lines, messages = [], onClear }: OutputPanelProps) {
   const [activeTab, setActiveTab] = useState<OutputTab>("output");
   const visibleLines =
     activeTab === "output"
@@ -21,8 +22,10 @@ export default function OutputPanel({ lines, onClear }: OutputPanelProps) {
         ? lines
         : ["Ready. Assemble the program to begin."]
       : activeTab === "console"
-        ? ["No console entries."]
-        : ["No messages."];
+        ? ["Console is reserved for future runtime logs."]
+        : messages.length
+          ? messages
+          : ["No diagnostics or system messages."];
 
   return (
     <section className="output-panel">

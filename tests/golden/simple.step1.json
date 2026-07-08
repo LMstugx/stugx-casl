@@ -1,0 +1,201 @@
+{
+  "runState": "Ready",
+  "stepCount": 1,
+  "pr": 34,
+  "sp": 65534,
+  "ir0": 4112,
+  "ir1": 39,
+  "mar": 39,
+  "mdr": 10,
+  "gr": [
+    0,
+    10,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+  ],
+  "frOF": false,
+  "frSF": false,
+  "frZF": false,
+  "frCF": false,
+  "currentInstructionAddress": 34,
+  "currentSourceLineIndex": 3,
+  "currentInstructionText": "ADDA GR1,B",
+  "lastInstructionKind": "LD",
+  "lastMemoryReadAddress": 39,
+  "lastMemoryWriteAddress": null,
+  "lastRegisterWriteIndex": 1,
+  "effectiveAddress": 39,
+  "memoryWindow": [
+    {
+      "address": 32,
+      "value": 4112,
+      "label": "MAIN",
+      "isCurrent": false,
+      "isChanged": false
+    },
+    {
+      "address": 33,
+      "value": 39,
+      "label": null,
+      "isCurrent": false,
+      "isChanged": false
+    },
+    {
+      "address": 34,
+      "value": 8208,
+      "label": null,
+      "isCurrent": true,
+      "isChanged": false
+    },
+    {
+      "address": 35,
+      "value": 40,
+      "label": null,
+      "isCurrent": false,
+      "isChanged": false
+    },
+    {
+      "address": 36,
+      "value": 4368,
+      "label": null,
+      "isCurrent": false,
+      "isChanged": false
+    },
+    {
+      "address": 37,
+      "value": 41,
+      "label": null,
+      "isCurrent": false,
+      "isChanged": false
+    },
+    {
+      "address": 38,
+      "value": 33024,
+      "label": null,
+      "isCurrent": false,
+      "isChanged": false
+    },
+    {
+      "address": 39,
+      "value": 10,
+      "label": "A",
+      "isCurrent": false,
+      "isChanged": false
+    },
+    {
+      "address": 40,
+      "value": 20,
+      "label": "B",
+      "isCurrent": false,
+      "isChanged": false
+    },
+    {
+      "address": 41,
+      "value": 0,
+      "label": "C",
+      "isCurrent": false,
+      "isChanged": false
+    },
+    {
+      "address": 42,
+      "value": 0,
+      "label": null,
+      "isCurrent": false,
+      "isChanged": false
+    }
+  ],
+  "sourceRows": [
+    {
+      "line": 2,
+      "address": 32,
+      "machineWords": [
+        4112,
+        39
+      ],
+      "source": "LD    GR1,A",
+      "label": null,
+      "instruction": "LD",
+      "operandAddress": 39,
+      "isCurrent": false
+    },
+    {
+      "line": 3,
+      "address": 34,
+      "machineWords": [
+        8208,
+        40
+      ],
+      "source": "ADDA  GR1,B",
+      "label": null,
+      "instruction": "ADDA",
+      "operandAddress": 40,
+      "isCurrent": true
+    },
+    {
+      "line": 4,
+      "address": 36,
+      "machineWords": [
+        4368,
+        41
+      ],
+      "source": "ST    GR1,C",
+      "label": null,
+      "instruction": "ST",
+      "operandAddress": 41,
+      "isCurrent": false
+    },
+    {
+      "line": 5,
+      "address": 38,
+      "machineWords": [
+        33024
+      ],
+      "source": "RET",
+      "label": null,
+      "instruction": "RET",
+      "operandAddress": null,
+      "isCurrent": false
+    },
+    {
+      "line": 6,
+      "address": 39,
+      "machineWords": [
+        10
+      ],
+      "source": "A    DC    10",
+      "label": "A",
+      "instruction": "DC",
+      "operandAddress": null,
+      "isCurrent": false
+    },
+    {
+      "line": 7,
+      "address": 40,
+      "machineWords": [
+        20
+      ],
+      "source": "B    DC    20",
+      "label": "B",
+      "instruction": "DC",
+      "operandAddress": null,
+      "isCurrent": false
+    },
+    {
+      "line": 8,
+      "address": 41,
+      "machineWords": [
+        0
+      ],
+      "source": "C    DS    1",
+      "label": "C",
+      "instruction": "DS",
+      "operandAddress": null,
+      "isCurrent": false
+    }
+  ],
+  "diagnostics": []
+}

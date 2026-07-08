@@ -73,6 +73,7 @@ struct CometState {
     Flags fr{};
     RunState runState = RunState::Idle;
     VisualPathKind visualPath = VisualPathKind::None;
+    int stepCount = 0;
     int currentLine = -1;
     std::string currentInstruction;
     std::optional<InstructionKind> lastInstructionKind;

@@ -129,6 +129,7 @@ StepResult CometVm::step() {
             return result;
     }
 
+    state_.stepCount += 1;
     updateCurrentInstruction();
     return result;
 }

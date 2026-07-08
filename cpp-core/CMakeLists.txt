@@ -22,6 +22,9 @@ enable_testing()
 add_executable(CoreSmokeTest tests/CoreSmokeTest.cpp)
 target_link_libraries(CoreSmokeTest PRIVATE casl_core)
 
+add_executable(core_dump tools/core_dump.cpp)
+target_link_libraries(core_dump PRIVATE casl_core)
+
 set(CORE_TESTS
   AssembleSimpleProgram
   AssembleChangedConstants

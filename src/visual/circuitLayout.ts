@@ -1,4 +1,4 @@
-export const CIRCUIT_VIEWBOX = { width: 1100, height: 560 };
+export const CIRCUIT_VIEWBOX = { width: 1100, height: 536 };
 
 export type RectLayout = {
   x: number;
@@ -8,20 +8,20 @@ export type RectLayout = {
 };
 
 export const circuitLayout = {
-  ir: { x: 38, y: 40, w: 148, h: 68 },
-  decoder: { x: 38, y: 132, w: 148, h: 112 },
-  controller: { x: 38, y: 270, w: 148, h: 90 },
-  display: { x: 38, y: 402, w: 204, h: 84 },
-  pr: { x: 322, y: 38, w: 120, h: 66 },
-  addressResult: { x: 476, y: 50, w: 100, h: 46 },
-  sp: { x: 604, y: 110, w: 118, h: 56 },
-  mar: { x: 724, y: 38, w: 132, h: 66 },
-  gr: { x: 270, y: 156, w: 196, h: 272 },
-  alu: { x: 504, y: 178, w: 244, h: 220 },
-  mdr: { x: 770, y: 250, w: 110, h: 70 },
-  fr: { x: 552, y: 448, w: 150, h: 66 },
-  memory: { x: 906, y: 104, w: 148, h: 372 },
-  sourceMap: { x: 272, y: 466, w: 260, h: 78 }
+  ir: { x: 36, y: 34, w: 144, h: 62 },
+  decoder: { x: 36, y: 114, w: 144, h: 106 },
+  controller: { x: 36, y: 240, w: 144, h: 84 },
+  display: { x: 36, y: 350, w: 186, h: 72 },
+  pr: { x: 316, y: 36, w: 116, h: 60 },
+  addressResult: { x: 456, y: 43, w: 90, h: 46 },
+  sp: { x: 572, y: 106, w: 110, h: 54 },
+  mar: { x: 690, y: 36, w: 126, h: 60 },
+  gr: { x: 266, y: 142, w: 190, h: 266 },
+  alu: { x: 488, y: 158, w: 226, h: 206 },
+  mdr: { x: 742, y: 230, w: 106, h: 66 },
+  fr: { x: 548, y: 394, w: 138, h: 56 },
+  memory: { x: 880, y: 88, w: 160, h: 360 },
+  sourceMap: { x: 266, y: 438, w: 262, h: 70 }
 } satisfies Record<string, RectLayout>;
 
 const alu = circuitLayout.alu;
@@ -68,9 +68,9 @@ export const circuitAnchors = {
     rowRight: (index: number) => ({ x: circuitLayout.gr.x + 174, y: registerRowY(index) })
   },
   alu: {
-    inputA: () => ({ x: circuitLayout.alu.x, y: circuitLayout.alu.y + 92 }),
-    inputB: () => ({ x: circuitLayout.alu.x + circuitLayout.alu.w, y: circuitLayout.alu.y + 122 }),
-    outputY: () => ({ x: circuitLayout.alu.x, y: circuitLayout.alu.y + 156 }),
+    inputA: () => ({ x: circuitLayout.alu.x, y: circuitLayout.alu.y + 82 }),
+    inputB: () => ({ x: circuitLayout.alu.x + circuitLayout.alu.w, y: circuitLayout.alu.y + 116 }),
+    outputY: () => ({ x: circuitLayout.alu.x, y: circuitLayout.alu.y + 150 }),
     flagOut: () => ({ x: circuitLayout.alu.x + circuitLayout.alu.w / 2, y: circuitLayout.alu.y + circuitLayout.alu.h })
   },
   mdr: {
@@ -89,14 +89,14 @@ export const circuitAnchors = {
 };
 
 export const aluPolygonPoints = [
-  [alu.x + 28, alu.y],
-  [alu.x + alu.w - 28, alu.y],
-  [alu.x + alu.w, alu.y + 28],
-  [alu.x + alu.w, alu.y + alu.h - 28],
-  [alu.x + alu.w - 28, alu.y + alu.h],
-  [alu.x + 28, alu.y + alu.h],
-  [alu.x, alu.y + alu.h - 28],
-  [alu.x, alu.y + 28]
+  [alu.x + 10, alu.y],
+  [alu.x + alu.w - 16, alu.y],
+  [alu.x + alu.w, alu.y + 16],
+  [alu.x + alu.w, alu.y + alu.h - 16],
+  [alu.x + alu.w - 16, alu.y + alu.h],
+  [alu.x + 10, alu.y + alu.h],
+  [alu.x, alu.y + alu.h - 10],
+  [alu.x, alu.y + 10]
 ]
   .map(([x, y]) => `${x},${y}`)
   .join(" ");

@@ -18,7 +18,7 @@ type ModuleProps = {
 function Module({ layout, title, value, accent, testId, children }: ModuleProps) {
   return (
     <g className={accent ? "circuit-module circuit-module-active" : "circuit-module"} data-testid={testId} data-active={accent ? "true" : "false"}>
-      <rect x={layout.x} y={layout.y} width={layout.w} height={layout.h} rx="10" />
+      <rect x={layout.x} y={layout.y} width={layout.w} height={layout.h} rx="6" />
       <text className="module-title" x={layout.x + layout.w / 2} y={layout.y + 22} textAnchor="middle">
         {title}
       </text>
@@ -44,7 +44,7 @@ function DecoderModule({ state }: { state: CometState }) {
         ["adr", formatWord(state.mar)]
       ].map(([name, value], index) => (
         <g key={name}>
-          <rect x={circuitLayout.decoder.x + 18} y={circuitLayout.decoder.y + 34 + index * 18} width="110" height="18" rx="4" />
+          <rect x={circuitLayout.decoder.x + 18} y={circuitLayout.decoder.y + 34 + index * 18} width="110" height="18" rx="3" />
           <text className="module-small" x={circuitLayout.decoder.x + 34} y={circuitLayout.decoder.y + 48 + index * 18}>
             {name}
           </text>
@@ -87,7 +87,7 @@ function GeneralRegisters({ state }: { state: CometState }) {
         const active = changed || activeRegister === `GR${index}`;
         return (
           <g key={index} className={changed ? "register-row changed" : "register-row"} data-testid={`register-gr${index}`} data-active={active ? "true" : "false"}>
-            <rect x={circuitLayout.gr.x + 16} y={circuitLayout.gr.y + 38 + index * 27} width="158" height="25" rx="5" />
+            <rect x={circuitLayout.gr.x + 16} y={circuitLayout.gr.y + 38 + index * 27} width="158" height="25" rx="3" />
             <text className="module-small" x={circuitLayout.gr.x + 34} y={circuitLayout.gr.y + 55 + index * 27}>
               GR{index}
             </text>
@@ -121,33 +121,28 @@ function AluModule({ state, registerIndex }: { state: CometState; registerIndex:
   return (
     <g className={active ? "circuit-module circuit-module-active alu-module" : "circuit-module alu-module"} data-testid="module-alu" data-active={active ? "true" : "false"}>
       <polygon points={aluPolygonPoints} />
-      <text className="module-title" x={circuitLayout.alu.x + circuitLayout.alu.w / 2} y={circuitLayout.alu.y + 82} textAnchor="middle">
+      <text className="module-title" x={circuitLayout.alu.x + circuitLayout.alu.w / 2} y={circuitLayout.alu.y + 30} textAnchor="middle">
         ALU
       </text>
-      <text className="module-small" x={circuitLayout.alu.x + 88} y={circuitLayout.alu.y + 116}>
-        A
-      </text>
-      <text className="module-small module-green" x={circuitLayout.alu.x + 152} y={circuitLayout.alu.y + 116} textAnchor="middle">
-        {formatWord(state.gr[registerIndex] ?? 0)}
-      </text>
-      <text className="module-small" x={circuitLayout.alu.x + 88} y={circuitLayout.alu.y + 146}>
-        B
-      </text>
-      <text className="module-small module-green" x={circuitLayout.alu.x + 152} y={circuitLayout.alu.y + 146} textAnchor="middle">
-        {formatWord(state.mdr)}
-      </text>
-      <text className="module-small" x={circuitLayout.alu.x + 88} y={circuitLayout.alu.y + 176}>
-        Y
-      </text>
-      <text className="module-small module-green" x={circuitLayout.alu.x + 152} y={circuitLayout.alu.y + 176} textAnchor="middle">
-        {formatWord(state.gr[registerIndex] ?? 0)}
-      </text>
-      <text className="module-small" x={circuitLayout.alu.x + 88} y={circuitLayout.alu.y + 206}>
-        F
-      </text>
-      <text className="module-small module-red" x={circuitLayout.alu.x + 152} y={circuitLayout.alu.y + 206} textAnchor="middle">
-        {formatFlags(state.fr)}
-      </text>
+      {[
+        ["A", formatWord(state.gr[registerIndex] ?? 0), "module-green"],
+        ["B", formatWord(state.mdr), "module-green"],
+        ["Y", formatWord(state.gr[registerIndex] ?? 0), "module-green"],
+        ["F", formatFlags(state.fr), "module-red"]
+      ].map(([label, value, className], index) => {
+        const rowY = circuitLayout.alu.y + 48 + index * 31;
+        return (
+          <g key={label}>
+            <rect className="alu-row-shell" x={circuitLayout.alu.x + 52} y={rowY} width="122" height="24" rx="3" />
+            <text className="module-small" x={circuitLayout.alu.x + 70} y={rowY + 17}>
+              {label}
+            </text>
+            <text className={`module-small ${className}`} x={circuitLayout.alu.x + 132} y={rowY + 17} textAnchor="middle">
+              {value}
+            </text>
+          </g>
+        );
+      })}
     </g>
   );
 }
@@ -161,7 +156,7 @@ function MemoryModule({ state }: { state: CometState }) {
         const active = row.changed || row.current || row.address === state.mar;
         return (
         <g key={row.address} className={active ? "memory-svg-row changed" : "memory-svg-row"} data-testid={`memory-row-${formatWord(row.address)}`} data-active={active ? "true" : "false"}>
-          <rect x={circuitLayout.memory.x + 12} y={circuitLayout.memory.y + 36 + index * 28} width={circuitLayout.memory.w - 24} height="26" rx="4" />
+          <rect x={circuitLayout.memory.x + 12} y={circuitLayout.memory.y + 36 + index * 28} width={circuitLayout.memory.w - 24} height="26" rx="3" />
           <text className="module-small module-blue" x={circuitLayout.memory.x + 38} y={circuitLayout.memory.y + 54 + index * 28} textAnchor="middle">
             {formatWord(row.address)}
           </text>
@@ -183,11 +178,11 @@ function CometCircuitSvg({ state }: { state: CometState }) {
   return (
     <svg className="comet-circuit" viewBox={`0 0 ${CIRCUIT_VIEWBOX.width} ${CIRCUIT_VIEWBOX.height}`} role="img" aria-label="COMET II circuit" data-testid="comet-circuit-svg">
       <defs>
-        <marker id="arrow-blue" markerUnits="userSpaceOnUse" markerWidth="7" markerHeight="7" refX="6.4" refY="3.5" orient="auto" viewBox="0 0 7 7">
-          <path d="M 0 0 L 7 3.5 L 0 7 z" className="marker-blue" />
+        <marker id="arrow-blue" markerUnits="userSpaceOnUse" markerWidth="6" markerHeight="6" refX="5.5" refY="3" orient="auto" viewBox="0 0 6 6">
+          <path d="M 0 0 L 6 3 L 0 6 z" className="marker-blue" />
         </marker>
-        <marker id="arrow-red" markerUnits="userSpaceOnUse" markerWidth="7" markerHeight="7" refX="6.4" refY="3.5" orient="auto" viewBox="0 0 7 7">
-          <path d="M 0 0 L 7 3.5 L 0 7 z" className="marker-red" />
+        <marker id="arrow-red" markerUnits="userSpaceOnUse" markerWidth="6" markerHeight="6" refX="5.5" refY="3" orient="auto" viewBox="0 0 6 6">
+          <path d="M 0 0 L 6 3 L 0 6 z" className="marker-red" />
         </marker>
       </defs>
 
@@ -225,7 +220,7 @@ function CometCircuitSvg({ state }: { state: CometState }) {
       <MemoryModule state={state} />
       <Module layout={circuitLayout.sourceMap} title="SourceMap" testId="module-source-map">
         <g data-testid="source-map-highlight" data-current-line={state.currentLine ?? ""}>
-          <rect x={circuitLayout.sourceMap.x + 12} y={circuitLayout.sourceMap.y + 36} width={circuitLayout.sourceMap.w - 24} height="34" rx="5" />
+          <rect x={circuitLayout.sourceMap.x + 12} y={circuitLayout.sourceMap.y + 36} width={circuitLayout.sourceMap.w - 24} height="28" rx="3" />
         </g>
         <text className="module-small module-blue" x={circuitLayout.sourceMap.x + 18} y={circuitLayout.sourceMap.y + 54}>
           {state.currentAddress !== undefined ? formatWord(state.currentAddress) : "----"}

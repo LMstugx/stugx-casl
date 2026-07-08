@@ -27,8 +27,9 @@ function lineTo(end: CircuitPoint): string {
   return `L ${point(end)}`;
 }
 
-function cubicTo(c1: CircuitPoint, c2: CircuitPoint, end: CircuitPoint): string {
-  return `C ${point(c1)} ${point(c2)} ${point(end)}`;
+function pathThrough(points: CircuitPoint[]): string {
+  const [start, ...rest] = points;
+  return `${moveTo(start)} ${rest.map(lineTo).join(" ")}`;
 }
 
 function clampRegisterIndex(index = 1): number {
@@ -52,30 +53,41 @@ export function buildWirePaths({ grIndex = 1, memoryAddress = 0x27 }: WirePathOp
   const prLeft = circuitAnchors.pr.left();
   const marLeft = circuitAnchors.mar.left();
   const marRight = circuitAnchors.mar.right();
+  const addressBusY = 24;
+  const dataBusY = circuitLayout.alu.y + circuitLayout.alu.h + 14;
+  const grBusX = circuitLayout.gr.x + circuitLayout.gr.w + 24;
+  const aluBusLeftX = circuitLayout.alu.x - 16;
+  const aluBusRightX = circuitLayout.alu.x + circuitLayout.alu.w + 14;
+  const memoryBusX = circuitLayout.memory.x - 18;
 
   return Object.freeze([
-    { id: "pr-to-mar", role: "address", d: `${moveTo(prRight)} ${cubicTo({ x: 514, y: 22 }, { x: 650, y: 22 }, marLeft)}` },
-    { id: "pr-to-plus2", role: "control", d: `${moveTo(prRight)} ${lineTo({ x: circuitLayout.addressResult.x, y: prRight.y })}` },
+    { id: "pr-to-mar", role: "address", d: pathThrough([prRight, { x: prRight.x + 18, y: prRight.y }, { x: prRight.x + 18, y: addressBusY }, { x: marLeft.x - 18, y: addressBusY }, { x: marLeft.x - 18, y: marLeft.y }, marLeft]) },
+    { id: "pr-to-plus2", role: "control", d: pathThrough([prRight, { x: circuitLayout.addressResult.x, y: prRight.y }]) },
     {
       id: "sp-reference",
       role: "inactive",
-      d: `M ${circuitLayout.sp.x + circuitLayout.sp.w} ${circuitLayout.sp.y + 18} C ${circuitLayout.sp.x + circuitLayout.sp.w + 24} ${circuitLayout.sp.y + 18} ${circuitLayout.mar.x + 32} ${circuitLayout.mar.y + circuitLayout.mar.h + 18} ${circuitLayout.mar.x + 32} ${circuitLayout.mar.y + circuitLayout.mar.h}`
+      d: pathThrough([
+        { x: circuitLayout.sp.x + circuitLayout.sp.w, y: circuitLayout.sp.y + 20 },
+        { x: circuitLayout.sp.x + circuitLayout.sp.w + 18, y: circuitLayout.sp.y + 20 },
+        { x: circuitLayout.sp.x + circuitLayout.sp.w + 18, y: circuitLayout.mar.y + circuitLayout.mar.h + 18 },
+        { x: circuitLayout.mar.x + 36, y: circuitLayout.mar.y + circuitLayout.mar.h + 18 },
+        { x: circuitLayout.mar.x + 36, y: circuitLayout.mar.y + circuitLayout.mar.h }
+      ])
     },
-    { id: "mar-to-memory", role: "address", d: `${moveTo(marRight)} ${cubicTo({ x: 888, y: marRight.y }, { x: 888, y: memoryLeft.y }, memoryLeft)}` },
-    { id: "memory-to-mdr", role: "data", d: `${moveTo(memoryLeft)} ${cubicTo({ x: memoryLeft.x - 16, y: memoryLeft.y }, { x: mdrRight.x + 12, y: mdrRight.y }, mdrRight)}` },
-    { id: "mdr-to-gr", role: "data", d: `${moveTo(mdrLeft)} ${cubicTo({ x: 724, y: 210 }, { x: 560, y: 204 }, { x: grRight.x + 32, y: grRight.y })} ${lineTo(grRight)}` },
-    { id: "gr-to-mdr", role: "data", d: `${moveTo(grRight)} ${cubicTo({ x: grRight.x + 34, y: grRight.y }, { x: 610, y: 206 }, { x: 724, y: 210 })} ${cubicTo({ x: 750, y: 216 }, { x: mdrLeft.x - 16, y: mdrLeft.y }, mdrLeft)}` },
-    { id: "mdr-to-memory", role: "data", d: `${moveTo(mdrRight)} ${cubicTo({ x: mdrRight.x + 16, y: mdrRight.y }, { x: memoryLeft.x - 16, y: memoryLeft.y }, memoryLeft)}` },
-    { id: "gr-to-alu", role: "data", d: `${moveTo(grRight)} ${cubicTo({ x: grRight.x + 28, y: grRight.y }, { x: aluInputA.x - 28, y: aluInputA.y }, aluInputA)}` },
-    { id: "mdr-to-alu", role: "data", d: `${moveTo(mdrToAlu)} ${cubicTo({ x: mdrToAlu.x - 18, y: mdrToAlu.y }, { x: aluInputB.x + 18, y: aluInputB.y }, aluInputB)}` },
-    { id: "alu-to-gr", role: "data", d: `${moveTo(aluOutputY)} ${cubicTo({ x: aluOutputY.x - 28, y: aluOutputY.y }, { x: grRight.x + 34, y: grRight.y }, grRight)}` },
-    { id: "alu-to-fr", role: "control", d: `${moveTo(aluFlagOut)} ${cubicTo({ x: aluFlagOut.x, y: aluFlagOut.y + 14 }, { x: frInput.x, y: frInput.y - 14 }, frInput)}` },
-    { id: "address-to-gr", role: "address", d: `${moveTo(marLeft)} ${cubicTo({ x: 666, y: 118 }, { x: grRight.x + 48, y: grLeft.y }, grLeft)}` },
-    { id: "address-to-pr", role: "address", d: `${moveTo(marLeft)} ${cubicTo({ x: 670, y: 16 }, { x: 520, y: 18 }, prLeft)}` },
-    { id: "ir-to-decoder", role: "control", d: "M 112 108 L 112 132" },
-    { id: "decoder-to-controller", role: "control", d: "M 112 244 L 112 270" },
-    { id: "controller-to-pr", role: "control", d: "M 186 316 C 236 318 246 71 322 71" },
-    { id: "source-to-display", role: "inactive", d: "M 548 492 C 578 492 578 484 590 484" }
+    { id: "mar-to-memory", role: "address", d: pathThrough([marRight, { x: memoryBusX, y: marRight.y }, { x: memoryBusX, y: memoryLeft.y }, memoryLeft]) },
+    { id: "memory-to-mdr", role: "data", d: pathThrough([memoryLeft, { x: memoryBusX, y: memoryLeft.y }, { x: memoryBusX, y: mdrRight.y }, mdrRight]) },
+    { id: "mdr-to-gr", role: "data", d: pathThrough([mdrLeft, { x: aluBusRightX, y: mdrLeft.y }, { x: aluBusRightX, y: dataBusY }, { x: grBusX, y: dataBusY }, { x: grBusX, y: grRight.y }, grRight]) },
+    { id: "gr-to-mdr", role: "data", d: pathThrough([grRight, { x: grBusX, y: grRight.y }, { x: grBusX, y: dataBusY }, { x: aluBusRightX, y: dataBusY }, { x: aluBusRightX, y: mdrLeft.y }, mdrLeft]) },
+    { id: "mdr-to-memory", role: "data", d: pathThrough([mdrRight, { x: memoryBusX, y: mdrRight.y }, { x: memoryBusX, y: memoryLeft.y }, memoryLeft]) },
+    { id: "gr-to-alu", role: "data", d: pathThrough([grRight, { x: grBusX, y: grRight.y }, { x: grBusX, y: aluInputA.y }, aluInputA]) },
+    { id: "mdr-to-alu", role: "data", d: pathThrough([mdrToAlu, { x: aluBusRightX, y: mdrToAlu.y }, { x: aluBusRightX, y: aluInputB.y }, aluInputB]) },
+    { id: "alu-to-gr", role: "data", d: pathThrough([aluOutputY, { x: aluBusLeftX, y: aluOutputY.y }, { x: aluBusLeftX, y: grRight.y }, grRight]) },
+    { id: "alu-to-fr", role: "control", d: pathThrough([aluFlagOut, { x: aluFlagOut.x, y: frInput.y - 12 }, frInput]) },
+    { id: "address-to-gr", role: "address", d: pathThrough([marLeft, { x: marLeft.x - 20, y: marLeft.y }, { x: marLeft.x - 20, y: grLeft.y }, grLeft]) },
+    { id: "address-to-pr", role: "address", d: pathThrough([marLeft, { x: marLeft.x - 18, y: marLeft.y }, { x: marLeft.x - 18, y: addressBusY }, { x: prLeft.x - 18, y: addressBusY }, { x: prLeft.x - 18, y: prLeft.y }, prLeft]) },
+    { id: "ir-to-decoder", role: "control", d: "M 108 96 L 108 114" },
+    { id: "decoder-to-controller", role: "control", d: "M 108 220 L 108 240" },
+    { id: "controller-to-pr", role: "control", d: "M 180 282 L 238 282 L 238 66 L 316 66" }
   ]);
 }
 

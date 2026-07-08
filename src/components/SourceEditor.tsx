@@ -23,8 +23,10 @@ export default function SourceEditor({ source, language = "casl", currentLine, o
         { token: "keyword", foreground: "2253EB", fontStyle: "bold" }
       ],
       colors: {
-        "editor.lineHighlightBackground": "#EAF2FF",
-        "editorLineNumber.foreground": "#7C8798"
+        "editor.lineHighlightBackground": "#E6EEF9",
+        "editorLineNumber.foreground": "#6F7B8D",
+        "editor.background": "#FBFCFE",
+        "editorGutter.background": "#F4F6F9"
       }
     });
     monaco.editor.setTheme("caslStudioLight");
@@ -65,14 +67,14 @@ export default function SourceEditor({ source, language = "casl", currentLine, o
         options={{
           minimap: { enabled: false },
           fontFamily: "'Cascadia Mono', 'Consolas', monospace",
-          fontSize: 15,
-          lineHeight: 28,
+          fontSize: 14,
+          lineHeight: 24,
           glyphMargin: true,
           scrollBeyondLastLine: false,
           overviewRulerBorder: false,
           renderLineHighlight: "all",
           automaticLayout: true,
-          padding: { top: 14, bottom: 14 }
+          padding: { top: 10, bottom: 10 }
         }}
       />
     </div>

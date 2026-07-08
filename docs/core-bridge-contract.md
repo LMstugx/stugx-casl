@@ -209,6 +209,8 @@ The dump tool uses a small handwritten JSON writer to avoid adding a third-party
 
 The WASM bridge should reuse this DTO contract without exposing C++ internal classes to React.
 
+Phase 4A prepares a C ABI plus JSON string bridge. The JSON DTO contract in this document remains the source of truth for both TypeScript mock and C++/WASM output.
+
 Planned adapter chain:
 
 ```text
@@ -222,3 +224,18 @@ C++ Core
 ```
 
 `coreBridge.ts` should remain the only frontend boundary. UI components should not care whether the core implementation is TypeScript mock or C++/WASM.
+
+The Phase 4A C ABI exports are:
+
+```cpp
+const char* stugx_casl_create();
+void stugx_casl_destroy();
+const char* stugx_casl_assemble(const char* sourceText);
+const char* stugx_casl_step();
+const char* stugx_casl_reset();
+const char* stugx_casl_run(int maxSteps);
+const char* stugx_casl_get_state();
+const char* stugx_casl_get_last_error();
+```
+
+`WasmCoreAdapter` will implement `CoreAdapter` by loading these exports, converting returned `char*` values to strings, parsing JSON into DTOs, and keeping `coreBridge.ts` unchanged.

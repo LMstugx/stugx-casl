@@ -5,8 +5,13 @@ coverage/
 artifacts/
 *.tsbuildinfo
 *.log
+public/wasm/*.js
+public/wasm/*.wasm
+public/wasm/*.map
+!public/wasm/.gitkeep
 
 cpp-core/build/
+cpp-core/build-wasm/
 build/
 cmake-build-*/
 CMakeFiles/

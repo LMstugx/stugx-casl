@@ -1,6 +1,8 @@
 import type { CoreAdapter } from "./coreAdapter";
 import type { AssembleResultDto, CometStateDto, StepResultDto } from "./coreDto";
 
+// Phase 4A keeps this adapter disabled. Phase 4B will use wasmLoader.ts to
+// load /wasm/stugx_casl_core.js and wrap the exported C ABI JSON functions.
 export class WasmCoreAdapter implements CoreAdapter {
   async assemble(_sourceText: string): Promise<AssembleResultDto> {
     throw new Error("WASM core adapter is not implemented yet");

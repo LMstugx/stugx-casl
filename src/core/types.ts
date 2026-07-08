@@ -80,7 +80,11 @@ export interface TraceEvent {
   pr?: number;
   visualPath?: VisualPathKind;
   changedRegister?: string;
+  changedRegisterValueBefore?: number;
+  changedRegisterValueAfter?: number;
   changedMemoryAddress?: number;
+  changedMemoryValueBefore?: number;
+  changedMemoryValueAfter?: number;
   runState?: RunState;
 }
 

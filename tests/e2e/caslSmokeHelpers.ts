@@ -49,6 +49,10 @@ export async function setSource(page: Page, sourceText: string) {
   await expectSourceContains(page, sourceText);
 }
 
+export async function selectDemoProgram(page: Page, programId: string) {
+  await page.getByTestId("demo-program-select").selectOption(programId);
+}
+
 export async function expectSourceContains(page: Page, sourceText: string) {
   await expect
     .poll(() =>

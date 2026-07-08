@@ -7,6 +7,7 @@ import {
   gr2SourceWithA100,
   openStudio,
   run,
+  selectDemoProgram,
   setSource,
   sourceWithA100,
   step
@@ -22,18 +23,18 @@ test("WASM backend completes assemble, step, reset, dirty, and edited-source loo
   await expect(page.getByTestId("step-button")).toBeDisabled();
   await assemble(page);
   await expectRegister(page, "register-pr", "0020");
-  await expectCurrentSourceInstruction(page, /LD\s+GR1,A/);
+  await expectCurrentSourceInstruction(page, /LD\s+GR2,A/);
   await page.screenshot({ path: "artifacts/e2e/wasm-ready.png", fullPage: true });
 
   await step(page);
-  await expectRegister(page, "register-gr1", "000A");
+  await expectRegister(page, "register-gr2", "0003");
   await expectRegister(page, "register-pr", "0022");
-  await expectCurrentSourceInstruction(page, /ADDA\s+GR1,B/);
+  await expectCurrentSourceInstruction(page, /ADDA\s+GR2,B/);
   await page.screenshot({ path: "artifacts/e2e/wasm-step1.png", fullPage: true });
 
   await page.getByTestId("reset-button").click();
   await expect(page.getByTestId("run-state")).toHaveText("Ready");
-  await expectRegister(page, "register-gr1", "0000");
+  await expectRegister(page, "register-gr2", "0000");
   await expectRegister(page, "register-pr", "0020");
 
   await setSource(page, sourceWithA100);
@@ -56,21 +57,10 @@ test("WASM backend completes assemble, step, reset, dirty, and edited-source loo
 
 test("WASM backend runs C++ subset while sum in the browser UI", async ({ page }) => {
   await openStudio(page, "WASM Core");
-  await page.getByTestId("source-mode-cpp").click();
-  await setSource(
-    page,
-    `int main() {
-    int i = 3;
-    int sum = 0;
-    while (i > 0) {
-        sum = sum + i;
-        i = i - 1;
-    }
-    return sum;
-}`
-  );
+  await selectDemoProgram(page, "cpp-while-sum");
 
   await assemble(page);
+  await expect(page.getByTestId("generated-casl-output")).toContainText("LOOP_BEGIN_0");
   await run(page);
 
   await expect(page.getByTestId("run-state")).toHaveText("Finished");

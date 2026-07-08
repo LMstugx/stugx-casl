@@ -187,6 +187,19 @@ The COMET circuit keeps a compact Memory module for the current execution neighb
 
 The viewer generates a bounded window from `CometState` and does not render all 65536 memory words. See [docs/phase-memory-viewer.md](docs/phase-memory-viewer.md).
 
+## Demo Recording
+
+The app includes demo programs for recording walkthroughs:
+
+- `CASL: GR2 Addition`
+- `C++: Addition`
+- `C++: If Else`
+- `C++: While Sum`
+
+Use the Demo selector above the Source Editor to load one. Loading a demo marks the runtime as `Dirty`; click `Assemble` to generate CASL and load the COMET state. C++ subset demos automatically open the `Generated CASL` dock after assembly.
+
+See [docs/demo-script.md](docs/demo-script.md) for a Japanese recording script.
+
 ## Install
 
 ```bash
@@ -330,6 +343,7 @@ See [docs/phase5e-run-stop-trace.md](docs/phase5e-run-stop-trace.md) for the ini
 See [docs/phase5f-run-stop-trace.md](docs/phase5f-run-stop-trace.md) for stabilized Run / Stop / maxSteps behavior.
 See [docs/phase5h-run-stop-trace.md](docs/phase5h-run-stop-trace.md) for the current Run / Stop / Trace stabilization checkpoint.
 See [docs/phase-memory-viewer.md](docs/phase-memory-viewer.md) for the detailed Inspector Memory viewer.
+See [docs/demo-script.md](docs/demo-script.md) for the demo recording script.
 
 ## Suggested Next Phase
 

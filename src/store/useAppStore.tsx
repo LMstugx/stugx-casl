@@ -4,9 +4,9 @@ import { EventBus } from "../app/eventBus";
 import { createAppEventBus } from "../app/createAppEventBus";
 import { AppEvent, AppEvents } from "../app/events";
 import { coreBridge, getCoreBackendInfo, type CoreBackendInfo } from "../core/coreBridge";
-import { DEFAULT_CASL_SOURCE } from "../core/defaultSource";
 import { createCometStateFromDto, createEmptyUiCometState } from "../core/coreStateAdapter";
 import { CometState, Diagnostic } from "../core/types";
+import { getDefaultDemoProgram, getDemoProgram, type DemoProgram } from "../examples/demoPrograms";
 import { CppToCaslMap, transpileCppToCasl } from "../transpiler/cppTranspiler";
 
 type AssembleStatus = "default" | "running" | "success" | "error";
@@ -47,11 +47,13 @@ type AppStoreState = {
   backendInfo: CoreBackendInfo;
   generatedCaslSource: string;
   cppToCaslMapping: CppToCaslMap[];
+  selectedDemoProgramId: string;
 };
 
 type AppStoreActions = {
   setSourceText: (sourceText: string) => void;
   setSourceMode: (sourceMode: SourceMode) => void;
+  selectDemoProgram: (programId: string) => void;
   assemble: () => void;
   run: (maxSteps?: number) => void;
   step: () => void;
@@ -65,6 +67,7 @@ type AppStore = AppStoreState & AppStoreActions;
 export type AppStoreAction =
   | { type: "setSourceText"; sourceText: string }
   | { type: "setSourceMode"; sourceMode: SourceMode }
+  | { type: "demoProgramSelected"; program: DemoProgram }
   | { type: "assembled"; sourceText: string; cometState: CometState; assembleStatus: AssembleStatus; generatedCaslSource?: string; cppToCaslMapping?: CppToCaslMap[] }
   | { type: "transpileFailed"; diagnostics: Diagnostic[]; generatedCaslSource: string; cppToCaslMapping: CppToCaslMap[]; output: string[] }
   | { type: "runStarted"; cometState: CometState }
@@ -84,10 +87,11 @@ const AppStoreContext = createContext<AppStore | null>(null);
 const AppEventBusContext = createContext<EventBus<AppEvents> | null>(null);
 
 export function createInitialAppState(): AppStoreState {
+  const initialDemo = getDefaultDemoProgram();
   return {
-    sourceText: DEFAULT_CASL_SOURCE,
-    sourceMode: "casl",
-    lastAssembledSource: DEFAULT_CASL_SOURCE,
+    sourceText: initialDemo.source,
+    sourceMode: initialDemo.mode,
+    lastAssembledSource: initialDemo.source,
     isSourceDirty: false,
     assembleResult: null,
     cometState: createEmptyUiCometState("Idle", ["Editor ready. Assemble to load the current source."]),
@@ -96,7 +100,8 @@ export function createInitialAppState(): AppStoreState {
     runStopReason: null,
     backendInfo: getCoreBackendInfo(),
     generatedCaslSource: "",
-    cppToCaslMapping: []
+    cppToCaslMapping: [],
+    selectedDemoProgramId: initialDemo.id
   };
 }
 
@@ -164,6 +169,23 @@ export function appStoreReducer(state: AppStoreState, action: AppStoreAction): A
       runStopReason: null,
       generatedCaslSource: "",
       cppToCaslMapping: []
+    };
+  }
+
+  if (action.type === "demoProgramSelected") {
+    return {
+      ...state,
+      sourceText: action.program.source,
+      sourceMode: action.program.mode,
+      isSourceDirty: true,
+      assembleResult: null,
+      diagnostics: [],
+      cometState: createEmptyUiCometState("Dirty", [`Demo loaded: ${action.program.name}. Click Assemble to run it.`]),
+      assembleStatus: "default",
+      runStopReason: null,
+      generatedCaslSource: "",
+      cppToCaslMapping: [],
+      selectedDemoProgramId: action.program.id
     };
   }
 
@@ -274,6 +296,12 @@ export function AppStoreProvider({ children, eventBus: providedEventBus }: AppSt
       setSourceMode: (sourceMode) => {
         runControlRef.current.stopRequested = true;
         dispatch({ type: "setSourceMode", sourceMode });
+      },
+      selectDemoProgram: (programId) => {
+        const program = getDemoProgram(programId);
+        if (!program) return;
+        runControlRef.current.stopRequested = true;
+        dispatch({ type: "demoProgramSelected", program });
       },
       assemble: () => {
         void (async () => {

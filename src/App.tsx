@@ -5,11 +5,13 @@ import InspectorPanel from "./components/InspectorPanel";
 import OutputPanel from "./components/OutputPanel";
 import StatusBar from "./components/StatusBar";
 import LearningFlowPanel from "./components/LearningFlowPanel";
+import DemoGuidePanel from "./components/DemoGuidePanel";
 import CometCircuitSvg from "./visual/CometCircuitSvg";
 import { formatWord } from "./core/types";
 import { summarizeCurrentInstruction } from "./visual/visualState";
 import { AppStoreProvider, useAppStore } from "./store/useAppStore";
 import { cppLineForCaslLine } from "./transpiler/cppMapping";
+import { demoPrograms, getDefaultDemoProgram, getDemoProgram } from "./examples/demoPrograms";
 
 export default function App() {
   return (
@@ -31,8 +33,10 @@ function StudioShell() {
     backendInfo,
     generatedCaslSource,
     cppToCaslMapping,
+    selectedDemoProgramId,
     setSourceText,
     setSourceMode,
+    selectDemoProgram,
     assemble,
     run,
     step,
@@ -47,6 +51,7 @@ function StudioShell() {
   const canReset = !isSourceDirty && !isRunning && (state.assembled || state.runState === "Finished" || state.runState === "Stopped" || state.sourceMap.length > 0);
   const diagnostics = useMemo(() => storeDiagnostics.filter((diagnostic) => diagnostic.severity === "error"), [storeDiagnostics]);
   const editorCurrentLine = sourceMode === "cpp" ? cppLineForCaslLine(cppToCaslMapping, state.currentLine) : state.currentLine;
+  const selectedDemoProgram = getDemoProgram(selectedDemoProgramId) ?? getDefaultDemoProgram();
   const timelineItems = useMemo(() => {
     const compactProgram = state.program && state.program.length > 0 && state.program.length <= 4 ? ["Ready", ...state.program.map((instruction) => instruction.op)] : [];
     if (compactProgram.length > 0 || state.trace.length === 0) {
@@ -79,6 +84,16 @@ function StudioShell() {
             <header className="panel-header">
               <h2>Source Editor</h2>
               <div className="source-header-actions">
+                <label className="demo-program-picker">
+                  <span>Demo</span>
+                  <select data-testid="demo-program-select" value={selectedDemoProgramId} onChange={(event) => selectDemoProgram(event.target.value)}>
+                    {demoPrograms.map((program) => (
+                      <option key={program.id} value={program.id}>
+                        {program.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
                 <div className="segmented source-mode" aria-label="Source mode">
                   <button type="button" className={sourceMode === "casl" ? "selected" : ""} data-testid="source-mode-casl" onClick={() => setSourceMode("casl")}>
                     CASL
@@ -102,6 +117,8 @@ function StudioShell() {
               <span>PR {formatWord(state.pr)}</span>
             </div>
           </section>
+
+          <DemoGuidePanel program={selectedDemoProgram} />
 
           <section className="panel errors-panel">
             <header className="panel-header">
@@ -159,6 +176,7 @@ function StudioShell() {
         cppToCaslMapping={cppToCaslMapping}
         currentCaslLine={sourceMode === "cpp" ? state.currentLine : undefined}
         currentCppLine={editorCurrentLine}
+        autoOpenGenerated={sourceMode === "cpp" && !isSourceDirty && Boolean(generatedCaslSource)}
         onClear={clearOutput}
       />
       <StatusBar state={state} backendInfo={backendInfo} />

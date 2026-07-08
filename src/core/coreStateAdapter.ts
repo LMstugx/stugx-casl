@@ -198,6 +198,8 @@ function traceFromDto(dto: CometStateDto, previous?: CometState): TraceEvent[] {
   }
 
   const row = findLastInstructionRow(dto);
+  const changedRegisterIndex = dto.lastRegisterWriteIndex;
+  const changedMemoryAddress = dto.lastMemoryWriteAddress ?? undefined;
   const event: TraceEvent = {
     index: dto.stepCount,
     address: row?.address ?? dto.currentInstructionAddress ?? dto.pr,
@@ -206,8 +208,12 @@ function traceFromDto(dto: CometStateDto, previous?: CometState): TraceEvent[] {
     source: row?.source ?? undefined,
     pr: dto.pr,
     visualPath: visualPathFromDto(dto),
-    changedRegister: dto.lastRegisterWriteIndex !== null ? `GR${dto.lastRegisterWriteIndex}` : undefined,
-    changedMemoryAddress: dto.lastMemoryWriteAddress ?? undefined,
+    changedRegister: changedRegisterIndex !== null ? `GR${changedRegisterIndex}` : undefined,
+    changedRegisterValueBefore: changedRegisterIndex !== null ? previous?.gr[changedRegisterIndex] : undefined,
+    changedRegisterValueAfter: changedRegisterIndex !== null ? dto.gr[changedRegisterIndex] : undefined,
+    changedMemoryAddress,
+    changedMemoryValueBefore: changedMemoryAddress !== undefined ? previous?.memory[changedMemoryAddress] ?? 0 : undefined,
+    changedMemoryValueAfter: changedMemoryAddress !== undefined ? dto.mdr : undefined,
     runState: dto.runState
   };
   return [event, ...previousTrace].slice(0, MAX_TRACE_EVENTS).map((traceEvent) => ({ ...traceEvent }));

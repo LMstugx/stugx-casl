@@ -106,7 +106,7 @@ function emitStatements(context: GeneratorContext, statements: CppStatement[], b
 
 function emitStatement(context: GeneratorContext, statement: CppStatement, branchKind?: StatementMappingKind): void {
   if (statement.kind === "Assignment") {
-    emitAssignment(context, statement, branchKind ?? "assignment");
+    emitAssignment(context, statement, branchKind ?? statement.loweredFrom ?? "assignment");
     return;
   }
 

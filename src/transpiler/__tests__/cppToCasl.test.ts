@@ -545,4 +545,125 @@ describe("C++ subset to CASL generator", () => {
     expect(state.memory[state.symbols.SUM]).toBe(0x0006);
     expect(state.gr[0]).toBe(0x0006);
   });
+
+  it("transpile_i_increment", () => {
+    const result = expectOk(`int main() {
+    int i = 1;
+    i++;
+    return i;
+}`);
+
+    expect(result.caslSource).toContain("     LD    GR1,I");
+    expect(result.caslSource).toContain("     ADDA  GR1,CONST_1");
+    expect(result.caslSource).toContain("     ST    GR1,I");
+    expect(result.mapping.some((entry) => entry.kind === "update-expression" && entry.cppLine === 3)).toBe(true);
+  });
+
+  it("transpile_i_decrement", () => {
+    const result = expectOk(`int main() {
+    int i = 3;
+    i--;
+    return i;
+}`);
+
+    expect(result.caslSource).toContain("     SUBA  GR1,CONST_1");
+    expect(result.mapping.some((entry) => entry.kind === "update-expression" && entry.cppLine === 3)).toBe(true);
+  });
+
+  it("transpile_i_plus_equals_literal", () => {
+    const result = expectOk(`int main() {
+    int i = 1;
+    i += 2;
+    return i;
+}`);
+
+    expect(result.caslSource).toContain("     ADDA  GR1,CONST_2");
+    expect(result.mapping.some((entry) => entry.kind === "compound-assignment" && entry.cppLine === 3)).toBe(true);
+  });
+
+  it("transpile_i_minus_equals_literal", () => {
+    const result = expectOk(`int main() {
+    int i = 3;
+    i -= 2;
+    return i;
+}`);
+
+    expect(result.caslSource).toContain("     SUBA  GR1,CONST_2");
+    expect(result.mapping.some((entry) => entry.kind === "compound-assignment" && entry.cppLine === 3)).toBe(true);
+  });
+
+  it("transpile_for_sum_with_i_post_increment", () => {
+    const result = expectOk(`int main() {
+    int sum = 0;
+    for (int i = 1; i <= 3; i++) {
+        sum = sum + i;
+    }
+    return sum;
+}`);
+
+    expect(result.caslSource).toContain("FOR_BEGIN_0 LD    GR1,I");
+    expect(result.caslSource).toContain("     ADDA  GR1,CONST_1");
+    expect(result.caslSource).toContain("     ST    GR1,I");
+    expect(result.mapping.some((entry) => entry.kind === "for-increment" && entry.cppLine === 3)).toBe(true);
+  });
+
+  it("transpile_for_sum_with_plus_equals", () => {
+    const result = expectOk(`int main() {
+    int sum = 0;
+    for (int i = 1; i <= 3; i += 1) {
+        sum += i;
+    }
+    return sum;
+}`);
+
+    expect(result.caslSource).toContain("FOR_BODY_0 LD    GR1,SUM");
+    expect(result.caslSource).toContain("     ADDA  GR1,I");
+    expect(result.mapping.some((entry) => entry.kind === "for-body" && entry.cppLine === 4)).toBe(true);
+    expect(result.mapping.some((entry) => entry.kind === "for-increment" && entry.cppLine === 3)).toBe(true);
+  });
+
+  it("cpp_for_sum_with_i_increment", () => {
+    const result = expectOk(`int main() {
+    int sum = 0;
+    for (int i = 1; i <= 3; i++) {
+        sum = sum + i;
+    }
+    return sum;
+}`);
+    const state = runToEnd(result.caslSource);
+
+    expect(state.runState).toBe("Finished");
+    expect(state.memory[state.symbols.SUM]).toBe(0x0006);
+    expect(state.gr[0]).toBe(0x0006);
+  });
+
+  it("cpp_for_sum_with_plus_equals", () => {
+    const result = expectOk(`int main() {
+    int sum = 0;
+    for (int i = 1; i <= 3; i += 1) {
+        sum += i;
+    }
+    return sum;
+}`);
+    const state = runToEnd(result.caslSource);
+
+    expect(state.runState).toBe("Finished");
+    expect(state.memory[state.symbols.SUM]).toBe(0x0006);
+    expect(state.gr[0]).toBe(0x0006);
+  });
+
+  it("cpp_countdown_with_i_decrement", () => {
+    const result = expectOk(`int main() {
+    int sum = 0;
+    for (int i = 3; i > 0; i--) {
+        sum += i;
+    }
+    return sum;
+}`);
+    const state = runToEnd(result.caslSource);
+
+    expect(state.runState).toBe("Finished");
+    expect(state.memory[state.symbols.SUM]).toBe(0x0006);
+    expect(state.gr[0]).toBe(0x0006);
+  });
 });

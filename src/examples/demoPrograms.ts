@@ -104,6 +104,24 @@ C    DS    1
     whatThisShows: "C++ for loop syntax is lowered into CASL labels and jumps.",
     expectedResult: "SUM = 0006 and GR0 = 0006 when the program finishes.",
     suggestedActions: ["Click Assemble.", "Open Generated CASL.", "Open Machine Code.", "Click Run.", "Check Trace and Memory."]
+  },
+  {
+    id: "cpp-for-sum-sugar",
+    name: "C++: For Sum Sugar",
+    mode: "cpp",
+    source: `int main() {
+    int sum = 0;
+
+    for (int i = 1; i <= 3; i++) {
+        sum += i;
+    }
+
+    return sum;
+}`,
+    description: "Natural for-loop syntax using i++ and += lowered to CASL.",
+    whatThisShows: "Common C/C++ loop syntax sugar is normalized into assignment, add, store, and jump instructions.",
+    expectedResult: "SUM = 0006 and GR0 = 0006 when the program finishes.",
+    suggestedActions: ["Click Assemble.", "Open Generated CASL.", "Open Machine Code.", "Click Run.", "Confirm GR0 = 0006."]
   }
 ];
 

@@ -239,4 +239,34 @@ describe("machine code rows", () => {
     expect(explanation.opcode).toBe(0x64);
     expect(explanation.meaning).toContain("FOR_BEGIN_0");
   });
+
+  it("machine_code_rows_for_increment_sugar", () => {
+    const program = getDemoProgram("cpp-for-sum-sugar");
+    expect(program).toBeDefined();
+    const prepared = prepareSourceForCoreAssembly(program!.source, "cpp");
+    expect(prepared.ok).toBe(true);
+    const state = stateFromRaw(mockCaslCore.assemble(prepared.coreSourceText));
+
+    const rows = selectMachineCodeRows(state, prepared.mapping);
+
+    expect(rows.some((row) => row.sourceText.includes("ADDA GR1,CONST_1") && row.relatedCppLine === 4)).toBe(true);
+    expect(rows.some((row) => row.sourceText.includes("ST GR1,I") && row.relatedCppLine === 4)).toBe(true);
+  });
+
+  it("machine_code_explanation_for_increment_sugar", () => {
+    const program = getDemoProgram("cpp-for-sum-sugar");
+    expect(program).toBeDefined();
+    const prepared = prepareSourceForCoreAssembly(program!.source, "cpp");
+    expect(prepared.ok).toBe(true);
+    const state = stateFromRaw(mockCaslCore.assemble(prepared.coreSourceText));
+    const rows = selectMachineCodeRows(state, prepared.mapping);
+
+    const addaRow = rows.find((row) => row.sourceText.includes("ADDA GR1,CONST_1") && row.kind === "instruction");
+    expect(addaRow).toBeDefined();
+    const explanation = explainMachineCodeRow(addaRow!);
+
+    expect(explanation.mnemonic).toBe("ADDA");
+    expect(explanation.register).toBe(1);
+    expect(explanation.meaning).toContain("GR1");
+  });
 });

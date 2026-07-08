@@ -22,7 +22,9 @@ export type CppToCaslMapKind =
   | "for-body"
   | "for-increment"
   | "for-label"
-  | "for-back-jump";
+  | "for-back-jump"
+  | "update-expression"
+  | "compound-assignment";
 
 export interface CppProgram {
   kind: "Program";
@@ -49,6 +51,7 @@ export interface CppAssignment {
   line: number;
   target: string;
   expression: CppExpression;
+  loweredFrom?: "update-expression" | "compound-assignment";
 }
 
 export interface CppReturn {

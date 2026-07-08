@@ -116,6 +116,24 @@ test("Mock backend executes C++ subset for sum and shows generated machine code"
   await expectRegister(page, "register-gr0", "0006");
 });
 
+test("Mock backend executes C++ subset for sum syntax sugar", async ({ page }) => {
+  await openStudio(page, "Mock Core");
+  await selectDemoProgram(page, "cpp-for-sum-sugar");
+
+  await assemble(page);
+  await page.getByRole("tab", { name: "Generated CASL" }).click();
+  await expect(page.getByTestId("generated-casl-output")).toContainText("FOR_BEGIN_0");
+  await expect(page.getByTestId("generated-casl-output")).toContainText("ADDA");
+  await expect(page.getByTestId("generated-casl-output")).toContainText("ST");
+
+  await page.getByRole("tab", { name: "Machine Code" }).click();
+  await expect(page.getByTestId("machine-code-output")).toContainText("ADDA GR1,CONST_1");
+  await run(page);
+
+  await expect(page.getByTestId("run-state")).toHaveText("Finished");
+  await expectRegister(page, "register-gr0", "0006");
+});
+
 test("Mock backend stops runaway while programs at maxSteps and can reset", async ({ page }) => {
   await openStudio(page, "Mock Core");
   await page.getByTestId("source-mode-cpp").click();

@@ -115,6 +115,7 @@ Currently supported:
 - `if` / `else` with `==`, `!=`, `<`, `<=`, `>`, `>=`
 - `while` with `==`, `!=`, `<`, `<=`, `>`, `>=`
 - `for` loops with one initializer, one comparison condition, and one assignment increment
+- loop syntax sugar: `i++`, `++i`, `i--`, `--i`, `i += step`, `i -= step`
 - `return 0;`
 - `return variable;`
 
@@ -147,7 +148,7 @@ C DS    1
      END
 ```
 
-Unsupported C++ features include classes, structs, pointers, references, templates, arrays, function calls, `std::cout`, strings, floats, `do while`, `break`, `continue`, `i++`, `++i`, `+=`, complex boolean expressions, and full scope rules. See [docs/phase5b-cpp-subset-transpiler.md](docs/phase5b-cpp-subset-transpiler.md), [docs/phase5c-if-else-lowering.md](docs/phase5c-if-else-lowering.md), [docs/phase5d-while-lowering.md](docs/phase5d-while-lowering.md), [docs/phase5f-run-stop-trace.md](docs/phase5f-run-stop-trace.md), and [docs/phase7c-for-lowering.md](docs/phase7c-for-lowering.md).
+Unsupported C++ features include classes, structs, pointers, references, templates, arrays, function calls, `std::cout`, strings, floats, `do while`, `break`, `continue`, complex boolean expressions, and full scope rules. See [docs/phase5b-cpp-subset-transpiler.md](docs/phase5b-cpp-subset-transpiler.md), [docs/phase5c-if-else-lowering.md](docs/phase5c-if-else-lowering.md), [docs/phase5d-while-lowering.md](docs/phase5d-while-lowering.md), [docs/phase5f-run-stop-trace.md](docs/phase5f-run-stop-trace.md), [docs/phase7c-for-lowering.md](docs/phase7c-for-lowering.md), and [docs/phase7d-loop-syntax-sugar.md](docs/phase7d-loop-syntax-sugar.md).
 
 ## Run / Stop
 
@@ -211,6 +212,7 @@ The app includes demo programs for recording walkthroughs:
 - `C++: If Else`
 - `C++: While Sum`
 - `C++: For Sum`
+- `C++: For Sum Sugar`
 
 Use the Demo selector above the Source Editor to load one. Loading a demo marks the runtime as `Dirty`; click `Assemble` to generate CASL and load the COMET state. C++ subset demos automatically open the `Generated CASL` dock after assembly.
 
@@ -378,6 +380,7 @@ See [docs/demo-script.md](docs/demo-script.md) for the demo recording script.
 See [docs/phase7a-machine-code-view.md](docs/phase7a-machine-code-view.md) for the generated assembly and machine-code view.
 See [docs/phase7b-machine-code-explanation.md](docs/phase7b-machine-code-explanation.md) for opcode and operand explanation details.
 See [docs/phase7c-for-lowering.md](docs/phase7c-for-lowering.md) for for loop lowering.
+See [docs/phase7d-loop-syntax-sugar.md](docs/phase7d-loop-syntax-sugar.md) for loop syntax sugar.
 
 ## Suggested Next Phase
 

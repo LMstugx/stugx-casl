@@ -106,4 +106,85 @@ describe("C++ subset parser", () => {
       increment: { kind: "Assignment", target: "i" }
     });
   });
+
+  it("parse_post_increment_statement", () => {
+    const result = parseCpp(`int main() {
+    int i = 0;
+    i++;
+    return i;
+}`);
+
+    expect(result.diagnostics).toEqual([]);
+    expect(result.program?.main.body[1]).toMatchObject({
+      kind: "Assignment",
+      target: "i",
+      loweredFrom: "update-expression",
+      expression: { kind: "BinaryExpression", operator: "+", right: { value: 1 } }
+    });
+  });
+
+  it("parse_pre_increment_statement", () => {
+    const result = parseCpp(`int main() {
+    int i = 0;
+    ++i;
+    return i;
+}`);
+
+    expect(result.diagnostics).toEqual([]);
+    expect(result.program?.main.body[1]).toMatchObject({
+      kind: "Assignment",
+      target: "i",
+      loweredFrom: "update-expression",
+      expression: { kind: "BinaryExpression", operator: "+", right: { value: 1 } }
+    });
+  });
+
+  it("parse_post_decrement_statement", () => {
+    const result = parseCpp(`int main() {
+    int i = 3;
+    i--;
+    return i;
+}`);
+
+    expect(result.diagnostics).toEqual([]);
+    expect(result.program?.main.body[1]).toMatchObject({
+      kind: "Assignment",
+      target: "i",
+      loweredFrom: "update-expression",
+      expression: { kind: "BinaryExpression", operator: "-", right: { value: 1 } }
+    });
+  });
+
+  it("parse_compound_add_assignment", () => {
+    const result = parseCpp(`int main() {
+    int sum = 0;
+    int i = 1;
+    sum += i;
+    return sum;
+}`);
+
+    expect(result.diagnostics).toEqual([]);
+    expect(result.program?.main.body[2]).toMatchObject({
+      kind: "Assignment",
+      target: "sum",
+      loweredFrom: "compound-assignment",
+      expression: { kind: "BinaryExpression", operator: "+", right: { kind: "Identifier", name: "i" } }
+    });
+  });
+
+  it("parse_compound_sub_assignment", () => {
+    const result = parseCpp(`int main() {
+    int sum = 3;
+    sum -= 1;
+    return sum;
+}`);
+
+    expect(result.diagnostics).toEqual([]);
+    expect(result.program?.main.body[1]).toMatchObject({
+      kind: "Assignment",
+      target: "sum",
+      loweredFrom: "compound-assignment",
+      expression: { kind: "BinaryExpression", operator: "-", right: { kind: "IntegerLiteral", value: 1 } }
+    });
+  });
 });

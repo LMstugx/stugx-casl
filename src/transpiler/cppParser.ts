@@ -85,7 +85,7 @@ class Parser {
     if (this.checkKeyword("if")) return this.parseIf();
     if (this.checkKeyword("while")) return this.parseWhile();
     if (this.checkKeyword("for")) return this.parseFor();
-    if (this.check("identifier")) return this.parseAssignment();
+    if (this.check("identifier") || this.checkSymbol("++") || this.checkSymbol("--")) return this.parseAssignmentLike();
 
     const token = this.current();
     this.error(token, `Unsupported C++ subset syntax near '${token.value || "end of file"}'.`);
@@ -118,21 +118,86 @@ class Parser {
   }
 
   private parseAssignment(): CppAssignment | null {
-    return this.parseAssignmentInternal(true);
+    return this.parseAssignmentLike(true);
   }
 
   private parseAssignmentInternal(expectSemicolon: boolean): CppAssignment | null {
+    return this.parseAssignmentLike(expectSemicolon);
+  }
+
+  private parseAssignmentLike(expectSemicolon = true): CppAssignment | null {
+    if (this.checkSymbol("++") || this.checkSymbol("--")) return this.parsePrefixUpdate(expectSemicolon);
+    if (!this.check("identifier")) {
+      this.error(this.current(), "Expected assignment or update expression.");
+      return null;
+    }
+
     const target = this.advance();
     if (this.checkSymbol("(")) {
       this.error(target, "Current C++ subset does not support function calls.");
       this.synchronize();
       return null;
     }
+
+    if (this.matchSymbol("++") || this.matchSymbol("--")) {
+      const operator = this.previous().value as "++" | "--";
+      if (expectSemicolon) this.consumeSymbol(";", "Expected ';' after update expression.");
+      return this.updateAssignment(target.value, target.line, operator, false);
+    }
+
+    if (this.matchSymbol("+=") || this.matchSymbol("-=")) {
+      const operator = this.previous().value as "+=" | "-=";
+      const value = this.parseExpression();
+      if (expectSemicolon) this.consumeSymbol(";", "Expected ';' after compound assignment.");
+      if (!value) return null;
+      return this.compoundAssignment(target.value, target.line, operator, value);
+    }
+
     this.consumeSymbol("=", "Expected '=' in assignment.");
     const expression = this.parseExpression();
     if (expectSemicolon) this.consumeSymbol(";", "Expected ';' after assignment.");
     if (!expression) return null;
     return { kind: "Assignment", line: target.line, target: target.value, expression };
+  }
+
+  private parsePrefixUpdate(expectSemicolon: boolean): CppAssignment | null {
+    const operator = this.advance().value as "++" | "--";
+    const target = this.consume("identifier", "Expected variable name after prefix update operator.");
+    if (expectSemicolon) this.consumeSymbol(";", "Expected ';' after update expression.");
+    if (!target) return null;
+    return this.updateAssignment(target.value, target.line, operator, true);
+  }
+
+  private updateAssignment(target: string, line: number, operator: "++" | "--", _prefix: boolean): CppAssignment {
+    return {
+      kind: "Assignment",
+      line,
+      target,
+      loweredFrom: "update-expression",
+      expression: {
+        kind: "BinaryExpression",
+        line,
+        operator: operator === "++" ? "+" : "-",
+        left: { kind: "Identifier", line, name: target },
+        right: { kind: "IntegerLiteral", line, value: 1, raw: "1" }
+      }
+    };
+  }
+
+  private compoundAssignment(target: string, line: number, operator: "+=" | "-=", value: CppExpression): CppAssignment {
+    return {
+      kind: "Assignment",
+      line,
+      target,
+      loweredFrom: "compound-assignment",
+      expression: {
+        kind: "BinaryExpression",
+        line,
+        operator: operator === "+=" ? "+" : "-",
+        left: { kind: "Identifier", line, name: target },
+        right: value
+      }
+    };
   }
 
   private parseReturn(): CppReturn | null {
@@ -183,7 +248,7 @@ class Parser {
       initializer = this.parseVarDeclInternal(false);
       this.consumeSymbol(";", "Expected ';' after for initializer.");
     } else if (this.check("identifier")) {
-      initializer = this.parseAssignmentInternal(false);
+      initializer = this.parseAssignmentLike(false);
       this.consumeSymbol(";", "Expected ';' after for initializer.");
     } else {
       this.error(this.current(), "Current C++ subset supports only one int declaration or assignment in for initializer.");
@@ -202,8 +267,8 @@ class Parser {
 
     let increment: CppAssignment | null = null;
     if (!this.checkSymbol(")")) {
-      if (this.check("identifier")) {
-        increment = this.parseAssignmentInternal(false);
+      if (this.check("identifier") || this.checkSymbol("++") || this.checkSymbol("--")) {
+        increment = this.parseAssignmentLike(false);
       } else {
         this.error(this.current(), "Current C++ subset supports only one assignment in for increment.");
         this.synchronizeForHeader();

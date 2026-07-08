@@ -174,3 +174,32 @@ Suggested actions:
 4. Open `Machine Code`.
 5. Click `Run`.
 6. Check `Trace`, `Memory`, and `GR0`.
+## Appendix: Demo 6 - C++ For Sum Sugar
+
+Select:
+
+```text
+C++: For Sum Sugar
+```
+
+Talking points:
+
+- This demo uses more natural C/C++ loop syntax: `i++` and `sum += i`.
+- stugx.CASL normalizes the syntax sugar into the same assignment/add/store pattern.
+- Open `Generated CASL` and point out `LD`, `ADDA`, and `ST` generated from the sugar syntax.
+- Open `Machine Code` and show that the words are still ordinary COMET II instructions.
+- Run the program and confirm:
+
+```text
+SUM = 0006
+GR0 = 0006
+```
+
+Suggested actions:
+
+1. Load `C++: For Sum Sugar`.
+2. Click `Assemble`.
+3. Open `Generated CASL`.
+4. Open `Machine Code`.
+5. Click `Run`.
+6. Check `Trace`, `Memory`, and `GR0`.

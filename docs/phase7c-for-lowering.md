@@ -36,6 +36,7 @@ Supported increment forms:
 - `i = i - 1`
 - `i = i + step`
 - `i = i - step`
+- Phase 7D also accepts `i++`, `++i`, `i--`, `--i`, `i += step`, and `i -= step` as loop syntax sugar.
 
 `step` can be an integer literal or a declared variable.
 
@@ -44,8 +45,6 @@ Supported increment forms:
 The current subset still rejects:
 
 - `for` without condition
-- `i++` / `++i`
-- `i += 1`
 - multiple initializer expressions
 - multiple increment expressions
 - `break` / `continue`

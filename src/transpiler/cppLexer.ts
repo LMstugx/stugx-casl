@@ -87,7 +87,7 @@ export function lexCpp(source: string): LexResult {
     }
 
     const twoChar = `${ch}${peek(1)}`;
-    if (twoChar === "==" || twoChar === "!=" || twoChar === "<=" || twoChar === ">=") {
+    if (twoChar === "==" || twoChar === "!=" || twoChar === "<=" || twoChar === ">=" || twoChar === "++" || twoChar === "--" || twoChar === "+=" || twoChar === "-=") {
       push("symbol", twoChar, line, column);
       advance();
       advance();

@@ -103,6 +103,27 @@ describe("C++ subset transpiler diagnostics", () => {
     expect(result.diagnostics.map((diagnostic) => diagnostic.message).join("\n")).toContain("for without condition is not supported yet");
   });
 
+  it("semantic_increment_undeclared_variable", () => {
+    const result = transpileCppToCasl(`int main() {
+    missing++;
+    return 0;
+}`);
+
+    expect(result.ok).toBe(false);
+    expect(result.diagnostics.map((diagnostic) => diagnostic.message).join("\n")).toContain("not declared");
+  });
+
+  it("semantic_compound_assignment_undeclared_variable", () => {
+    const result = transpileCppToCasl(`int main() {
+    int step = 1;
+    missing += step;
+    return 0;
+}`);
+
+    expect(result.ok).toBe(false);
+    expect(result.diagnostics.map((diagnostic) => diagnostic.message).join("\n")).toContain("not declared");
+  });
+
   it("transpile_invalid_syntax", () => {
     const result = transpileCppToCasl(`int main() {
     int* p;

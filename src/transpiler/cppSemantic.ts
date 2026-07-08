@@ -122,6 +122,26 @@ function validateAssignment(statement: CppAssignment, variables: Map<string, Cpp
     diagnostics.push({ line: statement.line, message: `Assignment target '${statement.target}' is not declared.`, severity: "error" });
   }
   validateExpression(statement.expression, variables, diagnostics);
+  if (statement.loweredFrom === "compound-assignment") validateCompoundAssignment(statement, diagnostics);
+}
+
+function validateCompoundAssignment(statement: CppAssignment, diagnostics: Diagnostic[]): void {
+  const expression = statement.expression;
+  if (expression.kind !== "BinaryExpression" || expression.left.kind !== "Identifier" || expression.left.name !== statement.target) {
+    diagnostics.push({
+      line: statement.line,
+      message: "Current C++ subset supports compound assignment only as i += step or i -= step.",
+      severity: "error"
+    });
+    return;
+  }
+  if (expression.right.kind !== "Identifier" && expression.right.kind !== "IntegerLiteral") {
+    diagnostics.push({
+      line: statement.line,
+      message: "Current C++ subset supports compound assignment step only as integer literal or declared variable.",
+      severity: "error"
+    });
+  }
 }
 
 function validateForIncrement(statement: CppAssignment, variables: Map<string, CppVariableSymbol>, diagnostics: Diagnostic[]): void {

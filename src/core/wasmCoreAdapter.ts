@@ -60,8 +60,9 @@ function parseJson<T>(json: string, operation: string, core: LoadedWasmCore): T 
     return JSON.parse(json) as T;
   } catch (error) {
     const lastError = safeLastError(core);
+    const rawResponse = summarizeRawResponse(json);
     const detail = lastError ? ` Last WASM error: ${lastError}` : "";
-    throw new Error(`Failed to parse WASM ${operation} JSON: ${(error as Error).message}.${detail}`);
+    throw new Error(`Failed to parse WASM ${operation} JSON: ${(error as Error).message}. Raw response: ${rawResponse}.${detail}`);
   }
 }
 
@@ -71,4 +72,10 @@ function safeLastError(core: LoadedWasmCore): string {
   } catch {
     return "";
   }
+}
+
+function summarizeRawResponse(response: string): string {
+  const compact = response.replace(/\s+/g, " ").trim();
+  if (!compact) return "<empty>";
+  return compact.length > 180 ? `${compact.slice(0, 180)}...` : compact;
 }

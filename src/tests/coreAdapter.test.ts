@@ -1,12 +1,24 @@
 import { afterEach, describe, expect, it } from "vitest";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import simpleReady from "../../tests/golden/simple.ready.json";
 import simpleStep1 from "../../tests/golden/simple.step1.json";
+import StatusBar from "../components/StatusBar";
 import type { CoreAdapter } from "../core/coreAdapter";
-import { coreBridge, setCoreAdapter } from "../core/coreBridge";
+import {
+  coreBridge,
+  createCoreAdapterForBackend,
+  getCoreBackendInfo,
+  resolveCoreBackend,
+  setCoreAdapter
+} from "../core/coreBridge";
 import type { AssembleResultDto, CometStateDto, StepResultDto } from "../core/coreDto";
 import { DEFAULT_CASL_SOURCE } from "../core/defaultSource";
 import { MockCoreAdapter } from "../core/mockCoreAdapter";
 import { createCometStateFromDto } from "../core/coreStateAdapter";
+import { createEmptyUiCometState } from "../core/coreStateAdapter";
+import { loadWasmModule } from "../core/wasmLoader";
+import { WasmCoreAdapter } from "../core/wasmCoreAdapter";
 import useAppStoreSource from "../store/useAppStore.tsx?raw";
 
 const readyDto = simpleReady as CometStateDto;
@@ -40,6 +52,46 @@ function makeStepResult(state: CometStateDto): StepResultDto {
 describe("core adapter abstraction", () => {
   afterEach(() => {
     setCoreAdapter(new MockCoreAdapter());
+  });
+
+  it("default_backend_is_mock", () => {
+    const selection = createCoreAdapterForBackend(undefined);
+
+    expect(resolveCoreBackend(undefined)).toBe("mock");
+    expect(selection.adapter).toBeInstanceOf(MockCoreAdapter);
+    expect(selection.info).toEqual({ kind: "mock", label: "Mock Core", status: "ready" });
+  });
+
+  it("wasm_backend_can_be_selected", () => {
+    const selection = createCoreAdapterForBackend("wasm");
+
+    expect(resolveCoreBackend("wasm")).toBe("wasm");
+    expect(selection.adapter).toBeInstanceOf(WasmCoreAdapter);
+    expect(selection.info).toEqual({ kind: "wasm", label: "WASM Core", status: "ready" });
+  });
+
+  it("wasm_missing_files_error_is_clear", async () => {
+    const cwd = getNodeCwd();
+    const missingRoot = `${cwd}\\__missing_wasm__`;
+
+    await expect(
+      loadWasmModule({
+        modulePath: `${missingRoot}\\public\\wasm\\stugx_casl_core.js`,
+        wasmPath: `${missingRoot}\\public\\wasm\\stugx_casl_core.wasm`
+      })
+    ).rejects.toThrow(/public\/wasm\/stugx_casl_core\.js not found.*scripts\/build-wasm\.ps1/);
+  });
+
+  it("backend_label_matches_adapter", () => {
+    setCoreAdapter(new WasmCoreAdapter(), { kind: "wasm", label: "WASM Core", status: "ready" });
+    const markup = renderToStaticMarkup(
+      createElement(StatusBar, {
+        state: createEmptyUiCometState("Idle", []),
+        backendInfo: getCoreBackendInfo()
+      })
+    );
+
+    expect(markup).toContain("WASM Core");
   });
 
   it("coreAdapter.mock.assemble matches simple ready golden DTO", async () => {
@@ -114,3 +166,10 @@ describe("core adapter abstraction", () => {
     expect(stepState.gr[1]).toBe(0x0000);
   });
 });
+
+function getNodeCwd(): string {
+  const processLike = (globalThis as { process?: { cwd?: () => string } }).process;
+  const cwd = processLike?.cwd?.();
+  if (!cwd) throw new Error("Node cwd is unavailable.");
+  return cwd;
+}

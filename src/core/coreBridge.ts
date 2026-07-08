@@ -2,34 +2,100 @@ import type { CoreAdapter } from "./coreAdapter";
 import { MockCoreAdapter } from "./mockCoreAdapter";
 import { WasmCoreAdapter } from "./wasmCoreAdapter";
 
-function createDefaultAdapter(): CoreAdapter {
-  return import.meta.env.VITE_CORE_BACKEND === "wasm" ? new WasmCoreAdapter() : new MockCoreAdapter();
+export type CoreBackendKind = "mock" | "wasm";
+export type CoreBackendStatus = "ready" | "error";
+
+export type CoreBackendInfo = {
+  kind: CoreBackendKind;
+  label: "Mock Core" | "WASM Core" | "WASM Error";
+  status: CoreBackendStatus;
+  errorMessage?: string;
+};
+
+type AdapterSelection = {
+  adapter: CoreAdapter;
+  info: CoreBackendInfo;
+};
+
+export function resolveCoreBackend(value: unknown): CoreBackendKind {
+  return value === "wasm" ? "wasm" : "mock";
 }
 
-let activeAdapter: CoreAdapter = createDefaultAdapter();
+export function createCoreAdapterForBackend(backend: unknown): AdapterSelection {
+  const kind = resolveCoreBackend(backend);
+  if (kind === "wasm") {
+    return {
+      adapter: new WasmCoreAdapter(),
+      info: { kind: "wasm", label: "WASM Core", status: "ready" }
+    };
+  }
+  return {
+    adapter: new MockCoreAdapter(),
+    info: { kind: "mock", label: "Mock Core", status: "ready" }
+  };
+}
+
+function createDefaultAdapter(): AdapterSelection {
+  return createCoreAdapterForBackend(import.meta.env.VITE_CORE_BACKEND);
+}
+
+let activeSelection = createDefaultAdapter();
 
 export function getCoreAdapter(): CoreAdapter {
-  return activeAdapter;
+  return activeSelection.adapter;
 }
 
-export function setCoreAdapter(adapter: CoreAdapter): void {
-  activeAdapter = adapter;
+export function getCoreBackendInfo(): CoreBackendInfo {
+  return { ...activeSelection.info };
+}
+
+export function setCoreAdapter(adapter: CoreAdapter, info: CoreBackendInfo = { kind: "mock", label: "Mock Core", status: "ready" }): void {
+  activeSelection = { adapter, info };
+}
+
+function setBackendReady(): void {
+  activeSelection.info = {
+    kind: activeSelection.info.kind,
+    label: activeSelection.info.kind === "wasm" ? "WASM Core" : "Mock Core",
+    status: "ready"
+  };
+}
+
+function setBackendError(error: unknown): void {
+  const message = error instanceof Error ? error.message : String(error);
+  activeSelection.info = {
+    kind: activeSelection.info.kind,
+    label: activeSelection.info.kind === "wasm" ? "WASM Error" : "Mock Core",
+    status: "error",
+    errorMessage: message
+  };
+}
+
+async function callCore<T>(operation: () => Promise<T>): Promise<T> {
+  try {
+    const result = await operation();
+    setBackendReady();
+    return result;
+  } catch (error) {
+    setBackendError(error);
+    throw error;
+  }
 }
 
 export const coreBridge = {
   assemble(sourceText: string) {
-    return activeAdapter.assemble(sourceText);
+    return callCore(() => activeSelection.adapter.assemble(sourceText));
   },
   reset() {
-    return activeAdapter.reset();
+    return callCore(() => activeSelection.adapter.reset());
   },
   step() {
-    return activeAdapter.step();
+    return callCore(() => activeSelection.adapter.step());
   },
   run(maxSteps: number) {
-    return activeAdapter.run(maxSteps);
+    return callCore(() => activeSelection.adapter.run(maxSteps));
   },
   getState() {
-    return activeAdapter.getState();
+    return callCore(() => activeSelection.adapter.getState());
   }
 };

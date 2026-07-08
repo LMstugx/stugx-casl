@@ -7,6 +7,13 @@ export interface StugxCaslWasmModule {
 
 type EmscriptenModuleFactory = (moduleArgs?: Record<string, unknown>) => Promise<StugxCaslWasmModule>;
 
+export type WasmModuleLoadOptions = {
+  modulePath?: string;
+  wasmPath?: string;
+  moduleUrl?: string;
+  wasmUrl?: string;
+};
+
 export type LoadedWasmCore = {
   module: StugxCaslWasmModule;
   create: () => string;
@@ -20,8 +27,13 @@ export type LoadedWasmCore = {
 };
 
 type NodeFsSync = {
+  existsSync(path: string): boolean;
   readFileSync(path: string): Uint8Array;
 };
+
+const WASM_MODULE_RELATIVE_PATH = "public/wasm/stugx_casl_core.js";
+const WASM_BINARY_RELATIVE_PATH = "public/wasm/stugx_casl_core.wasm";
+const WASM_BUILD_HINT = "Please run scripts/build-wasm.ps1 before using the WASM backend.";
 
 function isNodeRuntime(): boolean {
   const processLike = (globalThis as { process?: { versions?: { node?: string }; type?: string } }).process;
@@ -43,7 +55,7 @@ async function importModuleFactory(moduleUrl: string): Promise<EmscriptenModuleF
     }
     return imported.default as EmscriptenModuleFactory;
   } catch (error) {
-    throw new Error(`Failed to load WASM module JS from ${moduleUrl}: ${(error as Error).message}`);
+    throw new Error(`Failed to load WASM module JS from ${moduleUrl}: ${(error as Error).message}. ${WASM_BUILD_HINT}`);
   }
 }
 
@@ -57,28 +69,57 @@ function readNodeWasmBinary(wasmPath: string): Uint8Array {
   if (!fs) {
     throw new Error("Node fs module is unavailable for loading the local WASM binary.");
   }
+  if (!fs.existsSync(wasmPath)) {
+    throw new Error(`${WASM_BINARY_RELATIVE_PATH} not found at ${wasmPath}. ${WASM_BUILD_HINT}`);
+  }
   return fs.readFileSync(wasmPath);
 }
 
-function wrapJsonFunction(module: StugxCaslWasmModule, name: string, argTypes: string[]) {
+function assertNodeFileExists(path: string, relativePath: string): void {
+  const processLike = (globalThis as { process?: { getBuiltinModule?: (name: string) => NodeFsSync } }).process;
+  const fs = processLike?.getBuiltinModule?.("fs");
+  if (!fs) {
+    throw new Error(`Node fs module is unavailable for checking ${relativePath}.`);
+  }
+  if (!fs.existsSync(path)) {
+    throw new Error(`${relativePath} not found at ${path}. ${WASM_BUILD_HINT}`);
+  }
+}
+
+function wrapStringFunction(module: StugxCaslWasmModule, name: string, argTypes: string[], options: { allowEmpty: boolean }) {
   const callPointer = module.cwrap(name, "number", argTypes) as (...args: unknown[]) => number;
   return (...args: unknown[]) => {
     const pointer = callPointer(...args);
+    if (!pointer) {
+      throw new Error(`${name} returned a null string pointer. ${WASM_BUILD_HINT}`);
+    }
     const json = module.UTF8ToString(pointer);
-    if (!json) throw new Error(`${name} returned an empty JSON string.`);
+    if (!json && !options.allowEmpty) {
+      throw new Error(`${name} returned an empty JSON string. ${WASM_BUILD_HINT}`);
+    }
     return json;
   };
 }
 
-export async function loadWasmModule(): Promise<LoadedWasmCore> {
+function wrapJsonFunction(module: StugxCaslWasmModule, name: string, argTypes: string[]) {
+  return wrapStringFunction(module, name, argTypes, { allowEmpty: false });
+}
+
+function wrapOptionalStringFunction(module: StugxCaslWasmModule, name: string, argTypes: string[]) {
+  return wrapStringFunction(module, name, argTypes, { allowEmpty: true });
+}
+
+export async function loadWasmModule(options: WasmModuleLoadOptions = {}): Promise<LoadedWasmCore> {
   const nodeRuntime = isNodeRuntime();
-  const modulePath = nodeRuntime ? projectFilePath("public/wasm/stugx_casl_core.js") : undefined;
-  const wasmPath = nodeRuntime ? projectFilePath("public/wasm/stugx_casl_core.wasm") : undefined;
-  const moduleUrl = modulePath ? pathToFileHref(modulePath) : "/wasm/stugx_casl_core.js";
+  const modulePath = nodeRuntime ? options.modulePath ?? projectFilePath(WASM_MODULE_RELATIVE_PATH) : undefined;
+  const wasmPath = nodeRuntime ? options.wasmPath ?? projectFilePath(WASM_BINARY_RELATIVE_PATH) : undefined;
+  if (modulePath) assertNodeFileExists(modulePath, WASM_MODULE_RELATIVE_PATH);
+  const moduleUrl = options.moduleUrl ?? (modulePath ? pathToFileHref(modulePath) : "/wasm/stugx_casl_core.js");
+  const wasmUrl = options.wasmUrl ?? "/wasm/stugx_casl_core.wasm";
   const factory = await importModuleFactory(moduleUrl);
   const wasmBinary = wasmPath ? readNodeWasmBinary(wasmPath) : undefined;
   const moduleArgs: Record<string, unknown> = {
-    locateFile: (path: string) => (path.endsWith(".wasm") ? "/wasm/stugx_casl_core.wasm" : path)
+    locateFile: (path: string) => (path.endsWith(".wasm") ? wasmUrl : path)
   };
   if (wasmBinary) {
     moduleArgs.instantiateWasm = (imports: WebAssembly.Imports, receiveInstance: (instance: WebAssembly.Instance) => void) => {
@@ -90,7 +131,12 @@ export async function loadWasmModule(): Promise<LoadedWasmCore> {
       return {};
     };
   }
-  const module = await factory(moduleArgs);
+  let module: StugxCaslWasmModule;
+  try {
+    module = await factory(moduleArgs);
+  } catch (error) {
+    throw new Error(`Failed to initialize WASM core module from ${moduleUrl}: ${(error as Error).message}. ${WASM_BUILD_HINT}`);
+  }
 
   return {
     module,
@@ -101,6 +147,6 @@ export async function loadWasmModule(): Promise<LoadedWasmCore> {
     reset: wrapJsonFunction(module, "stugx_casl_reset", []) as () => string,
     run: wrapJsonFunction(module, "stugx_casl_run", ["number"]) as (maxSteps: number) => string,
     getState: wrapJsonFunction(module, "stugx_casl_get_state", []) as () => string,
-    getLastError: wrapJsonFunction(module, "stugx_casl_get_last_error", []) as () => string
+    getLastError: wrapOptionalStringFunction(module, "stugx_casl_get_last_error", []) as () => string
   };
 }

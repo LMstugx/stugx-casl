@@ -18,7 +18,7 @@ export default function App() {
 }
 
 function StudioShell() {
-  const { sourceText, isSourceDirty, diagnostics: storeDiagnostics, cometState: state, assembleStatus, setSourceText, assemble, step, reset, clearOutput } = useAppStore();
+  const { sourceText, isSourceDirty, diagnostics: storeDiagnostics, cometState: state, assembleStatus, backendInfo, setSourceText, assemble, step, reset, clearOutput } = useAppStore();
   const canStep = !isSourceDirty && state.assembled && state.runState !== "Finished" && state.runState !== "Error";
   const canReset = !isSourceDirty && (state.assembled || state.runState === "Finished");
   const diagnostics = useMemo(() => storeDiagnostics.filter((diagnostic) => diagnostic.severity === "error"), [storeDiagnostics]);
@@ -98,7 +98,7 @@ function StudioShell() {
       </main>
 
       <OutputPanel lines={state.output} messages={diagnostics.map((diagnostic) => `Line ${diagnostic.line}: ${diagnostic.message}`)} onClear={clearOutput} />
-      <StatusBar state={state} />
+      <StatusBar state={state} backendInfo={backendInfo} />
     </div>
   );
 }

@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { EventBus } from "../app/eventBus";
 import { createAppEventBus } from "../app/createAppEventBus";
 import { AppEvent, AppEvents } from "../app/events";
-import { coreBridge } from "../core/coreBridge";
+import { coreBridge, getCoreBackendInfo, type CoreBackendInfo } from "../core/coreBridge";
 import { DEFAULT_CASL_SOURCE } from "../core/defaultSource";
 import { createCometStateFromDto, createEmptyUiCometState } from "../core/coreStateAdapter";
 import { CometState, Diagnostic } from "../core/types";
@@ -18,6 +18,7 @@ type AppStoreState = {
   cometState: CometState;
   diagnostics: Diagnostic[];
   assembleStatus: AssembleStatus;
+  backendInfo: CoreBackendInfo;
 };
 
 type AppStoreActions = {
@@ -35,6 +36,7 @@ export type AppStoreAction =
   | { type: "assembled"; sourceText: string; cometState: CometState; assembleStatus: AssembleStatus }
   | { type: "stepped"; cometState: CometState }
   | { type: "reset"; cometState: CometState }
+  | { type: "coreError"; message: string }
   | { type: "clearOutput" };
 
 type AppStoreProviderProps = {
@@ -53,7 +55,8 @@ export function createInitialAppState(): AppStoreState {
     assembleResult: null,
     cometState: createEmptyUiCometState("Idle", ["Editor ready. Assemble to load the current source."]),
     diagnostics: [],
-    assembleStatus: "default"
+    assembleStatus: "default",
+    backendInfo: getCoreBackendInfo()
   };
 }
 
@@ -81,14 +84,16 @@ export function appStoreReducer(state: AppStoreState, action: AppStoreAction): A
       assembleResult: ok ? action.cometState : null,
       cometState: action.cometState,
       diagnostics,
-      assembleStatus: action.assembleStatus
+      assembleStatus: action.assembleStatus,
+      backendInfo: getCoreBackendInfo()
     };
   }
 
   if (action.type === "stepped") {
     return {
       ...state,
-      cometState: action.cometState
+      cometState: action.cometState,
+      backendInfo: getCoreBackendInfo()
     };
   }
 
@@ -97,7 +102,20 @@ export function appStoreReducer(state: AppStoreState, action: AppStoreAction): A
       ...state,
       cometState: action.cometState,
       diagnostics: action.cometState.diagnostics,
-      assembleStatus: "success"
+      assembleStatus: "success",
+      backendInfo: getCoreBackendInfo()
+    };
+  }
+
+  if (action.type === "coreError") {
+    const diagnostic: Diagnostic = { line: 0, message: action.message, severity: "error" };
+    return {
+      ...state,
+      assembleResult: null,
+      diagnostics: [diagnostic],
+      assembleStatus: "error",
+      cometState: createEmptyUiCometState("Error", [action.message]),
+      backendInfo: getCoreBackendInfo()
     };
   }
 
@@ -120,59 +138,77 @@ export function AppStoreProvider({ children, eventBus: providedEventBus }: AppSt
       setSourceText: (sourceText) => dispatch({ type: "setSourceText", sourceText }),
       assemble: () => {
         void (async () => {
-          eventBus.emit(AppEvent.CoreAssembleStarted, { sourceLength: state.sourceText.length });
-          const result = await coreBridge.assemble(state.sourceText);
-          const cometState = createCometStateFromDto(result.state);
-          if (cometState.runState === "Error") {
-            eventBus.emit(AppEvent.CoreAssembleFailed, { diagnostics: cometState.diagnostics });
-          } else {
-            eventBus.emit(AppEvent.CoreAssembleSucceeded, {
-              instructionCount: cometState.program?.length ?? 0,
-              startAddress: cometState.pr
+          try {
+            eventBus.emit(AppEvent.CoreAssembleStarted, { sourceLength: state.sourceText.length });
+            const result = await coreBridge.assemble(state.sourceText);
+            const cometState = createCometStateFromDto(result.state);
+            if (cometState.runState === "Error") {
+              eventBus.emit(AppEvent.CoreAssembleFailed, { diagnostics: cometState.diagnostics });
+            } else {
+              eventBus.emit(AppEvent.CoreAssembleSucceeded, {
+                instructionCount: cometState.program?.length ?? 0,
+                startAddress: cometState.pr
+              });
+            }
+            dispatch({
+              type: "assembled",
+              sourceText: state.sourceText,
+              cometState,
+              assembleStatus: cometState.runState === "Error" ? "error" : "success"
             });
+          } catch (error) {
+            const message = coreErrorMessage(error);
+            eventBus.emit(AppEvent.VmError, { message });
+            dispatch({ type: "coreError", message });
           }
-          dispatch({
-            type: "assembled",
-            sourceText: state.sourceText,
-            cometState,
-            assembleStatus: cometState.runState === "Error" ? "error" : "success"
-          });
         })();
       },
       step: () => {
         if (state.isSourceDirty || !state.cometState.assembled) return;
         void (async () => {
-          const result = await coreBridge.step();
-          const output = [...state.cometState.output];
-          if (result.state.runState === "Finished" && state.cometState.runState !== "Finished") output.push("Execution finished.");
-          if (result.state.runState === "Error" && state.cometState.runState !== "Error") output.push("VM error.");
-          const cometState = createCometStateFromDto(result.state, { previous: state.cometState, output });
-          if (cometState.lastStep) {
-            eventBus.emit(AppEvent.VmStepCompleted, {
-              stepCount: cometState.stepIndex,
-              instruction: cometState.lastStep.executedInstruction
-            });
+          try {
+            const result = await coreBridge.step();
+            const output = [...state.cometState.output];
+            if (result.state.runState === "Finished" && state.cometState.runState !== "Finished") output.push("Execution finished.");
+            if (result.state.runState === "Error" && state.cometState.runState !== "Error") output.push("VM error.");
+            const cometState = createCometStateFromDto(result.state, { previous: state.cometState, output });
+            if (cometState.lastStep) {
+              eventBus.emit(AppEvent.VmStepCompleted, {
+                stepCount: cometState.stepIndex,
+                instruction: cometState.lastStep.executedInstruction
+              });
+            }
+            if (cometState.runState === "Finished") {
+              eventBus.emit(AppEvent.VmRunStopped, { reason: "finished" });
+            }
+            if (cometState.runState === "Error") {
+              eventBus.emit(AppEvent.VmError, { message: cometState.output[cometState.output.length - 1] ?? "VM error" });
+              eventBus.emit(AppEvent.VmRunStopped, { reason: "error" });
+            }
+            dispatch({ type: "stepped", cometState });
+          } catch (error) {
+            const message = coreErrorMessage(error);
+            eventBus.emit(AppEvent.VmError, { message });
+            dispatch({ type: "coreError", message });
           }
-          if (cometState.runState === "Finished") {
-            eventBus.emit(AppEvent.VmRunStopped, { reason: "finished" });
-          }
-          if (cometState.runState === "Error") {
-            eventBus.emit(AppEvent.VmError, { message: cometState.output[cometState.output.length - 1] ?? "VM error" });
-            eventBus.emit(AppEvent.VmRunStopped, { reason: "error" });
-          }
-          dispatch({ type: "stepped", cometState });
         })();
       },
       reset: () => {
         if (state.isSourceDirty || !state.assembleResult) return;
         void (async () => {
-          const dto = await coreBridge.reset();
-          dispatch({
-            type: "reset",
-            cometState: createCometStateFromDto(dto, {
-              output: dto.runState === "Ready" ? ["Program reset. Entry point: START (0020)"] : []
-            })
-          });
+          try {
+            const dto = await coreBridge.reset();
+            dispatch({
+              type: "reset",
+              cometState: createCometStateFromDto(dto, {
+                output: dto.runState === "Ready" ? ["Program reset. Entry point: START (0020)"] : []
+              })
+            });
+          } catch (error) {
+            const message = coreErrorMessage(error);
+            eventBus.emit(AppEvent.VmError, { message });
+            dispatch({ type: "coreError", message });
+          }
         })();
       },
       clearOutput: () => dispatch({ type: "clearOutput" })
@@ -186,6 +222,10 @@ export function AppStoreProvider({ children, eventBus: providedEventBus }: AppSt
       <AppStoreContext.Provider value={value}>{children}</AppStoreContext.Provider>
     </AppEventBusContext.Provider>
   );
+}
+
+function coreErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }
 
 export function useAppStore(): AppStore {

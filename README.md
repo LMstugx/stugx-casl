@@ -41,7 +41,9 @@ The sample program assembles at address `0020` and produces:
 
 ## What Is Mocked
 
-The browser UI currently calls `MockCoreAdapter` through `src/core/coreBridge.ts`. This adapter wraps `src/core/mockCaslCore.ts`, implements the first supported instruction subset, and exports the same DTO contract expected from the future C++/WASM bridge.
+The default browser UI currently calls `MockCoreAdapter` through `src/core/coreBridge.ts`. This adapter wraps `src/core/mockCaslCore.ts`, implements the first supported instruction subset, and exports the same DTO contract used by the C++/WASM bridge.
+
+The active backend is shown in the bottom status bar as `Mock Core`, `WASM Core`, or `WASM Error`.
 
 ## C++ Core
 
@@ -53,15 +55,21 @@ The next bridge milestone is:
 C++ Core -> Emscripten WASM -> TypeScript State Adapter -> React + SVG UI
 ```
 
-## Experimental WASM Build
+## Experimental WASM Backend
 
-Phase 4A adds an experimental Emscripten build path. It is not used by the default app runtime yet; the default frontend still uses `MockCoreAdapter`.
+Phase 4 adds an experimental Emscripten build path and opt-in `WasmCoreAdapter`. The default frontend still uses `MockCoreAdapter`; WASM is enabled only when explicitly selected.
 
 ```powershell
-.\scripts\build-wasm.ps1
+pnpm build:wasm
 ```
 
-The script requires an activated Emscripten SDK with `emcc` and `emcmake` on `PATH`. If available, it writes:
+Equivalent direct command:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\build-wasm.ps1
+```
+
+The script requires an activated Emscripten SDK with `emcc` and `emcmake` on `PATH`. It writes:
 
 ```text
 public/wasm/stugx_casl_core.js
@@ -73,11 +81,16 @@ These generated files are ignored by Git. See [docs/phase4a-wasm-plan.md](docs/p
 To opt into the experimental WASM backend after generating the files:
 
 ```powershell
-$env:VITE_CORE_BACKEND='wasm'
-pnpm dev
+pnpm dev:wasm
 ```
 
-Unset `VITE_CORE_BACKEND` or set it to `mock` to return to the default mock backend.
+Run `pnpm dev` to return to the default mock backend. WASM-specific parity tests can be run with:
+
+```powershell
+pnpm test:wasm
+```
+
+If `public/wasm/stugx_casl_core.js` or `.wasm` is missing, the app reports a `WASM Error` status and instructs you to run `scripts/build-wasm.ps1`.
 
 ## Install
 
@@ -98,6 +111,19 @@ $env:Path='C:\Users\LMSTUGX\.cache\codex-runtimes\codex-primary-runtime\dependen
 npm run dev
 ```
 
+Default backend:
+
+```powershell
+pnpm dev
+```
+
+Experimental WASM backend:
+
+```powershell
+pnpm build:wasm
+pnpm dev:wasm
+```
+
 Equivalent bundled command:
 
 ```powershell
@@ -109,6 +135,12 @@ $env:Path='C:\Users\LMSTUGX\.cache\codex-runtimes\codex-primary-runtime\dependen
 
 ```bash
 npm test
+```
+
+WASM-only adapter tests:
+
+```powershell
+pnpm test:wasm
 ```
 
 Equivalent bundled command:
@@ -155,15 +187,17 @@ When source changes, the VM becomes `Dirty`, the old assembled state is invalida
 
 ## Current Limitations
 
-- Frontend still uses `MockCoreAdapter`; C++/WASM is not yet the default adapter.
+- Default frontend backend is `MockCoreAdapter`; C++/WASM is opt-in.
+- WASM backend is experimental and uses a single runtime plus JSON string bridge.
+- WASM generated files are local build artifacts and are not committed.
 - Run is not implemented in Phase 1 and remains disabled.
 - New / Open / Save / Stop / language / theme controls are placeholders or disabled.
-- WASM bridge output is experimental and not enabled by default.
 - No C++ subset transpiler.
 - No full CASL II instruction set.
 - No desktop packaging.
 
 See [docs/phase1-status.md](docs/phase1-status.md) for the Phase 1 checkpoint.
+See [docs/phase4c-wasm-runtime.md](docs/phase4c-wasm-runtime.md) for the current WASM runtime workflow.
 
 ## Suggested Next Phase
 

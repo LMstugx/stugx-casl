@@ -5,9 +5,13 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
+    "dev:wasm": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"$env:VITE_CORE_BACKEND='wasm'; pnpm exec vite --host 127.0.0.1\"",
     "build": "tsc -b && vite build",
+    "build:wasm": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-wasm.ps1",
     "preview": "vite preview --host 127.0.0.1",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:wasm": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"$env:VITE_CORE_BACKEND='wasm'; pnpm exec vitest run src/tests/wasmCoreAdapter.test.ts\""
   },
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",

@@ -113,6 +113,7 @@ Currently supported:
 - assignment
 - binary `+` and `-`
 - `if` / `else` with `==`, `!=`, `<`, `<=`, `>`, `>=`
+- `while` with `==`, `!=`, `<`, `<=`, `>`, `>=`
 - `return 0;`
 - `return variable;`
 
@@ -145,7 +146,7 @@ C DS    1
      END
 ```
 
-Unsupported C++ features include classes, structs, pointers, references, templates, arrays, function calls, `std::cout`, strings, floats, loops, complex boolean expressions, and full scope rules. See [docs/phase5b-cpp-subset-transpiler.md](docs/phase5b-cpp-subset-transpiler.md) and [docs/phase5c-if-else-lowering.md](docs/phase5c-if-else-lowering.md).
+Unsupported C++ features include classes, structs, pointers, references, templates, arrays, function calls, `std::cout`, strings, floats, `for`, `do while`, `break`, `continue`, complex boolean expressions, and full scope rules. See [docs/phase5b-cpp-subset-transpiler.md](docs/phase5b-cpp-subset-transpiler.md), [docs/phase5c-if-else-lowering.md](docs/phase5c-if-else-lowering.md), and [docs/phase5d-while-lowering.md](docs/phase5d-while-lowering.md).
 
 ## Install
 
@@ -286,9 +287,10 @@ See [docs/phase4c-wasm-runtime.md](docs/phase4c-wasm-runtime.md) for the current
 See [docs/phase5a-instruction-expansion.md](docs/phase5a-instruction-expansion.md) for the Phase 5A instruction subset.
 See [docs/phase5b-cpp-subset-transpiler.md](docs/phase5b-cpp-subset-transpiler.md) for the C++ subset transpiler MVP.
 See [docs/phase5c-if-else-lowering.md](docs/phase5c-if-else-lowering.md) for if / else lowering and source mapping.
+See [docs/phase5d-while-lowering.md](docs/phase5d-while-lowering.md) for while lowering.
 
 ## Suggested Next Phase
 
-1. Add `while` lowering after conditional branch mapping is stable.
-2. Expand C++ / generated CASL dual highlighting interactions.
-3. Add selected logical operators only if the teaching flow requires them.
+1. Add `for` only after the while lowering remains stable.
+2. Consider `break` / `continue` with explicit mapping and max-step protection.
+3. Expand C++ / generated CASL dual highlighting interactions.

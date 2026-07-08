@@ -42,7 +42,8 @@ Supported operands:
 
 The transpiler still rejects:
 
-- `while` / `for`
+- `for` / `do while`
+- `break` / `continue`
 - `else if`
 - complex boolean expressions
 - `&&`
@@ -82,7 +83,8 @@ Generates CASL shaped like:
      LD    GR1,A
      CPA   GR1,B
      JZE   IF_TRUE_0
-     LAD   GR1,0
+     JUMP  IF_FALSE_0
+IF_FALSE_0 LAD   GR1,0
      ST    GR1,C
      JUMP  IF_END_0
 IF_TRUE_0 LAD   GR1,1
@@ -120,8 +122,10 @@ Constant labels are unique and avoid variable label collisions.
 The generator allocates labels from monotonic ids:
 
 - `IF_TRUE_0`
+- `IF_FALSE_0`
 - `IF_END_0`
 - `IF_TRUE_1`
+- `IF_FALSE_1`
 - `IF_END_1`
 
 Labels are registered in the same used-label set as variable and constant labels to prevent collisions.
@@ -143,7 +147,11 @@ type CppToCaslMap = {
     | "if-then"
     | "if-else"
     | "generated-label"
-    | "constant";
+    | "constant"
+    | "while-condition"
+    | "while-body"
+    | "loop-label"
+    | "loop-back-jump";
 };
 ```
 
@@ -170,7 +178,9 @@ CASL mode behavior is unchanged.
 
 ## Current Limits
 
-- No loops.
+- `while` loops are added in Phase 5D.
+- No `for` / `do while`.
+- No `break` / `continue`.
 - No `else if`.
 - No logical operators.
 - No full C++ scope model.
@@ -181,6 +191,6 @@ CASL mode behavior is unchanged.
 
 Next candidates:
 
-1. Add `while` lowering with explicit loop labels.
+1. Add `for` after while lowering remains stable.
 2. Add richer C++ and generated CASL dual highlighting interactions.
 3. Add source-level step controls after mapping is stable.

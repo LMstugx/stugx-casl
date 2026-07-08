@@ -14,7 +14,7 @@ export interface LexResult {
   diagnostics: Diagnostic[];
 }
 
-const keywords = new Set(["int", "return", "if", "else"]);
+const keywords = new Set(["int", "return", "if", "else", "while"]);
 const symbols = new Set(["(", ")", "{", "}", ";", "=", "+", "-", "*", ",", "!", "<", ">"]);
 
 export function lexCpp(source: string): LexResult {

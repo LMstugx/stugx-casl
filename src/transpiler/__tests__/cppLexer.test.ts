@@ -22,4 +22,12 @@ describe("C++ subset lexer", () => {
     expect(result.diagnostics).toEqual([]);
     expect(result.tokens.map((token) => token.value)).toEqual(["if", "(", "a", "==", "b", ")", "{", "c", "=", "1", ";", "}", "else", "{", "c", "=", "0", ";", "}", ""]);
   });
+
+  it("lexes while keyword", () => {
+    const result = lexCpp("while (i > 0) { i = i - 1; }");
+
+    expect(result.diagnostics).toEqual([]);
+    expect(result.tokens.map((token) => token.value)).toContain("while");
+    expect(result.tokens[0]).toMatchObject({ kind: "keyword", value: "while" });
+  });
 });

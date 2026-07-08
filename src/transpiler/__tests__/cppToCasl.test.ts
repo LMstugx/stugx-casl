@@ -12,7 +12,7 @@ function expectOk(source: string) {
 
 function runToEnd(caslSource: string) {
   let state = mockCaslCore.assemble(caslSource);
-  while (state.runState !== "Finished" && state.runState !== "Error") {
+  for (let steps = 0; steps < 200 && state.runState !== "Finished" && state.runState !== "Error"; steps += 1) {
     state = mockCaslCore.step(state);
   }
   return state;
@@ -316,5 +316,126 @@ describe("C++ subset to CASL generator", () => {
 
     expect(state.memory[state.symbols.C]).toBe(0x0001);
     expect(state.gr[0]).toBe(0x0001);
+  });
+
+  it("transpile_while_countdown", () => {
+    const result = expectOk(`int main() {
+    int i = 3;
+    while (i > 0) {
+        i = i - 1;
+    }
+    return i;
+}`);
+
+    expect(result.caslSource).toContain("LOOP_BEGIN_0 LD    GR1,I");
+    expect(result.caslSource).toContain("     CPA   GR1,CONST_0");
+    expect(result.caslSource).toContain("     JPL   LOOP_BODY_0");
+    expect(result.caslSource).toContain("     JUMP  LOOP_END_0");
+    expect(result.caslSource).toContain("     JUMP  LOOP_BEGIN_0");
+  });
+
+  it("transpile_while_sum", () => {
+    const result = expectOk(`int main() {
+    int i = 3;
+    int sum = 0;
+    while (i > 0) {
+        sum = sum + i;
+        i = i - 1;
+    }
+    return sum;
+}`);
+
+    expect(result.caslSource).toContain("LOOP_BODY_0 LD    GR1,SUM");
+    expect(result.caslSource).toContain("     ADDA  GR1,I");
+    expect(result.caslSource).toContain("     SUBA  GR1,CONST_1");
+    expect(result.caslSource).toContain("SUM DC    0");
+  });
+
+  it("transpile_while_literal_condition", () => {
+    const result = expectOk(`int main() {
+    int i = 1;
+    while (i != 0) {
+        i = i - 1;
+    }
+    return i;
+}`);
+
+    expect(result.caslSource).toContain("     CPA   GR1,CONST_0");
+    expect(result.caslSource).toContain("     JNZ   LOOP_BODY_0");
+    expect(result.caslSource).toContain("CONST_0 DC    0");
+  });
+
+  it("mapping_while_condition", () => {
+    const result = expectOk(`int main() {
+    int i = 3;
+    while (i > 0) {
+        i = i - 1;
+    }
+    return i;
+}`);
+
+    const rows = result.mapping.filter((entry) => entry.kind === "while-condition" && entry.cppLine === 3).flatMap((entry) => entry.caslLines);
+    expect(rows.length).toBeGreaterThanOrEqual(4);
+    expect(cppLineForCaslLine(result.mapping, rows[0])).toBe(3);
+  });
+
+  it("mapping_while_body", () => {
+    const result = expectOk(`int main() {
+    int i = 3;
+    while (i > 0) {
+        i = i - 1;
+    }
+    return i;
+}`);
+
+    const rows = caslLinesForCppLine(result.mapping, 4);
+    expect(rows.size).toBeGreaterThan(0);
+    expect(result.mapping.some((entry) => entry.cppLine === 4 && entry.kind === "while-body")).toBe(true);
+    expect(cppLineForCaslLine(result.mapping, [...rows][0])).toBe(4);
+  });
+
+  it("mapping_loop_back_jump", () => {
+    const result = expectOk(`int main() {
+    int i = 3;
+    while (i > 0) {
+        i = i - 1;
+    }
+    return i;
+}`);
+
+    expect(result.mapping.some((entry) => entry.kind === "loop-label" && entry.cppLine === 3)).toBe(true);
+    expect(result.mapping.some((entry) => entry.kind === "loop-back-jump" && entry.cppLine === 3)).toBe(true);
+  });
+
+  it("cpp_while_countdown", () => {
+    const result = expectOk(`int main() {
+    int i = 3;
+    while (i > 0) {
+        i = i - 1;
+    }
+    return i;
+}`);
+    const state = runToEnd(result.caslSource);
+
+    expect(state.runState).toBe("Finished");
+    expect(state.memory[state.symbols.I]).toBe(0x0000);
+    expect(state.gr[0]).toBe(0x0000);
+  });
+
+  it("cpp_while_sum", () => {
+    const result = expectOk(`int main() {
+    int i = 3;
+    int sum = 0;
+    while (i > 0) {
+        sum = sum + i;
+        i = i - 1;
+    }
+    return sum;
+}`);
+    const state = runToEnd(result.caslSource);
+
+    expect(state.runState).toBe("Finished");
+    expect(state.memory[state.symbols.SUM]).toBe(0x0006);
+    expect(state.gr[0]).toBe(0x0006);
   });
 });

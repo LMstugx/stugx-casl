@@ -79,6 +79,12 @@ function validateStatements(statements: CppStatement[], variables: Map<string, C
       validateCondition(statement.condition, variables, diagnostics);
       validateStatements(statement.thenBody, variables, usedLabels, diagnostics);
       if (statement.elseBody) validateStatements(statement.elseBody, variables, usedLabels, diagnostics);
+      continue;
+    }
+
+    if (statement.kind === "WhileStatement") {
+      validateCondition(statement.condition, variables, diagnostics);
+      validateStatements(statement.body, variables, usedLabels, diagnostics);
     }
   }
 }

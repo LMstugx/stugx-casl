@@ -11,7 +11,8 @@ import type {
   CppProgram,
   CppReturn,
   CppStatement,
-  CppVarDecl
+  CppVarDecl,
+  CppWhileStatement
 } from "./cppAst";
 import { CppToken, lexCpp } from "./cppLexer";
 
@@ -81,6 +82,7 @@ class Parser {
     if (this.checkKeyword("int")) return this.parseVarDecl();
     if (this.checkKeyword("return")) return this.parseReturn();
     if (this.checkKeyword("if")) return this.parseIf();
+    if (this.checkKeyword("while")) return this.parseWhile();
     if (this.check("identifier")) return this.parseAssignment();
 
     const token = this.current();
@@ -150,6 +152,16 @@ class Parser {
     return { kind: "IfStatement", line: start.line, condition, thenBody, elseBody };
   }
 
+  private parseWhile(): CppWhileStatement | null {
+    const start = this.advance();
+    this.consumeSymbol("(", "Expected '(' after while.");
+    const condition = this.parseCondition("while");
+    this.consumeSymbol(")", "Expected ')' after while condition.");
+    const body = this.parseBlock("while body");
+    if (!condition) return null;
+    return { kind: "WhileStatement", line: start.line, condition, body };
+  }
+
   private parseBlock(name: string): CppStatement[] {
     this.consumeSymbol("{", `Expected '{' to start ${name}.`);
     const body: CppStatement[] = [];
@@ -161,12 +173,12 @@ class Parser {
     return body;
   }
 
-  private parseCondition(): CppCondition | undefined {
+  private parseCondition(owner: "if" | "while" = "if"): CppCondition | undefined {
     const left = this.parseExpression();
     if (!left) return undefined;
     const operator = this.current();
     if (!this.isConditionOperator(operator.value)) {
-      this.error(operator, "Expected comparison operator ==, !=, <, <=, >, or >= in if condition.");
+      this.error(operator, `Expected comparison operator ==, !=, <, <=, >, or >= in ${owner} condition.`);
       return undefined;
     }
     this.advance();

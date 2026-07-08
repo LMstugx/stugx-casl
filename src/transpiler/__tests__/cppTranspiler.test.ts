@@ -37,6 +37,33 @@ describe("C++ subset transpiler diagnostics", () => {
     expect(result.diagnostics.map((diagnostic) => diagnostic.message).join("\n")).toContain("used before declaration");
   });
 
+  it("semantic_while_undeclared_condition", () => {
+    const result = transpileCppToCasl(`int main() {
+    int i = 3;
+    while (missing > 0) {
+        i = i - 1;
+    }
+    return i;
+}`);
+
+    expect(result.ok).toBe(false);
+    expect(result.diagnostics.map((diagnostic) => diagnostic.message).join("\n")).toContain("used before declaration");
+  });
+
+  it("semantic_while_body_undeclared_variable", () => {
+    const result = transpileCppToCasl(`int main() {
+    int i = 3;
+    while (i > 0) {
+        sum = sum + i;
+        i = i - 1;
+    }
+    return i;
+}`);
+
+    expect(result.ok).toBe(false);
+    expect(result.diagnostics.map((diagnostic) => diagnostic.message).join("\n")).toContain("not declared");
+  });
+
   it("transpile_invalid_syntax", () => {
     const result = transpileCppToCasl(`int main() {
     int* p;

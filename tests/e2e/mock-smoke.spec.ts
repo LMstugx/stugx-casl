@@ -44,3 +44,32 @@ test("Mock backend executes C++ subset if else lowering in the browser UI", asyn
   await expect(page.getByTestId("run-state")).toHaveText("Finished");
   await expectRegister(page, "register-gr0", "0001");
 });
+
+test("Mock backend executes C++ subset while sum in the browser UI", async ({ page }) => {
+  await openStudio(page, "Mock Core");
+  await page.getByTestId("source-mode-cpp").click();
+  await setSource(
+    page,
+    `int main() {
+    int i = 3;
+    int sum = 0;
+    while (i > 0) {
+        sum = sum + i;
+        i = i - 1;
+    }
+    return sum;
+}`
+  );
+
+  await assemble(page);
+  await page.getByRole("tab", { name: "Generated CASL" }).click();
+  await expect(page.getByTestId("generated-casl-output")).toContainText("LOOP_BEGIN_0");
+
+  for (let index = 0; index < 50; index += 1) {
+    if ((await page.getByTestId("run-state").textContent()) === "Finished") break;
+    await step(page);
+  }
+
+  await expect(page.getByTestId("run-state")).toHaveText("Finished");
+  await expectRegister(page, "register-gr0", "0006");
+});

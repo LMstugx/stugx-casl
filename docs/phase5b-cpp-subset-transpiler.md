@@ -21,6 +21,7 @@ Statements:
 - `c = a - b;`
 - `if (a == b) { ... }` is added in Phase 5C
 - `if (a == b) { ... } else { ... }` is added in Phase 5C
+- `while (a > b) { ... }` is added in Phase 5D
 - `return c;`
 - `return 0;`
 
@@ -44,7 +45,8 @@ The MVP intentionally rejects:
 - function calls
 - `std::cout`, `iostream`, `std::vector`
 - `float`, `double`, `char`, `string`
-- `while` / `for`
+- `for` / `do while`
+- `break` / `continue`
 - complex boolean expressions
 - complex scope rules
 
@@ -194,7 +196,19 @@ type CppToCaslMap = {
   cppLine: number;
   caslLines: number[];
   reason: string;
-  kind: "declaration" | "assignment" | "return" | "if-condition" | "if-then" | "if-else" | "generated-label" | "constant";
+  kind:
+    | "declaration"
+    | "assignment"
+    | "return"
+    | "if-condition"
+    | "if-then"
+    | "if-else"
+    | "generated-label"
+    | "constant"
+    | "while-condition"
+    | "while-body"
+    | "loop-label"
+    | "loop-back-jump";
 };
 ```
 
@@ -214,7 +228,9 @@ In C++ subset mode:
 
 ## Current Limits
 
-- No `while` / `for` yet.
+- `while` is supported from Phase 5D.
+- No `for` / `do while` yet.
+- No `break` / `continue` yet.
 - No `else if` yet.
 - No complex boolean expressions.
 - No stack frame.
@@ -230,4 +246,4 @@ Phase 5C adds:
 - `if` / `else` lowering using `CPA`, `JZE`, `JNZ`, `JPL`, and `JMI`.
 - C++ line to CASL line dual highlighting.
 
-`while` lowering remains a future phase.
+Phase 5D adds `while` lowering with explicit loop labels and shared condition lowering.

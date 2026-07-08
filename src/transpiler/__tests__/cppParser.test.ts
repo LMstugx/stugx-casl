@@ -48,4 +48,22 @@ describe("C++ subset parser", () => {
     const ifStatement = result.program?.main.body.find((statement) => statement.kind === "IfStatement");
     expect(ifStatement).toMatchObject({ kind: "IfStatement", condition: { operator: "!=" }, elseBody: [expect.objectContaining({ kind: "Assignment" })] });
   });
+
+  it("parse_while", () => {
+    const result = parseCpp(`int main() {
+    int i = 3;
+    while (i > 0) {
+        i = i - 1;
+    }
+    return i;
+}`);
+
+    expect(result.diagnostics).toEqual([]);
+    const whileStatement = result.program?.main.body.find((statement) => statement.kind === "WhileStatement");
+    expect(whileStatement).toMatchObject({
+      kind: "WhileStatement",
+      condition: { operator: ">" },
+      body: [expect.objectContaining({ kind: "Assignment", target: "i" })]
+    });
+  });
 });

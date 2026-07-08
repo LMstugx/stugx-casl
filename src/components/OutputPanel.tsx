@@ -91,7 +91,7 @@ export default function OutputPanel({
               const isCurrent = currentCaslLine === lineNumber;
               const isRelated = relatedCaslLines.has(lineNumber);
               const kinds = mappingKindsForCaslLine(cppToCaslMapping, lineNumber);
-              const isGenerated = kinds.has("generated-label") || kinds.has("constant");
+              const isGenerated = kinds.has("generated-label") || kinds.has("loop-label") || kinds.has("constant");
               return (
                 <div
                   key={`${line}-${index}`}

@@ -25,6 +25,7 @@ type PendingLabel = {
   label: string;
   cppLine: number;
   reason: string;
+  kind: CppToCaslMapKind;
 };
 
 type GeneratedLine = {
@@ -45,6 +46,7 @@ type GeneratorContext = {
   lines: GeneratedLine[];
   pendingLabels: PendingLabel[];
   nextIfId: number;
+  nextLoopId: number;
 };
 
 export function generateCaslFromCpp(program: CppProgram, variables: CppVariableSymbol[]): GenerateCaslResult {
@@ -54,7 +56,8 @@ export function generateCaslFromCpp(program: CppProgram, variables: CppVariableS
     usedLabels: new Set(["MAIN", ...variables.map((variable) => variable.label)]),
     lines: [{ text: "MAIN START", mappings: [] }],
     pendingLabels: [],
-    nextIfId: 0
+    nextIfId: 0,
+    nextLoopId: 0
   };
 
   emitStatements(context, program.main.body);
@@ -93,13 +96,13 @@ export function generateCaslFromCpp(program: CppProgram, variables: CppVariableS
   };
 }
 
-function emitStatements(context: GeneratorContext, statements: CppStatement[], branchKind?: "if-then" | "if-else"): void {
+function emitStatements(context: GeneratorContext, statements: CppStatement[], branchKind?: "if-then" | "if-else" | "while-body"): void {
   for (const statement of statements) {
     emitStatement(context, statement, branchKind);
   }
 }
 
-function emitStatement(context: GeneratorContext, statement: CppStatement, branchKind?: "if-then" | "if-else"): void {
+function emitStatement(context: GeneratorContext, statement: CppStatement, branchKind?: "if-then" | "if-else" | "while-body"): void {
   if (statement.kind === "Assignment") {
     const kind = branchKind ?? "assignment";
     emitExpression(context, statement.expression, "GR1", statement.line, kind);
@@ -120,6 +123,11 @@ function emitStatement(context: GeneratorContext, statement: CppStatement, branc
 
   if (statement.kind === "IfStatement") {
     emitIf(context, statement);
+    return;
+  }
+
+  if (statement.kind === "WhileStatement") {
+    emitWhile(context, statement);
   }
 }
 
@@ -129,9 +137,10 @@ function emitIf(context: GeneratorContext, statement: Extract<CppStatement, { ki
   const trueLabel = uniqueLabel(context, `IF_TRUE_${id}`);
   const endLabel = uniqueLabel(context, `IF_END_${id}`);
 
-  emitCondition(context, statement.condition, trueLabel);
-
   if (statement.elseBody) {
+    const falseLabel = uniqueLabel(context, `IF_FALSE_${id}`);
+    emitConditionJump(context, statement.condition, trueLabel, falseLabel, "if-condition", "if condition");
+    emitLabel(context, falseLabel, statement.line, "if false label");
     emitStatements(context, statement.elseBody, "if-else");
     emit(context, `     JUMP  ${endLabel}`, { cppLine: statement.line, reason: "skip then branch", kind: "if-else" });
     emitLabel(context, trueLabel, statement.line, "if true label");
@@ -140,24 +149,47 @@ function emitIf(context: GeneratorContext, statement: Extract<CppStatement, { ki
     return;
   }
 
-  emit(context, `     JUMP  ${endLabel}`, { cppLine: statement.line, reason: "skip if body", kind: "if-condition" });
+  emitConditionJump(context, statement.condition, trueLabel, endLabel, "if-condition", "if condition");
   emitLabel(context, trueLabel, statement.line, "if true label");
   emitStatements(context, statement.thenBody, "if-then");
   emitLabel(context, endLabel, statement.line, "if end label");
 }
 
-function emitCondition(context: GeneratorContext, condition: CppCondition, trueLabel: string): void {
-  emitExpression(context, condition.left, "GR1", condition.line, "if-condition");
+function emitWhile(context: GeneratorContext, statement: Extract<CppStatement, { kind: "WhileStatement" }>): void {
+  const id = context.nextLoopId;
+  context.nextLoopId += 1;
+  const beginLabel = uniqueLabel(context, `LOOP_BEGIN_${id}`);
+  const bodyLabel = uniqueLabel(context, `LOOP_BODY_${id}`);
+  const endLabel = uniqueLabel(context, `LOOP_END_${id}`);
+
+  emitLabel(context, beginLabel, statement.line, "loop begin label", "loop-label");
+  emitConditionJump(context, statement.condition, bodyLabel, endLabel, "while-condition", "while condition");
+  emitLabel(context, bodyLabel, statement.line, "loop body label", "loop-label");
+  emitStatements(context, statement.body, "while-body");
+  emit(context, `     JUMP  ${beginLabel}`, { cppLine: statement.line, reason: "repeat while loop", kind: "loop-back-jump" });
+  emitLabel(context, endLabel, statement.line, "loop end label", "loop-label");
+}
+
+function emitConditionJump(
+  context: GeneratorContext,
+  condition: CppCondition,
+  trueLabel: string,
+  falseLabel: string,
+  kind: "if-condition" | "while-condition",
+  reasonPrefix: "if condition" | "while condition"
+): void {
+  emitExpression(context, condition.left, "GR1", condition.line, kind);
   const rightOperand = operandForExpression(context, condition.right, condition.line);
-  emit(context, `     CPA   GR1,${rightOperand}`, { cppLine: condition.line, reason: "compare if condition", kind: "if-condition" });
+  emit(context, `     CPA   GR1,${rightOperand}`, { cppLine: condition.line, reason: `compare ${reasonPrefix}`, kind });
 
   for (const jump of trueJumpsForCondition(condition.operator)) {
     emit(context, `     ${jump.padEnd(5, " ")} ${trueLabel}`, {
       cppLine: condition.line,
       reason: `branch if ${condition.operator}`,
-      kind: "if-condition"
+      kind
     });
   }
+  emit(context, `     JUMP  ${falseLabel}`, { cppLine: condition.line, reason: `branch if ${condition.operator} is false`, kind });
 }
 
 function trueJumpsForCondition(operator: CppCondition["operator"]): string[] {
@@ -234,8 +266,8 @@ function uniqueLabel(context: GeneratorContext, base: string): string {
   return label;
 }
 
-function emitLabel(context: GeneratorContext, label: string, cppLine: number, reason: string): void {
-  context.pendingLabels.push({ label, cppLine, reason });
+function emitLabel(context: GeneratorContext, label: string, cppLine: number, reason: string, kind: CppToCaslMapKind = "generated-label"): void {
+  context.pendingLabels.push({ label, cppLine, reason, kind });
 }
 
 function emit(context: GeneratorContext, text: string, mapping: MappingInput): void {
@@ -254,7 +286,7 @@ function applyPendingLabels(context: GeneratorContext, text: string, mappings: M
   if (context.pendingLabels.length === 0) return text;
   const labels = context.pendingLabels.splice(0);
   for (const label of labels) {
-    mappings.push({ cppLine: label.cppLine, reason: label.reason, kind: "generated-label" });
+    mappings.push({ cppLine: label.cppLine, reason: label.reason, kind: label.kind });
   }
   return `${labels.map((label) => label.label).join(" ")} ${text.trimStart()}`;
 }

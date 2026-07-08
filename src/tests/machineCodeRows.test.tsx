@@ -297,4 +297,93 @@ describe("machine code rows", () => {
     expect(explainMachineCodeRow(continueJump!).meaning).toContain("FOR_CONTINUE_0");
     expect(explainMachineCodeRow(breakJump!).meaning).toContain("FOR_END_0");
   });
+
+  it("machine_code_jump_explanation_shows_target", async () => {
+    const program = getDemoProgram("cpp-break-continue");
+    expect(program).toBeDefined();
+    const prepared = prepareSourceForCoreAssembly(program!.source, "cpp");
+    expect(prepared.ok).toBe(true);
+    const state = stateFromRaw(mockCaslCore.assemble(prepared.coreSourceText));
+
+    await renderOutputPanel(
+      <OutputPanel
+        lines={[]}
+        state={state}
+        sourceMode="cpp"
+        generatedCaslSource={prepared.generatedCaslSource}
+        cppToCaslMapping={prepared.mapping}
+        initialTab="machine"
+        onClear={() => undefined}
+      />
+    );
+
+    const jumpRow = container?.querySelector('[data-flow-kind="break"]');
+    expect(jumpRow).toBeDefined();
+    await act(async () => {
+      (jumpRow as HTMLDivElement).click();
+    });
+
+    const explanationText = container?.querySelector('[data-testid="machine-code-explanation"]')?.textContent ?? "";
+    expect(explanationText).toContain("Control Flow Target");
+    expect(explanationText).toContain("FOR_END_0");
+    expect(explanationText).toContain("break");
+  });
+
+  it("machine_code_jump_explanation_for_continue", async () => {
+    const program = getDemoProgram("cpp-break-continue");
+    expect(program).toBeDefined();
+    const prepared = prepareSourceForCoreAssembly(program!.source, "cpp");
+    expect(prepared.ok).toBe(true);
+    const state = stateFromRaw(mockCaslCore.assemble(prepared.coreSourceText));
+
+    await renderOutputPanel(
+      <OutputPanel
+        lines={[]}
+        state={state}
+        sourceMode="cpp"
+        generatedCaslSource={prepared.generatedCaslSource}
+        cppToCaslMapping={prepared.mapping}
+        initialTab="machine"
+        onClear={() => undefined}
+      />
+    );
+
+    const jumpRow = [...(container?.querySelectorAll('[data-testid^="machine-code-row-"]') ?? [])].find((row) => row.textContent?.includes("JUMP FOR_CONTINUE_0"));
+    expect(jumpRow).toBeDefined();
+    await act(async () => {
+      (jumpRow as HTMLDivElement).click();
+    });
+
+    const explanationText = container?.querySelector('[data-testid="machine-code-explanation"]')?.textContent ?? "";
+    expect(explanationText).toContain("FOR_CONTINUE_0");
+    expect(explanationText).toContain("continue");
+  });
+
+  it("machine_code_jump_explanation_for_break", async () => {
+    const program = getDemoProgram("cpp-break-continue");
+    expect(program).toBeDefined();
+    const prepared = prepareSourceForCoreAssembly(program!.source, "cpp");
+    expect(prepared.ok).toBe(true);
+    const state = stateFromRaw(mockCaslCore.assemble(prepared.coreSourceText));
+
+    await renderOutputPanel(
+      <OutputPanel
+        lines={[]}
+        state={state}
+        sourceMode="cpp"
+        generatedCaslSource={prepared.generatedCaslSource}
+        cppToCaslMapping={prepared.mapping}
+        initialTab="machine"
+        onClear={() => undefined}
+      />
+    );
+
+    const jumpRow = container?.querySelector('[data-flow-kind="break"]');
+    expect(jumpRow).toBeDefined();
+    await act(async () => {
+      (jumpRow as HTMLDivElement).click();
+    });
+
+    expect(container?.querySelector('[data-testid="machine-code-control-flow-target"]')?.textContent).toContain("FOR_END_0");
+  });
 });

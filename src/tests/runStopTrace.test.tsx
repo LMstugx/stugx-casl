@@ -8,9 +8,11 @@ import { MockCoreAdapter } from "../core/mockCoreAdapter";
 import { mockCaslCore } from "../core/mockCaslCore";
 import { setCoreAdapter } from "../core/coreBridge";
 import { DEFAULT_CASL_SOURCE } from "../core/defaultSource";
-import { AppStoreProvider, useAppStore } from "../store/useAppStore";
+import { getDemoProgram } from "../examples/demoPrograms";
+import { AppStoreProvider, prepareSourceForCoreAssembly, useAppStore } from "../store/useAppStore";
 import type { CometState } from "../core/types";
 import Toolbar from "../components/Toolbar";
+import TracePanel from "../components/TracePanel";
 
 type Store = ReturnType<typeof useAppStore>;
 
@@ -183,6 +185,23 @@ LOOP LAD   GR1,1
     expect(state.trace[0].index).toBe(1105);
     expect(state.trace[0].visualPath).toBeDefined();
     expect(state.trace[0].runState).toBe("Ready");
+  });
+
+  it("trace_shows_break_continue_jump_target", () => {
+    const program = getDemoProgram("cpp-break-continue");
+    expect(program).toBeDefined();
+    const prepared = prepareSourceForCoreAssembly(program!.source, "cpp");
+    expect(prepared.ok).toBe(true);
+
+    let state: CometState = mockCaslCore.assemble(prepared.coreSourceText);
+    for (let step = 0; step < 200 && state.runState !== "Finished"; step += 1) {
+      state = mockCaslCore.step(state);
+    }
+
+    const markup = renderToStaticMarkup(<TracePanel state={state} embedded />);
+
+    expect(markup).toContain("continue -&gt; FOR_CONTINUE_0");
+    expect(markup).toContain("break / loop exit -&gt; FOR_END_0");
   });
 });
 

@@ -188,7 +188,9 @@ Talking points:
 - This demo uses `continue` to skip `i == 2` and `break` to exit at `i == 4`.
 - stugx.CASL lowers both statements into ordinary CASL `JUMP` instructions.
 - Open `Generated CASL` and point out `FOR_CONTINUE_0`, `FOR_END_0`, and the generated `JUMP` rows.
-- Open `Machine Code` and show that these jumps are normal COMET II machine words with opcode and operand explanations.
+- Open `Machine Code` and show that these jumps are normal COMET II machine words with opcode, operand, and control-flow target explanations.
+- Point out the control-flow badges and target text: `continue -> FOR_CONTINUE_0` and `break -> FOR_END_0`.
+- After running, open `Trace` and show PR movement through the continue and break jumps.
 - Run the program and confirm:
 
 ```text

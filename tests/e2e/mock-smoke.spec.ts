@@ -142,14 +142,22 @@ test("Mock backend executes C++ subset break and continue lowering", async ({ pa
   await page.getByRole("tab", { name: "Generated CASL" }).click();
   await expect(page.getByTestId("generated-casl-output")).toContainText("FOR_CONTINUE_0");
   await expect(page.getByTestId("generated-casl-output")).toContainText("FOR_END_0");
+  await expect(page.getByTestId("generated-casl-output")).toContainText("continue -> FOR_CONTINUE_0");
+  await expect(page.getByTestId("generated-casl-output")).toContainText("break -> FOR_END_0");
 
   await page.getByRole("tab", { name: "Machine Code" }).click();
   await expect(page.getByTestId("machine-code-output")).toContainText("JUMP FOR_CONTINUE_0");
   await expect(page.getByTestId("machine-code-output")).toContainText("JUMP FOR_END_0");
+  await page.getByTestId("machine-code-output").locator('[data-testid^="machine-code-row-"]').filter({ hasText: "JUMP FOR_CONTINUE_0" }).first().click();
+  await expect(page.getByTestId("machine-code-explanation")).toContainText("FOR_CONTINUE_0");
+  await expect(page.getByTestId("machine-code-explanation")).toContainText("continue");
 
   await run(page);
   await expect(page.getByTestId("run-state")).toHaveText("Finished");
   await expectRegister(page, "register-gr0", "0004");
+  await page.getByRole("tab", { name: "Trace" }).click();
+  await expect(page.getByTestId("trace-list")).toContainText("FOR_CONTINUE_0");
+  await expect(page.getByTestId("trace-list")).toContainText("FOR_END_0");
 });
 
 test("Mock backend stops runaway while programs at maxSteps and can reset", async ({ page }) => {

@@ -15,6 +15,28 @@ function traceChanges(event: CometState["trace"][number]): string {
   return changes.length ? changes.join(" | ") : "No data write";
 }
 
+function traceControlFlow(event: CometState["trace"][number], state: CometState): string {
+  if (!/^J(UMP|ZE|NZ|PL|MI)$/.test(event.instruction)) return "";
+  const row = state.sourceMap.find((entry) => entry.address === event.address);
+  const source = row?.source ?? event.source ?? "";
+  const targetLabel = jumpTargetFromSource(source);
+  const targetAddress = row?.machineWords[1];
+  const labelText = targetLabel ? `${targetLabel}${targetAddress !== undefined ? ` / ${formatWord(targetAddress)}` : ""}` : targetAddress !== undefined ? formatWord(targetAddress) : "";
+  if (!labelText) return "";
+  if (/FOR_CONTINUE_/i.test(targetLabel ?? "")) return `continue -> ${labelText}`;
+  if (/(FOR_END_|LOOP_END_)/i.test(targetLabel ?? "")) return `break / loop exit -> ${labelText}`;
+  if (/(FOR_BEGIN_|LOOP_BEGIN_)/i.test(targetLabel ?? "")) return `loop back -> ${labelText}`;
+  if (event.instruction !== "JUMP") return `${event.instruction} target -> ${labelText}`;
+  return `jump -> ${labelText}`;
+}
+
+function jumpTargetFromSource(source: string): string | undefined {
+  const parts = source.trim().split(/\s+/);
+  const jumpIndex = parts.findIndex((part) => /^J(UMP|ZE|NZ|PL|MI)$/i.test(part));
+  if (jumpIndex < 0) return undefined;
+  return parts[jumpIndex + 1]?.split(",")[0];
+}
+
 export default function TracePanel({ state, embedded = false }: { state: CometState; embedded?: boolean }) {
   return (
     <section className={embedded ? "embedded-panel trace-panel" : "panel trace-panel"}>
@@ -35,6 +57,7 @@ export default function TracePanel({ state, embedded = false }: { state: CometSt
                 <span>{event.visualPath ?? "None"}</span>
               </div>
               <p>{event.source ?? event.detail}</p>
+              {traceControlFlow(event, state) ? <p className="trace-flow" data-testid="trace-control-flow">{traceControlFlow(event, state)}</p> : null}
               <p className="trace-changes">Changes: {traceChanges(event)}{event.runState ? ` | ${event.runState}` : ""}</p>
             </div>
           </article>

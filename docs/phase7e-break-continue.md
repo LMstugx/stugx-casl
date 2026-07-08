@@ -106,6 +106,12 @@ JUMP FOR_END_0
 
 The Phase 7B explanation panel continues to decode the `JUMP` opcode, operand address, resolved label, and human-readable target meaning.
 
+Phase 7F adds UI control-flow hints for these jumps:
+
+- Generated CASL rows show jump target label, CASL line, and machine address.
+- Machine Code explanations show edge kind such as `break` or `continue`.
+- Trace rows show target text during runtime execution.
+
 ## Current Limits
 
 - No `break` values or labelled breaks.

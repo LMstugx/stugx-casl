@@ -653,7 +653,7 @@ button {
 
 .learning-flow {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 22px minmax(0, 1fr) 22px minmax(0, 1fr) 22px minmax(0, 0.95fr);
+  grid-template-columns: minmax(0, 1fr) 18px minmax(0, 1fr) 18px minmax(0, 1fr) 18px minmax(0, 1fr) 18px minmax(0, 0.9fr);
   align-items: stretch;
   gap: 6px;
   min-height: 0;
@@ -695,6 +695,21 @@ button {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.flow-card small {
+  min-width: 0;
+  color: var(--color-muted);
+  font-size: 10.5px;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.control-flow-card {
+  border-color: #d5dceb;
+  background: #f8fafc;
 }
 
 .now-card {
@@ -1033,6 +1048,11 @@ button {
   color: #334155;
 }
 
+.trace-flow {
+  color: #1f5fbf;
+  font-family: "Cascadia Mono", Consolas, monospace;
+}
+
 .output-panel {
   min-height: 0;
   display: grid;
@@ -1144,7 +1164,7 @@ button {
 
 .generated-casl-table .code-table-header,
 .generated-casl-table .code-table-row {
-  grid-template-columns: 44px 96px 80px minmax(150px, 1fr) 170px 54px;
+  grid-template-columns: 44px 122px 78px minmax(120px, 0.75fr) 156px 48px minmax(190px, 1fr);
 }
 
 .machine-code-table .code-table-header,
@@ -1176,6 +1196,48 @@ button {
   color: var(--color-muted);
 }
 
+.flow-badge {
+  display: inline-flex;
+  align-items: center;
+  min-width: 26px;
+  min-height: 17px;
+  margin-right: 5px;
+  padding: 0 4px;
+  border: 1px solid var(--color-border);
+  border-radius: 3px;
+  color: #334155;
+  background: #eef2f7;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.flow-badge.if-label {
+  color: #1d4ed8;
+  background: #eff6ff;
+  border-color: #bfdbfe;
+}
+
+.flow-badge.loop-label,
+.flow-badge.for-label,
+.flow-badge.continue-label {
+  color: #166534;
+  background: #ecfdf3;
+  border-color: #bbf7d0;
+}
+
+.flow-badge.end-label {
+  color: #991b1b;
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+
+.flow-target {
+  color: #1f5fbf;
+  font-family: "Cascadia Mono", Consolas, monospace;
+  font-size: 11px;
+}
+
 .machine-code-row.current-pr {
   background: var(--color-active-bg);
   box-shadow: inset 3px 0 0 var(--color-primary);
@@ -1199,6 +1261,11 @@ button {
 
 .machine-code-row.current-ir {
   background: rgba(37, 99, 235, 0.08);
+}
+
+.machine-code-row.control-target {
+  outline: 1px dashed #7c3aed;
+  outline-offset: -2px;
 }
 
 .machine-code-row.read {

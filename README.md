@@ -235,6 +235,8 @@ The Output dock includes:
 
 The machine-code rows show source text, labels, opcode/operand/data meaning, current PR, current IR words, last read, last write, and related C++ line when available. Selecting a machine-code row opens a word explanation panel with opcode, register field, index field, operand address, resolved label, binary text, and a human-readable meaning. This is still a C++ subset learning pipeline, not a complete C++ compiler.
 
+Generated CASL and Machine Code views also show control-flow hints for `if`, `while`, `for`, `break`, and `continue`: label badges, jump targets, target CASL lines, target machine addresses, and edge kinds such as `break`, `continue`, and `loop-back`.
+
 ## Install
 
 ```bash
@@ -384,9 +386,10 @@ See [docs/phase7b-machine-code-explanation.md](docs/phase7b-machine-code-explana
 See [docs/phase7c-for-lowering.md](docs/phase7c-for-lowering.md) for for loop lowering.
 See [docs/phase7d-loop-syntax-sugar.md](docs/phase7d-loop-syntax-sugar.md) for loop syntax sugar.
 See [docs/phase7e-break-continue.md](docs/phase7e-break-continue.md) for break / continue lowering.
+See [docs/phase7f-control-flow-visualization.md](docs/phase7f-control-flow-visualization.md) for control-flow hints across Generated CASL, Machine Code, Learning Flow, and Trace.
 
 ## Suggested Next Phase
 
-1. Consider a compact control-flow view for generated labels and jumps.
+1. Consider an optional compact CFG graph for generated labels and jumps.
 2. Expand C++ / generated CASL dual highlighting interactions.
 3. Add a bit-level machine-code visualizer if students need deeper opcode inspection.

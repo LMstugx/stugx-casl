@@ -3,6 +3,14 @@ import type { CometState } from "../core/types";
 import { formatWord } from "../core/types";
 import { selectGeneratedCaslRows } from "../core/generatedCaslRows";
 import { explainMachineCodeRow, selectDefaultMachineCodeRow, selectMachineCodeRows } from "../core/machineCodeRows";
+import {
+  controlFlowEdgeLabel,
+  controlFlowLabelBadge,
+  controlFlowMeaning,
+  controlFlowTargetText,
+  selectControlFlowForMachineRow,
+  selectControlFlowGraph
+} from "../core/controlFlowGraph";
 import type { CppToCaslMap } from "../transpiler/cppAst";
 import type { SourceMode } from "../store/useAppStore";
 
@@ -88,10 +96,19 @@ export default function OutputPanel({
             : ["No generated CASL. Switch to C++ subset mode and assemble."];
   const generatedRows = selectGeneratedCaslRows(generatedCaslSource, cppToCaslMapping, currentCaslLine, currentCppLine);
   const machineRows = state ? selectMachineCodeRows(state, cppToCaslMapping) : [];
+  const controlFlowGraph = selectControlFlowGraph(generatedCaslSource, cppToCaslMapping, machineRows, state);
+  const labelByCaslLine = new Map(controlFlowGraph.labels.map((label) => [label.caslLine, label]));
+  const primaryEdgeByCaslLine = new Map(
+    controlFlowGraph.edges
+      .filter((edge) => edge.kind !== "conditional-false")
+      .map((edge) => [edge.fromCaslLine, edge])
+  );
+  const currentTargetAddresses = new Set(controlFlowGraph.edges.filter((edge) => edge.isCurrent && edge.toAddress !== undefined).map((edge) => edge.toAddress!));
   const [selectedMachineAddress, setSelectedMachineAddress] = useState<number | null>(null);
   const selectedMachineRow =
     machineRows.find((row) => row.address === selectedMachineAddress) ?? selectDefaultMachineCodeRow(machineRows);
   const machineExplanation = selectedMachineRow ? explainMachineCodeRow(selectedMachineRow) : undefined;
+  const selectedMachineEdge = selectedMachineRow ? selectControlFlowForMachineRow(selectedMachineRow, controlFlowGraph) : undefined;
 
   return (
     <section className="output-panel">
@@ -135,24 +152,36 @@ export default function OutputPanel({
                       <span>Operand</span>
                       <span>Mapping</span>
                       <span>C++</span>
+                      <span>Flow</span>
                     </div>
-                    {generatedRows.map((row) => (
-                      <div
-                        key={`${row.lineNumber}-${row.raw}`}
-                        className={`code-table-row generated-casl-line ${row.isCurrent ? "current" : ""} ${row.isRelated ? "related" : ""} ${row.isGeneratedMeta ? "generated-meta" : ""}`}
-                        data-testid={row.isCurrent ? "generated-casl-line-current" : "generated-casl-line"}
-                        data-line={row.lineNumber}
-                        data-current={row.isCurrent ? "true" : "false"}
-                        data-related={row.isRelated ? "true" : "false"}
-                      >
-                        <span className="console-prefix">{String(row.lineNumber).padStart(2, "0")}</span>
-                        <span>{row.label || "-"}</span>
-                        <span>{row.opcode || "-"}</span>
-                        <span>{row.operand || "-"}</span>
-                        <span>{row.mappingKinds.join(", ") || "-"}</span>
-                        <span>{row.relatedCppLine ? `L${row.relatedCppLine}` : "-"}</span>
-                      </div>
-                    ))}
+                    {generatedRows.map((row) => {
+                      const label = labelByCaslLine.get(row.lineNumber);
+                      const edge = primaryEdgeByCaslLine.get(row.lineNumber);
+                      return (
+                        <div
+                          key={`${row.lineNumber}-${row.raw}`}
+                          className={`code-table-row generated-casl-line ${row.isCurrent ? "current" : ""} ${row.isRelated ? "related" : ""} ${row.isGeneratedMeta ? "generated-meta" : ""}`}
+                          data-testid={row.isCurrent ? "generated-casl-line-current" : "generated-casl-line"}
+                          data-line={row.lineNumber}
+                          data-current={row.isCurrent ? "true" : "false"}
+                          data-related={row.isRelated ? "true" : "false"}
+                          data-flow-kind={edge?.kind ?? ""}
+                        >
+                          <span className="console-prefix">{String(row.lineNumber).padStart(2, "0")}</span>
+                          <span>
+                            {label ? <span className={`flow-badge ${label.kind}`}>{controlFlowLabelBadge(label)}</span> : null}
+                            {row.label || "-"}
+                          </span>
+                          <span>{row.opcode || "-"}</span>
+                          <span>{row.operand || "-"}</span>
+                          <span>{row.mappingKinds.join(", ") || "-"}</span>
+                          <span>{row.relatedCppLine ? `L${row.relatedCppLine}` : "-"}</span>
+                          <span className="flow-target" data-testid={edge ? "generated-casl-flow-target" : undefined}>
+                            {edge ? `${controlFlowEdgeLabel(edge)} / ${controlFlowTargetText(edge)}` : "-"}
+                          </span>
+                        </div>
+                      );
+                    })}
                   </div>
                 ) : (
                   <div className="console-line muted">
@@ -179,10 +208,12 @@ export default function OutputPanel({
                         </div>
                         {machineRows.map((row) => {
                           const isSelected = selectedMachineRow?.address === row.address;
+                          const edge = selectControlFlowForMachineRow(row, controlFlowGraph);
+                          const isControlTarget = currentTargetAddresses.has(row.address);
                           return (
                             <div
                               key={`${row.address}-${row.sourceLineIndex}`}
-                              className={`code-table-row machine-code-row ${row.isCurrentPr ? "current-pr" : ""} ${row.isCurrentIr ? "current-ir" : ""} ${row.isRead ? "read" : ""} ${row.isWritten ? "written" : ""} ${isSelected ? "selected" : ""}`}
+                              className={`code-table-row machine-code-row ${row.isCurrentPr ? "current-pr" : ""} ${row.isCurrentIr ? "current-ir" : ""} ${row.isRead ? "read" : ""} ${row.isWritten ? "written" : ""} ${isSelected ? "selected" : ""} ${isControlTarget ? "control-target" : ""}`}
                               data-testid={`machine-code-row-${formatWord(row.address)}`}
                               data-address={formatWord(row.address)}
                               data-pr={row.isCurrentPr ? "true" : "false"}
@@ -190,6 +221,7 @@ export default function OutputPanel({
                               data-read={row.isRead ? "true" : "false"}
                               data-write={row.isWritten ? "true" : "false"}
                               data-selected={isSelected ? "true" : "false"}
+                              data-flow-kind={edge?.kind ?? ""}
                               role="button"
                               tabIndex={0}
                               onClick={() => setSelectedMachineAddress(row.address)}
@@ -204,7 +236,7 @@ export default function OutputPanel({
                               <span className="hex">{formatWord(row.word)}</span>
                               <span>{row.sourceText}</span>
                               <span>{row.label ?? "-"}</span>
-                              <span>{row.meaning}</span>
+                              <span>{edge ? controlFlowEdgeLabel(edge) : row.meaning}</span>
                               <span>{row.relatedCppLine ? `L${row.relatedCppLine}` : "-"}</span>
                             </div>
                           );
@@ -253,12 +285,20 @@ export default function OutputPanel({
                               <dd>{machineExplanation.binaryText}</dd>
                             </div>
                             <div className="machine-code-explanation-wide">
+                              <dt>Control Flow Target</dt>
+                              <dd data-testid="machine-code-control-flow-target">{selectedMachineEdge ? controlFlowTargetText(selectedMachineEdge) : "-"}</dd>
+                            </div>
+                            <div className="machine-code-explanation-wide">
+                              <dt>Edge Kind</dt>
+                              <dd>{selectedMachineEdge?.kind ?? "-"}</dd>
+                            </div>
+                            <div className="machine-code-explanation-wide">
                               <dt>Source</dt>
                               <dd>{machineExplanation.sourceText || "-"}</dd>
                             </div>
                             <div className="machine-code-explanation-wide">
                               <dt>Meaning</dt>
-                              <dd>{machineExplanation.meaning}</dd>
+                              <dd>{selectedMachineEdge ? controlFlowMeaning(selectedMachineEdge) : machineExplanation.meaning}</dd>
                             </div>
                           </dl>
                         </section>

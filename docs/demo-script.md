@@ -1,34 +1,42 @@
 # stugx.CASL デモ録画スクリプト
 
+このスクリプトは、前輩・先生・コンテスト審査向けに 3 分から 5 分で説明するための流れです。  
+画面ではできるだけ `Generated CASL`、`Machine Code`、`Trace`、`Memory`、`Control Flow` を順番に見せます。
+
 ## 1. Opening
 
-こんにちは。これは `stugx.CASL` です。
+話す内容:
 
-`stugx.CASL` は、CASL II と COMET II の動きを学習するための実行・可視化ツールです。左側でソースコードを書き、中央で COMET II の回路と実行状態を確認し、右側でレジスタ、メモリ、Source Map、Trace を追跡できます。
+> これは `stugx.CASL` です。CASL II / COMET II を学ぶための Learning Studio です。  
+> CASL を直接実行できるだけでなく、小さな C++ subset を CASL II に変換し、さらに COMET II machine code、opcode explanation、memory、trace、control flow、circuit visualization まで同じ画面で確認できます。
 
-このデモでは、CASL を直接実行する流れと、C++ subset を CASL に変換してから COMET II 上で実行する流れを紹介します。
+見せる場所:
 
-## 2. Demo 1: CASL direct execution
+- 左側: Source Editor
+- 中央: COMET II circuit と Learning Flow
+- 右側: Registers / Memory / Source Map / Trace
+- 下部: Output / Generated CASL / Machine Code
 
-選択するサンプル:
+## 2. Demo 1: CASL Direct Execution
+
+選択する example:
 
 ```text
 CASL: GR2 Addition
 ```
 
-話すポイント:
+話す内容:
 
-- これは CASL II を直接実行するサンプルです。
-- `LD GR2,A` で Memory[A] を GR2 に読み込みます。
-- `ADDA GR2,B` で B を加算します。
-- `ST GR2,C` で結果を Memory[C] に保存します。
+> 最初は C++ ではなく、CASL II を直接実行します。  
+> `LD GR2,A` で Memory[A] を GR2 に読み込み、`ADDA GR2,B` で加算し、`ST GR2,C` で結果を Memory[C] に保存します。
 
 操作:
 
-1. `CASL: GR2 Addition` を選択します。
-2. `Assemble` を押します。
-3. `Step` を押しながら、GR2 と Memory[C] の変化を確認します。
-4. Memory tab を開き、C の値が `0007` になることを見せます。
+1. `CASL: GR2 Addition` を選択する。
+2. `Assemble` を押す。
+3. `Machine Code` tab を開き、`LD`, `ADDA`, `ST`, `RET` が COMET II word になっていることを見せる。
+4. `Step` を数回押す。
+5. Registers で `GR2`、Memory で `C` を確認する。
 
 期待結果:
 
@@ -37,26 +45,28 @@ GR2 = 0007
 Memory[C] = 0007
 ```
 
-## 3. Demo 2: C++ to CASL
+## 3. Demo 2: C++ to CASL to Machine Code
 
-選択するサンプル:
+選択する example:
 
 ```text
 C++: Addition
 ```
 
-話すポイント:
+話す内容:
 
-- このツールは完全な C++ コンパイラではありません。
-- 学習用の小さな C++ subset を CASL に変換します。
-- 変換後の CASL を Generated CASL tab で確認できます。
+> 次に C++ subset の例です。これは完全な C++ compiler ではなく、学習用の小さな subset です。  
+> `int a`, `int b`, `c = a + b`, `return c` が CASL II に変換されます。
 
 操作:
 
-1. `C++: Addition` を選択します。
-2. `Assemble` を押します。
-3. `Generated CASL` が表示されることを確認します。
-4. `Step` を押し、C++ の行、CASL の行、COMET の状態が対応して動くことを見せます。
+1. `C++: Addition` を選択する。
+2. `Assemble` を押す。
+3. `Generated CASL` tab を開く。
+4. `LD GR1,A`, `ADDA GR1,B`, `ST GR1,C`, `LD GR0,C`, `RET` を見せる。
+5. `Machine Code` tab を開く。
+6. `1010` の行をクリックし、opcode / register / operand explanation を見せる。
+7. `Step` を押し、C++ 行、CASL 行、machine address、register state が連動することを見せる。
 
 期待結果:
 
@@ -65,57 +75,28 @@ C = 001E
 GR0 = 001E
 ```
 
-## 4. Demo 3: If / Else
+## 4. Demo 3: C++ For Sum Sugar
 
-選択するサンプル:
+選択する example:
 
 ```text
-C++: If Else
+C++: For Sum Sugar
 ```
 
-話すポイント:
+話す内容:
 
-- `if (a == b)` は CASL の `CPA` と `JZE` に変換されます。
-- 条件が成立した場合は true 側のラベルにジャンプします。
-- `else` 側は `JUMP` で分岐の終端に進みます。
+> これは学生が自然に書きそうな `for` loop の例です。  
+> `i++` と `sum += i` は、内部では通常の代入、加算、保存命令に lower されます。
 
 操作:
 
-1. `C++: If Else` を選択します。
-2. `Assemble` を押します。
-3. Generated CASL で `CPA`, `JZE`, `JUMP` を確認します。
-4. Step または Run で分岐が実行される様子を見せます。
-
-期待結果:
-
-```text
-GR0 = 0001
-```
-
-## 5. Demo 4: While Sum
-
-選択するサンプル:
-
-```text
-C++: While Sum
-```
-
-話すポイント:
-
-- `while` は CASL のループラベル、比較、条件ジャンプに変換されます。
-- Trace tab ではループ中に実行された命令を追跡できます。
-- Memory tab では `I`, `SUM`, `CONST_0`, `CONST_1` などの変数・定数領域を確認できます。
-- Run は maxSteps で保護されているため、無限ループでもブラウザを固めません。
-
-操作:
-
-1. `C++: While Sum` を選択します。
-2. `Assemble` を押します。
-3. Generated CASL で `LOOP_BEGIN_0`, `LOOP_BODY_0`, `LOOP_END_0` を確認します。
-4. Memory tab を開き、`I` と `SUM` のラベルを確認します。
-5. Trace tab を開きます。
-6. `Run` を押します。
-7. 最後に GR0 と SUM の値が `0006` になることを確認します。
+1. `C++: For Sum Sugar` を選択する。
+2. `Assemble` を押す。
+3. `Generated CASL` tab を開く。
+4. `FOR_BEGIN_0`, `FOR_BODY_0`, `FOR_CONTINUE_0`, `FOR_END_0` などの label を見せる。
+5. `Machine Code` tab を開き、jump の target address と explanation を見せる。
+6. `Run` を押す。
+7. Trace と Memory を開いて、loop が複数回実行されたことを確認する。
 
 期待結果:
 
@@ -124,114 +105,54 @@ SUM = 0006
 GR0 = 0006
 ```
 
-## 6. Closing
+## 5. Demo 4: C++ Break Continue
 
-今回のデモでは、次の流れを確認しました。
-
-```text
-C++ subset source
--> Generated CASL
--> CASL assembler
--> COMET II execution
--> Register / Memory / Circuit / Trace visualization
-```
-
-今後の予定:
-
-- CASL II 命令セットの拡張
-- C++ subset の改善
-- より強い可視化と学習用説明
-- 必要に応じた配布・デプロイ形態の検討
-
-この段階では、デプロイよりも学習体験と実行の正確性を優先しています。
-
-## Appendix: Demo 5 - C++ For Sum
-
-Select:
-
-```text
-C++: For Sum
-```
-
-Talking points:
-
-- The `for` statement is syntax sugar in this version.
-- stugx.CASL lowers it into `FOR_BEGIN_0`, `FOR_BODY_0`, `FOR_END_0`, condition jumps, increment code, and a back jump.
-- Open `Generated CASL` to show the lowering.
-- Open `Machine Code` to show that the generated CASL is assembled into normal COMET II words.
-- Run the program and confirm:
-
-```text
-SUM = 0006
-GR0 = 0006
-```
-
-Suggested actions:
-
-1. Load `C++: For Sum`.
-2. Click `Assemble`.
-3. Open `Generated CASL`.
-4. Open `Machine Code`.
-5. Click `Run`.
-6. Check `Trace`, `Memory`, and `GR0`.
-
-## Appendix: Demo 7 - C++ Break Continue
-
-Select:
+選択する example:
 
 ```text
 C++: Break Continue
 ```
 
-Talking points:
+話す内容:
 
-- This demo uses `continue` to skip `i == 2` and `break` to exit at `i == 4`.
-- stugx.CASL lowers both statements into ordinary CASL `JUMP` instructions.
-- Open `Generated CASL` and point out `FOR_CONTINUE_0`, `FOR_END_0`, and the generated `JUMP` rows.
-- Open `Machine Code` and show that these jumps are normal COMET II machine words with opcode, operand, and control-flow target explanations.
-- Point out the control-flow badges and target text: `continue -> FOR_CONTINUE_0` and `break -> FOR_END_0`.
-- After running, open `Trace` and show PR movement through the continue and break jumps.
-- Run the program and confirm:
+> 最後は `break` と `continue` の例です。  
+> C++ の `continue` は CASL の `JUMP FOR_CONTINUE_0` に、`break` は `JUMP FOR_END_0` に変換されます。  
+> つまり、制御フローは高級言語のキーワードではなく、machine code 上では PR を別の address に移動する命令として観察できます。
+
+操作:
+
+1. `C++: Break Continue` を選択する。
+2. `Assemble` を押す。
+3. `Generated CASL` tab を開く。
+4. `FOR_CONTINUE_0`, `FOR_END_0`, `continue -> FOR_CONTINUE_0`, `break -> FOR_END_0` を見せる。
+5. `Machine Code` tab を開く。
+6. `JUMP FOR_CONTINUE_0` の word をクリックし、Control-flow target と Meaning を見せる。
+7. `Run` を押す。
+8. Trace tab を開き、continue / break の jump が実行履歴に出ていることを見せる。
+9. Memory tab で `SUM` の値を確認する。
+
+期待結果:
 
 ```text
 SUM = 0004
 GR0 = 0004
 ```
 
-Suggested actions:
+## 6. Closing
 
-1. Load `C++: Break Continue`.
-2. Click `Assemble`.
-3. Open `Generated CASL`.
-4. Open `Machine Code`.
-5. Step through the `continue` and `break` paths, or click `Run`.
-6. Check `Trace`, `Memory`, and `GR0`.
-## Appendix: Demo 6 - C++ For Sum Sugar
+話す内容:
 
-Select:
+> このプロジェクトの目的は、C++ subset、CASL II assembly、COMET II machine code、runtime state を一つの画面でつなぐことです。  
+> 学生は、ソースコードがどのように assembly になり、machine code になり、PR・register・memory・trace・circuit に反映されるかを確認できます。
 
-```text
-C++: For Sum Sugar
-```
+今後の予定:
 
-Talking points:
+- CASL II instruction subset の拡張
+- C++ subset の教育向け改善
+- bit-level machine word visualization
+- compact CFG graph view
+- より強い source / CASL / machine code の対応表示
 
-- This demo uses more natural C/C++ loop syntax: `i++` and `sum += i`.
-- stugx.CASL normalizes the syntax sugar into the same assignment/add/store pattern.
-- Open `Generated CASL` and point out `LD`, `ADDA`, and `ST` generated from the sugar syntax.
-- Open `Machine Code` and show that the words are still ordinary COMET II instructions.
-- Run the program and confirm:
+注意:
 
-```text
-SUM = 0006
-GR0 = 0006
-```
-
-Suggested actions:
-
-1. Load `C++: For Sum Sugar`.
-2. Click `Assemble`.
-3. Open `Generated CASL`.
-4. Open `Machine Code`.
-5. Click `Run`.
-6. Check `Trace`, `Memory`, and `GR0`.
+> 現在の C++ support は学習用 subset です。完全な C++ compiler ではありません。

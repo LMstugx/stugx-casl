@@ -166,4 +166,39 @@ describe("demo recording experience", () => {
     expect(markup).toContain("SUM = 0006");
     expect(markup).toContain("GR0 = 0006");
   });
+
+  it("about_panel_renders_project_summary", () => {
+    const markup = renderToStaticMarkup(<DemoGuidePanel program={getDemoProgram("cpp-break-continue")!} />);
+
+    expect(markup).toContain('data-testid="project-overview"');
+    expect(markup).toContain("stugx.CASL");
+    expect(markup).toContain("CASL II / COMET II learning studio");
+  });
+
+  it("about_panel_lists_learning_pipeline", () => {
+    const markup = renderToStaticMarkup(<DemoGuidePanel program={getDemoProgram("cpp-break-continue")!} />);
+
+    expect(markup).toContain("C++ subset -&gt; Generated CASL II Assembly -&gt; COMET II Machine Code");
+    expect(markup).toContain("opcode explanation");
+    expect(markup).toContain("memory, trace, control flow, and circuit state");
+  });
+
+  it("about_panel_lists_limitations", () => {
+    const markup = renderToStaticMarkup(<DemoGuidePanel program={getDemoProgram("cpp-break-continue")!} />);
+
+    expect(markup).toContain("Not a full C++ compiler");
+    expect(markup).toContain("arrays, pointers, functions, classes, templates");
+  });
+
+  it("demo_examples_have_complete_metadata", () => {
+    for (const program of demoPrograms) {
+      expect(program.id).not.toHaveLength(0);
+      expect(program.name).not.toHaveLength(0);
+      expect(program.source).not.toHaveLength(0);
+      expect(program.description).not.toHaveLength(0);
+      expect(program.whatThisShows).not.toHaveLength(0);
+      expect(program.expectedResult).not.toHaveLength(0);
+      expect(program.suggestedActions.length).toBeGreaterThanOrEqual(3);
+    }
+  });
 });

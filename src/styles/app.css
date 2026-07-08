@@ -362,8 +362,8 @@ button {
 }
 
 .source-panel {
-  flex: 1 1 auto;
-  min-height: 0;
+  flex: 1 1 190px;
+  min-height: 180px;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
 }
@@ -388,16 +388,25 @@ button {
 }
 
 .current-panel {
-  min-height: 96px;
+  min-height: 74px;
 }
 
 .demo-guide-panel {
-  max-height: 220px;
+  flex: 0 1 136px;
+  max-height: 136px;
   overflow: auto;
 }
 
 .demo-guide-panel details {
   padding: 9px 11px 10px;
+}
+
+.demo-guide-panel details + details {
+  border-top: 1px solid var(--color-border);
+}
+
+.project-overview[open] {
+  background: var(--color-surface-soft);
 }
 
 .demo-guide-panel summary {
@@ -440,9 +449,13 @@ button {
   padding-left: 18px;
 }
 
+.project-overview-body {
+  gap: 7px;
+}
+
 .errors-panel {
-  min-height: 84px;
-  max-height: 120px;
+  min-height: 70px;
+  max-height: 88px;
 }
 
 .current-instruction {

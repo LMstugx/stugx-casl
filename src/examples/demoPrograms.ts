@@ -24,10 +24,10 @@ A    DC    3
 B    DC    4
 C    DS    1
      END`,
-    description: "Direct CASL execution showing GR2 and Memory[C] changes.",
-    whatThisShows: "CASL II source is assembled directly and executed on the COMET-II state model.",
+    description: "Direct CASL execution showing GR2, machine code, and Memory[C] changes.",
+    whatThisShows: "CASL II source is assembled directly, converted to COMET II words, and executed on the COMET state model.",
     expectedResult: "GR2 = 0007 and Memory[C] = 0007 after ST; RET finishes the program.",
-    suggestedActions: ["Click Assemble.", "Step through LD, ADDA, and ST.", "Open Memory and confirm label C is written."]
+    suggestedActions: ["Click Assemble.", "Open Machine Code and inspect LD / ADDA / ST words.", "Step through LD, ADDA, and ST.", "Open Memory and confirm label C is written."]
   },
   {
     id: "cpp-addition",
@@ -40,10 +40,10 @@ C    DS    1
     c = a + b;
     return c;
 }`,
-    description: "C++ subset is lowered to CASL and then executed.",
-    whatThisShows: "A small C++ subset program becomes CASL load/add/store instructions.",
+    description: "C++ subset is lowered to CASL, machine code, and COMET execution.",
+    whatThisShows: "A small C++ subset program becomes CASL load/add/store instructions and COMET II machine words.",
     expectedResult: "C = 001E and GR0 = 001E after return.",
-    suggestedActions: ["Click Assemble.", "Open Generated CASL.", "Step and watch C++ and CASL highlights move together."]
+    suggestedActions: ["Click Assemble.", "Open Generated CASL.", "Open Machine Code and click an instruction word.", "Step and watch C++ and CASL highlights move together."]
   },
   {
     id: "cpp-if-else",
@@ -62,10 +62,10 @@ C    DS    1
 
     return c;
 }`,
-    description: "Branch lowering with CPA, JZE, and JUMP.",
-    whatThisShows: "C++ if/else is lowered into compare and jump instructions.",
+    description: "Branch lowering with CPA, JZE, JUMP, and control-flow targets.",
+    whatThisShows: "C++ if/else is lowered into compare and jump instructions with visible target labels and addresses.",
     expectedResult: "The equality branch is taken and GR0 = 0001.",
-    suggestedActions: ["Click Assemble.", "Inspect CPA / JZE / JUMP in Generated CASL.", "Step through the branch or use Run."]
+    suggestedActions: ["Click Assemble.", "Inspect CPA / JZE / JUMP in Generated CASL.", "Open Machine Code and view the jump target explanation.", "Step through the branch or use Run."]
   },
   {
     id: "cpp-while-sum",
@@ -82,10 +82,10 @@ C    DS    1
 
     return sum;
 }`,
-    description: "Loop lowering, Trace, Memory Viewer, and max-step-safe Run.",
+    description: "While-loop lowering, Trace, Memory Viewer, and max-step-safe Run.",
     whatThisShows: "C++ while loop is lowered into CASL labels and conditional jumps.",
     expectedResult: "SUM = 0006 and GR0 = 0006 when the program finishes.",
-    suggestedActions: ["Click Assemble.", "Open Generated CASL.", "Click Run.", "Watch Trace and Memory Viewer."]
+    suggestedActions: ["Click Assemble.", "Open Generated CASL and find LOOP_BEGIN / LOOP_END.", "Open Trace and Memory.", "Click Run.", "Confirm SUM and GR0."]
   },
   {
     id: "cpp-for-sum",
@@ -100,10 +100,10 @@ C    DS    1
 
     return sum;
 }`,
-    description: "For loop lowering into labels, conditional jumps, and a back jump.",
-    whatThisShows: "C++ for loop syntax is lowered into CASL labels and jumps.",
+    description: "For-loop lowering into labels, conditional jumps, increment code, and a back jump.",
+    whatThisShows: "C++ for loop syntax is lowered into CASL labels, condition checks, increment code, and loop-back jumps.",
     expectedResult: "SUM = 0006 and GR0 = 0006 when the program finishes.",
-    suggestedActions: ["Click Assemble.", "Open Generated CASL.", "Open Machine Code.", "Click Run.", "Check Trace and Memory."]
+    suggestedActions: ["Click Assemble.", "Open Generated CASL and find FOR_BEGIN / FOR_BODY / FOR_END.", "Open Machine Code.", "Click Run.", "Check Trace and Memory."]
   },
   {
     id: "cpp-for-sum-sugar",
@@ -118,10 +118,10 @@ C    DS    1
 
     return sum;
 }`,
-    description: "Natural for-loop syntax using i++ and += lowered to CASL.",
+    description: "Natural for-loop syntax using i++ and += lowered to ordinary CASL.",
     whatThisShows: "Common C/C++ loop syntax sugar is normalized into assignment, add, store, and jump instructions.",
     expectedResult: "SUM = 0006 and GR0 = 0006 when the program finishes.",
-    suggestedActions: ["Click Assemble.", "Open Generated CASL.", "Open Machine Code.", "Click Run.", "Confirm GR0 = 0006."]
+    suggestedActions: ["Click Assemble.", "Open Generated CASL and compare i++ / += with LD / ADDA / ST.", "Open Machine Code explanation.", "Click Run.", "Confirm GR0 = 0006."]
   },
   {
     id: "cpp-break-continue",
@@ -144,10 +144,10 @@ C    DS    1
 
     return sum;
 }`,
-    description: "Break and continue lowering into CASL jumps.",
-    whatThisShows: "break and continue are lowered into CASL JUMP instructions.",
+    description: "Break and continue lowering into CASL JUMP instructions with visible targets.",
+    whatThisShows: "break and continue are lowered into ordinary CASL JUMP instructions whose targets are shown in Generated CASL, Machine Code, and Trace.",
     expectedResult: "SUM = 0004 and GR0 = 0004 when the program finishes.",
-    suggestedActions: ["Click Assemble.", "Open Generated CASL.", "Open Machine Code.", "Step through continue and break.", "Check Trace and Memory."]
+    suggestedActions: ["Click Assemble.", "Open Generated CASL and find FOR_CONTINUE / FOR_END.", "Open Machine Code and inspect the jump explanations.", "Step through continue and break or click Run.", "Check Trace and Memory."]
   }
 ];
 

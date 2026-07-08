@@ -15,6 +15,24 @@ test("Mock backend completes assemble and first step in the browser UI", async (
   await expectCurrentSourceInstruction(page, /ADDA\s+GR2,B/);
 });
 
+test("Mock backend shows project overview and keeps submission demo views working", async ({ page }) => {
+  await openStudio(page, "Mock Core");
+
+  await page.getByTestId("project-overview-summary").click();
+  await expect(page.getByTestId("project-overview")).toContainText("stugx.CASL");
+  await expect(page.getByTestId("project-overview")).toContainText("C++ subset -> Generated CASL II Assembly -> COMET II Machine Code");
+
+  await selectDemoProgram(page, "cpp-break-continue");
+  await assemble(page);
+  await page.getByRole("tab", { name: "Generated CASL" }).click();
+  await expect(page.getByTestId("generated-casl-output")).toContainText("FOR_CONTINUE_0");
+  await expect(page.getByTestId("generated-casl-output")).toContainText("break -> FOR_END_0");
+
+  await page.getByRole("tab", { name: "Machine Code" }).click();
+  await expect(page.getByTestId("machine-code-output")).toContainText("JUMP FOR_CONTINUE_0");
+  await expect(page.getByTestId("machine-code-output")).toContainText("JUMP FOR_END_0");
+});
+
 test("Mock backend executes C++ subset if else lowering in the browser UI", async ({ page }) => {
   await openStudio(page, "Mock Core");
   await page.getByTestId("source-mode-cpp").click();

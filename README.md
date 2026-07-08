@@ -1,30 +1,87 @@
 # stugx.CASL
 
-Clean-room CASL II / COMET II Learning Studio prototype.
+A modern CASL II / COMET II learning studio that connects C++ subset code, CASL assembly, machine code, memory, trace, control flow, and circuit visualization.
 
-This project intentionally does not reuse the old Avalonia, Qt, WCASL clone, QPainter circuit, wire path experiments, overlay experiments, or diff experiments. The first milestone is a small, testable vertical slice:
+## Why This Project Exists
 
-- Monaco-based CASL II source editor
-- Assemble, Step, and Reset controls
-- TypeScript mock CASL core for the first UI loop
-- SVG COMET-II circuit rendered from `CometState`
-- Register, memory, source map, trace, output, and status panels
-- C++20 core skeleton with an independently tested parser, assembler, VM, source map, and state model
+CASL II and COMET II are useful for learning how software becomes machine behavior, but many tools around them feel dated or show only one layer at a time. Students can write a program and get a result, yet still miss the relationship between:
 
-## Current Milestone
+- high-level code
+- generated CASL II assembly
+- COMET II machine words
+- opcode and operand fields
+- registers, memory, PR movement, trace, and circuit data paths
 
-The supported CASL II subset is deliberately small:
+stugx.CASL puts those layers in one learning interface. It is not only an editor and not only an emulator; it is a visual bridge between programming language concepts and CPU execution.
+
+日本語要約: stugx.CASL は、C++ subset、CASL II、COMET II 機械語、メモリ、トレース、制御フロー、回路図を同じ画面で結びつける学習用ツールです。
+
+## Key Features
+
+- CASL II direct execution for the supported instruction subset.
+- C++ subset transpilation into Generated CASL II Assembly.
+- Machine Code view with address, word, source, label, meaning, and related C++ line.
+- Opcode / operand explanation for selected COMET II words.
+- Control Flow visualization for labels, conditional jumps, loop-back jumps, break, and continue.
+- Register, Memory Viewer, Source Map, Trace, and Output panels.
+- SVG COMET II circuit visualization driven by runtime state.
+- Mock TypeScript backend for fast UI development.
+- Experimental C++20 core compiled to WASM through Emscripten.
+- Golden parity, WASM parity, browser E2E, Vitest, and CTest coverage.
+
+## Main Learning Flow
+
+```text
+C++ subset source
+-> Generated CASL II Assembly
+-> COMET II Machine Code
+-> Opcode / operand explanation
+-> Control Flow targets
+-> Memory / Trace / Circuit visualization
+```
+
+CASL mode starts at CASL II source and uses the same assembler, VM state, memory, trace, machine-code, and circuit views.
+
+## Demo Flow
+
+Recommended 3-minute walkthrough:
+
+1. Load `CASL: GR2 Addition`, assemble, and step through `LD`, `ADDA`, and `ST`.
+2. Load `C++: Addition`, assemble, then open `Generated CASL` and `Machine Code`.
+3. Click a machine-code row to show opcode, register, operand, resolved label, and meaning.
+4. Load `C++: For Sum Sugar`, assemble, and show how `i++` and `sum += i` become CASL.
+5. Load `C++: Break Continue`, assemble, show `FOR_CONTINUE` / `FOR_END`, then Run.
+6. Open Trace and Memory to show PR movement, jump targets, and the final result.
+
+For a scripted Japanese walkthrough, see [docs/demo-script.md](docs/demo-script.md).
+
+## Demo Programs
+
+- `CASL: GR2 Addition`: direct CASL execution with GR2 and Memory[C].
+- `C++: Addition`: C++ subset arithmetic lowered to CASL load/add/store.
+- `C++: If Else`: `CPA`, `JZE`, and `JUMP` branch lowering.
+- `C++: While Sum`: loop labels, Trace, Memory Viewer, and max-step-safe Run.
+- `C++: For Sum`: explicit assignment increment lowering.
+- `C++: For Sum Sugar`: `i++` and `+=` syntax sugar lowering.
+- `C++: Break Continue`: loop-control statements lowered into CASL `JUMP`.
+
+## Supported CASL II Subset
+
+Directives:
 
 - `START`
 - `END`
 - `DC`
 - `DS`
-- `LD`
+
+Instructions:
+
 - `LAD`
+- `LD`
+- `ST`
 - `ADDA`
 - `SUBA`
 - `CPA`
-- `ST`
 - `JUMP`
 - `JZE`
 - `JNZ`
@@ -32,364 +89,141 @@ The supported CASL II subset is deliberately small:
 - `JMI`
 - `RET`
 
-The sample program assembles at address `0020` and produces:
+## Supported C++ Subset
 
-```text
-0020: 1010
-0021: 0027
-0022: 2010
-0023: 0028
-0024: 1110
-0025: 0029
-0026: 8100
-0027: 000A
-0028: 0014
-0029: 0000
+Supported:
+
+- `int main() { ... }`
+- `int` variables
+- integer literals
+- assignment
+- binary `+` and `-`
+- `return 0;` and `return variable;`
+- `if` / `else`
+- `while`
+- `for`
+- comparisons: `==`, `!=`, `<`, `<=`, `>`, `>=`
+- loop syntax sugar: `i++`, `++i`, `i--`, `--i`, `i += expr`, `i -= expr`
+- `break;` and `continue;` inside `while` / `for`
+
+Not supported:
+
+- full C++ parsing
+- classes, structs, templates
+- arrays, pointers, references
+- functions other than `main`
+- strings, characters, floats, doubles
+- `std::cout`, iostreams, vectors
+- `switch`, `do while`, `&&`, `||`, `!`
+- complete scope and type system
+
+## Tech Stack
+
+- Core: C++20, CMake, CTest
+- Frontend: TypeScript, React, Vite, SVG, Monaco Editor
+- Bridge: CoreAdapter abstraction, Mock backend, experimental WASM backend
+- WASM: Emscripten, C ABI + JSON DTO bridge
+- Tests: Vitest, Playwright, CTest, golden parity fixtures
+
+## Development Commands
+
+Install dependencies:
+
+```powershell
+pnpm install
 ```
 
-## What Is Mocked
+Start the default Mock backend:
 
-The default browser UI currently calls `MockCoreAdapter` through `src/core/coreBridge.ts`. This adapter wraps `src/core/mockCaslCore.ts`, implements the first supported instruction subset, and exports the same DTO contract used by the C++/WASM bridge.
-
-The active backend is shown in the bottom status bar as `Mock Core`, `WASM Core`, or `WASM Error`.
-
-## C++ Core
-
-`cpp-core/` contains a C++20 parser, assembler, VM, source map model, instruction set helpers, JSON dump tooling, and smoke tests for the same vertical slice. The default frontend backend remains `MockCoreAdapter`, and the experimental WASM backend can opt into the C++ core through the same CoreAdapter contract.
-
-The next bridge milestone is:
-
-```text
-C++ Core -> Emscripten WASM -> TypeScript State Adapter -> React + SVG UI
+```powershell
+pnpm dev
 ```
 
-## Experimental WASM Backend
-
-Phase 4 adds an experimental Emscripten build path and opt-in `WasmCoreAdapter`. The default frontend still uses `MockCoreAdapter`; WASM is enabled only when explicitly selected.
+Build and run the experimental WASM backend:
 
 ```powershell
 pnpm build:wasm
+pnpm dev:wasm
 ```
 
-Equivalent direct command:
+Run unit tests and build:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\build-wasm.ps1
+pnpm test
+pnpm build
 ```
 
-The script requires an activated Emscripten SDK with `emcc` and `emcmake` on `PATH`. It writes:
+Run WASM adapter tests:
+
+```powershell
+pnpm build:wasm
+pnpm test:wasm
+```
+
+Run browser smoke tests:
+
+```powershell
+pnpm test:e2e
+pnpm test:e2e:wasm
+```
+
+Run the C++ core tests:
+
+```powershell
+cmake -S cpp-core -B cpp-core/build
+cmake --build cpp-core/build
+ctest --test-dir cpp-core/build -C Debug --output-on-failure
+```
+
+Run the full local validation script:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/validate-all.ps1
+```
+
+The validation script is optional and intended for final local checks before a demo or contest submission.
+
+## WASM Backend
+
+The default app uses `MockCoreAdapter`. The experimental WASM backend uses the same CoreAdapter contract and C++ core behavior in browser form.
+
+Generated WASM files are local build artifacts:
 
 ```text
 public/wasm/stugx_casl_core.js
 public/wasm/stugx_casl_core.wasm
 ```
 
-These generated files are ignored by Git. See [docs/phase4a-wasm-plan.md](docs/phase4a-wasm-plan.md).
+They are intentionally ignored by Git. Build them with:
 
-To opt into the experimental WASM backend after generating the files:
+```powershell
+pnpm build:wasm
+```
+
+Then start:
 
 ```powershell
 pnpm dev:wasm
 ```
 
-Run `pnpm dev` to return to the default mock backend. WASM-specific parity tests can be run with:
-
-```powershell
-pnpm test:wasm
-```
-
-If `public/wasm/stugx_casl_core.js` or `.wasm` is missing, the app reports a `WASM Error` status and instructs you to run `scripts/build-wasm.ps1`.
-
-## Experimental C++ Subset Mode
-
-The editor can switch between `CASL` and `C++ subset` mode. C++ subset mode is a small teaching-oriented transpiler, not a complete C++ compiler.
-
-Currently supported:
-
-- `int main() { ... }`
-- local `int` variables
-- integer literals
-- identifier expressions
-- assignment
-- binary `+` and `-`
-- `if` / `else` with `==`, `!=`, `<`, `<=`, `>`, `>=`
-- `while` with `==`, `!=`, `<`, `<=`, `>`, `>=`
-- `for` loops with one initializer, one comparison condition, and one assignment increment
-- loop syntax sugar: `i++`, `++i`, `i--`, `--i`, `i += step`, `i -= step`
-- `break;` and `continue;` inside `while` / `for` loops, including inside nested `if` / `else` blocks
-- `return 0;`
-- `return variable;`
-
-The frontend transpiles C++ subset source to CASL first, shows the generated CASL in the Output dock, and then sends that CASL through the existing `coreBridge` to Mock or WASM backend.
-
-Example:
-
-```cpp
-int main() {
-    int a = 10;
-    int b = 20;
-    int c;
-    c = a + b;
-    return c;
-}
-```
-
-Generates CASL shaped like:
-
-```text
-MAIN START
-     LD    GR1,A
-     ADDA  GR1,B
-     ST    GR1,C
-     LD    GR0,C
-     RET
-A DC    10
-B DC    20
-C DS    1
-     END
-```
-
-Unsupported C++ features include classes, structs, pointers, references, templates, arrays, function calls, `std::cout`, strings, floats, `do while`, `switch`, complex boolean expressions, full scope rules, and loop-control statements outside loops. See [docs/phase5b-cpp-subset-transpiler.md](docs/phase5b-cpp-subset-transpiler.md), [docs/phase5c-if-else-lowering.md](docs/phase5c-if-else-lowering.md), [docs/phase5d-while-lowering.md](docs/phase5d-while-lowering.md), [docs/phase5f-run-stop-trace.md](docs/phase5f-run-stop-trace.md), [docs/phase7c-for-lowering.md](docs/phase7c-for-lowering.md), [docs/phase7d-loop-syntax-sugar.md](docs/phase7d-loop-syntax-sugar.md), and [docs/phase7e-break-continue.md](docs/phase7e-break-continue.md).
-
-## Run / Stop
-
-Run is enabled after a successful Assemble. The UI executes in small batches with a default `maxSteps` limit of `1000`, so loop programs can finish without freezing the browser and accidental infinite loops stop with:
-
-```text
-Max steps reached. Possible infinite loop.
-```
-
-Stop interrupts an active Run between batches. A manual stop can continue with Step or Run; a max-step safety stop disables Step/Run until Reset reloads the current assembled program.
-
-The Trace tab stores the detailed instruction history for Step and Run. Output intentionally stays as a summary log so long while programs do not flood the bottom dock.
-
-While example:
-
-```cpp
-int main() {
-    int i = 3;
-    int sum = 0;
-    while (i > 0) {
-        sum = sum + i;
-        i = i - 1;
-    }
-    return sum;
-}
-```
-
-The program finishes with `GR0 = 0006`.
-
-For example:
-
-```cpp
-int main() {
-    int sum = 0;
-    for (int i = 1; i <= 3; i = i + 1) {
-        sum = sum + i;
-    }
-    return sum;
-}
-```
-
-The program also finishes with `GR0 = 0006`.
-
-## Main Memory Viewer
-
-The COMET circuit keeps a compact Memory module for the current execution neighborhood. The Inspector `Memory` tab is the detailed memory viewer:
-
-- Defaults to the current program start address with 64 rows.
-- Supports custom hexadecimal start address and row counts of `32`, `64`, `128`, or `256`.
-- Provides jumps to Program, PR, MAR, last read, and last write.
-- Highlights PR, MAR, last read, last write, labels, and changed memory values.
-
-The viewer generates a bounded window from `CometState` and does not render all 65536 memory words. See [docs/phase-memory-viewer.md](docs/phase-memory-viewer.md).
-
-## Demo Recording
-
-The app includes demo programs for recording walkthroughs:
-
-- `CASL: GR2 Addition`
-- `C++: Addition`
-- `C++: If Else`
-- `C++: While Sum`
-- `C++: For Sum`
-- `C++: For Sum Sugar`
-- `C++: Break Continue`
-
-Use the Demo selector above the Source Editor to load one. Loading a demo marks the runtime as `Dirty`; click `Assemble` to generate CASL and load the COMET state. C++ subset demos automatically open the `Generated CASL` dock after assembly.
-
-See [docs/demo-script.md](docs/demo-script.md) for a Japanese recording script.
-
-## Generated Assembly And Machine Code
-
-C++ subset mode exposes the learning pipeline directly:
-
-```text
-C++ subset source -> Generated CASL II Assembly -> COMET II Machine Code -> Execution
-```
-
-The Output dock includes:
-
-- `Generated CASL`: structured CASL II assembly generated from the C++ subset source.
-- `Machine Code`: COMET II address/word rows derived from the current assembled program.
-
-The machine-code rows show source text, labels, opcode/operand/data meaning, current PR, current IR words, last read, last write, and related C++ line when available. Selecting a machine-code row opens a word explanation panel with opcode, register field, index field, operand address, resolved label, binary text, and a human-readable meaning. This is still a C++ subset learning pipeline, not a complete C++ compiler.
-
-Generated CASL and Machine Code views also show control-flow hints for `if`, `while`, `for`, `break`, and `continue`: label badges, jump targets, target CASL lines, target machine addresses, and edge kinds such as `break`, `continue`, and `loop-back`.
-
-## Install
-
-```bash
-npm install
-```
-
-If `npm` is not available in the current Windows PATH, use the bundled package runner available in this Codex environment:
-
-```powershell
-$env:Path='C:\Users\LMSTUGX\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin;' + $env:Path
-& 'C:\Users\LMSTUGX\.cache\codex-runtimes\codex-primary-runtime\dependencies\bin\pnpm.cmd' install
-```
-
-## Run The App
-
-```bash
-npm run dev
-```
-
-Default backend:
-
-```powershell
-pnpm dev
-```
-
-Experimental WASM backend:
-
-```powershell
-pnpm build:wasm
-pnpm dev:wasm
-```
-
-Equivalent bundled command:
-
-```powershell
-$env:Path='C:\Users\LMSTUGX\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin;' + $env:Path
-& 'C:\Users\LMSTUGX\.cache\codex-runtimes\codex-primary-runtime\dependencies\bin\pnpm.cmd' dev
-```
-
-## Frontend Tests
-
-```bash
-npm test
-```
-
-WASM-only adapter tests:
-
-```powershell
-pnpm test:wasm
-```
-
-## Browser E2E Smoke Tests
-
-Install the Playwright browser once on a development machine:
-
-```powershell
-pnpm exec playwright install chromium
-```
-
-Mock and WASM browser smoke tests:
-
-```powershell
-pnpm build:wasm
-pnpm test:e2e
-```
-
-WASM-only browser smoke test:
-
-```powershell
-pnpm build:wasm
-pnpm test:e2e:wasm
-```
-
-The WASM E2E test writes success screenshots to:
-
-```text
-artifacts/e2e/wasm-ready.png
-artifacts/e2e/wasm-step1.png
-artifacts/e2e/wasm-edited.png
-```
-
-Equivalent bundled command:
-
-```powershell
-$env:Path='C:\Users\LMSTUGX\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin;' + $env:Path
-& 'C:\Users\LMSTUGX\.cache\codex-runtimes\codex-primary-runtime\dependencies\bin\pnpm.cmd' test
-```
-
-## Frontend Build
-
-```bash
-npm run build
-```
-
-Equivalent bundled command:
-
-```powershell
-$env:Path='C:\Users\LMSTUGX\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin;' + $env:Path
-& 'C:\Users\LMSTUGX\.cache\codex-runtimes\codex-primary-runtime\dependencies\bin\pnpm.cmd' build
-```
-
-## C++ Tests
-
-```bash
-cmake -S cpp-core -B cpp-core/build
-cmake --build cpp-core/build
-ctest --test-dir cpp-core/build -C Debug --output-on-failure
-```
-
-## Current Real Source Loop
-
-The Phase 1 UI now assembles the current Monaco editor text:
-
-```text
-SourceEditor current text
--> useAppStore.sourceText
--> assemble(sourceText)
--> CometState
--> Memory / Register / SourceMap / Circuit UI
-```
-
-When source changes, the VM becomes `Dirty`, the old assembled state is invalidated, and Step / Reset are disabled until Assemble succeeds again.
+The current backend is shown in the status bar as `Mock Core`, `WASM Core`, or `WASM Error`.
 
 ## Current Limitations
 
-- Default frontend backend is `MockCoreAdapter`; C++/WASM is opt-in.
-- WASM backend is experimental and uses a single runtime plus JSON string bridge.
-- WASM generated files are local build artifacts and are not committed.
-- New / Open / Save / language / theme controls are placeholders or disabled.
-- C++ subset mode is experimental and intentionally small.
-- No full CASL II instruction set.
-- No desktop packaging.
+- This is a learning-oriented C++ subset transpiler, not a complete C++ compiler.
+- The CASL II assembler supports the current teaching subset, not the full instruction set.
+- Index addressing is not fully implemented.
+- The WASM bridge currently uses a single runtime and JSON strings.
+- The control-flow view is text and badge based; there is no full CFG graph yet.
+- New / Open / Save, language switching, and theme controls are placeholders or limited.
+- There is no desktop packaging or deployment target in this milestone.
 
-See [docs/phase1-status.md](docs/phase1-status.md) for the Phase 1 checkpoint.
-See [docs/phase4c-wasm-runtime.md](docs/phase4c-wasm-runtime.md) for the current WASM runtime workflow.
-See [docs/phase5a-instruction-expansion.md](docs/phase5a-instruction-expansion.md) for the Phase 5A instruction subset.
-See [docs/phase5b-cpp-subset-transpiler.md](docs/phase5b-cpp-subset-transpiler.md) for the C++ subset transpiler MVP.
-See [docs/phase5c-if-else-lowering.md](docs/phase5c-if-else-lowering.md) for if / else lowering and source mapping.
-See [docs/phase5d-while-lowering.md](docs/phase5d-while-lowering.md) for while lowering.
-See [docs/phase5e-run-stop-trace.md](docs/phase5e-run-stop-trace.md) for the initial Run / Stop UX.
-See [docs/phase5f-run-stop-trace.md](docs/phase5f-run-stop-trace.md) for stabilized Run / Stop / maxSteps behavior.
-See [docs/phase5h-run-stop-trace.md](docs/phase5h-run-stop-trace.md) for the current Run / Stop / Trace stabilization checkpoint.
-See [docs/phase-memory-viewer.md](docs/phase-memory-viewer.md) for the detailed Inspector Memory viewer.
-See [docs/demo-script.md](docs/demo-script.md) for the demo recording script.
-See [docs/phase7a-machine-code-view.md](docs/phase7a-machine-code-view.md) for the generated assembly and machine-code view.
-See [docs/phase7b-machine-code-explanation.md](docs/phase7b-machine-code-explanation.md) for opcode and operand explanation details.
-See [docs/phase7c-for-lowering.md](docs/phase7c-for-lowering.md) for for loop lowering.
-See [docs/phase7d-loop-syntax-sugar.md](docs/phase7d-loop-syntax-sugar.md) for loop syntax sugar.
-See [docs/phase7e-break-continue.md](docs/phase7e-break-continue.md) for break / continue lowering.
-See [docs/phase7f-control-flow-visualization.md](docs/phase7f-control-flow-visualization.md) for control-flow hints across Generated CASL, Machine Code, Learning Flow, and Trace.
+## Contest / Demo Note
 
-## Suggested Next Phase
+stugx.CASL is built as an educational visualization tool. The main point of the demo is not that it runs small programs; it is that it shows how each layer maps to the next:
 
-1. Consider an optional compact CFG graph for generated labels and jumps.
-2. Expand C++ / generated CASL dual highlighting interactions.
-3. Add a bit-level machine-code visualizer if students need deeper opcode inspection.
+```text
+C++ subset -> CASL II -> COMET II words -> runtime state -> circuit and trace
+```
+
+For a submission-oriented overview, see [docs/submission-overview.md](docs/submission-overview.md).

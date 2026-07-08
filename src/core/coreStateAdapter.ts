@@ -192,7 +192,13 @@ function traceFromDto(dto: CometStateDto, previous?: CometState): TraceEvent[] {
     index: dto.stepCount,
     address: row?.address ?? dto.currentInstructionAddress ?? dto.pr,
     instruction: dto.lastInstructionKind,
-    detail: traceDetail(dto)
+    detail: traceDetail(dto),
+    source: row?.source ?? undefined,
+    pr: dto.pr,
+    visualPath: visualPathFromDto(dto),
+    changedRegister: dto.lastRegisterWriteIndex !== null ? `GR${dto.lastRegisterWriteIndex}` : undefined,
+    changedMemoryAddress: dto.lastMemoryWriteAddress ?? undefined,
+    runState: dto.runState
   };
   return [event, ...previousTrace].slice(0, MAX_TRACE_EVENTS).map((traceEvent) => ({ ...traceEvent }));
 }

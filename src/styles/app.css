@@ -439,6 +439,11 @@ button {
   background: var(--color-warning-soft);
 }
 
+.run-pill.stopped {
+  color: var(--color-warning);
+  background: var(--color-warning-soft);
+}
+
 .comet-circuit {
   width: 100%;
   height: 100%;

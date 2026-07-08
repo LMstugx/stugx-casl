@@ -559,7 +559,13 @@ function traceEvent(state: CometState, address: number, instruction: string, det
     index: state.stepIndex + 1,
     address,
     instruction,
-    detail
+    detail,
+    source: instructionAt(state, address)?.source,
+    pr: state.pr,
+    visualPath: state.visualPath,
+    changedRegister: state.changedRegisters.find((register) => register.startsWith("GR")),
+    changedMemoryAddress: state.changedMemoryAddresses[0],
+    runState: state.runState
   };
 }
 

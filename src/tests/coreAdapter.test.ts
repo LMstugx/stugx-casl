@@ -19,6 +19,7 @@ import { createCometStateFromDto } from "../core/coreStateAdapter";
 import { createEmptyUiCometState } from "../core/coreStateAdapter";
 import { loadWasmModule } from "../core/wasmLoader";
 import { WasmCoreAdapter } from "../core/wasmCoreAdapter";
+import { transpileCppToCasl } from "../transpiler/cppTranspiler";
 import useAppStoreSource from "../store/useAppStore.tsx?raw";
 
 const readyDto = simpleReady as CometStateDto;
@@ -32,6 +33,16 @@ A    DC    10
 B    DC    20
 C    DS    1
      END`;
+
+const whileSumCppSource = `int main() {
+    int i = 3;
+    int sum = 0;
+    while (i > 0) {
+        sum = sum + i;
+        i = i - 1;
+    }
+    return sum;
+}`;
 
 function makeAssembleResult(state: CometStateDto): AssembleResultDto {
   return {
@@ -164,6 +175,19 @@ describe("core adapter abstraction", () => {
 
     expect(stepState.gr[2]).toBe(0x000a);
     expect(stepState.gr[1]).toBe(0x0000);
+  });
+
+  it("mock run while sum reaches Finished", async () => {
+    const adapter = new MockCoreAdapter();
+    const transpiled = transpileCppToCasl(whileSumCppSource);
+
+    expect(transpiled.ok).toBe(true);
+    await adapter.assemble(transpiled.caslSource);
+    const dto = await adapter.run(1000);
+
+    expect(dto.runState).toBe("Finished");
+    expect(dto.gr[0]).toBe(0x0006);
+    expect(dto.stepCount).toBe(36);
   });
 });
 

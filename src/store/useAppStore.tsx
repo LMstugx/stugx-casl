@@ -1,4 +1,4 @@
-import { createContext, useContext, useMemo, useReducer } from "react";
+import { createContext, useContext, useMemo, useReducer, useRef } from "react";
 import type { ReactNode } from "react";
 import { EventBus } from "../app/eventBus";
 import { createAppEventBus } from "../app/createAppEventBus";
@@ -11,6 +11,9 @@ import { CppToCaslMap, transpileCppToCasl } from "../transpiler/cppTranspiler";
 
 type AssembleStatus = "default" | "running" | "success" | "error";
 export type SourceMode = "casl" | "cpp";
+
+const DEFAULT_RUN_MAX_STEPS = 1000;
+const RUN_BATCH_SIZE = 20;
 
 export type PreparedCoreSource =
   | {
@@ -48,8 +51,10 @@ type AppStoreActions = {
   setSourceText: (sourceText: string) => void;
   setSourceMode: (sourceMode: SourceMode) => void;
   assemble: () => void;
+  run: (maxSteps?: number) => void;
   step: () => void;
   reset: () => void;
+  stop: () => void;
   clearOutput: () => void;
 };
 
@@ -60,6 +65,9 @@ export type AppStoreAction =
   | { type: "setSourceMode"; sourceMode: SourceMode }
   | { type: "assembled"; sourceText: string; cometState: CometState; assembleStatus: AssembleStatus; generatedCaslSource?: string; cppToCaslMapping?: CppToCaslMap[] }
   | { type: "transpileFailed"; diagnostics: Diagnostic[]; generatedCaslSource: string; cppToCaslMapping: CppToCaslMap[]; output: string[] }
+  | { type: "runStarted"; cometState: CometState }
+  | { type: "runProgress"; cometState: CometState }
+  | { type: "runStopped"; cometState: CometState }
   | { type: "stepped"; cometState: CometState }
   | { type: "reset"; cometState: CometState }
   | { type: "coreError"; message: string }
@@ -184,6 +192,14 @@ export function appStoreReducer(state: AppStoreState, action: AppStoreAction): A
     };
   }
 
+  if (action.type === "runStarted" || action.type === "runProgress" || action.type === "runStopped") {
+    return {
+      ...state,
+      cometState: action.cometState,
+      backendInfo: getCoreBackendInfo()
+    };
+  }
+
   if (action.type === "stepped") {
     return {
       ...state,
@@ -227,11 +243,18 @@ export function appStoreReducer(state: AppStoreState, action: AppStoreAction): A
 export function AppStoreProvider({ children, eventBus: providedEventBus }: AppStoreProviderProps) {
   const eventBus = useMemo(() => providedEventBus ?? createAppEventBus(), [providedEventBus]);
   const [state, dispatch] = useReducer(appStoreReducer, undefined, createInitialAppState);
+  const runControlRef = useRef({ runId: 0, stopRequested: false });
 
   const actions = useMemo<AppStoreActions>(
     () => ({
-      setSourceText: (sourceText) => dispatch({ type: "setSourceText", sourceText }),
-      setSourceMode: (sourceMode) => dispatch({ type: "setSourceMode", sourceMode }),
+      setSourceText: (sourceText) => {
+        runControlRef.current.stopRequested = true;
+        dispatch({ type: "setSourceText", sourceText });
+      },
+      setSourceMode: (sourceMode) => {
+        runControlRef.current.stopRequested = true;
+        dispatch({ type: "setSourceMode", sourceMode });
+      },
       assemble: () => {
         void (async () => {
           try {
@@ -275,11 +298,12 @@ export function AppStoreProvider({ children, eventBus: providedEventBus }: AppSt
         })();
       },
       step: () => {
-        if (state.isSourceDirty || !state.cometState.assembled) return;
+        if (state.isSourceDirty || !state.cometState.assembled || state.cometState.runState !== "Ready") return;
         void (async () => {
           try {
             const result = await coreBridge.step();
             const output = [...state.cometState.output];
+            if (result.state.lastInstructionKind) output.push(`Step ${result.state.stepCount}: ${result.state.lastInstructionKind} executed.`);
             if (result.state.runState === "Finished" && state.cometState.runState !== "Finished") output.push("Execution finished.");
             if (result.state.runState === "Error" && state.cometState.runState !== "Error") output.push("VM error.");
             const cometState = createCometStateFromDto(result.state, { previous: state.cometState, output });
@@ -304,8 +328,82 @@ export function AppStoreProvider({ children, eventBus: providedEventBus }: AppSt
           }
         })();
       },
+      run: (maxSteps = DEFAULT_RUN_MAX_STEPS) => {
+        if (state.isSourceDirty || !state.cometState.assembled || state.cometState.runState !== "Ready") return;
+        const requestedMaxSteps = typeof maxSteps === "number" && Number.isFinite(maxSteps) ? maxSteps : DEFAULT_RUN_MAX_STEPS;
+        const boundedMaxSteps = Math.max(1, Math.floor(requestedMaxSteps));
+        const runId = runControlRef.current.runId + 1;
+        runControlRef.current = { runId, stopRequested: false };
+        void (async () => {
+          let executedSteps = 0;
+          let workingState: CometState = {
+            ...state.cometState,
+            runState: "Running",
+            output: appendOutputLine(state.cometState.output, `Run started. Max steps: ${boundedMaxSteps}.`)
+          };
+          dispatch({ type: "runStarted", cometState: workingState });
+
+          try {
+            while (executedSteps < boundedMaxSteps && !isRunTerminal(workingState.runState)) {
+              for (let batchIndex = 0; batchIndex < RUN_BATCH_SIZE && executedSteps < boundedMaxSteps; batchIndex += 1) {
+                if (runControlRef.current.runId !== runId || runControlRef.current.stopRequested) break;
+                const result = await coreBridge.step();
+                executedSteps += 1;
+                const nextState = createCometStateFromDto(result.state, { previous: workingState, output: workingState.output });
+                workingState = nextState.runState === "Ready" ? { ...nextState, runState: "Running" } : nextState;
+                if (isRunTerminal(workingState.runState)) break;
+              }
+
+              if (runControlRef.current.runId !== runId || runControlRef.current.stopRequested || isRunTerminal(workingState.runState) || executedSteps >= boundedMaxSteps) break;
+              dispatch({ type: "runProgress", cometState: workingState });
+              await yieldToBrowser();
+            }
+
+            if (runControlRef.current.runId !== runId) return;
+
+            let finalState = workingState;
+            if (runControlRef.current.stopRequested) {
+              finalState = {
+                ...workingState,
+                runState: "Stopped",
+                output: appendOutputLine(workingState.output, `Run stopped after ${executedSteps} steps.`)
+              };
+              eventBus.emit(AppEvent.VmRunStopped, { reason: "manual" });
+            } else if (workingState.runState === "Finished") {
+              finalState = {
+                ...workingState,
+                output: appendOutputLine(workingState.output, `Run finished after ${executedSteps} steps.`)
+              };
+              eventBus.emit(AppEvent.VmRunStopped, { reason: "finished" });
+            } else if (workingState.runState === "Error") {
+              finalState = {
+                ...workingState,
+                output: appendOutputLine(workingState.output, "Run stopped because the VM entered Error state.")
+              };
+              eventBus.emit(AppEvent.VmRunStopped, { reason: "error" });
+              eventBus.emit(AppEvent.VmError, { message: finalState.output[finalState.output.length - 1] ?? "VM error" });
+            } else if (executedSteps >= boundedMaxSteps) {
+              finalState = {
+                ...workingState,
+                runState: "Stopped",
+                output: appendOutputLine(workingState.output, `Max steps reached. Possible infinite loop. (${boundedMaxSteps} steps)`)
+              };
+              eventBus.emit(AppEvent.VmRunStopped, { reason: "maxSteps" });
+            }
+
+            runControlRef.current.stopRequested = false;
+            dispatch({ type: "runStopped", cometState: finalState });
+          } catch (error) {
+            const message = coreErrorMessage(error);
+            eventBus.emit(AppEvent.VmError, { message });
+            eventBus.emit(AppEvent.VmRunStopped, { reason: "error" });
+            dispatch({ type: "coreError", message });
+          }
+        })();
+      },
       reset: () => {
-        if (state.isSourceDirty || !state.assembleResult) return;
+        if (state.isSourceDirty || !state.assembleResult || state.cometState.runState === "Running") return;
+        runControlRef.current.stopRequested = true;
         void (async () => {
           try {
             const dto = await coreBridge.reset();
@@ -322,6 +420,10 @@ export function AppStoreProvider({ children, eventBus: providedEventBus }: AppSt
           }
         })();
       },
+      stop: () => {
+        if (state.cometState.runState !== "Running") return;
+        runControlRef.current.stopRequested = true;
+      },
       clearOutput: () => dispatch({ type: "clearOutput" })
     }),
     [eventBus, state.assembleResult, state.cometState, state.isSourceDirty, state.sourceMode, state.sourceText]
@@ -337,6 +439,19 @@ export function AppStoreProvider({ children, eventBus: providedEventBus }: AppSt
 
 function coreErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+function isRunTerminal(runState: CometState["runState"]): boolean {
+  return runState === "Finished" || runState === "Error" || runState === "Stopped";
+}
+
+function appendOutputLine(output: string[], line: string): string[] {
+  if (output[output.length - 1] === line) return output;
+  return [...output, line];
+}
+
+function yieldToBrowser(): Promise<void> {
+  return new Promise((resolve) => globalThis.setTimeout(resolve, 0));
 }
 
 export function useAppStore(): AppStore {

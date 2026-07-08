@@ -146,7 +146,33 @@ C DS    1
      END
 ```
 
-Unsupported C++ features include classes, structs, pointers, references, templates, arrays, function calls, `std::cout`, strings, floats, `for`, `do while`, `break`, `continue`, complex boolean expressions, and full scope rules. See [docs/phase5b-cpp-subset-transpiler.md](docs/phase5b-cpp-subset-transpiler.md), [docs/phase5c-if-else-lowering.md](docs/phase5c-if-else-lowering.md), and [docs/phase5d-while-lowering.md](docs/phase5d-while-lowering.md).
+Unsupported C++ features include classes, structs, pointers, references, templates, arrays, function calls, `std::cout`, strings, floats, `for`, `do while`, `break`, `continue`, complex boolean expressions, and full scope rules. See [docs/phase5b-cpp-subset-transpiler.md](docs/phase5b-cpp-subset-transpiler.md), [docs/phase5c-if-else-lowering.md](docs/phase5c-if-else-lowering.md), [docs/phase5d-while-lowering.md](docs/phase5d-while-lowering.md), and [docs/phase5e-run-stop-trace.md](docs/phase5e-run-stop-trace.md).
+
+## Run / Stop
+
+Run is enabled after a successful Assemble. The UI executes in small batches with a default `maxSteps` limit of `1000`, so loop programs can finish without freezing the browser and accidental infinite loops stop with:
+
+```text
+Max steps reached. Possible infinite loop.
+```
+
+Stop interrupts an active Run between batches. Reset reloads the current assembled program.
+
+While example:
+
+```cpp
+int main() {
+    int i = 3;
+    int sum = 0;
+    while (i > 0) {
+        sum = sum + i;
+        i = i - 1;
+    }
+    return sum;
+}
+```
+
+The program finishes with `GR0 = 0006`.
 
 ## Install
 
@@ -276,8 +302,7 @@ When source changes, the VM becomes `Dirty`, the old assembled state is invalida
 - Default frontend backend is `MockCoreAdapter`; C++/WASM is opt-in.
 - WASM backend is experimental and uses a single runtime plus JSON string bridge.
 - WASM generated files are local build artifacts and are not committed.
-- Run is not implemented in Phase 1 and remains disabled.
-- New / Open / Save / Stop / language / theme controls are placeholders or disabled.
+- New / Open / Save / language / theme controls are placeholders or disabled.
 - C++ subset mode is experimental and intentionally small.
 - No full CASL II instruction set.
 - No desktop packaging.
@@ -288,6 +313,7 @@ See [docs/phase5a-instruction-expansion.md](docs/phase5a-instruction-expansion.m
 See [docs/phase5b-cpp-subset-transpiler.md](docs/phase5b-cpp-subset-transpiler.md) for the C++ subset transpiler MVP.
 See [docs/phase5c-if-else-lowering.md](docs/phase5c-if-else-lowering.md) for if / else lowering and source mapping.
 See [docs/phase5d-while-lowering.md](docs/phase5d-while-lowering.md) for while lowering.
+See [docs/phase5e-run-stop-trace.md](docs/phase5e-run-stop-trace.md) for Run / Stop / maxSteps behavior.
 
 ## Suggested Next Phase
 

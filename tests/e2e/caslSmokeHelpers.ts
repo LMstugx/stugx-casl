@@ -41,10 +41,12 @@ export async function setSource(page: Page, sourceText: string) {
   await page.waitForFunction(() => Boolean((globalThis as { monaco?: unknown }).monaco));
   await page.evaluate((text) => {
     const monaco = (globalThis as { monaco?: { editor?: { getModels?: () => Array<{ setValue: (value: string) => void }> } } }).monaco;
-    const model = monaco?.editor?.getModels?.()[0];
+    const models = monaco?.editor?.getModels?.() ?? [];
+    const model = models[models.length - 1];
     if (!model) throw new Error("Monaco model is not available.");
     model.setValue(text);
   }, sourceText);
+  await expectSourceContains(page, sourceText);
 }
 
 export async function expectSourceContains(page: Page, sourceText: string) {
@@ -52,7 +54,8 @@ export async function expectSourceContains(page: Page, sourceText: string) {
     .poll(() =>
       page.evaluate(() => {
         const monaco = (globalThis as { monaco?: { editor?: { getModels?: () => Array<{ getValue: () => string }> } } }).monaco;
-        return monaco?.editor?.getModels?.()[0]?.getValue() ?? "";
+        const models = monaco?.editor?.getModels?.() ?? [];
+        return models[models.length - 1]?.getValue() ?? "";
       })
     )
     .toContain(sourceText);
@@ -76,4 +79,8 @@ export async function assemble(page: Page) {
 
 export async function step(page: Page) {
   await page.getByTestId("step-button").click();
+}
+
+export async function run(page: Page) {
+  await page.getByTestId("run-button").click();
 }

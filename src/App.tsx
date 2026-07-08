@@ -32,18 +32,36 @@ function StudioShell() {
     setSourceText,
     setSourceMode,
     assemble,
+    run,
     step,
     reset,
+    stop,
     clearOutput
   } = useAppStore();
-  const canStep = !isSourceDirty && state.assembled && state.runState !== "Finished" && state.runState !== "Error";
-  const canReset = !isSourceDirty && (state.assembled || state.runState === "Finished");
+  const isRunning = state.runState === "Running";
+  const canRun = !isSourceDirty && state.assembled && state.runState === "Ready";
+  const canStep = !isSourceDirty && state.assembled && state.runState === "Ready";
+  const canReset = !isSourceDirty && !isRunning && (state.assembled || state.runState === "Finished" || state.runState === "Stopped" || state.sourceMap.length > 0);
   const diagnostics = useMemo(() => storeDiagnostics.filter((diagnostic) => diagnostic.severity === "error"), [storeDiagnostics]);
   const editorCurrentLine = sourceMode === "cpp" ? cppLineForCaslLine(cppToCaslMapping, state.currentLine) : state.currentLine;
+  const timelineItems = useMemo(() => {
+    if (state.trace.length === 0) {
+      return ["Ready", "LD", "ADDA", "ST", "RET"].map((label, index) => ({ key: label, index, label, phase: state.stepIndex === index ? "current" : state.stepIndex > index ? "completed" : "pending" }));
+    }
+    return state.trace
+      .slice(0, 5)
+      .reverse()
+      .map((event) => ({
+        key: `${event.index}-${event.address}`,
+        index: event.index,
+        label: event.instruction,
+        phase: event.index === state.stepIndex && state.runState !== "Finished" ? "current" : "completed"
+      }));
+  }, [state.runState, state.stepIndex, state.trace]);
 
   return (
     <div className="app-shell">
-      <Toolbar assembleStatus={assembleStatus} canStep={canStep} canReset={canReset} isRunning={state.runState === "Running"} onAssemble={assemble} onStep={step} onReset={reset} />
+      <Toolbar assembleStatus={assembleStatus} canRun={canRun} canStep={canStep} canReset={canReset} isRunning={isRunning} onAssemble={assemble} onRun={() => run()} onStep={step} onReset={reset} onStop={stop} />
 
       <main className="workspace">
         <section className="left-column">
@@ -104,18 +122,15 @@ function StudioShell() {
           <section className="panel timeline-panel">
             <header className="panel-header">
               <h2>Step Timeline</h2>
-              <span>{state.stepIndex} / 4</span>
+              <span>{state.trace.length ? `recent / ${state.stepIndex}` : `${state.stepIndex} / 4`}</span>
             </header>
             <div className="timeline">
-              {["Ready", "LD", "ADDA", "ST", "RET"].map((label, index) => {
-                const phase = state.stepIndex === index ? "current" : state.stepIndex > index ? "completed" : "pending";
-                return (
-                <button key={label} className={`timeline-node ${phase}`} type="button" aria-disabled="true" title={label}>
-                  <span>{index}</span>
-                  <strong>{label}</strong>
+              {timelineItems.map((item) => (
+                <button key={item.key} className={`timeline-node ${item.phase}`} type="button" aria-disabled="true" title={item.label}>
+                  <span>{item.index}</span>
+                  <strong>{item.label}</strong>
                 </button>
-                );
-              })}
+              ))}
             </div>
           </section>
         </section>

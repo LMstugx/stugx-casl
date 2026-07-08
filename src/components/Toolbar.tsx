@@ -4,12 +4,15 @@ import type { ReactNode } from "react";
 
 type ToolbarProps = {
   assembleStatus: "default" | "running" | "success" | "error";
+  canRun: boolean;
   canStep: boolean;
   canReset: boolean;
   isRunning: boolean;
   onAssemble: () => void;
+  onRun: () => void;
   onStep: () => void;
   onReset: () => void;
+  onStop: () => void;
 };
 
 type ButtonProps = {
@@ -34,7 +37,7 @@ function ToolButton({ label, icon, testId, variant, emphasis, disabled, active, 
   );
 }
 
-export default function Toolbar({ assembleStatus, canStep, canReset, isRunning, onAssemble, onStep, onReset }: ToolbarProps) {
+export default function Toolbar({ assembleStatus, canRun, canStep, canReset, isRunning, onAssemble, onRun, onStep, onReset, onStop }: ToolbarProps) {
   const [showAssembleSuccess, setShowAssembleSuccess] = useState(false);
 
   useEffect(() => {
@@ -67,14 +70,14 @@ export default function Toolbar({ assembleStatus, canStep, canReset, isRunning, 
           emphasis
           active={showAssembleSuccess}
           loading={assembleStatus === "running"}
-          disabled={assembleStatus === "running"}
+          disabled={assembleStatus === "running" || isRunning}
           testId="assemble-button"
           onClick={onAssemble}
         />
-        <ToolButton label="Run" icon={<Play size={18} />} disabled title="Run is not implemented in Phase 2B" />
+        <ToolButton label={isRunning ? "Running..." : "Run"} icon={<Play size={18} />} variant="primary" emphasis disabled={!canRun} testId="run-button" onClick={onRun} title={canRun ? "Run with max step protection" : "Run is available after Assemble"} />
         <ToolButton label="Step" icon={<StepForward size={18} />} variant="primary" emphasis disabled={!canStep} testId="step-button" onClick={onStep} />
         <ToolButton label="Reset" icon={<RotateCcw size={18} />} emphasis disabled={!canReset} testId="reset-button" onClick={onReset} />
-        <ToolButton label="Stop" icon={<Square size={18} />} variant="danger" disabled={!isRunning} title="Stop is enabled only while running" />
+        <ToolButton label="Stop" icon={<Square size={18} />} variant="danger" disabled={!isRunning} testId="stop-button" onClick={onStop} title="Stop is enabled only while running" />
       </nav>
 
       <div className="toolbar-meta">

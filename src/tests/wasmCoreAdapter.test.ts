@@ -10,6 +10,7 @@ import subaStep1 from "../../tests/golden/suba.step1.json";
 import type { CometStateDto } from "../core/coreDto";
 import { DEFAULT_CASL_SOURCE } from "../core/defaultSource";
 import { WasmCoreAdapter } from "../core/wasmCoreAdapter";
+import { transpileCppToCasl } from "../transpiler/cppTranspiler";
 
 type NodeFsSync = {
   existsSync(path: string): boolean;
@@ -50,6 +51,16 @@ SAME LAD   GR2,1
 A    DC    10
 B    DC    10
      END`;
+
+const whileSumCppSource = `int main() {
+    int i = 3;
+    int sum = 0;
+    while (i > 0) {
+        sum = sum + i;
+        i = i - 1;
+    }
+    return sum;
+}`;
 
 function wasmArtifactsAvailable(): boolean {
   const processLike = (globalThis as { process?: { cwd?: () => string; getBuiltinModule?: (name: string) => NodeFsSync } }).process;
@@ -136,6 +147,20 @@ describeWasm("WasmCoreAdapter golden parity", () => {
     const result = await adapter.step();
 
     expect(result.state).toEqual(jzeTaken as CometStateDto);
+    await adapter.dispose();
+  });
+
+  it("wasm run while sum reaches Finished", async () => {
+    const adapter = new WasmCoreAdapter();
+    const transpiled = transpileCppToCasl(whileSumCppSource);
+
+    expect(transpiled.ok).toBe(true);
+    await adapter.assemble(transpiled.caslSource);
+    const result = await adapter.run(1000);
+
+    expect(result.runState).toBe("Finished");
+    expect(result.gr[0]).toBe(0x0006);
+    expect(result.stepCount).toBe(36);
     await adapter.dispose();
   });
 });

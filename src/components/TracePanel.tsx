@@ -17,7 +17,14 @@ export default function TracePanel({ state, embedded = false }: { state: CometSt
               <span>
                 {event.instruction} at {formatWord(event.address)}
               </span>
-              <p>{event.detail}</p>
+              <p>{event.source ?? event.detail}</p>
+              <p>
+                PR {formatWord(event.pr ?? event.address)}
+                {event.visualPath ? ` | ${event.visualPath}` : ""}
+                {event.changedRegister ? ` | ${event.changedRegister}` : ""}
+                {event.changedMemoryAddress !== undefined ? ` | Memory ${formatWord(event.changedMemoryAddress)}` : ""}
+                {event.runState ? ` | ${event.runState}` : ""}
+              </p>
             </div>
           </article>
         ))}

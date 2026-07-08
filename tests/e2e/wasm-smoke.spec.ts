@@ -6,6 +6,7 @@ import {
   expectRegister,
   gr2SourceWithA100,
   openStudio,
+  run,
   setSource,
   sourceWithA100,
   step
@@ -51,4 +52,27 @@ test("WASM backend completes assemble, step, reset, dirty, and edited-source loo
   await step(page);
   await expectRegister(page, "register-gr2", "0064");
   await expectRegister(page, "register-gr1", "0000");
+});
+
+test("WASM backend runs C++ subset while sum in the browser UI", async ({ page }) => {
+  await openStudio(page, "WASM Core");
+  await page.getByTestId("source-mode-cpp").click();
+  await setSource(
+    page,
+    `int main() {
+    int i = 3;
+    int sum = 0;
+    while (i > 0) {
+        sum = sum + i;
+        i = i - 1;
+    }
+    return sum;
+}`
+  );
+
+  await assemble(page);
+  await run(page);
+
+  await expect(page.getByTestId("run-state")).toHaveText("Finished");
+  await expectRegister(page, "register-gr0", "0006");
 });

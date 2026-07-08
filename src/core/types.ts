@@ -17,7 +17,7 @@ export enum VisualPathKind {
   Finished_None = "Finished_None"
 }
 
-export type RunState = "Idle" | "Dirty" | "Ready" | "Running" | "Finished" | "Error";
+export type RunState = "Idle" | "Dirty" | "Ready" | "Running" | "Stopped" | "Finished" | "Error";
 export type InstructionKind =
   | "START"
   | "END"
@@ -72,6 +72,12 @@ export interface TraceEvent {
   address: number;
   instruction: string;
   detail: string;
+  source?: string;
+  pr?: number;
+  visualPath?: VisualPathKind;
+  changedRegister?: string;
+  changedMemoryAddress?: number;
+  runState?: RunState;
 }
 
 export interface Diagnostic {

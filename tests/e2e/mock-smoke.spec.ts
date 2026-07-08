@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { assemble, expectCurrentSourceInstruction, expectRegister, openStudio, setSource, step } from "./caslSmokeHelpers";
+import { assemble, expectCurrentSourceInstruction, expectRegister, openStudio, run, setSource, step } from "./caslSmokeHelpers";
 
 test("Mock backend completes assemble and first step in the browser UI", async ({ page }) => {
   await openStudio(page, "Mock Core");
@@ -65,11 +65,10 @@ test("Mock backend executes C++ subset while sum in the browser UI", async ({ pa
   await page.getByRole("tab", { name: "Generated CASL" }).click();
   await expect(page.getByTestId("generated-casl-output")).toContainText("LOOP_BEGIN_0");
 
-  for (let index = 0; index < 50; index += 1) {
-    if ((await page.getByTestId("run-state").textContent()) === "Finished") break;
-    await step(page);
-  }
+  await run(page);
 
   await expect(page.getByTestId("run-state")).toHaveText("Finished");
   await expectRegister(page, "register-gr0", "0006");
+  await page.getByRole("tab", { name: "Output" }).click();
+  await expect(page.getByText("Run finished after")).toBeVisible();
 });

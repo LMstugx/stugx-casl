@@ -1,6 +1,6 @@
-# CASL Studio Next
+# stugx.CASL
 
-Clean-room CASL II / COMET II learning IDE prototype.
+Clean-room CASL II / COMET II Learning Studio prototype.
 
 This project intentionally does not reuse the old Avalonia, Qt, WCASL clone, QPainter circuit, wire path experiments, overlay experiments, or diff experiments. The first milestone is a small, testable vertical slice:
 

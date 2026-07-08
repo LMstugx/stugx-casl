@@ -14,6 +14,20 @@ const tabs: Array<{ id: OutputTab; label: string }> = [
   { id: "messages", label: "Messages" }
 ];
 
+function lineTone(line: string): "success" | "danger" | "muted" | "default" {
+  const normalized = line.toLowerCase();
+  if (normalized.includes("failed") || normalized.includes("error")) return "danger";
+  if (normalized.includes("succeeded") || normalized.includes("loaded") || normalized.includes("finished") || normalized.includes("reset")) return "success";
+  if (normalized.includes("reserved") || normalized.includes("ready")) return "muted";
+  return "default";
+}
+
+function linePrefix(tab: OutputTab, line: string): string {
+  if (tab === "messages") return lineTone(line) === "danger" ? "!" : "i";
+  if (tab === "console") return ">";
+  return lineTone(line) === "success" ? "ok" : lineTone(line) === "danger" ? "!!" : "--";
+}
+
 export default function OutputPanel({ lines, messages = [], onClear }: OutputPanelProps) {
   const [activeTab, setActiveTab] = useState<OutputTab>("output");
   const visibleLines =
@@ -48,9 +62,12 @@ export default function OutputPanel({ lines, messages = [], onClear }: OutputPan
           Clear
         </button>
       </header>
-      <div className="console-lines">
+      <div className={`console-lines ${activeTab}`} aria-label={`${activeTab} log`}>
         {visibleLines.map((line, index) => (
-          <div key={`${line}-${index}`}>{line}</div>
+          <div key={`${line}-${index}`} className={`console-line ${lineTone(line)}`}>
+            <span className="console-prefix">{linePrefix(activeTab, line)}</span>
+            <span>{line}</span>
+          </div>
         ))}
       </div>
     </section>

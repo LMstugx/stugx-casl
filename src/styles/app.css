@@ -31,7 +31,7 @@ button {
 
 .toolbar {
   display: grid;
-  grid-template-columns: minmax(205px, 250px) 1fr auto;
+  grid-template-columns: minmax(224px, 280px) 1fr auto;
   gap: 10px;
   align-items: center;
   min-height: 62px;
@@ -45,27 +45,27 @@ button {
 .brand {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 11px;
   min-width: 0;
 }
 
 .brand-mark {
   display: grid;
   place-items: center;
-  width: 74px;
-  height: 38px;
+  width: 48px;
+  height: 42px;
   border-radius: var(--radius-md);
   color: #ffffff;
-  background: var(--color-primary);
+  background: linear-gradient(145deg, #2563eb 0%, #1d4ed8 100%);
   font-weight: 800;
   font-size: 12px;
   letter-spacing: 0;
-  box-shadow: inset 0 -10px 22px rgba(15, 23, 42, 0.16);
+  box-shadow: inset 0 -10px 22px rgba(15, 23, 42, 0.16), 0 10px 18px rgba(37, 99, 235, 0.18);
 }
 
 .brand h1 {
   margin: 0;
-  font-size: 17px;
+  font-size: 19px;
   line-height: 1.1;
   letter-spacing: 0;
 }
@@ -79,9 +79,12 @@ button {
 .toolbar-actions {
   display: flex;
   flex-wrap: nowrap;
-  gap: 6px;
+  gap: 5px;
   justify-content: center;
   min-width: 0;
+  padding: 0 8px;
+  border-left: 1px solid var(--color-border);
+  border-right: 1px solid var(--color-border);
 }
 
 .tool-button,
@@ -109,12 +112,19 @@ button {
 }
 
 .tool-button {
-  gap: 8px;
+  gap: 7px;
   min-height: 36px;
-  padding: 0 10px;
+  padding: 0 9px;
   font-size: 13px;
   font-weight: 650;
   box-shadow: var(--shadow-soft);
+}
+
+.tool-button.emphasis:not(:disabled) {
+  min-height: 38px;
+  padding-inline: 11px;
+  border-color: #bfdbfe;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06), 0 8px 18px rgba(37, 99, 235, 0.1);
 }
 
 .tool-button:hover:not(:disabled),
@@ -148,14 +158,26 @@ button {
   color: var(--color-primary);
 }
 
+.tool-button.primary.emphasis:not(:disabled) {
+  color: #ffffff;
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
 .tool-button.success {
   color: var(--color-success);
 }
 
+.tool-button.success.emphasis:not(:disabled) {
+  color: #ffffff;
+  background: var(--color-success);
+  border-color: var(--color-success);
+}
+
 .tool-button.success.active {
-  color: var(--color-success);
-  background: var(--color-success-soft);
-  border-color: #bbf7d0;
+  color: #ffffff;
+  background: var(--color-success);
+  border-color: var(--color-success);
 }
 
 .tool-button.danger {
@@ -304,7 +326,7 @@ button {
 }
 
 .current-exec-line {
-  background: rgba(37, 99, 235, 0.1);
+  background: rgba(37, 99, 235, 0.16);
   border-left: 3px solid var(--color-primary);
   transition: background var(--motion-base) var(--ease-standard);
 }
@@ -362,8 +384,12 @@ button {
   min-height: 0;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
-  border-color: #dbeafe;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05), 0 18px 38px rgba(37, 99, 235, 0.09);
+  border-color: #bfdbfe;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05), 0 20px 42px rgba(37, 99, 235, 0.12);
+}
+
+.circuit-panel .panel-header {
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
 }
 
 .run-pill {
@@ -410,9 +436,9 @@ button {
 .circuit-module rect,
 .alu-module polygon {
   fill: #ffffff;
-  stroke: #dbe3ef;
+  stroke: #cfd8e6;
   stroke-width: 1.2;
-  filter: drop-shadow(0 8px 14px rgba(15, 23, 42, 0.07));
+  filter: drop-shadow(0 9px 15px rgba(15, 23, 42, 0.08));
   transition:
     fill var(--motion-base) var(--ease-standard),
     stroke var(--motion-base) var(--ease-standard),
@@ -422,8 +448,8 @@ button {
 .circuit-module-active rect,
 .register-row.changed rect,
 .memory-svg-row.changed rect {
-  fill: var(--color-danger-soft);
-  stroke: #fca5a5;
+  fill: #fff1f2;
+  stroke: var(--color-active-red);
   animation: rowFlash var(--motion-slow) var(--ease-standard);
 }
 
@@ -434,7 +460,7 @@ button {
 .module-title {
   fill: #12306b;
   font-weight: 800;
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .module-value,
@@ -478,10 +504,10 @@ button {
 
 .wire {
   fill: none;
-  stroke-width: 1.8;
+  stroke-width: 1.6;
   stroke-linecap: round;
   stroke-linejoin: round;
-  opacity: 0.46;
+  opacity: 0.34;
   transition:
     stroke var(--motion-base) var(--ease-standard),
     stroke-width var(--motion-base) var(--ease-standard),
@@ -503,7 +529,7 @@ button {
 
 .wire-active {
   stroke: var(--color-active-red);
-  stroke-width: 4;
+  stroke-width: 4.4;
   opacity: 1;
 }
 
@@ -651,13 +677,13 @@ button {
   width: calc(100% - 24px);
   margin: 0 12px 12px;
   border-collapse: collapse;
-  font-size: 12px;
+  font-size: 12.5px;
 }
 
 .data-table th,
 .data-table td {
-  height: 28px;
-  padding: 5px 8px;
+  height: 30px;
+  padding: 6px 8px;
   border-bottom: 1px solid #edf2f7;
   text-align: left;
   white-space: nowrap;
@@ -671,7 +697,8 @@ button {
 
 .data-table tr.changed td,
 .data-table tr.current td {
-  background: var(--color-danger-soft);
+  background: #fff1f2;
+  box-shadow: inset 3px 0 0 var(--color-active-red);
   animation: rowFlash var(--motion-slow) var(--ease-standard);
 }
 
@@ -697,7 +724,7 @@ button {
   padding: 8px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
-  background: #fbfdff;
+  background: #ffffff;
 }
 
 .trace-item strong {
@@ -737,12 +764,38 @@ button {
 .console-lines {
   overflow: auto;
   padding: 10px 14px;
-  color: #166534;
   background: #fbfdff;
   font-family: "Cascadia Mono", Consolas, monospace;
   font-size: 12px;
   line-height: 1.5;
   animation: tabIn var(--motion-base) var(--ease-standard);
+}
+
+.console-line {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  min-height: 22px;
+  color: #334155;
+}
+
+.console-prefix {
+  color: var(--color-muted);
+  font-weight: 800;
+  text-align: right;
+}
+
+.console-line.success {
+  color: #166534;
+}
+
+.console-line.danger {
+  color: var(--color-danger);
+}
+
+.console-line.muted {
+  color: var(--color-muted);
 }
 
 .status-bar {

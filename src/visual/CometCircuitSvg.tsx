@@ -200,7 +200,7 @@ function CometCircuitSvg({ state }: { state: CometState }) {
               data-active="false"
               data-path-id={path.id}
               className={`wire wire-${path.role}`}
-              markerEnd={path.role === "control" ? "url(#arrow-blue)" : undefined}
+              markerEnd={path.role === "address" || path.role === "control" ? "url(#arrow-blue)" : undefined}
             />
           );
         })}
@@ -209,9 +209,9 @@ function CometCircuitSvg({ state }: { state: CometState }) {
       <Module layout={circuitLayout.ir} title="IR" value={formatWord(state.ir)} accent={state.changedRegisters.includes("IR")} testId="module-ir" />
       <DecoderModule state={state} />
       <ControllerModule state={state} />
-      <Module layout={circuitLayout.display} title="Display" testId="module-display">
+      <Module layout={circuitLayout.display} title="Output" testId="module-display">
         <text className="display-text" x={circuitLayout.display.x + circuitLayout.display.w / 2} y={circuitLayout.display.y + 62} textAnchor="middle">
-          {state.runState === "Finished" ? "DONE" : formatWord(state.pr)}
+          No output
         </text>
       </Module>
       <Module layout={circuitLayout.pr} title="PR" value={formatWord(state.pr)} accent={state.changedRegisters.includes("PR")} testId="module-pr" />

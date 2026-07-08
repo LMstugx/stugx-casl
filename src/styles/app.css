@@ -489,8 +489,8 @@ button {
 
 .alu-module polygon {
   fill: #ffffff;
-  stroke-width: 1.5;
-  filter: drop-shadow(0 14px 22px rgba(15, 23, 42, 0.1));
+  stroke-width: 1.35;
+  filter: drop-shadow(0 12px 18px rgba(15, 23, 42, 0.08));
 }
 
 .module-title {
@@ -526,9 +526,9 @@ button {
 }
 
 .display-text {
-  fill: #5dde43;
-  font-size: 28px;
-  font-weight: 800;
+  fill: var(--color-muted);
+  font-size: 16px;
+  font-weight: 700;
   font-family: "Cascadia Mono", Consolas, monospace;
 }
 
@@ -550,12 +550,17 @@ button {
     opacity var(--motion-base) var(--ease-standard);
 }
 
+.wire-address {
+  stroke: #8fb4ff;
+}
+
 .wire-control {
-  stroke: #6f9cf7;
+  stroke: #a9c2f6;
 }
 
 .wire-data {
-  stroke: #b8c5da;
+  stroke: #4977c8;
+  opacity: 0.22;
 }
 
 .wire-inactive {

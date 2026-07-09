@@ -176,6 +176,76 @@ describe("C++ subset transpiler diagnostics", () => {
     expect(result.diagnostics).toEqual([]);
   });
 
+  it("semantic_requires_main", () => {
+    const result = transpileCppToCasl(`int helper() {
+    return 1;
+}`);
+
+    expect(result.ok).toBe(false);
+    expect(result.diagnostics.map((diagnostic) => diagnostic.message).join("\n")).toContain("must define int main");
+  });
+
+  it("semantic_rejects_duplicate_function", () => {
+    const result = transpileCppToCasl(`int main() {
+    return 0;
+}
+
+int main() {
+    return 1;
+}`);
+
+    expect(result.ok).toBe(false);
+    expect(result.diagnostics.map((diagnostic) => diagnostic.message).join("\n")).toContain("Duplicate function declaration");
+  });
+
+  it("semantic_rejects_unknown_function_call", () => {
+    const result = transpileCppToCasl(`int main() {
+    int x;
+    x = missing();
+    return x;
+}`);
+
+    expect(result.ok).toBe(false);
+    expect(result.diagnostics.map((diagnostic) => diagnostic.message).join("\n")).toContain("Function 'missing' is not defined");
+  });
+
+  it("semantic_rejects_function_arguments", () => {
+    const result = transpileCppToCasl(`int addOne() {
+    return 1;
+}
+
+int main() {
+    int x;
+    x = addOne(1);
+    return x;
+}`);
+
+    expect(result.ok).toBe(false);
+    expect(result.diagnostics.map((diagnostic) => diagnostic.message).join("\n")).toContain("Function arguments are not supported yet");
+  });
+
+  it("semantic_rejects_recursive_function_call", () => {
+    const result = transpileCppToCasl(`int main() {
+    return main();
+}`);
+
+    expect(result.ok).toBe(false);
+    expect(result.diagnostics.map((diagnostic) => diagnostic.message).join("\n")).toContain("recursive function calls are not supported yet");
+  });
+
+  it("semantic_rejects_forward_function_call", () => {
+    const result = transpileCppToCasl(`int main() {
+    return helper();
+}
+
+int helper() {
+    return 1;
+}`);
+
+    expect(result.ok).toBe(false);
+    expect(result.diagnostics.map((diagnostic) => diagnostic.message).join("\n")).toContain("Forward declarations are not supported yet");
+  });
+
   it("transpile_invalid_syntax", () => {
     const result = transpileCppToCasl(`int main() {
     int* p;

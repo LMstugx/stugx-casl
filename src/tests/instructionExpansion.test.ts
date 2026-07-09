@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { mockCaslCore } from "../core/mockCaslCore";
 import { VisualPathKind } from "../core/types";
 import { getDemoProgram } from "../examples/demoPrograms";
+import { transpileCppToCasl } from "../transpiler/cppTranspiler";
 
 const ladSource = `MAIN START
      LAD   GR1,VALUE
@@ -871,5 +872,22 @@ RESULT DS  1
     expect(afterSub2Ret.callDepth).toBe(1);
     expect(finished.callDepth).toBe(0);
     expect(finished.runState).toBe("Finished");
+  });
+
+  it("trace_shows_cpp_function_call_flow", () => {
+    const program = getDemoProgram("cpp-function-call");
+    expect(program).toBeDefined();
+    const transpiled = transpileCppToCasl(program!.source);
+    expect(transpiled.ok).toBe(true);
+
+    let state = mockCaslCore.assemble(transpiled.caslSource);
+    for (let step = 0; step < 20 && state.runState !== "Finished"; step += 1) {
+      state = mockCaslCore.step(state);
+    }
+
+    expect(state.runState).toBe("Finished");
+    expect(state.gr[0]).toBe(0x0001);
+    expect(state.trace.some((event) => event.instruction === "CALL" && event.callDepthAfter === 1)).toBe(true);
+    expect(state.trace.some((event) => event.instruction === "RET" && event.callDepthBefore === 1 && event.callDepthAfter === 0)).toBe(true);
   });
 });

@@ -627,4 +627,46 @@ describe("machine code rows", () => {
     expect(explanationText).toContain("RET Mode");
     expect(explanationText).toContain("top-level finish");
   });
+
+  it("generated_casl_shows_function_label", () => {
+    const program = getDemoProgram("cpp-function-call");
+    expect(program).toBeDefined();
+    const prepared = prepareSourceForCoreAssembly(program!.source, "cpp");
+    expect(prepared.ok).toBe(true);
+
+    expect(prepared.generatedCaslSource).toContain("FUNC_ADDONE");
+    expect(prepared.mapping.some((entry) => entry.kind === "function-label" && entry.cppLine === 1)).toBe(true);
+  });
+
+  it("machine_code_explanation_shows_call_from_cpp_function", () => {
+    const program = getDemoProgram("cpp-function-call");
+    expect(program).toBeDefined();
+    const prepared = prepareSourceForCoreAssembly(program!.source, "cpp");
+    expect(prepared.ok).toBe(true);
+    let state = mockCaslCore.assemble(prepared.coreSourceText);
+    state = mockCaslCore.step(state);
+
+    const rows = selectMachineCodeRows(state, prepared.mapping);
+    const callRow = rows.find((row) => row.sourceText === "CALL FUNC_ADDONE" && row.kind === "instruction");
+    expect(callRow).toBeDefined();
+    const explanation = explainMachineCodeRow(callRow!);
+
+    expect(callRow!.relatedCppLine).toBe(7);
+    expect(explanation.mnemonic).toBe("CALL");
+    expect(explanation.returnAddress).toBe(0x22);
+    expect(explanation.stackAddress).toBe(0xfffd);
+    expect(explanation.meaning).toContain("Push return address");
+  });
+
+  it("source_mapping_function_call_line", () => {
+    const program = getDemoProgram("cpp-function-call");
+    expect(program).toBeDefined();
+    const prepared = prepareSourceForCoreAssembly(program!.source, "cpp");
+    expect(prepared.ok).toBe(true);
+    const state = stateFromRaw(mockCaslCore.assemble(prepared.coreSourceText));
+    const rows = selectMachineCodeRows(state, prepared.mapping);
+
+    expect(rows.find((row) => row.sourceText === "CALL FUNC_ADDONE")?.relatedCppLine).toBe(7);
+    expect(rows.find((row) => row.sourceText === "ST GR0,MAIN_X")?.relatedCppLine).toBe(7);
+  });
 });

@@ -8,7 +8,7 @@ import type {
   CppToCaslMapKind,
   CppVariableSymbol
 } from "./cppAst";
-import { hasExplicitReturn, variableLabelMap } from "./cppSemantic";
+import { functionLabel, hasExplicitReturn, variableLabelMap } from "./cppSemantic";
 
 export interface GenerateCaslResult {
   caslSource: string;
@@ -52,6 +52,7 @@ type GeneratorContext = {
   lines: GeneratedLine[];
   pendingLabels: PendingLabel[];
   loopStack: LoopContext[];
+  currentFunction: string;
   nextIfId: number;
   nextLoopId: number;
 };
@@ -60,19 +61,28 @@ export function generateCaslFromCpp(program: CppProgram, variables: CppVariableS
   const context: GeneratorContext = {
     labels: variableLabelMap(variables),
     constants: new Map(),
-    usedLabels: new Set(["MAIN", ...variables.map((variable) => variable.label)]),
-    lines: [{ text: "MAIN START", mappings: [] }],
+    usedLabels: new Set([program.main.name, ...program.functions.map((fn) => functionLabel(fn.name)), ...variables.map((variable) => variable.label)]),
+    lines: [{
+      text: "MAIN START",
+      mappings: [
+        { cppLine: program.main.line, reason: "main function declaration", kind: "function-declaration" },
+        { cppLine: program.main.line, reason: "main entry label", kind: "function-label" }
+      ]
+    }],
     pendingLabels: [],
     loopStack: [],
+    currentFunction: "main",
     nextIfId: 0,
     nextLoopId: 0
   };
 
-  emitStatements(context, program.main.body);
+  emitFunctionBody(context, program.main);
 
-  if (!hasExplicitReturn(program.main.body)) {
-    emit(context, "     LAD   GR0,0", { cppLine: program.main.line, reason: "implicit return 0", kind: "return" });
-    emit(context, "     RET", { cppLine: program.main.line, reason: "return from main", kind: "return" });
+  for (const fn of program.functions) {
+    if (fn.name === "main") continue;
+    context.currentFunction = fn.name;
+    emitLabel(context, functionLabel(fn.name), fn.line, `${fn.name} function label`, "function-label");
+    emitFunctionBody(context, fn);
   }
 
   for (const variable of variables) {
@@ -112,6 +122,15 @@ function emitStatements(context: GeneratorContext, statements: CppStatement[], b
   }
 }
 
+function emitFunctionBody(context: GeneratorContext, fn: CppProgram["main"]): void {
+  context.currentFunction = fn.name;
+  emitStatements(context, fn.body);
+  if (!hasExplicitReturn(fn.body)) {
+    emit(context, "     LAD   GR0,0", { cppLine: fn.line, reason: "implicit return 0", kind: "function-return" });
+    emit(context, "     RET", { cppLine: fn.line, reason: `return from ${fn.name}`, kind: "function-return" });
+  }
+}
+
 function emitStatement(context: GeneratorContext, statement: CppStatement, branchKind?: StatementMappingKind): void {
   if (statement.kind === "Assignment") {
     emitAssignment(context, statement, branchKind ?? statement.loweredFrom ?? "assignment");
@@ -119,9 +138,14 @@ function emitStatement(context: GeneratorContext, statement: CppStatement, branc
   }
 
   if (statement.kind === "Return") {
+    if (statement.expression.kind === "CallExpression") {
+      emitCall(context, statement.expression.callee, statement.line, "function-call");
+      emit(context, "     RET", { cppLine: statement.line, reason: `return from ${context.currentFunction}`, kind: "function-return" });
+      return;
+    }
     const kind = branchKind ?? "return";
     emitExpression(context, statement.expression, "GR0", statement.line, kind);
-    emit(context, "     RET", { cppLine: statement.line, reason: "return from main", kind });
+    emit(context, "     RET", { cppLine: statement.line, reason: `return from ${context.currentFunction}`, kind });
     return;
   }
 
@@ -151,8 +175,17 @@ function emitStatement(context: GeneratorContext, statement: CppStatement, branc
 }
 
 function emitAssignment(context: GeneratorContext, statement: Extract<CppStatement, { kind: "Assignment" }>, kind: CppToCaslMapKind): void {
+  if (statement.expression.kind === "CallExpression") {
+    emitCall(context, statement.expression.callee, statement.line, "function-call");
+    emit(context, `     ST    GR0,${labelForVariable(context, statement.target)}`, {
+      cppLine: statement.line,
+      reason: `store ${statement.target} from function return`,
+      kind: "function-call"
+    });
+    return;
+  }
   emitExpression(context, statement.expression, "GR1", statement.line, kind);
-  emit(context, `     ST    GR1,${context.labels.get(statement.target) ?? statement.target.toUpperCase()}`, {
+  emit(context, `     ST    GR1,${labelForVariable(context, statement.target)}`, {
     cppLine: statement.line,
     reason: `store ${statement.target}`,
     kind
@@ -162,7 +195,7 @@ function emitAssignment(context: GeneratorContext, statement: Extract<CppStateme
 function emitVarInitializer(context: GeneratorContext, statement: Extract<CppStatement, { kind: "VarDecl" }>, kind: CppToCaslMapKind): void {
   if (!statement.initializer) return;
   emitExpression(context, statement.initializer, "GR1", statement.line, kind);
-  emit(context, `     ST    GR1,${context.labels.get(statement.name) ?? statement.name.toUpperCase()}`, {
+  emit(context, `     ST    GR1,${labelForVariable(context, statement.name)}`, {
     cppLine: statement.line,
     reason: `initialize ${statement.name}`,
     kind
@@ -301,11 +334,17 @@ function emitExpression(
   }
 
   if (expression.kind === "Identifier") {
-    emit(context, `     LD    ${targetRegister},${context.labels.get(expression.name) ?? expression.name.toUpperCase()}`, {
+    emit(context, `     LD    ${targetRegister},${labelForVariable(context, expression.name)}`, {
       cppLine,
       reason: `load ${expression.name}`,
       kind
     });
+    return;
+  }
+
+  if (expression.kind === "CallExpression") {
+    if (targetRegister !== "GR0") throw new Error("Function calls can only be evaluated into GR0 in the current C++ subset.");
+    emitCall(context, expression.callee, cppLine, "function-call");
     return;
   }
 
@@ -320,9 +359,21 @@ function emitExpression(
 }
 
 function operandForExpression(context: GeneratorContext, expression: CppExpression, cppLine: number): string {
-  if (expression.kind === "Identifier") return context.labels.get(expression.name) ?? expression.name.toUpperCase();
+  if (expression.kind === "Identifier") return labelForVariable(context, expression.name);
   if (expression.kind === "IntegerLiteral") return constantLabel(context, expression.value, cppLine);
   throw new Error("Nested binary right-hand expressions are not supported by the C++ subset generator.");
+}
+
+function emitCall(context: GeneratorContext, callee: string, cppLine: number, kind: CppToCaslMapKind): void {
+  emit(context, `     CALL  ${functionLabel(callee)}`, {
+    cppLine,
+    reason: `call ${callee}`,
+    kind
+  });
+}
+
+function labelForVariable(context: GeneratorContext, name: string): string {
+  return context.labels.get(`${context.currentFunction}:${name}`) ?? context.labels.get(`main:${name}`) ?? name.toUpperCase();
 }
 
 function constantLabel(context: GeneratorContext, value: number, cppLine: number): string {

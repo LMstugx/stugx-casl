@@ -7,6 +7,7 @@ import StatusBar from "../components/StatusBar";
 import { mockCaslCore } from "../core/mockCaslCore";
 import type { CometState } from "../core/types";
 import { getDemoProgram } from "../examples/demoPrograms";
+import { prepareSourceForCoreAssembly } from "../store/useAppStore";
 
 const gr2Source = getDemoProgram("casl-gr2-addition")!.source;
 const pushPopSource = getDemoProgram("casl-push-pop-stack")!.source;
@@ -26,6 +27,20 @@ function renderFocus(state: CometState, sourceText = gr2Source): string {
       sourceText={sourceText}
       generatedCaslSource=""
       cppToCaslMapping={[]}
+      isSourceDirty={false}
+      timelineItems={timelineItems}
+    />
+  );
+}
+
+function renderCppFocus(state: CometState, sourceText: string, generatedCaslSource: string, mapping: ReturnType<typeof prepareSourceForCoreAssembly>["mapping"]): string {
+  return renderToStaticMarkup(
+    <CircuitFocusLayout
+      state={state}
+      sourceMode="cpp"
+      sourceText={sourceText}
+      generatedCaslSource={generatedCaslSource}
+      cppToCaslMapping={mapping}
       isSourceDirty={false}
       timelineItems={timelineItems}
     />
@@ -269,6 +284,22 @@ describe("Circuit Focus Mode layout", () => {
     expect(markup).toContain('data-testid="call-stack-routine">SUB</code>');
     expect(markup).toContain('data-testid="call-stack-ret-mode">Stack return</code>');
     expect(markup).toContain("CALL -&gt; SUB; return 0024");
+  });
+
+  it("call_stack_view_updates_for_cpp_function_call", () => {
+    const program = getDemoProgram("cpp-function-call");
+    expect(program).toBeDefined();
+    const prepared = prepareSourceForCoreAssembly(program!.source, "cpp");
+    expect(prepared.ok).toBe(true);
+    let rawState = mockCaslCore.assemble(prepared.coreSourceText);
+    rawState = mockCaslCore.step(rawState);
+
+    const markup = renderCppFocus(rawState, program!.source, prepared.generatedCaslSource, prepared.mapping);
+
+    expect(markup).toContain('data-testid="call-stack-depth">1</code>');
+    expect(markup).toContain('data-testid="call-stack-routine">FUNC_ADDONE</code>');
+    expect(markup).toContain("CALL -&gt; FUNC_ADDONE");
+    expect(markup).toContain("x = addOne();");
   });
 
   it("call_stack_view_shows_top_level_ret_mode", () => {

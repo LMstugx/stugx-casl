@@ -27,6 +27,7 @@ export function selectGeneratedCaslRows(source: string, mapping: CppToCaslMap[] 
       mappingKinds.includes("loop-continue-label") ||
       mappingKinds.includes("for-label") ||
       mappingKinds.includes("for-back-jump") ||
+      mappingKinds.includes("function-label") ||
       mappingKinds.includes("constant");
     return {
       lineNumber,

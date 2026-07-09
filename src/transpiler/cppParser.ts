@@ -2,6 +2,7 @@ import type { Diagnostic } from "../core/types";
 import type {
   CppAssignment,
   CppBreakStatement,
+  CppCallExpression,
   CppBinaryExpression,
   CppCondition,
   CppContinueStatement,
@@ -39,20 +40,26 @@ class Parser {
   ) {}
 
   parseProgram(): ParseResult {
-    const main = this.parseMainFunction();
-    if (main && !this.is("eof")) {
-      this.error(this.current(), "Only one int main() function is supported in the current C++ subset.");
+    const functions: CppFunction[] = [];
+    while (!this.is("eof")) {
+      const fn = this.parseFunctionDeclaration();
+      if (fn) {
+        functions.push(fn);
+        continue;
+      }
+      this.synchronize();
     }
+    const main = functions.find((fn) => fn.name === "main") ?? null;
     return {
-      program: main ? { kind: "Program", main } : null,
+      program: main ? { kind: "Program", functions, main } : functions.length > 0 ? ({ kind: "Program", functions, main: functions[0] } as CppProgram) : null,
       diagnostics: this.diagnostics
     };
   }
 
-  private parseMainFunction(): CppFunction | null {
+  private parseFunctionDeclaration(): CppFunction | null {
     const start = this.current();
     if (!this.matchKeyword("int")) {
-      this.error(start, "Current C++ subset only supports int main().");
+      this.error(start, "Current C++ subset only supports int function declarations.");
       return null;
     }
 
@@ -61,15 +68,18 @@ class Parser {
       return null;
     }
 
-    const name = this.consume("identifier", "Current C++ subset only supports int main().");
-    if (!name || name.value !== "main") {
-      this.error(name ?? this.current(), "Current C++ subset only supports int main().");
+    const name = this.consume("identifier", "Expected function name after int.");
+    if (!name) {
       return null;
     }
 
-    this.consumeSymbol("(", "Expected '(' after main.");
-    this.consumeSymbol(")", "Current C++ subset only supports int main() with no parameters.");
-    this.consumeSymbol("{", "Expected '{' to start main body.");
+    this.consumeSymbol("(", `Expected '(' after ${name.value}.`);
+    if (!this.checkSymbol(")")) {
+      this.error(this.current(), "Function parameters are not supported yet.");
+      this.synchronizeFunctionParameters();
+    }
+    this.consumeSymbol(")", "Current C++ subset only supports no-argument functions.");
+    this.consumeSymbol("{", `Expected '{' to start ${name.value} body.`);
 
     const body: CppStatement[] = [];
     while (!this.is("eof") && !this.checkSymbol("}")) {
@@ -77,8 +87,8 @@ class Parser {
       if (statement) body.push(statement);
     }
 
-    this.consumeSymbol("}", "Expected '}' to close main body.");
-    return { kind: "Function", name: "main", returnType: "int", line: start.line, body };
+    this.consumeSymbol("}", `Expected '}' to close ${name.value} body.`);
+    return { kind: "Function", name: name.value, returnType: "int", parameters: [], line: start.line, body };
   }
 
   private parseStatement(): CppStatement | null {
@@ -138,8 +148,9 @@ class Parser {
 
     const target = this.advance();
     if (this.checkSymbol("(")) {
-      this.error(target, "Current C++ subset does not support function calls.");
-      this.synchronize();
+      this.parseCallExpression(target);
+      if (expectSemicolon) this.consumeSymbol(";", "Expected ';' after function call statement.");
+      this.error(target, "Function call statements are not supported yet.");
       return null;
     }
 
@@ -348,15 +359,28 @@ class Parser {
     if (this.match("identifier")) {
       const token = this.previous();
       if (this.checkSymbol("(")) {
-        this.error(token, "Current C++ subset does not support function calls.");
-        this.synchronize();
-        return undefined;
+        return this.parseCallExpression(token);
       }
       return { kind: "Identifier", line: token.line, name: token.value };
     }
 
     this.error(this.current(), "Expected integer literal or identifier expression.");
     return undefined;
+  }
+
+  private parseCallExpression(callee: CppToken): CppCallExpression {
+    const args: CppExpression[] = [];
+    this.consumeSymbol("(", `Expected '(' after ${callee.value}.`);
+    if (!this.checkSymbol(")")) {
+      while (!this.is("eof") && !this.checkSymbol(")")) {
+        const arg = this.parseExpression();
+        if (arg) args.push(arg);
+        if (!this.matchSymbol(",")) break;
+      }
+      if (args.length > 0) this.error(callee, "Function arguments are not supported yet.");
+    }
+    this.consumeSymbol(")", "Expected ')' after function call.");
+    return { kind: "CallExpression", line: callee.line, callee: callee.value, arguments: args };
   }
 
   private synchronize() {
@@ -366,6 +390,10 @@ class Parser {
 
   private synchronizeForHeader() {
     while (!this.is("eof") && !this.checkSymbol(";") && !this.checkSymbol(")")) this.advance();
+  }
+
+  private synchronizeFunctionParameters() {
+    while (!this.is("eof") && !this.checkSymbol(")")) this.advance();
   }
 
   private consume(kind: CppToken["kind"], message: string): CppToken | null {

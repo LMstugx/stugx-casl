@@ -1,6 +1,6 @@
 import type { Diagnostic } from "../core/types";
 
-export type CppExpression = CppIdentifier | CppIntegerLiteral | CppBinaryExpression;
+export type CppExpression = CppIdentifier | CppIntegerLiteral | CppBinaryExpression | CppCallExpression;
 
 export type CppStatement =
   | CppVarDecl
@@ -35,18 +35,24 @@ export type CppToCaslMapKind =
   | "compound-assignment"
   | "break-statement"
   | "continue-statement"
-  | "loop-continue-label";
+  | "loop-continue-label"
+  | "function-declaration"
+  | "function-label"
+  | "function-call"
+  | "function-return";
 
 export interface CppProgram {
   kind: "Program";
+  functions: CppFunction[];
   main: CppFunction;
 }
 
 export interface CppFunction {
   kind: "Function";
-  name: "main";
+  name: string;
   returnType: "int";
   line: number;
+  parameters: [];
   body: CppStatement[];
 }
 
@@ -134,8 +140,16 @@ export interface CppBinaryExpression {
   right: CppExpression;
 }
 
+export interface CppCallExpression {
+  kind: "CallExpression";
+  line: number;
+  callee: string;
+  arguments: CppExpression[];
+}
+
 export interface CppVariableSymbol {
   name: string;
+  functionName: string;
   label: string;
   declarationLine: number;
   initializer?: number;

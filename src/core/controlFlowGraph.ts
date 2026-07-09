@@ -146,7 +146,7 @@ export function controlFlowMeaning(edge?: ControlFlowEdge): string {
   const target = controlFlowTargetText(edge);
   if (edge.kind === "break") return `Break statement jumps to loop exit: ${target}.`;
   if (edge.kind === "continue") return `Continue statement jumps to the loop continue target: ${target}.`;
-  if (edge.kind === "call") return `CALL jumps to subroutine target: ${target}.`;
+  if (edge.kind === "call") return `Push return address to the stack, then CALL jumps to subroutine target: ${target}.`;
   if (edge.kind === "loop-back") return `Loop back jump returns control to ${target}.`;
   if (edge.kind === "conditional-true") return `Conditional jump target: ${target}.`;
   if (edge.kind === "conditional-false") return `Condition not met; execution falls through to ${target}.`;

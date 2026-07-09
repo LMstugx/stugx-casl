@@ -15,6 +15,7 @@ import phase9e from "../../docs/phase9e-stack-address-path-foundation.md?raw";
 import phase9f from "../../docs/phase9f-push-pop-stack.md?raw";
 import phase9g from "../../docs/phase9g-call-ret-stack-semantics.md?raw";
 import phase9h from "../../docs/phase9h-subroutine-teaching-polish.md?raw";
+import phase10a from "../../docs/phase10a-cpp-function-call-lowering.md?raw";
 import futureCustomCircuit from "../../docs/future-custom-circuit-design.md?raw";
 import practiceTasks from "../../docs/practice-tasks.md?raw";
 import projectOverview from "../../docs/project-overview.md?raw";
@@ -35,6 +36,7 @@ describe("learning use documentation", () => {
     expect(learningGuide).toContain("CASL: Push Pop Stack");
     expect(learningGuide).toContain("CASL: Call Return");
     expect(learningGuide).toContain("CASL: Nested Call Return");
+    expect(learningGuide).toContain("C++: Function Call");
     expect(learningGuide).toContain("Step 2: C++ to CASL");
     expect(learningGuide).toContain("Step 6: break / continue");
   });
@@ -91,6 +93,7 @@ describe("learning use documentation", () => {
     expect(practiceTasks).toContain("Observe PUSH / POP stack behavior");
     expect(practiceTasks).toContain("Observe CALL / stack-aware RET");
     expect(practiceTasks).toContain("Trace nested return order");
+    expect(practiceTasks).toContain("Observe C++ function-call lowering");
     expect(practiceTasks).toContain("Level 5: break / continue");
   });
 
@@ -159,6 +162,16 @@ describe("learning use documentation", () => {
     expect(phase9h).toContain("Nested Call Return");
   });
 
+  it("phase10a_cpp_function_call_lowering_doc_exists", () => {
+    expect(phase10a).toContain("Phase 10A: C++ Function Call Lowering MVP");
+    expect(phase10a).toContain("no-argument helper functions");
+    expect(phase10a).toContain("GR0");
+    expect(phase10a).toContain("CALL FUNC_ADDONE");
+    expect(phase10a).toContain("static namespaced labels");
+    expect(phase10a).toContain("no parameters");
+    expect(phase10a).toContain("no recursion");
+  });
+
   it("phase8e_circuit_focus_doc_exists", () => {
     expect(phase8e).toContain("Phase 8E: Circuit Focus Final Layout");
     expect(phase8e).toContain("SP Semantic Rule");
@@ -215,6 +228,7 @@ describe("learning use documentation", () => {
     expect(futureCustomCircuit).toContain("SP -> MAR -> Memory[SP]");
     expect(futureCustomCircuit).toContain("Phase 9F connects");
     expect(futureCustomCircuit).toContain("Phase 9G connects `CALL`");
+    expect(futureCustomCircuit).toContain("Phase 10A connects no-argument C++ function-call lowering");
   });
 
   it("practice_tasks_do_not_use_unsupported_syntax", () => {
@@ -249,6 +263,7 @@ describe("learning use documentation", () => {
     expect(readme).toContain("docs/phase9f-push-pop-stack.md");
     expect(readme).toContain("docs/phase9g-call-ret-stack-semantics.md");
     expect(readme).toContain("docs/phase9h-subroutine-teaching-polish.md");
+    expect(readme).toContain("docs/phase10a-cpp-function-call-lowering.md");
     expect(readme).toContain("docs/future-custom-circuit-design.md");
     expect(normalized).not.toContain("hackathon");
     expect(normalized).not.toContain("contest submission");

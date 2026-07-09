@@ -847,4 +847,160 @@ describe("C++ subset to CASL generator", () => {
     expect(state.memory[state.symbols.SUM]).toBe(0x0002);
     expect(state.gr[0]).toBe(0x0002);
   });
+
+  it("transpile_function_label", () => {
+    const result = expectOk(`int addOne() {
+    return 1;
+}
+
+int main() {
+    return addOne();
+}`);
+
+    expect(result.caslSource).toContain("MAIN START");
+    expect(result.caslSource).toContain("FUNC_ADDONE LAD   GR0,1");
+    expect(result.mapping.some((entry) => entry.kind === "function-label" && entry.cppLine === 1)).toBe(true);
+  });
+
+  it("transpile_function_call_to_call_instruction", () => {
+    const result = expectOk(`int addOne() {
+    return 1;
+}
+
+int main() {
+    int x;
+    x = addOne();
+    return x;
+}`);
+
+    expect(result.caslSource).toContain("     CALL  FUNC_ADDONE");
+    expect(result.mapping.some((entry) => entry.kind === "function-call" && entry.cppLine === 7)).toBe(true);
+  });
+
+  it("transpile_assignment_from_function_call", () => {
+    const result = expectOk(`int addOne() {
+    return 1;
+}
+
+int main() {
+    int x;
+    x = addOne();
+    return x;
+}`);
+
+    expect(result.caslSource).toContain("     ST    GR0,MAIN_X");
+    expect(result.caslSource).toContain("MAIN_X DS    1");
+  });
+
+  it("transpile_return_from_function_call", () => {
+    const result = expectOk(`int addOne() {
+    return 1;
+}
+
+int main() {
+    return addOne();
+}`);
+
+    const lines = result.caslSource.split("\n");
+    const callIndex = lines.findIndex((line) => line.includes("CALL  FUNC_ADDONE"));
+    expect(callIndex).toBeGreaterThan(0);
+    expect(lines[callIndex + 1]).toContain("RET");
+    expect(result.mapping.some((entry) => entry.kind === "function-return" && entry.cppLine === 6)).toBe(true);
+  });
+
+  it("function_variables_are_namespaced", () => {
+    const result = expectOk(`int value() {
+    int x = 1;
+    return x;
+}
+
+int main() {
+    int x;
+    x = value();
+    return x;
+}`);
+
+    expect(result.caslSource).toContain("VALUE_X DC    1");
+    expect(result.caslSource).toContain("MAIN_X DS    1");
+    expect(result.caslSource).toContain("FUNC_VALUE LD    GR0,VALUE_X");
+  });
+
+  it("function_call_mapping_to_generated_casl", () => {
+    const result = expectOk(`int addOne() {
+    return 1;
+}
+
+int main() {
+    int x;
+    x = addOne();
+    return x;
+}`);
+
+    const rows = result.mapping.filter((entry) => entry.kind === "function-call" && entry.cppLine === 7).flatMap((entry) => entry.caslLines);
+    expect(rows.length).toBeGreaterThanOrEqual(2);
+    expect(cppLineForCaslLine(result.mapping, rows[0])).toBe(7);
+  });
+
+  it("cpp_function_call_returns_value", () => {
+    const result = expectOk(`int addOne() {
+    return 1;
+}
+
+int main() {
+    int x;
+    x = addOne();
+    return x;
+}`);
+    const state = runToEnd(result.caslSource);
+
+    expect(state.runState).toBe("Finished");
+    expect(state.gr[0]).toBe(0x0001);
+  });
+
+  it("cpp_function_call_stores_gr0", () => {
+    const result = expectOk(`int addOne() {
+    return 1;
+}
+
+int main() {
+    int x;
+    x = addOne();
+    return x;
+}`);
+    const state = runToEnd(result.caslSource);
+
+    expect(state.memory[state.symbols.MAIN_X]).toBe(0x0001);
+  });
+
+  it("cpp_function_call_uses_stack_return", () => {
+    const result = expectOk(`int addOne() {
+    return 1;
+}
+
+int main() {
+    int x;
+    x = addOne();
+    return x;
+}`);
+    const state = runToEnd(result.caslSource);
+
+    expect(state.trace.some((event) => event.instruction === "CALL" && event.callDepthAfter === 1)).toBe(true);
+    expect(state.trace.some((event) => event.instruction === "RET" && event.callDepthBefore === 1 && event.callDepthAfter === 0)).toBe(true);
+    expect(state.runState).toBe("Finished");
+    expect(state.callDepth).toBe(0);
+  });
+
+  it("existing_cpp_addition_still_works", () => {
+    const result = expectOk(`int main() {
+    int a = 10;
+    int b = 20;
+    int c;
+    c = a + b;
+    return c;
+}`);
+    const state = runToEnd(result.caslSource);
+
+    expect(state.gr[0]).toBe(0x001e);
+    expect(state.memory[state.symbols.C]).toBe(0x001e);
+  });
 });

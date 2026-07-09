@@ -79,6 +79,22 @@ Suggested actions:
 4. Click the `1010` instruction word and read the opcode explanation.
 5. Step through the program and watch C++ and CASL highlighting.
 
+Function-call follow-up: `C++: Function Call`
+
+Learn:
+
+- a no-argument `int` function becomes a generated `FUNC_*` CASL label
+- `x = addOne();` lowers into `CALL FUNC_ADDONE` followed by `ST GR0,MAIN_X`
+- `GR0` is the return-value register for the MVP
+- the callee `RET` uses the stack return path, while the final `RET` in `main` still finishes the program
+
+Suggested actions:
+
+1. Assemble `C++: Function Call`.
+2. Open `Generated CASL` and find `FUNC_ADDONE`.
+3. Open `Machine Code` and click `CALL FUNC_ADDONE`.
+4. Open `Trace` or Circuit Focus Mode and compare the call stack return with the final top-level `RET`.
+
 ### Step 3: if / else
 
 Example: `C++: If Else`
@@ -392,7 +408,8 @@ For `break` / `continue`, pay attention to:
 - C++ support is a learning subset, not a complete compiler.
 - CASL II support is a teaching subset, not the full instruction set.
 - Index addressing is supported for CASL address operands, but C++ subset code does not generate indexed operands yet.
-- Arrays, pointers, functions, classes, templates, strings, and floating-point types are not supported.
+- No-argument `int` functions are supported, but function parameters, recursion, overloads, stack-frame locals, and calls inside larger expressions are not supported.
+- Arrays, pointers, references, classes, templates, strings, and floating-point types are not supported.
 - Complex boolean expressions such as `&&`, `||`, and `!` are not supported.
 - Control Flow is currently text and badge based, not a graph layout.
 

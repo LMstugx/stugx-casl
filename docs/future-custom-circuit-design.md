@@ -107,3 +107,5 @@ Phase 9E adds stack-address infrastructure without stack execution semantics. Ph
 - teaching surfaces should distinguish a CALL target from a return address, and a stack RET from a top-level RET finish
 
 The current stack template names are intentionally split by behavior: `stack-read` and `stack-write` are used by `POP` and `PUSH`; `call-return-address` and `return-pop-address` are used by `CALL` and stack-aware `RET`. Top-level `RET` keeps a separate finish path so old demos do not need a stack frame.
+
+Phase 10A connects no-argument C++ function-call lowering to the same `CALL` / stack-aware `RET` route. The C++ side still uses static namespaced data labels such as `MAIN_X` and `ADDONE_X`; it does not create stack-frame locals, arguments, or recursive frames yet. Future custom-circuit work should treat Phase 10A as a teaching bridge, not as a complete function-frame model.

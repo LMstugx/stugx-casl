@@ -118,6 +118,7 @@ Use the gallery to inspect:
 - PUSH / POP screenshots show `SP`, Stack Preview, stack row write/read, and Machine Code explanations that distinguish effective address values from memory data.
 - CALL / RET screenshots show return-address stack writes, stack return reads, PR target changes, Call Stack depth, return edge text, and the final top-level `RET` finish.
 - Nested CALL screenshot shows `callDepth` greater than 1 and last-in-first-out return order context.
+- C++ function-call screenshots show `FUNC_ADDONE`, `CALL FUNC_ADDONE`, GR0 return value convention, and CALL / RET rows in Trace.
 - Machine Code explanation is readable.
 - Control Flow target text is readable.
 - Source Editor is not squeezed.
@@ -140,6 +141,9 @@ Use the gallery to inspect:
 - `call-return-finish.png` (Circuit Focus Mode)
 - `call-return-machine-code.png` (Machine Code explanation)
 - `nested-call-return.png` (Circuit Focus Mode)
+- `cpp-function-call-generated-casl.png`
+- `cpp-function-call-trace.png`
+- `cpp-function-call-machine-code.png`
 - `cpp-addition-generated-casl.png`
 - `machine-code-explanation.png`
 - `for-sum-control-flow.png`

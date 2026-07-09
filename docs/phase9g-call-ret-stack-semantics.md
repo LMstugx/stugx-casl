@@ -110,12 +110,12 @@ Phase 9H keeps the same execution semantics and adds clearer subroutine teaching
 ## Current Limitations
 
 - No `SVC`, `IN`, or `OUT`.
-- No C++ function-call lowering yet.
-- No call-frame locals or arguments.
+- Phase 10A adds no-argument C++ function-call lowering on top of this `CALL` / `RET` model.
+- No call-frame locals, arguments, recursion, or parameter passing.
 - Return-edge explanation is runtime-oriented and compact; there is still no full static call graph.
 
 ## Future Work
 
-- C++ subset function-call lowering.
 - Optional call-depth timeline for deeper subroutine lessons.
+- C++ parameter and stack-frame lowering.
 - More detailed static call graph visualization in Control Flow.

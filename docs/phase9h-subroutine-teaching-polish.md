@@ -140,14 +140,14 @@ This demo is useful for seeing `callDepth` reach `2`, then return in last-in-fir
 
 ## Current Limitations
 
-- No C++ function-call lowering.
-- No arguments, locals, or frame-pointer model.
+- Phase 10A adds no-argument C++ function-call lowering on top of this subroutine teaching layer.
+- No function arguments, recursion, stack-frame locals, or frame-pointer model.
 - No static full call graph.
 - `CALL` return edges are explained through runtime state, Trace, and the Call Stack card.
 
 ## Future Work
 
-- C++ subset function-call lowering.
 - Function argument and local-variable teaching examples.
+- C++ stack-frame lowering when parameters and locals are introduced.
 - Optional call graph / return edge visualization.
 - More detailed stack-frame display when the language subset needs it.

@@ -584,6 +584,68 @@ export const learningLessons: LearningLesson[] = [
     ]
   },
   {
+    exampleId: "cpp-function-call",
+    title: "C++ function call lowered to CALL / RET",
+    level: "C++ to CASL",
+    concepts: ["function label", "CALL", "return address", "GR0 return value", "stack-aware RET", "top-level RET finish"],
+    learningGoals: [
+      "See how a no-argument C++ function becomes a CASL subroutine label.",
+      "Understand that the function return value is placed in GR0.",
+      "Connect C++ function return with CALL / stack-aware RET in the COMET stack view."
+    ],
+    observe: ["FUNC_ADDONE label in Generated CASL", "CALL FUNC_ADDONE", "GR0 after RET", "Call Stack depth during the call"],
+    suggestedSteps: [
+      {
+        id: "open-generated",
+        label: "Find generated function",
+        action: "Click Assemble and open Generated CASL.",
+        expectedObservation: "Generated CASL contains FUNC_ADDONE and CALL FUNC_ADDONE.",
+        recommendedTab: "Generated CASL"
+      },
+      {
+        id: "inspect-call",
+        label: "Inspect CALL",
+        action: "Open Machine Code and click the CALL instruction word.",
+        expectedObservation: "The explanation shows the CALL target, return address, and stack write.",
+        recommendedTab: "Machine Code"
+      },
+      {
+        id: "run-trace",
+        label: "Run and read Trace",
+        action: "Open Trace and click Run.",
+        expectedObservation: "Trace shows CALL, RET stack return, and final top-level RET finish.",
+        recommendedTab: "Trace"
+      }
+    ],
+    checkpoints: [
+      {
+        id: "function-label",
+        label: "Function label",
+        expected: "Generated CASL should contain FUNC_ADDONE.",
+        whereToLook: "Generated CASL",
+        note: "Non-main C++ functions use generated FUNC_* CASL labels."
+      },
+      {
+        id: "call-stack",
+        label: "CALL / RET flow",
+        expected: "CALL should write a return address to the stack, and RET inside addOne should return to the caller.",
+        whereToLook: "Trace / Call Stack",
+        note: "The final RET in main still uses top-level finish semantics."
+      },
+      {
+        id: "gr0-result",
+        label: "Return value",
+        expected: "GR0 should be 0001 when the program finishes.",
+        whereToLook: "Registers tab / Trace",
+        note: "The MVP convention uses GR0 as the return-value register."
+      }
+    ],
+    commonQuestions: [
+      "Why is GR0 used as the function return value?",
+      "Why does main's final RET finish while addOne's RET returns to the caller?"
+    ]
+  },
+  {
     exampleId: "cpp-addition",
     title: "C++ addition lowered to CASL",
     level: "C++ to CASL",

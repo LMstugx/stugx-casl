@@ -175,6 +175,24 @@ RESULT DS  1
     suggestedActions: ["Click Assemble.", "Step both CALL instructions and watch callDepth reach 2.", "Step each RET and confirm return order.", "Open Trace to compare return addresses.", "Run and confirm RESULT is 0004."]
   },
   {
+    id: "cpp-function-call",
+    name: "C++: Function Call",
+    mode: "cpp",
+    source: `int addOne() {
+    return 1;
+}
+
+int main() {
+    int x;
+    x = addOne();
+    return x;
+}`,
+    description: "No-argument C++ function lowered to a CASL CALL with GR0 as the return-value register.",
+    whatThisShows: "A C++ function call becomes CALL FUNC_ADDONE, the callee returns through GR0, and stack-aware RET returns to the caller.",
+    expectedResult: "CALL FUNC_ADDONE runs addOne, GR0 = 0001, x stores that value, and the final top-level RET finishes.",
+    suggestedActions: ["Click Assemble.", "Open Generated CASL and find FUNC_ADDONE / CALL.", "Open Machine Code and inspect CALL opcode 80.", "Open Trace and watch CALL / RET.", "Run and confirm GR0 = 0001."]
+  },
+  {
     id: "cpp-addition",
     name: "C++: Addition",
     mode: "cpp",

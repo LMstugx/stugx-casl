@@ -221,4 +221,54 @@ describe("C++ subset parser", () => {
       body: [expect.objectContaining({ kind: "ContinueStatement" })]
     });
   });
+
+  it("parse_multiple_int_functions", () => {
+    const result = parseCpp(`int addOne() {
+    return 1;
+}
+
+int main() {
+    int x;
+    x = addOne();
+    return x;
+}`);
+
+    expect(result.diagnostics).toEqual([]);
+    expect(result.program?.functions.map((fn) => fn.name)).toEqual(["addOne", "main"]);
+    expect(result.program?.main.name).toBe("main");
+  });
+
+  it("parse_call_expression_no_args", () => {
+    const result = parseCpp(`int addOne() {
+    return 1;
+}
+
+int main() {
+    int x;
+    x = addOne();
+    return addOne();
+}`);
+
+    expect(result.diagnostics).toEqual([]);
+    expect(result.program?.main.body[1]).toMatchObject({
+      kind: "Assignment",
+      target: "x",
+      expression: { kind: "CallExpression", callee: "addOne", arguments: [] }
+    });
+    expect(result.program?.main.body[2]).toMatchObject({
+      kind: "Return",
+      expression: { kind: "CallExpression", callee: "addOne", arguments: [] }
+    });
+  });
+
+  it("existing_main_only_program_still_parses", () => {
+    const result = parseCpp(`int main() {
+    int a = 1;
+    return a;
+}`);
+
+    expect(result.diagnostics).toEqual([]);
+    expect(result.program?.functions).toHaveLength(1);
+    expect(result.program?.main.body).toHaveLength(2);
+  });
 });

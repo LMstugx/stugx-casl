@@ -67,6 +67,19 @@ test("WASM backend runs C++ subset while sum in the browser UI", async ({ page }
   await expectRegister(page, "register-gr0", "0006");
 });
 
+test("WASM backend runs C++ subset function call in the browser UI", async ({ page }) => {
+  await openStudio(page, "WASM Core");
+  await selectDemoProgram(page, "cpp-function-call");
+
+  await assemble(page);
+  await expect(page.getByTestId("generated-casl-output")).toContainText("FUNC_ADDONE");
+  await expect(page.getByTestId("generated-casl-output")).toContainText("CALL");
+  await run(page);
+
+  await expect(page.getByTestId("run-state")).toHaveText("Finished");
+  await expectRegister(page, "register-gr0", "0001");
+});
+
 test("WASM backend runs C++ subset for sum in the browser UI", async ({ page }) => {
   await openStudio(page, "WASM Core");
   await selectDemoProgram(page, "cpp-for-sum");

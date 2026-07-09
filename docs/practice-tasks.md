@@ -219,6 +219,23 @@ Expected observation:
 - The first instruction word should encode `LD GR1,A`.
 - The next word should be the address of `A`.
 
+### Task 8B. Observe C++ function-call lowering
+
+Start from `C++: Function Call`.
+
+Expected observation:
+
+- Generated CASL should contain `FUNC_ADDONE`.
+- The call site should lower to `CALL FUNC_ADDONE`.
+- After the callee returns, `GR0` should contain the function return value.
+- `ST GR0,MAIN_X` should store that return value in the caller's static local label.
+- Trace should show a stack return for the callee `RET` and a top-level finish for the final `RET` in `main`.
+
+Answer hint:
+
+- Final `GR0` should be `0001`.
+- The MVP does not support parameters, recursion, or calls inside larger expressions such as `foo() + 1`.
+
 ## Level 3: If / Else
 
 ### Task 9. Change condition from == to !=

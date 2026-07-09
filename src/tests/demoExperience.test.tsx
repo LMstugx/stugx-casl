@@ -45,6 +45,7 @@ describe("demo recording experience", () => {
       "CASL: Push Pop Stack",
       "CASL: Call Return",
       "CASL: Nested Call Return",
+      "C++: Function Call",
       "C++: Addition",
       "C++: If Else",
       "C++: While Sum",
@@ -162,6 +163,24 @@ describe("demo recording experience", () => {
 
     expect(state.runState).toBe("Finished");
     expect(state.gr[0]).toBe(0x0004);
+  });
+
+  it("demo_cpp_function_call_run_finishes", () => {
+    const program = getDemoProgram("cpp-function-call");
+    expect(program).toBeDefined();
+    const prepared = prepareSourceForCoreAssembly(program!.source, "cpp");
+    expect(prepared.ok).toBe(true);
+    expect(prepared.generatedCaslSource).toContain("FUNC_ADDONE");
+    expect(prepared.generatedCaslSource).toContain("CALL  FUNC_ADDONE");
+
+    let state = mockCaslCore.assemble(prepared.coreSourceText);
+    for (let step = 0; step < 100 && state.runState !== "Finished"; step += 1) {
+      state = mockCaslCore.step(state);
+    }
+
+    expect(state.runState).toBe("Finished");
+    expect(state.gr[0]).toBe(0x0001);
+    expect(state.trace.some((event) => event.instruction === "CALL")).toBe(true);
   });
 
   it("demo_guide_displays_expected_result", () => {
@@ -314,7 +333,8 @@ describe("demo recording experience", () => {
     const markup = renderToStaticMarkup(<DemoGuidePanel program={getDemoProgram("cpp-break-continue")!} />);
 
     expect(markup).toContain("Not a full C++ compiler");
-    expect(markup).toContain("arrays, pointers, functions, classes, templates");
+    expect(markup).toContain("function parameters, recursion, stack-frame locals");
+    expect(markup).toContain("arrays, pointers, classes, templates");
   });
 
   it("project_overview_uses_learning_wording", () => {
@@ -336,6 +356,7 @@ describe("demo recording experience", () => {
       "casl-push-pop-stack",
       "casl-call-return",
       "casl-nested-call-return",
+      "cpp-function-call",
       "cpp-addition",
       "cpp-if-else",
       "cpp-while-sum",

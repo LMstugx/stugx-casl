@@ -96,6 +96,16 @@ describe("guided learning lessons", () => {
     expect(text).toContain("0004");
   });
 
+  it("lesson_for_cpp_function_call_mentions_gr0_call_and_stack_ret", () => {
+    const lesson = getLearningLesson("cpp-function-call");
+    const text = JSON.stringify(lesson);
+
+    expect(text).toContain("CALL");
+    expect(text).toContain("GR0");
+    expect(text).toContain("stack-aware RET");
+    expect(text).toContain("FUNC_ADDONE");
+  });
+
   it("learning_lessons_have_recommended_tabs", () => {
     for (const lesson of learningLessons) {
       expect(lesson.suggestedSteps.every((step) => step.recommendedTab)).toBe(true);

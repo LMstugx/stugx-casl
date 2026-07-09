@@ -176,11 +176,13 @@ Stack subset:
 Supported:
 
 - `int main() { ... }`
+- no-argument `int` functions
 - `int` variables
 - integer literals
 - assignment
 - binary `+` and `-`
-- `return 0;` and `return variable;`
+- `return 0;`, `return variable;`, and `return foo();`
+- function call assignment: `x = foo();`
 - `if` / `else`
 - `while`
 - `for`
@@ -193,7 +195,8 @@ Not supported:
 - full C++ parsing
 - classes, structs, templates
 - arrays, pointers, references
-- functions other than `main`
+- function parameters, recursion, overloads, and function pointers
+- stack-frame locals / arguments
 - strings, characters, floats, doubles
 - `std::cout`, iostreams, vectors
 - `switch`, `do while`, `&&`, `||`, `!`
@@ -299,13 +302,14 @@ The current backend is shown in the status bar as `Mock Core`, `WASM Core`, or `
 - [docs/phase9f-push-pop-stack.md](docs/phase9f-push-pop-stack.md): `PUSH` / `POP` stack semantics, Stack Preview updates, and circuit stack path.
 - [docs/phase9g-call-ret-stack-semantics.md](docs/phase9g-call-ret-stack-semantics.md): `CALL`, stack-aware `RET`, and top-level `RET` compatibility.
 - [docs/phase9h-subroutine-teaching-polish.md](docs/phase9h-subroutine-teaching-polish.md): Call Stack view, return edge explanation, and nested-call teaching notes.
+- [docs/phase10a-cpp-function-call-lowering.md](docs/phase10a-cpp-function-call-lowering.md): no-argument C++ function-call lowering to CASL `CALL` / `RET` with `GR0` return values.
 
 ## Current Limitations
 
 - This is a learning-oriented C++ subset transpiler, not a complete C++ compiler.
 - The CASL II assembler supports the current teaching subset, not the full instruction set.
 - Index addressing is supported for CASL address operands, but C++ subset code does not generate indexed operands yet.
-- `CALL` / stack-aware `RET` are implemented for CASL study programs, but C++ subset code does not generate function calls yet.
+- C++ subset can lower no-argument `int` function calls, but it does not support parameters, recursion, stack-frame locals, or C++ function-call expressions inside larger expressions.
 - The WASM bridge currently uses a single runtime and JSON strings.
 - The control-flow view is text and badge based; there is no full CFG graph yet.
 - New / Open / Save, language switching, and theme controls are placeholders or limited.

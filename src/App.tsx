@@ -119,7 +119,13 @@ function StudioShell() {
               <div className="source-header-actions">
                 <label className="demo-program-picker" title={selectedDemoProgram.name}>
                   <span>Demo</span>
-                  <select data-testid="demo-program-select" value={selectedDemoProgramId} title={selectedDemoProgram.name} onChange={(event) => selectDemoProgram(event.target.value)}>
+                  <select
+                    data-testid="demo-program-select"
+                    value={selectedDemoProgramId}
+                    title={selectedDemoProgram.name}
+                    aria-label={`Demo program: ${selectedDemoProgram.name}`}
+                    onChange={(event) => selectDemoProgram(event.target.value)}
+                  >
                     {demoPrograms.map((program) => (
                       <option key={program.id} value={program.id}>
                         {program.name}
@@ -128,10 +134,10 @@ function StudioShell() {
                   </select>
                 </label>
                 <div className="segmented source-mode" aria-label="Source mode">
-                  <button type="button" className={sourceMode === "casl" ? "selected" : ""} data-testid="source-mode-casl" onClick={() => setSourceMode("casl")}>
+                  <button type="button" className={sourceMode === "casl" ? "selected" : ""} data-testid="source-mode-casl" aria-pressed={sourceMode === "casl"} title="Use CASL source mode" onClick={() => setSourceMode("casl")}>
                     CASL
                   </button>
-                  <button type="button" className={sourceMode === "cpp" ? "selected" : ""} data-testid="source-mode-cpp" onClick={() => setSourceMode("cpp")}>
+                  <button type="button" className={sourceMode === "cpp" ? "selected" : ""} data-testid="source-mode-cpp" aria-pressed={sourceMode === "cpp"} title="Use C++ subset source mode" onClick={() => setSourceMode("cpp")}>
                     C++ subset
                   </button>
                 </div>

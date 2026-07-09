@@ -22,7 +22,7 @@ export default function DemoGuidePanel({
   return (
     <section className="panel demo-guide-panel" data-testid="demo-guide">
       <details open>
-        <summary>
+        <summary title={`Demo Guide: ${program.name}`} aria-label={`Demo Guide: ${program.name}`}>
           <span>Demo Guide</span>
           <strong>{program.name}</strong>
         </summary>
@@ -46,7 +46,7 @@ export default function DemoGuidePanel({
         </div>
       </details>
       <details className="guided-lesson" data-testid="guided-lesson">
-        <summary data-testid="guided-lesson-summary">
+        <summary data-testid="guided-lesson-summary" title={`Guided Lesson: ${lesson ? lesson.title : "Custom Source"}`} aria-label={`Guided Lesson: ${lesson ? lesson.title : "Custom Source"}`}>
           <span>Guided Lesson</span>
           <strong>{lesson ? lesson.title : "Custom Source"}</strong>
         </summary>
@@ -160,7 +160,7 @@ export default function DemoGuidePanel({
         )}
       </details>
       <details className="project-overview" data-testid="project-overview">
-        <summary data-testid="project-overview-summary">
+        <summary data-testid="project-overview-summary" title="Project Overview: stugx.CASL" aria-label="Project Overview: stugx.CASL">
           <span>Project Overview</span>
           <strong>stugx.CASL</strong>
         </summary>

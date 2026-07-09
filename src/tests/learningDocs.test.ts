@@ -20,6 +20,7 @@ import phase10b from "../../docs/phase10b-calling-convention-design.md?raw";
 import phase10c from "../../docs/phase10c-cpp-single-argument-function.md?raw";
 import phase10d from "../../docs/phase10d-cpp-multi-register-arguments.md?raw";
 import phase10e from "../../docs/phase10e-focus-text-overflow-cleanup.md?raw";
+import phase10f from "../../docs/phase10f-small-viewport-accessibility.md?raw";
 import circuitVisualContract from "../../docs/circuit-visual-contract.md?raw";
 import futureCustomCircuit from "../../docs/future-custom-circuit-design.md?raw";
 import practiceTasks from "../../docs/practice-tasks.md?raw";
@@ -231,6 +232,24 @@ describe("learning use documentation", () => {
     expect(phase10e).toContain("Circuit Visual Contract");
   });
 
+  it("phase10f_small_viewport_accessibility_doc_exists", () => {
+    expect(phase10f).toContain("Phase 10F: Small Viewport and Accessibility Polish");
+    expect(phase10f).toContain("1280x720");
+    expect(phase10f).toContain("Keyboard and Focus Rule");
+    expect(phase10f).toContain("Ellipsis and Title Rule");
+    expect(phase10f).toContain("Details Accessibility Rule");
+    expect(phase10f).toContain("Tab Accessibility Rule");
+    expect(phase10f).toContain("Visual Review Expectations");
+  });
+
+  it("focus_visible_styles_exist", () => {
+    expect(phase10f).toContain("focus ring");
+    expect(phase10f).toContain("toolbar buttons");
+    expect(phase10f).toContain("tabs");
+    expect(phase10f).toContain("Signal Probe details");
+    expect(circuitVisualContract).toContain("visible keyboard focus");
+  });
+
   it("source_editor_header_handles_long_demo_name", () => {
     expect(phase10e).toContain("Source Editor header must not crop demo names");
     expect(phase10e).toContain("demo selector uses a stable min/max width and full title");
@@ -324,6 +343,8 @@ describe("learning use documentation", () => {
     expect(circuitVisualContract).toContain("Use EAU for index addressing");
     expect(circuitVisualContract).toContain("Text must never break the circuit layout");
     expect(circuitVisualContract).toContain("Phase 10E applies these rules");
+    expect(circuitVisualContract).toContain("1280x720");
+    expect(circuitVisualContract).toContain("visible keyboard focus");
     expect(circuitVisualContract).toContain("GR1-GR3 are argument registers");
     expect(circuitVisualContract).toContain("stack arguments are not supported yet");
   });
@@ -366,6 +387,7 @@ describe("learning use documentation", () => {
     expect(readme).toContain("docs/phase10d-cpp-multi-register-arguments.md");
     expect(readme).toContain("docs/circuit-visual-contract.md");
     expect(readme).toContain("docs/phase10e-focus-text-overflow-cleanup.md");
+    expect(readme).toContain("docs/phase10f-small-viewport-accessibility.md");
     expect(readme).toContain("docs/future-custom-circuit-design.md");
     expect(normalized).not.toContain("hackathon");
     expect(normalized).not.toContain("contest submission");

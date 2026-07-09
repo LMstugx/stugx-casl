@@ -308,6 +308,7 @@ The current backend is shown in the status bar as `Mock Core`, `WASM Core`, or `
 - [docs/phase10d-cpp-multi-register-arguments.md](docs/phase10d-cpp-multi-register-arguments.md): C++ function-call lowering for up to three register arguments in `GR1` / `GR2` / `GR3`.
 - [docs/circuit-visual-contract.md](docs/circuit-visual-contract.md): long-term Circuit Focus Mode rules for lanes, anchors, active modules, compact cards, and text overflow.
 - [docs/phase10e-focus-text-overflow-cleanup.md](docs/phase10e-focus-text-overflow-cleanup.md): Signal Probe, Call Stack, Trace, Learning Flow, and table overflow cleanup.
+- [docs/phase10f-small-viewport-accessibility.md](docs/phase10f-small-viewport-accessibility.md): small viewport, keyboard focus, details, tab, and title/ARIA polish.
 
 ## Current Limitations
 

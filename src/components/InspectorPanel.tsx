@@ -30,10 +30,15 @@ export default function InspectorPanel({ state }: { state: CometState }) {
         {tabs.map((tab) => (
           <button
             key={tab.id}
+            id={`inspector-tab-${tab.id}`}
             className={activeTab === tab.id ? "tab-button active" : "tab-button"}
             type="button"
             role="tab"
             aria-selected={activeTab === tab.id}
+            aria-controls={`inspector-panel-${tab.id}`}
+            aria-label={`Open ${tab.label} inspector tab`}
+            tabIndex={activeTab === tab.id ? 0 : -1}
+            title={tab.label}
             onClick={() => setActiveTab(tab.id)}
           >
             {tab.label}
@@ -41,7 +46,12 @@ export default function InspectorPanel({ state }: { state: CometState }) {
         ))}
       </div>
 
-      <div className="tab-content inspector-content">
+      <div
+        id={`inspector-panel-${activeTab}`}
+        className="tab-content inspector-content"
+        role="tabpanel"
+        aria-labelledby={`inspector-tab-${activeTab}`}
+      >
         {activeTab === "registers" ? <RegisterPanel state={state} embedded /> : null}
         {activeTab === "memory" ? <MemoryPanel state={state} embedded /> : null}
         {activeTab === "sourceMap" ? <SourceMapPanel state={state} embedded /> : null}

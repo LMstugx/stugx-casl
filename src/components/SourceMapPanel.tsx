@@ -26,9 +26,9 @@ export default function SourceMapPanel({ state, embedded = false }: { state: Com
               data-testid={isCurrent ? "source-row-current" : undefined}
               data-instruction={entry.source}
             >
-              <td>{entry.line}</td>
-              <td className="hex">{formatWord(entry.address)}</td>
-              <td className="hex">{entry.machineWords.map((word) => formatWord(word)).join(" ")}</td>
+              <td className="mono-value" title={String(entry.line)}>{entry.line}</td>
+              <td className="hex mono-value" title={formatWord(entry.address)}>{formatWord(entry.address)}</td>
+              <td className="hex mono-value" title={entry.machineWords.map((word) => formatWord(word)).join(" ")}>{entry.machineWords.map((word) => formatWord(word)).join(" ")}</td>
             </tr>
             );
           })}

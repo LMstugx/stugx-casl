@@ -407,6 +407,8 @@ When stack activity is relevant, Signal Probe also shows `SP` before/after, the 
 
 Signal Probe, Call Stack, and Trace use compact rows by default. Read the primary value first, then use the secondary note or details row when a CALL, RET, index-addressing, or stack instruction needs more context.
 
+At small desktop viewports such as `1280x720`, Focus Mode keeps the same three-column teaching layout but tightens spacing. If a label or instruction is shortened with ellipsis, hover it to read the native `title` text. Signal Probe and Call Stack details use keyboard-focusable summaries, so they can be opened without a mouse.
+
 Display naming is intentionally narrow:
 
 - `OUT Display`: the output device panel. It shows `No output` until an OUT-like instruction exists.

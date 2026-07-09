@@ -207,6 +207,21 @@ button {
   opacity: 0.74;
 }
 
+:where(button, input, select, textarea, summary, [role="button"], [role="tab"]):focus-visible {
+  outline: 2px solid rgba(37, 99, 235, 0.72);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.14);
+}
+
+.tab-button:focus-visible,
+.tool-button:focus-visible,
+.text-button:focus-visible,
+.demo-guide-panel summary:focus-visible,
+.signal-probe-details summary:focus-visible,
+.call-stack-details summary:focus-visible {
+  border-color: #93c5fd;
+}
+
 .tool-button.primary {
   color: var(--color-primary);
 }
@@ -321,6 +336,9 @@ button {
   grid-template-columns: clamp(280px, 23vw, 340px) minmax(620px, 1fr) clamp(280px, 22vw, 340px);
   gap: 8px;
   min-height: 0;
+  overflow: hidden;
+  position: relative;
+  z-index: 1;
 }
 
 .app-shell.circuit-focus-active {
@@ -629,6 +647,12 @@ button {
 }
 
 .signal-probe-details summary {
+  display: inline-flex;
+  align-items: center;
+  min-height: 20px;
+  padding: 1px 3px;
+  border: 1px solid transparent;
+  border-radius: 4px;
   cursor: pointer;
   color: var(--color-muted);
   font-size: 10.5px;
@@ -690,8 +714,34 @@ button {
 }
 
 .call-stack-details {
+  min-width: 0;
   display: grid;
   gap: 3px;
+}
+
+.call-stack-details summary {
+  display: inline-flex;
+  align-items: center;
+  min-height: 18px;
+  width: max-content;
+  max-width: 100%;
+  padding: 1px 3px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: var(--color-muted);
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.call-stack-detail-rows {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.call-stack-details:not([open]) .call-stack-detail-rows {
+  display: none;
 }
 
 .call-stack-body[data-active="true"] .call-stack-summary > div,
@@ -2161,6 +2211,8 @@ button {
   min-height: 0;
   display: grid;
   grid-template-rows: 34px minmax(0, 1fr);
+  position: relative;
+  z-index: 2;
 }
 
 .dock-header {
@@ -2512,6 +2564,110 @@ button {
   .circuit-wire--flow {
     animation: none;
     stroke-dashoffset: 0;
+  }
+}
+
+@media (max-width: 1320px), (max-height: 760px) {
+  .app-shell {
+    gap: 6px;
+    padding: 7px;
+  }
+
+  .app-shell.circuit-focus-active {
+    grid-template-rows: auto minmax(0, 1fr) 84px auto;
+  }
+
+  .toolbar {
+    grid-template-columns: minmax(220px, 270px) minmax(0, 1fr) auto;
+    gap: 6px;
+    min-height: 58px;
+    padding: 6px 8px;
+  }
+
+  .brand-mark {
+    width: 42px;
+    height: 42px;
+  }
+
+  .brand h1 {
+    font-size: 17px;
+  }
+
+  .brand p {
+    font-size: 10px;
+  }
+
+  .toolbar-actions {
+    gap: 4px;
+    padding: 0 6px;
+  }
+
+  .tool-button {
+    gap: 4px;
+    min-height: 31px;
+    padding: 0 7px;
+    font-size: 12px;
+  }
+
+  .tool-button.emphasis:not(:disabled) {
+    min-height: 32px;
+    padding-inline: 8px;
+  }
+
+  .circuit-focus-workspace {
+    grid-template-columns: clamp(238px, 18vw, 286px) minmax(600px, 1fr) clamp(278px, 21vw, 330px);
+    gap: 6px;
+  }
+
+  .focus-left-column,
+  .focus-center-column,
+  .focus-right-column {
+    gap: 6px;
+  }
+
+  .focus-left-column {
+    grid-template-rows: minmax(0, 1fr) 148px 64px;
+  }
+
+  .focus-center-column {
+    grid-template-rows: minmax(0, 1fr) 96px;
+  }
+
+  .focus-right-column {
+    grid-template-rows: 202px 140px 132px 118px 132px 50px;
+  }
+
+  .focus-stage-timeline {
+    gap: 4px;
+    padding: 7px 8px 8px;
+  }
+
+  .focus-stage {
+    min-height: 34px;
+    padding: 4px;
+  }
+
+  .focus-stage strong {
+    font-size: 11px;
+  }
+
+  .focus-current-body {
+    gap: 4px;
+    padding: 7px 8px;
+  }
+
+  .focus-current-body strong {
+    font-size: 20px;
+  }
+
+  .focus-current-runtime {
+    grid-template-columns: 48px minmax(0, 1fr) 40px minmax(0, 1fr);
+    gap: 2px 5px;
+  }
+
+  .app-shell.circuit-focus-active .output-panel .console-lines {
+    padding-top: 4px;
+    padding-bottom: 4px;
   }
 }
 

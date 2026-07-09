@@ -123,6 +123,9 @@ Use the gallery to inspect:
 - C++ function-arguments screenshots show `LAD GR1,2`, `LAD GR2,3`, `ST GR1,FUNC_ADD_A`, `ST GR2,FUNC_ADD_B`, and final `GR0 = 0005`.
 - Signal Probe uses compact label / value / note rows; extra values appear in details instead of overlapping.
 - Call Stack uses summary and detail rows; depth, RET mode, return address, and routine remain readable.
+- Signal Probe and Call Stack details can be focused and opened with the keyboard.
+- Focus rings are visible on toolbar buttons, tabs, details summaries, and machine-code rows without dominating the layout.
+- Ellipsized labels, instructions, operands, and explanation text expose the full value through native `title` text.
 - Trace rows show main event, primary effect, and secondary note without overflowing the card.
 - Learning Flow cards use short values such as `Flow: fallthrough` or `Flow: call -> FUNC_ADDONE`.
 - Long labels in Generated CASL and Machine Code use ellipsis rather than pushing table columns out of the dock.
@@ -130,6 +133,7 @@ Use the gallery to inspect:
 - Control Flow target text is readable.
 - Source Editor is not squeezed.
 - Right Inspector remains usable.
+- At `1280x720`, Focus Mode should keep Program, Circuit, Inspector, Trace, Signal Probe, Call Stack, Stack Preview, and Output Log visible without horizontal overflow.
 - Trace still shows break / continue / loop movement clearly.
 
 ## Captured Scenes

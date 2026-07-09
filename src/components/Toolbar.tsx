@@ -32,7 +32,15 @@ type ButtonProps = {
 
 function ToolButton({ label, icon, testId, variant, emphasis, disabled, active, loading, title, onClick }: ButtonProps) {
   return (
-    <button data-testid={testId} className={`tool-button ${variant ?? ""} ${emphasis ? "emphasis" : ""} ${active ? "active" : ""} ${loading ? "loading" : ""}`} disabled={disabled} onClick={onClick} title={title ?? label}>
+    <button
+      data-testid={testId}
+      className={`tool-button ${variant ?? ""} ${emphasis ? "emphasis" : ""} ${active ? "active" : ""} ${loading ? "loading" : ""}`}
+      disabled={disabled}
+      onClick={onClick}
+      title={title ?? label}
+      aria-label={title ?? label}
+      aria-pressed={active ? true : undefined}
+    >
       {loading ? <Loader2 className="spinner" size={17} /> : icon}
       <span>{label}</span>
     </button>
@@ -105,11 +113,11 @@ export default function Toolbar({
 
       <div className="toolbar-meta">
         <div className="segmented" aria-label="Language selector">
-          <button disabled>JP</button>
-          <button className="selected">EN</button>
-          <button disabled>CN</button>
+          <button disabled aria-label="Japanese language option">JP</button>
+          <button className="selected" aria-label="English language option" aria-pressed="true">EN</button>
+          <button disabled aria-label="Chinese language option">CN</button>
         </div>
-        <button className="theme-toggle" disabled title="Theme toggle">
+        <button className="theme-toggle" disabled title="Theme toggle" aria-label="Theme toggle">
           <Sun size={16} />
           <span />
           <Moon size={16} />

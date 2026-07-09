@@ -117,21 +117,33 @@ export default function OutputPanel({
           {tabs.map((tab) => (
             <button
               key={tab.id}
+              id={`output-tab-${tab.id}`}
               className={activeTab === tab.id ? "tab-button active" : "tab-button"}
               type="button"
               role="tab"
               aria-selected={activeTab === tab.id}
+              aria-controls={`output-panel-${tab.id}`}
+              aria-label={`Open ${tab.label} tab`}
+              tabIndex={activeTab === tab.id ? 0 : -1}
+              title={tab.label}
               onClick={() => setActiveTab(tab.id)}
             >
               {tab.label}
             </button>
           ))}
         </div>
-        <button className="text-button" onClick={onClear} disabled={activeTab !== "output"}>
+        <button className="text-button" onClick={onClear} disabled={activeTab !== "output"} aria-label="Clear output log" title="Clear output log">
           Clear
         </button>
       </header>
-      <div className={`console-lines ${activeTab}`} aria-label={`${activeTab} log`} data-testid={activeTab === "generated" ? "generated-casl-output" : activeTab === "machine" ? "machine-code-output" : undefined}>
+      <div
+        id={`output-panel-${activeTab}`}
+        className={`console-lines ${activeTab}`}
+        role="tabpanel"
+        aria-labelledby={`output-tab-${activeTab}`}
+        aria-label={`${activeTab} log`}
+        data-testid={activeTab === "generated" ? "generated-casl-output" : activeTab === "machine" ? "machine-code-output" : undefined}
+      >
         {activeTab === "generated"
           ? (
               <>
@@ -223,6 +235,7 @@ export default function OutputPanel({
                               data-selected={isSelected ? "true" : "false"}
                               data-flow-kind={edge?.kind ?? ""}
                               role="button"
+                              aria-label={`Select machine word ${formatWord(row.word)} at ${formatWord(row.address)} from ${row.sourceText}`}
                               tabIndex={0}
                               onClick={() => setSelectedMachineAddress(row.address)}
                               onKeyDown={(event) => {
@@ -262,15 +275,15 @@ export default function OutputPanel({
                             </div>
                             <div>
                               <dt>Opcode</dt>
-                              <dd className="nowrap-symbol">{machineExplanation.opcode !== undefined ? `${formatWord(machineExplanation.opcode, 2)} = ${machineExplanation.mnemonic ?? "unknown"}` : "-"}</dd>
+                              <dd className="nowrap-symbol" title={machineExplanation.opcode !== undefined ? `${formatWord(machineExplanation.opcode, 2)} = ${machineExplanation.mnemonic ?? "unknown"}` : "-"}>{machineExplanation.opcode !== undefined ? `${formatWord(machineExplanation.opcode, 2)} = ${machineExplanation.mnemonic ?? "unknown"}` : "-"}</dd>
                             </div>
                             <div>
                               <dt>Register</dt>
-                              <dd className="nowrap-symbol">{machineExplanation.register !== undefined ? `GR${machineExplanation.register}` : "-"}</dd>
+                              <dd className="nowrap-symbol" title={machineExplanation.register !== undefined ? `GR${machineExplanation.register}` : "-"}>{machineExplanation.register !== undefined ? `GR${machineExplanation.register}` : "-"}</dd>
                             </div>
                             <div>
                               <dt>Index x</dt>
-                              <dd className="nowrap-symbol">{machineExplanation.indexRegister !== undefined ? `x = GR${machineExplanation.indexRegister}` : "x = none"}</dd>
+                              <dd className="nowrap-symbol" title={machineExplanation.indexRegister !== undefined ? `x = GR${machineExplanation.indexRegister}` : "x = none"}>{machineExplanation.indexRegister !== undefined ? `x = GR${machineExplanation.indexRegister}` : "x = none"}</dd>
                             </div>
                             <div>
                               <dt>Index Value</dt>
@@ -298,15 +311,22 @@ export default function OutputPanel({
                             </div>
                             <div>
                               <dt>Return Addr</dt>
-                              <dd className="mono-value">{machineExplanation.returnAddress !== undefined ? formatWord(machineExplanation.returnAddress) : "-"}</dd>
+                              <dd className="mono-value" title={machineExplanation.returnAddress !== undefined ? formatWord(machineExplanation.returnAddress) : "-"}>{machineExplanation.returnAddress !== undefined ? formatWord(machineExplanation.returnAddress) : "-"}</dd>
                             </div>
                             <div>
                               <dt>Stack Addr</dt>
-                              <dd className="nowrap-symbol">{machineExplanation.stackAddress !== undefined ? `MEM[${formatWord(machineExplanation.stackAddress)}]` : "-"}</dd>
+                              <dd className="nowrap-symbol" title={machineExplanation.stackAddress !== undefined ? `MEM[${formatWord(machineExplanation.stackAddress)}]` : "-"}>{machineExplanation.stackAddress !== undefined ? `MEM[${formatWord(machineExplanation.stackAddress)}]` : "-"}</dd>
                             </div>
                             <div>
                               <dt>Call Depth</dt>
-                              <dd className="nowrap-symbol">
+                              <dd
+                                className="nowrap-symbol"
+                                title={machineExplanation.callDepthBefore !== undefined && machineExplanation.callDepthAfter !== undefined
+                                  ? `${machineExplanation.callDepthBefore} -> ${machineExplanation.callDepthAfter}`
+                                  : machineExplanation.callDepth !== undefined
+                                    ? String(machineExplanation.callDepth)
+                                    : "-"}
+                              >
                                 {machineExplanation.callDepthBefore !== undefined && machineExplanation.callDepthAfter !== undefined
                                   ? `${machineExplanation.callDepthBefore} -> ${machineExplanation.callDepthAfter}`
                                   : machineExplanation.callDepth !== undefined
@@ -316,11 +336,11 @@ export default function OutputPanel({
                             </div>
                             <div>
                               <dt>RET Mode</dt>
-                              <dd className="text-ellipsis">{machineExplanation.mnemonic === "RET" ? (machineExplanation.isStackReturnContext ? "stack return" : "top-level finish") : "-"}</dd>
+                              <dd className="text-ellipsis" title={machineExplanation.mnemonic === "RET" ? (machineExplanation.isStackReturnContext ? "stack return" : "top-level finish") : "-"}>{machineExplanation.mnemonic === "RET" ? (machineExplanation.isStackReturnContext ? "stack return" : "top-level finish") : "-"}</dd>
                             </div>
                             <div>
                               <dt>Binary</dt>
-                              <dd className="mono-value">{machineExplanation.binaryText}</dd>
+                              <dd className="mono-value" title={machineExplanation.binaryText}>{machineExplanation.binaryText}</dd>
                             </div>
                             <div className="machine-code-explanation-wide">
                               <dt>Control Flow Target</dt>

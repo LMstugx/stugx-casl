@@ -399,6 +399,9 @@ Layout:
 - no important text is covered by wires or arrows.
 - inactive wires are de-emphasized.
 - Signal Probe, Call Stack, and Trace remain compact.
+- `1280x720`, `1440x900`, and `1920x1080` desktop viewports remain usable.
+- Native details summaries, tabs, toolbar buttons, and machine-code rows have visible keyboard focus.
+- Ellipsized instruction, symbol, mapping, trace, and explanation text exposes the complete value through `title` or `aria-label`.
 
 ## 11. Future Custom Circuit Rules
 

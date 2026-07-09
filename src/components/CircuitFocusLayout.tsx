@@ -663,6 +663,7 @@ function signalProbeRows(state: CometState, focus: FocusInstructionContext): Pro
 
 function FocusCallStackPanel({ state, focus }: { state: CometState; focus: FocusInstructionContext }) {
   const info = callStackInfo(state, focus);
+  const [detailsOpen, setDetailsOpen] = useState(true);
 
   return (
     <section className="panel focus-call-stack" data-testid="focus-call-stack">
@@ -685,7 +686,21 @@ function FocusCallStackPanel({ state, focus }: { state: CometState; focus: Focus
             <code data-testid="call-stack-ret-mode">{info.retModeText}</code>
           </div>
         </div>
-        <div className="call-stack-details" data-testid="call-stack-details">
+        <details
+          className="call-stack-details"
+          data-testid="call-stack-details"
+          open={detailsOpen}
+          onToggle={(event) => setDetailsOpen(event.currentTarget.open)}
+        >
+          <summary
+            data-testid="call-stack-details-summary"
+            aria-expanded={detailsOpen}
+            aria-controls="call-stack-detail-rows"
+            title="Toggle Call Stack detail rows"
+          >
+            Details
+          </summary>
+          <div id="call-stack-detail-rows" className="call-stack-detail-rows">
           <div className="call-stack-row">
             <span className="compact-label">Top return</span>
             <code data-testid="call-stack-return-address">{info.topReturnText}</code>
@@ -700,13 +715,15 @@ function FocusCallStackPanel({ state, focus }: { state: CometState; focus: Focus
             <span className="compact-label">Return edge</span>
             <code className="nowrap-symbol" title={info.edgeText}>{info.edgeText}</code>
           </div>
-        </div>
+          </div>
+        </details>
       </div>
     </section>
   );
 }
 
 function FocusSignalProbePanel({ state, focus }: { state: CometState; focus: FocusInstructionContext }) {
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const rows = signalProbeRows(state, focus);
   const activeRows = rows.filter((row) => row.active);
   const inactiveRows = rows.filter((row) => !row.active);
@@ -734,9 +751,21 @@ function FocusSignalProbePanel({ state, focus }: { state: CometState; focus: Foc
           ))}
         </div>
         {detailRows.length ? (
-          <details className="signal-probe-details" data-testid="signal-probe-details">
-            <summary>+ {detailRows.length} more</summary>
-            <div className="signal-probe-rows detail-rows">
+          <details
+            className="signal-probe-details"
+            data-testid="signal-probe-details"
+            open={detailsOpen}
+            onToggle={(event) => setDetailsOpen(event.currentTarget.open)}
+          >
+            <summary
+              data-testid="signal-probe-details-summary"
+              aria-expanded={detailsOpen}
+              aria-controls="signal-probe-detail-rows"
+              title={`Show ${detailRows.length} additional signal probe rows`}
+            >
+              + {detailRows.length} more
+            </summary>
+            <div id="signal-probe-detail-rows" className="signal-probe-rows detail-rows">
               {detailRows.map((row) => (
                 <div key={row.label} className="signal-probe-row compact-grid" data-testid="signal-probe-row" data-active={row.active ? "true" : "false"}>
                   <span className="compact-label text-ellipsis" title={row.label}>{row.label}</span>

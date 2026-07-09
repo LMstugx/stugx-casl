@@ -2,10 +2,13 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import CircuitFocusLayout from "../components/CircuitFocusLayout";
+import InspectorPanel from "../components/InspectorPanel";
 import MemoryPanel from "../components/MemoryPanel";
 import OutputPanel from "../components/OutputPanel";
 import RegisterPanel from "../components/RegisterPanel";
 import StatusBar from "../components/StatusBar";
+import Toolbar from "../components/Toolbar";
+import TracePanel from "../components/TracePanel";
 import { mockCaslCore } from "../core/mockCaslCore";
 import type { CometState } from "../core/types";
 import { getDemoProgram } from "../examples/demoPrograms";
@@ -706,6 +709,15 @@ DONE RET
     expect(markup).toContain("CALLDEPTH");
   });
 
+  it("signal_probe_details_has_aria_expanded", () => {
+    const markup = renderFocus(stepSource(callReturnSource, 2), callReturnSource);
+
+    expect(markup).toContain('data-testid="signal-probe-details-summary"');
+    expect(markup).toContain('aria-expanded="false"');
+    expect(markup).toContain('aria-controls="signal-probe-detail-rows"');
+    expect(markup).toContain("additional signal probe rows");
+  });
+
   it("signal_probe_shows_current_involved_values", () => {
     const addaMarkup = renderFocus(stepTimes(2));
     const stMarkup = renderFocus(stepTimes(3));
@@ -732,8 +744,18 @@ DONE RET
 
     expect(markup).toContain('data-testid="call-stack-summary"');
     expect(markup).toContain('data-testid="call-stack-details"');
+    expect(markup).toContain('data-testid="call-stack-details-summary"');
     expect(markup).toContain("call-stack-row call-stack-row-wide");
     expect(markup).toContain("Return edge");
+  });
+
+  it("call_stack_details_has_aria_expanded", () => {
+    const markup = renderFocus(stepSource(callReturnSource, 2), callReturnSource);
+
+    expect(markup).toContain('data-testid="call-stack-details-summary"');
+    expect(markup).toContain('aria-expanded="true"');
+    expect(markup).toContain('aria-controls="call-stack-detail-rows"');
+    expect(markup).toContain('title="Toggle Call Stack detail rows"');
   });
 
   it("call_stack_top_level_mode_does_not_overflow", () => {
@@ -819,6 +841,27 @@ A    DC    3
     expect(markup).toContain('title="FUNC_ADD"');
   });
 
+  it("generated_casl_long_cells_have_title", () => {
+    const program = getDemoProgram("cpp-function-arguments");
+    expect(program).toBeDefined();
+    const prepared = prepareSourceForCoreAssembly(program!.source, "cpp");
+    expect(prepared.ok).toBe(true);
+    const markup = renderToStaticMarkup(
+      <OutputPanel
+        lines={[]}
+        generatedCaslSource={prepared.generatedCaslSource}
+        cppToCaslMapping={prepared.mapping}
+        sourceMode="cpp"
+        initialTab="generated"
+        onClear={() => undefined}
+      />
+    );
+
+    expect(markup).toContain('title="FUNC_ADD_A"');
+    expect(markup).toContain('title="GR1,FUNC_ADD_A"');
+    expect(markup).toContain('title="function-declaration"');
+  });
+
   it("machine_code_explanation_does_not_overflow", () => {
     const program = getDemoProgram("cpp-function-arguments");
     expect(program).toBeDefined();
@@ -843,6 +886,29 @@ A    DC    3
     expect(markup).toContain("machine-code-explanation");
   });
 
+  it("machine_code_long_cells_have_title", () => {
+    const program = getDemoProgram("cpp-function-arguments");
+    expect(program).toBeDefined();
+    const prepared = prepareSourceForCoreAssembly(program!.source, "cpp");
+    expect(prepared.ok).toBe(true);
+    const state = mockCaslCore.assemble(prepared.coreSourceText);
+    const markup = renderToStaticMarkup(
+      <OutputPanel
+        lines={[]}
+        state={state}
+        generatedCaslSource={prepared.generatedCaslSource}
+        cppToCaslMapping={prepared.mapping}
+        sourceMode="cpp"
+        initialTab="machine"
+        onClear={() => undefined}
+      />
+    );
+
+    expect(markup).toContain('title="CALL FUNC_ADD"');
+    expect(markup).toContain('title="call -&gt; FUNC_ADD"');
+    expect(markup).toContain('aria-label="Select machine word');
+  });
+
   it("memory_rows_keep_address_value_label_columns", () => {
     const markup = renderToStaticMarkup(<MemoryPanel state={stepTimes(1)} embedded />);
 
@@ -863,5 +929,69 @@ A    DC    3
     expect(markup).toContain("<th>(Dec)</th>");
     expect(markup).toContain('class="hex mono-value"');
     expect(markup).toContain('class="text-ellipsis"');
+  });
+
+  it("output_tabs_have_accessible_labels", () => {
+    const markup = renderToStaticMarkup(<OutputPanel lines={[]} sourceMode="casl" initialTab="output" onClear={() => undefined} />);
+
+    expect(markup).toContain('role="tablist"');
+    expect(markup).toContain('aria-label="Output panels"');
+    expect(markup).toContain('id="output-tab-output"');
+    expect(markup).toContain('aria-controls="output-panel-output"');
+    expect(markup).toContain('aria-label="Open Output Log tab"');
+    expect(markup).toContain('role="tabpanel"');
+    expect(markup).toContain('aria-labelledby="output-tab-output"');
+  });
+
+  it("inspector_tabs_have_accessible_state", () => {
+    const markup = renderToStaticMarkup(<InspectorPanel state={stepTimes(1)} />);
+
+    expect(markup).toContain('role="tablist"');
+    expect(markup).toContain('aria-label="Inspector panels"');
+    expect(markup).toContain('id="inspector-tab-registers"');
+    expect(markup).toContain('aria-controls="inspector-panel-registers"');
+    expect(markup).toContain('aria-selected="true"');
+    expect(markup).toContain('role="tabpanel"');
+    expect(markup).toContain('aria-labelledby="inspector-tab-registers"');
+  });
+
+  it("icon_buttons_have_aria_labels", () => {
+    const noop = () => undefined;
+    const markup = renderToStaticMarkup(
+      <Toolbar
+        assembleStatus="default"
+        canRun={true}
+        canStep={true}
+        canReset={true}
+        isRunning={false}
+        isCircuitFocusMode={false}
+        onToggleCircuitFocusMode={noop}
+        onAssemble={noop}
+        onRun={noop}
+        onStep={noop}
+        onReset={noop}
+        onStop={noop}
+      />
+    );
+
+    expect(markup).toContain('aria-label="Open Circuit Focus Mode"');
+    expect(markup).toContain('aria-label="Run with max step protection"');
+    expect(markup).toContain('aria-label="Step"');
+    expect(markup).toContain('aria-label="Theme toggle"');
+  });
+
+  it("long_symbols_have_title", () => {
+    const markup = renderFocus(stepSource(callReturnSource, 2), callReturnSource);
+
+    expect(markup).toContain('title="#2 CALL SUB"');
+    expect(markup).toContain('title="RETADDR"');
+    expect(markup).toContain('title="CALL -&gt; SUB; return 0024"');
+  });
+
+  it("trace_secondary_note_has_title_when_truncated", () => {
+    const markup = renderToStaticMarkup(<TracePanel state={stepSource(callReturnSource, 2)} embedded />);
+
+    expect(markup).toContain('data-testid="trace-row-note"');
+    expect(markup).toContain('title="SP: FFFE -&gt; FFFD | callDepth: 0 -&gt; 1 | State: Ready"');
   });
 });

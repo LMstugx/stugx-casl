@@ -372,6 +372,70 @@ test("Mock backend presents Circuit Focus Mode as a teaching layout", async ({ p
   await expect(page.getByTestId("focus-signal-probe")).toContainText("MEM[0029]");
 });
 
+test("focus_mode_works_at_1280x720", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await openStudio(page, "Mock Core");
+  await expect(page.getByTestId("source-editor")).toBeVisible();
+  await selectDemoProgram(page, "cpp-function-arguments");
+  await expect(page.getByTestId("demo-program-select")).toHaveAttribute("title", "C++: Function Arguments");
+  await expect(page.getByTestId("demo-program-select")).toHaveAttribute("aria-label", "Demo program: C++: Function Arguments");
+  await page.getByTestId("circuit-focus-toggle").click();
+  await assemble(page);
+
+  await expect(page.getByTestId("focus-program-panel")).toBeVisible();
+  await expect(page.getByTestId("focus-circuit-panel")).toBeVisible();
+  await expect(page.getByTestId("focus-registers-panel")).toBeVisible();
+  await expect(page.getByTestId("focus-signal-probe")).toBeVisible();
+  await expect(page.getByTestId("focus-call-stack")).toBeVisible();
+  await expect(page.getByTestId("focus-stack-preview")).toBeVisible();
+  await expect(page.locator(".output-panel")).toBeVisible();
+
+  await expect(page.getByTestId("circuit-focus-toggle")).toHaveAttribute("aria-label", "Return to studio layout");
+  await page.getByTestId("circuit-focus-toggle").focus();
+  await expect(page.getByTestId("circuit-focus-toggle")).toBeFocused();
+
+  await step(page);
+  await step(page);
+  await step(page);
+  await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("CALL");
+
+  await expect(page.getByTestId("signal-probe-details-summary")).toHaveAttribute("aria-expanded", "false");
+  await page.getByTestId("signal-probe-details-summary").focus();
+  await expect(page.getByTestId("signal-probe-details-summary")).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(page.getByTestId("signal-probe-details-summary")).toHaveAttribute("aria-expanded", "true");
+
+  await expect(page.getByTestId("call-stack-details-summary")).toHaveAttribute("aria-expanded", "true");
+  await page.getByTestId("call-stack-details-summary").focus();
+  await expect(page.getByTestId("call-stack-details-summary")).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(page.getByTestId("call-stack-details-summary")).toHaveAttribute("aria-expanded", "false");
+  await page.keyboard.press("Enter");
+  await expect(page.getByTestId("call-stack-details-summary")).toHaveAttribute("aria-expanded", "true");
+
+  for (const testId of ["focus-current-instruction-panel", "focus-signal-probe", "focus-call-stack", "focus-stack-preview", "focus-trace-panel"]) {
+    const hasHorizontalOverflow = await page.getByTestId(testId).evaluate((element) => element.scrollWidth > element.clientWidth + 1);
+    expect(hasHorizontalOverflow, `${testId} should not overflow horizontally`).toBe(false);
+  }
+});
+
+test("focus_mode_works_at_1440x900", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await openStudio(page, "Mock Core");
+  await selectDemoProgram(page, "cpp-function-arguments");
+  await page.getByTestId("circuit-focus-toggle").click();
+  await assemble(page);
+
+  await expect(page.getByTestId("focus-program-panel")).toBeVisible();
+  await expect(page.getByTestId("focus-circuit-panel")).toBeVisible();
+  await expect(page.getByTestId("focus-registers-panel")).toBeVisible();
+  await expect(page.getByTestId("focus-trace-panel")).toBeVisible();
+  await expect(page.getByTestId("focus-step-timeline")).toBeVisible();
+  await expect(page.locator(".output-panel")).toBeVisible();
+  const horizontalOverflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
+  expect(horizontalOverflow).toBe(false);
+});
+
 test("Mock backend executes C++ subset if else lowering in the browser UI", async ({ page }) => {
   await openStudio(page, "Mock Core");
   await page.getByTestId("source-mode-cpp").click();

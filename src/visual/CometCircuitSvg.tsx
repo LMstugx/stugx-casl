@@ -302,14 +302,14 @@ function CometCircuitSvg({ state, sourceMapFocus }: { state: CometState; sourceM
   return (
     <svg className="comet-circuit" viewBox={`0 0 ${CIRCUIT_VIEWBOX.width} ${CIRCUIT_VIEWBOX.height}`} role="img" aria-label="COMET II circuit" data-testid="comet-circuit-svg">
       <defs>
-        <marker id="arrow-blue" markerUnits="userSpaceOnUse" markerWidth="6" markerHeight="6" refX="5.5" refY="3" orient="auto" viewBox="0 0 6 6">
-          <path d="M 0 0 L 6 3 L 0 6 z" className="marker-blue" />
+        <marker id="arrow-blue" markerUnits="userSpaceOnUse" markerWidth="5.4" markerHeight="5.4" refX="5" refY="2.7" orient="auto" viewBox="0 0 5.4 5.4">
+          <path d="M 0 0 L 5.4 2.7 L 0 5.4 z" className="marker-blue" />
         </marker>
         <marker id="arrow-blue-mid" markerUnits="userSpaceOnUse" markerWidth="5" markerHeight="5" refX="2.5" refY="2.5" orient="auto" viewBox="0 0 5 5">
           <path d="M 0 0 L 5 2.5 L 0 5 z" className="marker-blue" />
         </marker>
-        <marker id="arrow-red" markerUnits="userSpaceOnUse" markerWidth="6" markerHeight="6" refX="5.5" refY="3" orient="auto" viewBox="0 0 6 6">
-          <path d="M 0 0 L 6 3 L 0 6 z" className="marker-red" />
+        <marker id="arrow-red" markerUnits="userSpaceOnUse" markerWidth="5.4" markerHeight="5.4" refX="5" refY="2.7" orient="auto" viewBox="0 0 5.4 5.4">
+          <path d="M 0 0 L 5.4 2.7 L 0 5.4 z" className="marker-red" />
         </marker>
         <marker id="arrow-red-mid" markerUnits="userSpaceOnUse" markerWidth="5" markerHeight="5" refX="2.5" refY="2.5" orient="auto" viewBox="0 0 5 5">
           <path d="M 0 0 L 5 2.5 L 0 5 z" className="marker-red" />
@@ -336,7 +336,6 @@ function CometCircuitSvg({ state, sourceMapFocus }: { state: CometState; sourceM
               data-related-stage={path.relatedStage}
               data-avoids-alu={path.avoidsAlu ? "true" : "false"}
               className={`wire wire-${path.role}`}
-              markerEnd={path.role === "address" || path.role === "control" ? "url(#arrow-blue)" : undefined}
             />
           );
         })}
@@ -353,7 +352,6 @@ function CometCircuitSvg({ state, sourceMapFocus }: { state: CometState; sourceM
           .filter((path) => activeWireIds.has(path.id))
           .map((path) => {
             const marker = path.role === "data" ? "url(#arrow-red)" : "url(#arrow-blue)";
-            const markerMid = path.role === "data" ? "url(#arrow-red-mid)" : "url(#arrow-blue-mid)";
             return (
             <path
               key={`active-${path.id}`}
@@ -371,11 +369,29 @@ function CometCircuitSvg({ state, sourceMapFocus }: { state: CometState; sourceM
               data-related-stage={path.relatedStage}
               data-avoids-alu={path.avoidsAlu ? "true" : "false"}
               className={`wire wire-${path.role} wire-active`}
-              markerMid={markerMid}
               markerEnd={marker}
             />
             );
           })}
+      </g>
+
+      <g className="active-junction-layer" aria-hidden="true">
+        {wirePaths
+          .filter((path) => activeWireIds.has(path.id))
+          .flatMap((path) =>
+            path.junctions.map((junction, index) => (
+              <circle
+                key={`junction-${path.id}-${index}`}
+                className={`active-junction active-junction-${path.semanticType}`}
+                data-testid={`wire-junction-${path.id}-${index}`}
+                data-path-id={path.id}
+                data-semantic-type={path.semanticType}
+                cx={junction.x}
+                cy={junction.y}
+                r="3"
+              />
+            ))
+          )}
       </g>
 
       <Module layout={circuitLayout.ir} title="IR" value={formatWord(state.ir)} accent={state.changedRegisters.includes("IR")} testId="module-ir" layer="control" />

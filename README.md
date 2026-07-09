@@ -62,6 +62,7 @@ For the Circuit Focus presentation layout, see [docs/phase8g-circuit-focus-visua
 For the latest Circuit Focus UI semantics cleanup, see [docs/phase8i-focus-mode-ui-refinement.md](docs/phase8i-focus-mode-ui-refinement.md).
 For the lab-style schematic bus lane polish, see [docs/phase8j-lab-style-schematic-polish.md](docs/phase8j-lab-style-schematic-polish.md).
 For the layered study-mode density pass and Signal Probe foundation, see [docs/phase8k-layered-study-mode-density-refinement.md](docs/phase8k-layered-study-mode-density-refinement.md).
+For the circuit arrow routing pass, see [docs/phase8l-circuit-arrow-routing.md](docs/phase8l-circuit-arrow-routing.md).
 For future custom-circuit design notes, see [docs/future-custom-circuit-design.md](docs/future-custom-circuit-design.md).
 For the latest CASL instruction coverage batch, see [docs/phase9a-casl-instruction-coverage.md](docs/phase9a-casl-instruction-coverage.md).
 

@@ -1,6 +1,6 @@
 import { VisualPathKind } from "../core/types";
-import { circuitAnchors, circuitBusLanes, circuitLayout } from "./circuitLayout";
-import type { CircuitPoint } from "./circuitLayout";
+import { circuitAnchors, circuitBusLanes, circuitLayout, circuitRouting } from "./circuitLayout";
+import type { CircuitPoint, RectLayout } from "./circuitLayout";
 
 export type WireRole = "address" | "control" | "data" | "inactive";
 export type WireLane = "addr" | "ctrl" | "data-bypass" | "data-compute" | "flag";
@@ -26,6 +26,8 @@ export type WirePath = {
   relatedMemoryAddress?: number;
   relatedStage?: string;
   relatedInstructionKind?: string;
+  points: readonly CircuitPoint[];
+  junctions: readonly CircuitPoint[];
   d: string;
 };
 
@@ -47,9 +49,65 @@ function lineTo(end: CircuitPoint): string {
   return `L ${point(end)}`;
 }
 
-function pathThrough(points: CircuitPoint[]): string {
-  const [start, ...rest] = points;
+function samePoint(a: CircuitPoint, b: CircuitPoint): boolean {
+  return a.x === b.x && a.y === b.y;
+}
+
+function compactPoints(points: readonly CircuitPoint[]): CircuitPoint[] {
+  const compacted: CircuitPoint[] = [];
+  for (const pathPoint of points) {
+    if (!compacted.length || !samePoint(compacted[compacted.length - 1], pathPoint)) {
+      compacted.push(pathPoint);
+    }
+  }
+  return compacted;
+}
+
+export function buildPathWithCorners(points: readonly CircuitPoint[]): string {
+  const compacted = compactPoints(points);
+  const [start, ...rest] = compacted;
   return `${moveTo(start)} ${rest.map(lineTo).join(" ")}`;
+}
+
+export function routeOrthogonal(from: CircuitPoint, to: CircuitPoint, first: "horizontal" | "vertical" = "horizontal"): CircuitPoint[] {
+  if (from.x === to.x || from.y === to.y) return compactPoints([from, to]);
+  const corner = first === "horizontal" ? { x: to.x, y: from.y } : { x: from.x, y: to.y };
+  return compactPoints([from, corner, to]);
+}
+
+export function routeViaLane(from: CircuitPoint, to: CircuitPoint, lane: { x: number } | { y: number }): CircuitPoint[] {
+  if ("x" in lane) {
+    return compactPoints([from, { x: lane.x, y: from.y }, { x: lane.x, y: to.y }, to]);
+  }
+  return compactPoints([from, { x: from.x, y: lane.y }, { x: to.x, y: lane.y }, to]);
+}
+
+function segmentCrossesRect(a: CircuitPoint, b: CircuitPoint, rect: RectLayout): boolean {
+  const xMin = Math.min(a.x, b.x);
+  const xMax = Math.max(a.x, b.x);
+  const yMin = Math.min(a.y, b.y);
+  const yMax = Math.max(a.y, b.y);
+  const horizontal = a.y === b.y && a.y > rect.y && a.y < rect.y + rect.h && xMax > rect.x && xMin < rect.x + rect.w;
+  const vertical = a.x === b.x && a.x > rect.x && a.x < rect.x + rect.w && yMax > rect.y && yMin < rect.y + rect.h;
+  return horizontal || vertical;
+}
+
+function routeCrossesRect(points: readonly CircuitPoint[], rect: RectLayout): boolean {
+  for (let index = 1; index < points.length; index += 1) {
+    if (segmentCrossesRect(points[index - 1], points[index], rect)) return true;
+  }
+  return false;
+}
+
+export function routeAvoidRect(from: CircuitPoint, to: CircuitPoint, avoidRects: readonly RectLayout[], fallbackLane: { x: number } | { y: number }): CircuitPoint[] {
+  const direct = routeOrthogonal(from, to);
+  return avoidRects.some((rect) => routeCrossesRect(direct, rect)) ? routeViaLane(from, to, fallbackLane) : direct;
+}
+
+export function addJunction(points: readonly CircuitPoint[], index: number): CircuitPoint[] {
+  const compacted = compactPoints(points);
+  const junction = compacted[index];
+  return junction ? [junction] : [];
 }
 
 function clampRegisterIndex(index = 1): number {
@@ -67,9 +125,11 @@ function wire(
   semanticType: WireSemanticType,
   fromAnchor: CircuitAnchorRef,
   toAnchor: CircuitAnchorRef,
-  points: CircuitPoint[],
-  options: Pick<WirePath, "avoidsAlu" | "relatedRegister" | "relatedMemoryAddress" | "relatedStage" | "relatedInstructionKind"> = {}
+  points: readonly CircuitPoint[],
+  options: Pick<WirePath, "avoidsAlu" | "relatedRegister" | "relatedMemoryAddress" | "relatedStage" | "relatedInstructionKind"> & { junctions?: readonly CircuitPoint[] } = {}
 ): WirePath {
+  const compacted = compactPoints(points);
+  const { junctions = [], ...metadata } = options;
   return {
     id,
     role,
@@ -79,8 +139,10 @@ function wire(
     toAnchor,
     direction: "forward",
     isPrimary: role !== "inactive",
-    d: pathThrough(points),
-    ...options
+    points: compacted,
+    junctions,
+    d: buildPathWithCorners(compacted),
+    ...metadata
   };
 }
 
@@ -114,6 +176,9 @@ export function buildWirePaths({ grIndex = 1, memoryAddress = 0x27, memoryWindow
   const decoderBottom = { x: circuitLayout.decoder.x + circuitLayout.decoder.w / 2, y: circuitLayout.decoder.y + circuitLayout.decoder.h };
   const controllerTop = { x: circuitLayout.controller.x + circuitLayout.controller.w / 2, y: circuitLayout.controller.y };
   const controllerRight = { x: circuitLayout.controller.x + circuitLayout.controller.w, y: circuitLayout.controller.y + circuitLayout.controller.h / 2 };
+  const portClearance = circuitRouting.portClearance;
+  const controlClearance = circuitRouting.controlClearance;
+  const stackReferenceDrop = circuitRouting.stackReferenceDrop;
   const anchors = {
     prLeft: anchor("pr.left", prLeft, "control"),
     prRight: anchor("pr.right", prRight, "control"),
@@ -141,7 +206,7 @@ export function buildWirePaths({ grIndex = 1, memoryAddress = 0x27, memoryWindow
   };
 
   return Object.freeze([
-    wire("pr-to-mar", "address", "addr", "address", anchors.prRight, anchors.marLeft, [prRight, { x: prRight.x + 18, y: prRight.y }, { x: prRight.x + 18, y: addressBusY }, { x: marLeft.x - 18, y: addressBusY }, { x: marLeft.x - 18, y: marLeft.y }, marLeft], { relatedStage: "Fetch" }),
+    wire("pr-to-mar", "address", "addr", "address", anchors.prRight, anchors.marLeft, [prRight, { x: prRight.x + portClearance, y: prRight.y }, { x: prRight.x + portClearance, y: addressBusY }, { x: marLeft.x - portClearance, y: addressBusY }, { x: marLeft.x - portClearance, y: marLeft.y }, marLeft], { relatedStage: "Fetch", junctions: [{ x: prRight.x + portClearance, y: addressBusY }] }),
     wire("pr-to-plus2", "control", "ctrl", "control", anchors.prRight, anchors.plus2Left, [prRight, { x: circuitLayout.addressResult.x, y: prRight.y }], { relatedStage: "Next" }),
     wire(
       "sp-reference",
@@ -152,26 +217,26 @@ export function buildWirePaths({ grIndex = 1, memoryAddress = 0x27, memoryWindow
       anchor("mar.stackReference", { x: circuitLayout.mar.x + circuitLayout.mar.w / 2, y: circuitLayout.mar.y + circuitLayout.mar.h }, "address"),
       [
         { x: circuitLayout.sp.x + circuitLayout.sp.w / 2, y: circuitLayout.sp.y + circuitLayout.sp.h },
-        { x: circuitLayout.sp.x + circuitLayout.sp.w / 2, y: circuitLayout.sp.y + circuitLayout.sp.h + 15 },
-        { x: circuitLayout.mar.x + circuitLayout.mar.w / 2, y: circuitLayout.sp.y + circuitLayout.sp.h + 15 },
+        { x: circuitLayout.sp.x + circuitLayout.sp.w / 2, y: circuitLayout.sp.y + circuitLayout.sp.h + stackReferenceDrop },
+        { x: circuitLayout.mar.x + circuitLayout.mar.w / 2, y: circuitLayout.sp.y + circuitLayout.sp.h + stackReferenceDrop },
         { x: circuitLayout.mar.x + circuitLayout.mar.w / 2, y: circuitLayout.mar.y + circuitLayout.mar.h }
       ],
       { relatedStage: "Stack reference" }
     ),
-    wire("mar-to-memory", "address", "addr", "address", anchors.marRight, anchors.memoryLeft, [marRight, { x: memoryBusX, y: marRight.y }, { x: memoryBusX, y: memoryLeft.y }, memoryLeft], { relatedMemoryAddress: memoryAddress, relatedStage: "Operand Read" }),
-    wire("memory-to-mdr", "data", "data-bypass", "data", anchors.memoryLeft, anchors.mdrRight, [memoryLeft, { x: memoryBusX, y: memoryLeft.y }, { x: memoryBusX, y: mdrRight.y }, mdrRight], { avoidsAlu: true, relatedMemoryAddress: memoryAddress, relatedStage: "Operand Read" }),
-    wire("mdr-to-gr", "data", "data-bypass", "data", anchors.mdrBottom, anchors.grRight, [mdrBottom, { x: mdrBottom.x, y: dataBypassY }, { x: grBusX, y: dataBypassY }, { x: grBusX, y: grRight.y }, grRight], { avoidsAlu: true, relatedRegister: gr, relatedStage: "Write Back" }),
-    wire("gr-to-mdr", "data", "data-bypass", "data", anchors.grRight, anchors.mdrBottom, [grRight, { x: grBusX, y: grRight.y }, { x: grBusX, y: dataBypassY }, { x: mdrBottom.x, y: dataBypassY }, mdrBottom], { avoidsAlu: true, relatedRegister: gr, relatedStage: "Execute" }),
-    wire("mdr-to-memory", "data", "data-bypass", "data", anchors.mdrRight, anchors.memoryRight, [mdrRight, { x: memoryBusX, y: mdrRight.y }, { x: memoryBusX, y: memoryRight.y }, memoryRight], { avoidsAlu: true, relatedMemoryAddress: memoryAddress, relatedStage: "Write Back" }),
-    wire("gr-to-alu", "data", "data-compute", "data", anchors.grRight, anchors.aluInputA, [grRight, { x: grBusX, y: grRight.y }, { x: grBusX, y: aluInputA.y }, aluInputA], { relatedRegister: gr, relatedStage: "Execute" }),
-    wire("mdr-to-alu", "data", "data-compute", "data", anchors.mdrToAlu, anchors.aluInputB, [mdrToAlu, { x: aluBusRightX, y: mdrToAlu.y }, { x: aluBusRightX, y: aluInputB.y }, aluInputB], { relatedMemoryAddress: memoryAddress, relatedStage: "Execute" }),
-    wire("alu-to-gr", "data", "data-compute", "data", anchors.aluOutputY, anchors.grRight, [aluOutputY, { x: aluBusLeftX, y: aluOutputY.y }, { x: aluBusLeftX, y: grRight.y }, grRight], { relatedRegister: gr, relatedStage: "Write Back" }),
-    wire("alu-to-fr", "control", "flag", "flag", anchors.aluFlagOut, anchors.frInput, [aluFlagOut, { x: aluFlagOut.x, y: frInput.y - 12 }, frInput], { relatedStage: "Write Back" }),
-    wire("address-to-gr", "address", "addr", "address", anchors.marLeft, anchors.grLeft, [marLeft, { x: marLeft.x - 20, y: marLeft.y }, { x: marLeft.x - 20, y: grLeft.y }, grLeft], { relatedRegister: gr, relatedStage: "Write Back" }),
-    wire("address-to-pr", "address", "ctrl", "control", anchors.marLeft, anchors.prLeft, [marLeft, { x: marLeft.x - 18, y: marLeft.y }, { x: marLeft.x - 18, y: addressBusY }, { x: prLeft.x - 18, y: addressBusY }, { x: prLeft.x - 18, y: prLeft.y }, prLeft], { relatedStage: "Next" }),
+    wire("mar-to-memory", "address", "addr", "address", anchors.marRight, anchors.memoryLeft, routeViaLane(marRight, memoryLeft, { x: memoryBusX }), { relatedMemoryAddress: memoryAddress, relatedStage: "Operand Read", junctions: [{ x: memoryBusX, y: memoryLeft.y }] }),
+    wire("memory-to-mdr", "data", "data-bypass", "data", anchors.memoryLeft, anchors.mdrRight, routeViaLane(memoryLeft, mdrRight, { x: memoryBusX }), { avoidsAlu: true, relatedMemoryAddress: memoryAddress, relatedStage: "Operand Read", junctions: [{ x: memoryBusX, y: memoryLeft.y }] }),
+    wire("mdr-to-gr", "data", "data-bypass", "data", anchors.mdrBottom, anchors.grRight, routeAvoidRect(mdrBottom, grRight, [circuitLayout.alu], { y: dataBypassY }), { avoidsAlu: true, relatedRegister: gr, relatedStage: "Write Back", junctions: [{ x: mdrBottom.x, y: dataBypassY }] }),
+    wire("gr-to-mdr", "data", "data-bypass", "data", anchors.grRight, anchors.mdrBottom, routeAvoidRect(grRight, mdrBottom, [circuitLayout.alu], { y: dataBypassY }), { avoidsAlu: true, relatedRegister: gr, relatedStage: "Execute", junctions: [{ x: grRight.x, y: dataBypassY }] }),
+    wire("mdr-to-memory", "data", "data-bypass", "data", anchors.mdrRight, anchors.memoryLeft, routeViaLane(mdrRight, memoryLeft, { x: memoryBusX }), { avoidsAlu: true, relatedMemoryAddress: memoryAddress, relatedStage: "Write Back", junctions: [{ x: memoryBusX, y: memoryLeft.y }] }),
+    wire("gr-to-alu", "data", "data-compute", "data", anchors.grRight, anchors.aluInputA, routeViaLane(grRight, aluInputA, { x: grBusX }), { relatedRegister: gr, relatedStage: "Execute", junctions: [{ x: grBusX, y: aluInputA.y }] }),
+    wire("mdr-to-alu", "data", "data-compute", "data", anchors.mdrToAlu, anchors.aluInputB, routeViaLane(mdrToAlu, aluInputB, { x: aluBusRightX }), { relatedMemoryAddress: memoryAddress, relatedStage: "Execute", junctions: [{ x: aluBusRightX, y: aluInputB.y }] }),
+    wire("alu-to-gr", "data", "data-compute", "data", anchors.aluOutputY, anchors.grRight, routeViaLane(aluOutputY, grRight, { x: aluBusLeftX }), { relatedRegister: gr, relatedStage: "Write Back", junctions: [{ x: aluBusLeftX, y: grRight.y }] }),
+    wire("alu-to-fr", "control", "flag", "flag", anchors.aluFlagOut, anchors.frInput, routeViaLane(aluFlagOut, frInput, { y: frInput.y - 12 }), { relatedStage: "Write Back", junctions: [{ x: aluFlagOut.x, y: frInput.y - 12 }] }),
+    wire("address-to-gr", "address", "addr", "address", anchors.marLeft, anchors.grLeft, routeViaLane(marLeft, grLeft, { y: addressBusY }), { relatedRegister: gr, relatedStage: "Write Back", junctions: [{ x: grLeft.x, y: addressBusY }] }),
+    wire("address-to-pr", "address", "ctrl", "control", anchors.marLeft, anchors.prLeft, [marLeft, { x: marLeft.x - portClearance, y: marLeft.y }, { x: marLeft.x - portClearance, y: addressBusY }, { x: prLeft.x - portClearance, y: addressBusY }, { x: prLeft.x - portClearance, y: prLeft.y }, prLeft], { relatedStage: "Next", junctions: [{ x: marLeft.x - portClearance, y: addressBusY }] }),
     wire("ir-to-decoder", "control", "ctrl", "control", anchors.irBottom, anchors.decoderTop, [irBottom, decoderTop], { relatedStage: "Decode" }),
     wire("decoder-to-controller", "control", "ctrl", "control", anchors.decoderBottom, anchors.controllerTop, [decoderBottom, controllerTop], { relatedStage: "Decode" }),
-    wire("controller-to-pr", "control", "ctrl", "control", anchors.controllerRight, anchors.prLeft, [controllerRight, { x: prLeft.x - 22, y: controllerRight.y }, { x: prLeft.x - 22, y: controlBusY }, { x: prLeft.x - 22, y: prLeft.y }, prLeft], { relatedStage: "Next" })
+    wire("controller-to-pr", "control", "ctrl", "control", anchors.controllerRight, anchors.prLeft, [controllerRight, { x: prLeft.x - controlClearance, y: controllerRight.y }, { x: prLeft.x - controlClearance, y: controlBusY }, { x: prLeft.x - controlClearance, y: prLeft.y }, prLeft], { relatedStage: "Next", junctions: [{ x: prLeft.x - controlClearance, y: controlBusY }] })
   ]);
 }
 

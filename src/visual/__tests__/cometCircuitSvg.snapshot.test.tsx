@@ -153,4 +153,37 @@ B    DC    10
     expect(active).not.toContain("alu-to-gr");
     expect(doc.querySelector("[data-testid='module-fr']")?.getAttribute("data-active")).toBe("true");
   });
+
+  it("active_arrow_has_single_terminal_marker", () => {
+    const ready = mockCaslCore.assemble(DEFAULT_CASL_SOURCE);
+    const afterLd = mockCaslCore.step(ready);
+    const doc = renderCircuit(afterLd);
+    const activePaths = Array.from(doc.querySelectorAll<SVGPathElement>("[data-active='true'][data-path-id]"));
+
+    expect(activePaths.length).toBeGreaterThan(0);
+    for (const path of activePaths) {
+      expect(path.getAttribute("marker-end")).toMatch(/^url\(#arrow-/);
+      expect(path.getAttribute("marker-mid")).toBeNull();
+    }
+  });
+
+  it("inactive_wires_are_not_primary_arrows", () => {
+    const doc = renderCircuit(mockCaslCore.assemble(DEFAULT_CASL_SOURCE));
+    const inactivePaths = Array.from(doc.querySelectorAll<SVGPathElement>("[data-active='false'][data-path-id]"));
+
+    expect(inactivePaths.length).toBeGreaterThan(0);
+    for (const path of inactivePaths) {
+      expect(path.getAttribute("marker-end")).toBeNull();
+      expect(path.getAttribute("marker-mid")).toBeNull();
+    }
+  });
+
+  it("renders active junction dots for routed path corners", () => {
+    const ready = mockCaslCore.assemble(DEFAULT_CASL_SOURCE);
+    const afterLd = mockCaslCore.step(ready);
+    const doc = renderCircuit(afterLd);
+
+    expect(doc.querySelector("[data-testid='wire-junction-memory-to-mdr-0']")).toBeTruthy();
+    expect(doc.querySelector("[data-testid='wire-junction-mdr-to-gr-0']")).toBeTruthy();
+  });
 });

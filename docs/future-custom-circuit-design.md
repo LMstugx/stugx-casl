@@ -37,6 +37,7 @@ Each component should define:
 - signal type
 - current value
 - update rule
+- routing lane preference
 
 Anchors should have semantic roles such as:
 
@@ -69,3 +70,11 @@ The current phase does not implement:
 - altered COMET-II execution behavior
 
 The current typed anchor and bus-lane metadata is only groundwork for future visualization work.
+
+Future routing should keep the Phase 8L rules:
+
+- route from anchor to anchor
+- use bus lanes instead of ad hoc lines
+- avoid unrelated module bodies
+- use one terminal arrow for active flow
+- use junction dots for merge points

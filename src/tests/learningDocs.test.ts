@@ -6,6 +6,7 @@ import phase8e from "../../docs/phase8e-circuit-focus-final-layout.md?raw";
 import phase8g from "../../docs/phase8g-circuit-focus-visual-convergence.md?raw";
 import phase8j from "../../docs/phase8j-lab-style-schematic-polish.md?raw";
 import phase8k from "../../docs/phase8k-layered-study-mode-density-refinement.md?raw";
+import phase8l from "../../docs/phase8l-circuit-arrow-routing.md?raw";
 import phase9a from "../../docs/phase9a-casl-instruction-coverage.md?raw";
 import futureCustomCircuit from "../../docs/future-custom-circuit-design.md?raw";
 import practiceTasks from "../../docs/practice-tasks.md?raw";
@@ -114,6 +115,13 @@ describe("learning use documentation", () => {
     expect(phase8k).toContain("Dynamic Path Metadata");
   });
 
+  it("phase8l_circuit_arrow_routing_doc_exists", () => {
+    expect(phase8l).toContain("Phase 8L Circuit Arrow Routing");
+    expect(phase8l).toContain("Anchor-To-Anchor Rule");
+    expect(phase8l).toContain("LD / ST Bypass Routing");
+    expect(phase8l).toContain("Arrow Marker Rule");
+  });
+
   it("future_custom_circuit_design_doc_exists", () => {
     expect(futureCustomCircuit).toContain("Future Custom Circuit Design");
     expect(futureCustomCircuit).toContain("inputs");
@@ -147,6 +155,7 @@ describe("learning use documentation", () => {
     expect(readme).toContain("docs/phase8g-circuit-focus-visual-convergence.md");
     expect(readme).toContain("docs/phase8j-lab-style-schematic-polish.md");
     expect(readme).toContain("docs/phase8k-layered-study-mode-density-refinement.md");
+    expect(readme).toContain("docs/phase8l-circuit-arrow-routing.md");
     expect(readme).toContain("docs/future-custom-circuit-design.md");
     expect(normalized).not.toContain("hackathon");
     expect(normalized).not.toContain("contest submission");

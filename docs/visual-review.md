@@ -97,8 +97,11 @@ Use the gallery to inspect:
 - Machine state and pipeline stage are labeled separately.
 - Memory arrow points to the active memory row.
 - GR arrow points to the active GR row.
+- Active wires use a single terminal arrow instead of repeated arrowheads.
+- Junction dots are visible at route merge points but do not dominate the view.
 - `DATA BUS`, `ADDR BUS`, and `CTRL` lanes are visible but not visually noisy.
 - LD / ST data-bypass paths avoid the ALU body.
+- ST writeback lands at the Memory row edge instead of crossing value or label text.
 - READ / WRITE / EXEC / FLAG indicators match the visible active path.
 - Signal Probe is compact and derived from the current instruction / recent trace.
 - Older Trace rows are lower emphasis than the latest row.

@@ -1240,6 +1240,25 @@ button {
   opacity: 0.58;
 }
 
+.active-junction {
+  fill: #f8fafc;
+  stroke-width: 1.4;
+  opacity: 0.92;
+}
+
+.active-junction-data {
+  stroke: var(--color-active-red);
+}
+
+.active-junction-address,
+.active-junction-control {
+  stroke: #2f6bc6;
+}
+
+.active-junction-flag {
+  stroke: #a35252;
+}
+
 .anchor-point {
   fill: transparent;
   stroke: transparent;
@@ -1290,7 +1309,7 @@ button {
 }
 
 .wire-active {
-  stroke-width: 2.85;
+  stroke-width: 2.7;
   opacity: 0.96;
   filter: none;
 }

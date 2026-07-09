@@ -38,6 +38,12 @@ export const circuitBusLanes = {
   memoryBusX: circuitLayout.memory.x - 18
 } as const;
 
+export const circuitRouting = {
+  portClearance: 18,
+  controlClearance: 22,
+  stackReferenceDrop: 15
+} as const;
+
 export type CircuitPoint = {
   x: number;
   y: number;

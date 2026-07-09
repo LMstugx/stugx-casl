@@ -1,5 +1,9 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 import { assemble, expectCurrentSourceInstruction, expectRegister, openStudio, run, selectDemoProgram, setSource, step } from "./caslSmokeHelpers";
+
+async function switchObservationMode(page: Page, mode: "cpu-flow" | "register-stack" | "code-machine") {
+  await page.getByTestId(`observation-mode-${mode}`).click();
+}
 
 test("Mock backend completes assemble and first step in the browser UI", async ({ page }) => {
   await openStudio(page, "Mock Core");
@@ -96,7 +100,8 @@ test("Mock backend runs CASL shift operations and shows shifter path", async ({ 
   await expect(circuit.locator("[data-testid='wire-memory-to-mdr']")).toHaveCount(0);
   await expect(circuit.locator("[data-testid='module-memory']")).toHaveAttribute("data-active", "false");
   await expect(circuit.locator("[data-testid='module-mdr']")).toHaveAttribute("data-active", "false");
-  await expect(page.getByTestId("focus-registers-panel").getByTestId("register-gr1")).toContainText("0006");
+  await switchObservationMode(page, "register-stack");
+  await expect(page.getByTestId("focus-register-bank").getByTestId("register-gr1")).toContainText("0006");
 });
 
 test("Mock backend runs CASL index addressing and explains effective address", async ({ page }) => {
@@ -121,8 +126,8 @@ test("Mock backend runs CASL index addressing and explains effective address", a
   await expect(circuit.locator("[data-testid='wire-eau-to-mar']")).toHaveAttribute("data-active", "true");
   await expect(page.getByTestId("focus-signal-probe")).toContainText("BASE");
   await expect(page.getByTestId("focus-signal-probe")).toContainText("EA");
-  const focusInspector = page.getByTestId("focus-registers-panel");
-  await expect(focusInspector.getByTestId("register-gr1")).toContainText("0014");
+  await switchObservationMode(page, "register-stack");
+  await expect(page.getByTestId("focus-register-bank").getByTestId("register-gr1")).toContainText("0014");
 
   await page.getByRole("tab", { name: "Machine Code" }).click();
   await page.getByTestId("machine-code-row-0022").click();
@@ -132,9 +137,9 @@ test("Mock backend runs CASL index addressing and explains effective address", a
 
   await run(page);
   await expect(page.getByTestId("run-state")).toHaveText("Finished");
-  await focusInspector.getByRole("tab", { name: "Memory" }).click();
-  await expect(focusInspector.getByTestId("memory-view-row-0029")).toContainText("RESULT");
-  await expect(focusInspector.getByTestId("memory-view-row-0029")).toContainText("0014");
+  await switchObservationMode(page, "register-stack");
+  await expect(page.locator("[data-testid='focus-memory-window-row'][data-address='0029']")).toContainText("RESULT");
+  await expect(page.locator("[data-testid='focus-memory-window-row'][data-address='0029']")).toContainText("0014");
 });
 
 test("Mock backend runs CASL PUSH POP stack demo and shows stack path", async ({ page }) => {
@@ -152,24 +157,26 @@ test("Mock backend runs CASL PUSH POP stack demo and shows stack path", async ({
   await expect(circuit.locator("[data-testid='wire-sp-to-mar-preview']")).toHaveAttribute("data-active", "true");
   await expect(circuit.locator("[data-testid='wire-mdr-to-memory']")).toHaveAttribute("data-active", "true");
   await expect(circuit.locator("[data-testid='memory-row-FFFD']")).toHaveAttribute("data-write", "true");
+  await switchObservationMode(page, "register-stack");
   await expect(page.getByTestId("focus-stack-preview").locator("[data-testid='stack-preview-row'][data-address='FFFD']")).toHaveAttribute("data-write", "true");
   await expect(page.getByTestId("focus-signal-probe")).toContainText("SP");
   await expect(page.getByTestId("focus-signal-probe")).toContainText("STACK");
 
+  await switchObservationMode(page, "cpu-flow");
   await step(page);
   await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("POP");
   await expect(circuit.locator("[data-testid='module-sp']")).toHaveAttribute("data-active", "true");
   await expect(circuit.locator("[data-testid='wire-memory-to-mdr']")).toHaveAttribute("data-active", "true");
   await expect(circuit.locator("[data-testid='wire-mdr-to-gr']")).toHaveAttribute("data-active", "true");
   await expect(circuit.locator("[data-testid='memory-row-FFFD']")).toHaveAttribute("data-read", "true");
-  await expect(page.getByTestId("focus-registers-panel").getByTestId("register-gr1")).toContainText("0029");
+  await switchObservationMode(page, "register-stack");
+  await expect(page.getByTestId("focus-register-bank").getByTestId("register-gr1")).toContainText("0029");
 
   await run(page);
   await expect(page.getByTestId("run-state")).toHaveText("Finished");
-  const focusInspector = page.getByTestId("focus-registers-panel");
-  await focusInspector.getByRole("tab", { name: "Memory" }).click();
-  await expect(focusInspector.getByTestId("memory-view-row-002A")).toContainText("RESULT");
-  await expect(focusInspector.getByTestId("memory-view-row-002A")).toContainText("0029");
+  await switchObservationMode(page, "register-stack");
+  await expect(page.locator("[data-testid='focus-memory-window-row'][data-address='002A']")).toContainText("RESULT");
+  await expect(page.locator("[data-testid='focus-memory-window-row'][data-address='002A']")).toContainText("0029");
 });
 
 test("Mock backend runs CASL CALL RETURN demo and shows stack-aware RET", async ({ page }) => {
@@ -190,6 +197,7 @@ test("Mock backend runs CASL CALL RETURN demo and shows stack-aware RET", async 
   await expect(circuit.locator("[data-testid='memory-row-FFFD']")).toHaveAttribute("data-write", "true");
   await expect(page.getByTestId("focus-signal-probe")).toContainText("RETADDR");
   await expect(page.getByTestId("focus-signal-probe")).toContainText("CALLDEPTH");
+  await switchObservationMode(page, "register-stack");
   await expect(page.getByTestId("focus-call-stack")).toBeVisible();
   await expect(page.getByTestId("call-stack-depth")).toHaveText("1");
   await expect(page.getByTestId("call-stack-return-address")).toHaveText("0024");
@@ -197,6 +205,7 @@ test("Mock backend runs CASL CALL RETURN demo and shows stack-aware RET", async 
   await expect(page.getByTestId("call-stack-ret-mode")).toHaveText("Stack return");
   await expect(page.getByTestId("focus-call-stack")).toContainText("CALL -> SUB; return 0024");
 
+  await switchObservationMode(page, "cpu-flow");
   await step(page);
   await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("ADDA");
   await step(page);
@@ -206,6 +215,7 @@ test("Mock backend runs CASL CALL RETURN demo and shows stack-aware RET", async 
   await expect(circuit.locator("[data-testid='memory-row-FFFD']")).toHaveAttribute("data-read", "true");
   await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("Next");
   await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("ST GR1,RESULT");
+  await switchObservationMode(page, "register-stack");
   await expect(page.getByTestId("call-stack-depth")).toHaveText("0");
   await expect(page.getByTestId("call-stack-return-address")).toHaveText("0024");
   await expect(page.getByTestId("call-stack-ret-mode")).toHaveText("Stack return");
@@ -215,11 +225,13 @@ test("Mock backend runs CASL CALL RETURN demo and shows stack-aware RET", async 
   await expect(page.getByTestId("run-state")).toHaveText("Finished");
   await expect(page.getByTestId("call-stack-depth")).toHaveText("0");
   await expect(page.getByTestId("call-stack-ret-mode")).toHaveText("Top-level finish");
+  await switchObservationMode(page, "cpu-flow");
   await expect(circuit.locator("[data-testid='module-sp']")).toHaveAttribute("data-active", "false");
-  const focusInspector = page.getByTestId("focus-registers-panel");
-  await focusInspector.getByRole("tab", { name: "Memory" }).click();
-  await expect(focusInspector.getByTestId("memory-view-row-002B")).toContainText("RESULT");
-  await expect(focusInspector.getByTestId("memory-view-row-002B")).toContainText("0006");
+  await switchObservationMode(page, "register-stack");
+  await page.getByTestId("circuit-focus-toggle").click();
+  await page.getByRole("tab", { name: "Memory" }).click();
+  await expect(page.getByTestId("memory-view-row-002B")).toContainText("RESULT");
+  await expect(page.getByTestId("memory-view-row-002B")).toContainText("0006");
 });
 
 test("Mock backend keeps circuit focus paths anchored to rows", async ({ page }) => {
@@ -268,11 +280,9 @@ test("Mock backend presents Circuit Focus Mode as a teaching layout", async ({ p
   await expect(page.getByTestId("focus-display-panel")).toContainText("No output");
   await expect(page.getByTestId("focus-current-instruction-panel")).toBeVisible();
   await expect(page.getByTestId("focus-circuit-panel")).toContainText("Circuit Focus Mode");
-  await expect(page.getByTestId("focus-registers-panel")).toBeVisible();
+  await expect(page.getByTestId("observation-mode-selector")).toBeVisible();
+  await expect(page.getByTestId("focus-memory-window")).toBeVisible();
   await expect(page.getByTestId("focus-signal-probe")).toBeVisible();
-  await expect(page.getByTestId("focus-stack-preview")).toBeVisible();
-  await expect(page.getByTestId("focus-stack-preview")).toContainText("Stack path preview only.");
-  await expect(page.getByTestId("focus-stack-preview")).toContainText("SP FFFE");
   await expect(page.getByTestId("focus-trace-panel")).toBeVisible();
   await expect(page.getByTestId("focus-step-timeline")).toBeVisible();
   await expect(page.getByRole("tab", { name: "Output" })).toBeVisible();
@@ -312,11 +322,9 @@ test("Mock backend presents Circuit Focus Mode as a teaching layout", async ({ p
   await expect(page.getByTestId("focus-signal-probe")).toContainText("GR2");
   await expect(page.getByTestId("focus-signal-probe")).toContainText("MDR");
   await expect(page.getByTestId("focus-signal-probe")).toContainText("stack preview only");
-  await expect(page.getByTestId("focus-stack-preview").locator("[data-testid='stack-preview-row'][data-sp='true']")).toContainText("FFFE");
 
   await step(page);
   await expect(circuit.locator("[data-testid='module-sp']")).toHaveAttribute("data-active", "false");
-  await expect(page.getByTestId("focus-stack-preview")).toContainText("Stack path preview only.");
   await expect(page.getByTestId("focus-program-current-line")).toContainText(/ADDA\s+GR2,B/);
   await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("ADDA");
   await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("Current");
@@ -344,7 +352,6 @@ test("Mock backend presents Circuit Focus Mode as a teaching layout", async ({ p
 
   await step(page);
   await expect(circuit.locator("[data-testid='module-sp']")).toHaveAttribute("data-active", "false");
-  await expect(page.getByTestId("focus-stack-preview")).toContainText("Stack path preview only.");
   await expect(page.getByTestId("focus-program-current-line")).toContainText(/ST\s+GR2,C/);
   await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("ST");
   await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("Current");
@@ -372,6 +379,34 @@ test("Mock backend presents Circuit Focus Mode as a teaching layout", async ({ p
   await expect(page.getByTestId("focus-signal-probe")).toContainText("MEM[0029]");
 });
 
+test("Mock backend switches observation modes without resetting VM state", async ({ page }) => {
+  await openStudio(page, "Mock Core");
+  await selectDemoProgram(page, "casl-gr2-addition");
+  await page.getByTestId("circuit-focus-toggle").click();
+  await assemble(page);
+  await step(page);
+
+  await switchObservationMode(page, "cpu-flow");
+  await expect(page.getByTestId("focus-circuit-panel")).toBeVisible();
+  await expect(page.getByTestId("focus-memory-window-row")).toHaveCount(9);
+  await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("LD");
+
+  await switchObservationMode(page, "register-stack");
+  await expect(page.getByTestId("focus-register-bank").getByTestId("register-gr0")).toBeVisible();
+  await expect(page.getByTestId("focus-register-bank").getByTestId("register-gr7")).toBeVisible();
+  await expect(page.getByTestId("focus-register-bank").getByTestId("register-pr")).toContainText("0022");
+  await expect(page.getByTestId("focus-register-bank").getByTestId("register-sp")).toContainText("FFFE");
+  await expect(page.getByTestId("focus-register-bank").getByTestId("register-fr")).toBeVisible();
+  await expect(page.getByTestId("focus-stack-preview")).toBeVisible();
+  await expect(page.getByTestId("focus-memory-window-row")).toHaveCount(10);
+
+  await switchObservationMode(page, "code-machine");
+  await expect(page.getByTestId("focus-generated-casl-panel")).toBeVisible();
+  await expect(page.getByTestId("focus-machine-code-panel")).toBeVisible();
+  await expect(page.getByTestId("focus-trace-panel")).toContainText("LD");
+  await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("LD");
+});
+
 test("focus_mode_works_at_1280x720", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 720 });
   await openStudio(page, "Mock Core");
@@ -384,8 +419,8 @@ test("focus_mode_works_at_1280x720", async ({ page }) => {
 
   await expect(page.getByTestId("focus-program-panel")).toBeVisible();
   await expect(page.getByTestId("focus-circuit-panel")).toBeVisible();
-  await expect(page.getByTestId("focus-registers-panel")).toBeVisible();
   await expect(page.getByTestId("focus-signal-probe")).toBeVisible();
+  await switchObservationMode(page, "register-stack");
   await expect(page.getByTestId("focus-call-stack")).toBeVisible();
   await expect(page.getByTestId("focus-stack-preview")).toBeVisible();
   await expect(page.locator(".output-panel")).toBeVisible();
@@ -428,7 +463,7 @@ test("focus_mode_works_at_1440x900", async ({ page }) => {
 
   await expect(page.getByTestId("focus-program-panel")).toBeVisible();
   await expect(page.getByTestId("focus-circuit-panel")).toBeVisible();
-  await expect(page.getByTestId("focus-registers-panel")).toBeVisible();
+  await expect(page.getByTestId("focus-memory-window")).toBeVisible();
   await expect(page.getByTestId("focus-trace-panel")).toBeVisible();
   await expect(page.getByTestId("focus-step-timeline")).toBeVisible();
   await expect(page.locator(".output-panel")).toBeVisible();

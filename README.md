@@ -86,6 +86,7 @@ For the stack address path preview foundation, see [docs/phase9e-stack-address-p
 For `PUSH` / `POP` stack semantics, see [docs/phase9f-push-pop-stack.md](docs/phase9f-push-pop-stack.md).
 For `CALL` and stack-aware `RET`, see [docs/phase9g-call-ret-stack-semantics.md](docs/phase9g-call-ret-stack-semantics.md).
 For subroutine teaching polish and return-edge explanation, see [docs/phase9h-subroutine-teaching-polish.md](docs/phase9h-subroutine-teaching-polish.md).
+For the Focus Mode observation split, see [docs/phase10j-observation-mode-split.md](docs/phase10j-observation-mode-split.md).
 
 ## Key Views
 
@@ -96,7 +97,7 @@ For subroutine teaching polish and return-edge explanation, see [docs/phase9h-su
 - Control Flow: label and jump target hints for if/else, while, for, break, and continue.
 - Memory Viewer: bounded memory windows with label, PR, MAR, read, write, and range controls.
 - Trace: recent execution history for Step and Run.
-- Circuit Focus Mode: a presentation layout with Program, OUT Display, Current Instruction, large COMET II circuit, compact Signal Probe, Stack Preview, Registers, Trace, and Timeline panels. It highlights the last executed instruction as the teaching target, while PR and next instruction remain secondary hints. The circuit uses DATA / ADDR / CTRL bus lanes, row-level anchors, and lightweight signal indicators for a lab-style teaching schematic.
+- Circuit Focus Mode: a presentation layout with Program, OUT Display, Current Instruction, and selectable Observation Modes. `CPU Flow` prioritizes the circuit, active path, compact memory, Signal Probe, and Timeline. `Registers / Stack` shows all GR registers, PR / SP / FR, Stack Preview, Call Stack, and memory values. `Code / Machine` emphasizes Source / Generated CASL / Machine Code / Trace mapping. It highlights the last executed instruction as the teaching target, while PR and next instruction remain secondary hints. The circuit uses DATA / ADDR / CTRL bus lanes, row-level anchors, and lightweight signal indicators for a lab-style teaching schematic.
 - Circuit: SVG COMET II visualization driven by the current runtime state, with row-level GR/Memory targeting for active data paths.
 
 ## Demo Examples
@@ -313,6 +314,7 @@ The current backend is shown in the status bar as `Mock Core`, `WASM Core`, or `
 - [docs/release-candidate-notes.md](docs/release-candidate-notes.md): current stable capabilities, demos, supported subsets, testing status, limitations, and next phases.
 - [docs/phase10h-robustness-audit.md](docs/phase10h-robustness-audit.md): boundary tests, code safety checks, fixes, and remaining risks.
 - [docs/phase10i-release-hardening-stress-audit.md](docs/phase10i-release-hardening-stress-audit.md): deterministic malformed-input corpus, stress checks, WASM lifecycle checks, and sanitizer/toolchain notes.
+- [docs/phase10j-observation-mode-split.md](docs/phase10j-observation-mode-split.md): Focus Mode observation modes for CPU flow, register/stack values, and code/machine mapping.
 
 ## Current Limitations
 

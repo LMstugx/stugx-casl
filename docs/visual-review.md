@@ -94,6 +94,8 @@ This phase does not install tunnel tools automatically.
 Use the gallery to inspect:
 
 - Circuit Focus screenshots include Program, Display, Current Instruction, Circuit, Registers, Trace, and Timeline together.
+- Observation Mode screenshots split the same runtime state by learning purpose: CPU Flow for circuit movement, Registers / Stack for numeric state, and Code / Machine for source-to-machine mapping.
+- Switching Observation Mode must preserve VM state, current instruction, trace, source, generated CASL, and lesson progress.
 - Program, Current Instruction, Current Source Mapping, Source Context, and the newest Trace row agree on the same last executed instruction.
 - PR and Next Instruction are visible only as secondary hints.
 - Machine state and pipeline stage are labeled separately.
@@ -133,12 +135,15 @@ Use the gallery to inspect:
 - Control Flow target text is readable.
 - Source Editor is not squeezed.
 - Right Inspector remains usable.
-- At `1280x720`, Focus Mode should keep Program, Circuit, Inspector, Trace, Signal Probe, Call Stack, Stack Preview, and Output Log visible without horizontal overflow.
+- At `1280x720`, Focus Mode should keep the selected observation mode usable without horizontal overflow.
 - Trace still shows break / continue / loop movement clearly.
 
 ## Captured Scenes
 
 - `project-overview.png`
+- `observation-cpu-flow.png` (CPU Flow observation mode)
+- `observation-register-stack.png` (Registers / Stack observation mode)
+- `observation-code-machine.png` (Code / Machine observation mode)
 - `casl-gr2-ld.png` (Circuit Focus Mode)
 - `casl-gr2-adda.png` (Circuit Focus Mode)
 - `casl-gr2-st.png` (Circuit Focus Mode)

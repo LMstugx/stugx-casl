@@ -23,6 +23,7 @@ import phase10e from "../../docs/phase10e-focus-text-overflow-cleanup.md?raw";
 import phase10f from "../../docs/phase10f-small-viewport-accessibility.md?raw";
 import phase10h from "../../docs/phase10h-robustness-audit.md?raw";
 import phase10i from "../../docs/phase10i-release-hardening-stress-audit.md?raw";
+import phase10j from "../../docs/phase10j-observation-mode-split.md?raw";
 import circuitVisualContract from "../../docs/circuit-visual-contract.md?raw";
 import futureCustomCircuit from "../../docs/future-custom-circuit-design.md?raw";
 import manualQaChecklist from "../../docs/manual-qa-checklist.md?raw";
@@ -223,6 +224,17 @@ describe("learning use documentation", () => {
     expect(phase10d).toContain("ST    GR2,FUNC_ADD_B");
     expect(phase10d).toContain("only up to three function parameters are supported yet");
     expect(phase10d).toContain("stack arguments");
+  });
+
+  it("phase10j_observation_mode_split_doc_exists", () => {
+    expect(phase10j).toContain("Phase 10J: Observation Mode Split");
+    expect(phase10j).toContain("CPU Flow");
+    expect(phase10j).toContain("Register / Stack Mode");
+    expect(phase10j).toContain("Code / Machine Mode");
+    expect(phase10j).toContain("Switching observation mode must not reset");
+    expect(learningGuide).toContain("Observation Mode selector");
+    expect(readme).toContain("Observation Modes");
+    expect(manualQaChecklist).toContain("Observation Mode selector");
   });
 
   it("phase10e_focus_text_overflow_cleanup_doc_exists", () => {
@@ -459,6 +471,7 @@ describe("learning use documentation", () => {
     expect(readme).toContain("docs/circuit-visual-contract.md");
     expect(readme).toContain("docs/phase10e-focus-text-overflow-cleanup.md");
     expect(readme).toContain("docs/phase10f-small-viewport-accessibility.md");
+    expect(readme).toContain("docs/phase10j-observation-mode-split.md");
     expect(readme).toContain("docs/manual-qa-checklist.md");
     expect(readme).toContain("docs/release-candidate-notes.md");
     expect(readme).toContain("docs/future-custom-circuit-design.md");

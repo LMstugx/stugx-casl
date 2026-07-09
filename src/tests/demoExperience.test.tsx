@@ -306,6 +306,24 @@ describe("demo recording experience", () => {
     expect(state.lessonProgress["cpp-addition"]["open-generated"]).toBeUndefined();
   });
 
+  it("observation_mode_switch_does_not_reset_vm_state", () => {
+    const assembled = mockCaslCore.assemble(getDemoProgram("casl-gr2-addition")!.source);
+    const initial = appStoreReducer(createInitialAppState(), {
+      type: "assembled",
+      sourceText: getDemoProgram("casl-gr2-addition")!.source,
+      cometState: assembled,
+      assembleStatus: "success"
+    });
+    const switched = appStoreReducer(initial, { type: "observationModeSet", mode: "register-stack" });
+    const switchedAgain = appStoreReducer(switched, { type: "observationModeSet", mode: "code-machine" });
+
+    expect(switched.cometState).toBe(initial.cometState);
+    expect(switched.cometState.trace).toBe(initial.cometState.trace);
+    expect(switched.observationMode).toBe("register-stack");
+    expect(switchedAgain.cometState).toBe(initial.cometState);
+    expect(switchedAgain.observationMode).toBe("code-machine");
+  });
+
   it("study_mode_shows_recommended_tab", () => {
     const program = getDemoProgram("cpp-break-continue");
     const lesson = getLearningLesson("cpp-break-continue");

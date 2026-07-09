@@ -366,10 +366,15 @@ The viewer does not render all 65536 memory words at once.
 Circuit Focus Mode is the dedicated hardware view opened from the toolbar. It keeps the normal IDE available, but reorganizes the same runtime state for teaching:
 
 - left: Program, OUT Display, Current Instruction
-- center: large COMET II circuit and Step Timeline
-- right: Registers / Memory, recent Trace, and Source Context
+- center/right: selected Observation Mode panels
 
-Read it by layers:
+Use the Observation Mode selector to choose the learning focus:
+
+- `CPU Flow`: large COMET II circuit, active path, compact main-memory window, Signal Probe, recent Trace, and Step Timeline. Use this for `LD`, `ADDA`, `ST`, indexed memory access, and active circuit movement.
+- `Registers / Stack`: all GR0-GR7 rows, PR / SP / FR, Stack Preview, Call Stack, main-memory rows, Signal Probe, and recent Trace. Use this when you want to observe register, stack, and memory values numerically.
+- `Code / Machine`: Source / Generated CASL, Machine Code meaning rows, Trace, and Current Source Mapping. Use this for C++ examples and for explaining how source code becomes CASL and machine words.
+
+The circuit itself is read by layers:
 
 - Top control/address layer: `IR`, `PR`, `+2`, `SP`, and `MAR`.
 - Middle execution/data layer: General Registers, `ALU`, `MDR`, and Memory.
@@ -399,7 +404,7 @@ Active wires have a lightweight signal-flow animation in the live app. The anima
 
 Small signal indicators such as `READ`, `WRITE`, `EXEC`, and `FLAG` are visual hints derived from the current instruction and VM state. They are not separate simulator state.
 
-Focus Mode is layered intentionally. Current Instruction and the active path are the primary teaching objects. Program, Timeline, Registers, Memory, and latest Trace are secondary. Bus labels, inactive wires, older trace rows, Source Context, and Output Log are tertiary context.
+Focus Mode is layered intentionally. Current Instruction and the active path are the primary teaching objects in CPU Flow. Register / Stack makes GR, SP, stack, and memory values primary. Code / Machine makes Generated CASL, Machine Code, Trace, and mapping primary. Bus labels, inactive wires, older trace rows, Source Context, and Output Log remain tertiary context.
 
 The compact Signal Probe card is read-only. It shows current or recent values for the selected GR row, `MDR`, `ALU.Y` when involved, `FR`, target memory, and recent trace changes. It is a study aid, not an automatic grader or custom circuit editor.
 

@@ -11,6 +11,7 @@ import { CppToCaslMap, transpileCppToCasl } from "../transpiler/cppTranspiler";
 
 type AssembleStatus = "default" | "running" | "success" | "error";
 export type SourceMode = "casl" | "cpp";
+export type ObservationMode = "cpu-flow" | "register-stack" | "code-machine";
 type RunStopReason = "manual" | "maxSteps" | "finished" | "error" | null;
 export type LessonProgress = Record<string, Record<string, boolean>>;
 
@@ -50,6 +51,7 @@ type AppStoreState = {
   cppToCaslMapping: CppToCaslMap[];
   selectedDemoProgramId: string;
   lessonProgress: LessonProgress;
+  observationMode: ObservationMode;
 };
 
 type AppStoreActions = {
@@ -64,6 +66,7 @@ type AppStoreActions = {
   clearOutput: () => void;
   toggleLessonStep: (exampleId: string, stepId: string) => void;
   resetLessonProgress: (exampleId: string) => void;
+  setObservationMode: (mode: ObservationMode) => void;
 };
 
 type AppStore = AppStoreState & AppStoreActions;
@@ -82,7 +85,8 @@ export type AppStoreAction =
   | { type: "coreError"; message: string }
   | { type: "clearOutput" }
   | { type: "lessonStepToggled"; exampleId: string; stepId: string }
-  | { type: "lessonProgressReset"; exampleId: string };
+  | { type: "lessonProgressReset"; exampleId: string }
+  | { type: "observationModeSet"; mode: ObservationMode };
 
 type AppStoreProviderProps = {
   children: ReactNode;
@@ -108,7 +112,8 @@ export function createInitialAppState(): AppStoreState {
     generatedCaslSource: "",
     cppToCaslMapping: [],
     selectedDemoProgramId: initialDemo.id,
-    lessonProgress: {}
+    lessonProgress: {},
+    observationMode: "cpu-flow"
   };
 }
 
@@ -310,6 +315,14 @@ export function appStoreReducer(state: AppStoreState, action: AppStoreAction): A
     };
   }
 
+  if (action.type === "observationModeSet") {
+    if (state.observationMode === action.mode) return state;
+    return {
+      ...state,
+      observationMode: action.mode
+    };
+  }
+
   return state;
 }
 
@@ -506,7 +519,8 @@ export function AppStoreProvider({ children, eventBus: providedEventBus }: AppSt
       },
       clearOutput: () => dispatch({ type: "clearOutput" }),
       toggleLessonStep: (exampleId, stepId) => dispatch({ type: "lessonStepToggled", exampleId, stepId }),
-      resetLessonProgress: (exampleId) => dispatch({ type: "lessonProgressReset", exampleId })
+      resetLessonProgress: (exampleId) => dispatch({ type: "lessonProgressReset", exampleId }),
+      setObservationMode: (mode) => dispatch({ type: "observationModeSet", mode })
     }),
     [eventBus, state.assembleResult, state.cometState, state.isSourceDirty, state.runStopReason, state.sourceMode, state.sourceText]
   );

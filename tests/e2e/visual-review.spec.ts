@@ -37,15 +37,19 @@ async function openOutputTab(page: Page, name: "Generated CASL" | "Machine Code"
 async function enterCircuitFocusMode(page: Page) {
   await page.getByTestId("circuit-focus-toggle").click();
   await expect(page.getByTestId("circuit-focus-layout")).toBeVisible();
+  await expect(page.getByTestId("observation-mode-selector")).toBeVisible();
   await expect(page.getByTestId("focus-program-panel")).toBeVisible();
   await expect(page.getByTestId("focus-display-panel")).toBeVisible();
   await expect(page.getByTestId("focus-current-instruction-panel")).toBeVisible();
   await expect(page.getByTestId("focus-circuit-panel")).toBeVisible();
-  await expect(page.getByTestId("focus-registers-panel")).toBeVisible();
+  await expect(page.getByTestId("focus-memory-window")).toBeVisible();
   await expect(page.getByTestId("focus-signal-probe")).toBeVisible();
-  await expect(page.getByTestId("focus-stack-preview")).toBeVisible();
   await expect(page.getByTestId("focus-trace-panel")).toBeVisible();
   await expect(page.getByTestId("focus-step-timeline")).toBeVisible();
+}
+
+async function selectObservationMode(page: Page, mode: "cpu-flow" | "register-stack" | "code-machine") {
+  await page.getByTestId(`observation-mode-${mode}`).click();
 }
 
 async function captureProjectOverview(page: Page, viewport: Viewport) {
@@ -60,6 +64,7 @@ async function captureCaslGr2Flow(page: Page, viewport: Viewport) {
   await openStudio(page, "Mock Core");
   await selectDemoProgram(page, "casl-gr2-addition");
   await enterCircuitFocusMode(page);
+  await selectObservationMode(page, "cpu-flow");
   await assemble(page);
 
   await step(page);
@@ -82,15 +87,58 @@ async function captureCaslGr2Flow(page: Page, viewport: Viewport) {
   await capture(page, viewport, "casl-gr2-st.png");
 }
 
+async function captureObservationCpuFlow(page: Page, viewport: Viewport) {
+  await openStudio(page, "Mock Core");
+  await selectDemoProgram(page, "casl-gr2-addition");
+  await enterCircuitFocusMode(page);
+  await selectObservationMode(page, "cpu-flow");
+  await assemble(page);
+  await step(page);
+  await expect(page.getByTestId("focus-circuit-panel")).toBeVisible();
+  await expect(page.getByTestId("focus-memory-window-row")).toHaveCount(9);
+  await capture(page, viewport, "observation-cpu-flow.png");
+}
+
+async function captureObservationRegisterStack(page: Page, viewport: Viewport) {
+  await openStudio(page, "Mock Core");
+  await selectDemoProgram(page, "casl-call-return");
+  await enterCircuitFocusMode(page);
+  await assemble(page);
+  await step(page);
+  await step(page);
+  await selectObservationMode(page, "register-stack");
+  await expect(page.getByTestId("focus-register-bank").getByTestId("register-gr0")).toBeVisible();
+  await expect(page.getByTestId("focus-register-bank").getByTestId("register-gr7")).toBeVisible();
+  await expect(page.getByTestId("focus-stack-preview")).toBeVisible();
+  await expect(page.getByTestId("focus-memory-window-row")).toHaveCount(10);
+  await capture(page, viewport, "observation-register-stack.png");
+}
+
+async function captureObservationCodeMachine(page: Page, viewport: Viewport) {
+  await openStudio(page, "Mock Core");
+  await selectDemoProgram(page, "cpp-function-arguments");
+  await enterCircuitFocusMode(page);
+  await assemble(page);
+  await step(page);
+  await step(page);
+  await step(page);
+  await selectObservationMode(page, "code-machine");
+  await expect(page.getByTestId("focus-generated-casl-panel")).toContainText("FUNC_ADD");
+  await expect(page.getByTestId("focus-machine-code-panel")).toContainText("CALL FUNC_ADD");
+  await expect(page.getByTestId("focus-trace-panel")).toContainText("CALL");
+  await capture(page, viewport, "observation-code-machine.png");
+}
+
 async function captureStackPreviewFocus(page: Page, viewport: Viewport) {
   await openStudio(page, "Mock Core");
   await selectDemoProgram(page, "casl-gr2-addition");
   await enterCircuitFocusMode(page);
   await assemble(page);
-  await expect(page.getByTestId("focus-stack-preview")).toContainText("Stack path preview only.");
-  await expect(page.getByTestId("focus-stack-preview")).toContainText("SP FFFE");
   await expect(page.getByTestId("comet-circuit-svg").locator("[data-testid='module-sp']")).toHaveAttribute("data-active", "false");
   await expect(page.getByTestId("comet-circuit-svg").locator("[data-testid='wire-guide-sp-to-mar-preview']")).toHaveAttribute("data-active", "false");
+  await selectObservationMode(page, "register-stack");
+  await expect(page.getByTestId("focus-stack-preview")).toContainText("Stack path preview only.");
+  await expect(page.getByTestId("focus-stack-preview")).toContainText("SP FFFE");
   await capture(page, viewport, "stack-preview-focus.png");
 }
 
@@ -223,6 +271,7 @@ async function capturePushPopStackCircuit(page: Page, viewport: Viewport) {
   await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("PUSH");
   await expect(page.getByTestId("comet-circuit-svg").locator("[data-testid='module-sp']")).toHaveAttribute("data-active", "true");
   await expect(page.getByTestId("comet-circuit-svg").locator("[data-testid='memory-row-FFFD']")).toHaveAttribute("data-write", "true");
+  await selectObservationMode(page, "register-stack");
   await expect(page.getByTestId("focus-stack-preview")).toContainText("WRITE");
   await expect(page.getByTestId("focus-signal-probe")).toContainText("STACK");
   await capture(page, viewport, "push-pop-stack-circuit.png");
@@ -253,6 +302,7 @@ async function captureCallReturnCall(page: Page, viewport: Viewport) {
   await expect(page.getByTestId("comet-circuit-svg").locator("[data-testid='wire-return-address-to-mdr']")).toHaveAttribute("data-active", "true");
   await expect(page.getByTestId("comet-circuit-svg").locator("[data-testid='wire-eau-to-pr']")).toHaveAttribute("data-active", "true");
   await expect(page.getByTestId("focus-signal-probe")).toContainText("RETADDR");
+  await selectObservationMode(page, "register-stack");
   await expect(page.getByTestId("focus-call-stack")).toContainText("Depth 1");
   await expect(page.getByTestId("focus-call-stack")).toContainText("0024");
   await expect(page.getByTestId("focus-call-stack")).toContainText("CALL -> SUB");
@@ -272,6 +322,7 @@ async function captureCallReturnRetStack(page: Page, viewport: Viewport) {
   await expect(page.getByTestId("comet-circuit-svg").locator("[data-testid='wire-mdr-to-pr']")).toHaveAttribute("data-active", "true");
   await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("Next");
   await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("ST GR1,RESULT");
+  await selectObservationMode(page, "register-stack");
   await expect(page.getByTestId("focus-call-stack")).toContainText("RET -> 0024 from MEM[FFFD]");
   await capture(page, viewport, "call-return-ret-stack.png");
 }
@@ -285,6 +336,7 @@ async function captureCallReturnFinish(page: Page, viewport: Viewport) {
   await expect(page.getByTestId("run-state")).toHaveText("Finished");
   await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("RET");
   await expect(page.getByTestId("comet-circuit-svg").locator("[data-testid='module-sp']")).toHaveAttribute("data-active", "false");
+  await selectObservationMode(page, "register-stack");
   await expect(page.getByTestId("focus-call-stack")).toContainText("Top-level finish");
   await capture(page, viewport, "call-return-finish.png");
 }
@@ -310,6 +362,7 @@ async function captureNestedCallReturn(page: Page, viewport: Viewport) {
   await step(page);
   await step(page);
   await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("CALL");
+  await selectObservationMode(page, "register-stack");
   await expect(page.getByTestId("focus-call-stack")).toContainText("Depth 2");
   await expect(page.getByTestId("focus-call-stack")).toContainText("SUB2");
   await expect(page.getByTestId("focus-call-stack")).toContainText("0029");
@@ -388,37 +441,41 @@ async function captureCppFunctionArgumentMachineCode(page: Page, viewport: Viewp
 async function captureCppFunctionArgumentsGeneratedCasl(page: Page, viewport: Viewport) {
   await openStudio(page, "Mock Core");
   await selectDemoProgram(page, "cpp-function-arguments");
+  await enterCircuitFocusMode(page);
   await assemble(page);
-  await openOutputTab(page, "Generated CASL");
-  await expect(page.getByTestId("generated-casl-output")).toContainText("GR1,2");
-  await expect(page.getByTestId("generated-casl-output")).toContainText("GR2,3");
-  await expect(page.getByTestId("generated-casl-output")).toContainText("GR1,FUNC_ADD_A");
-  await expect(page.getByTestId("generated-casl-output")).toContainText("GR2,FUNC_ADD_B");
+  await selectObservationMode(page, "code-machine");
+  await expect(page.getByTestId("focus-generated-casl-panel")).toContainText("GR1,2");
+  await expect(page.getByTestId("focus-generated-casl-panel")).toContainText("GR2,3");
+  await expect(page.getByTestId("focus-generated-casl-panel")).toContainText("FUNC_ADD_A");
+  await expect(page.getByTestId("focus-generated-casl-panel")).toContainText("FUNC_ADD_B");
   await capture(page, viewport, "cpp-function-arguments-generated-casl.png");
 }
 
 async function captureCppFunctionArgumentsTrace(page: Page, viewport: Viewport) {
   await openStudio(page, "Mock Core");
   await selectDemoProgram(page, "cpp-function-arguments");
+  await enterCircuitFocusMode(page);
   await assemble(page);
-  await run(page);
-  await expect(page.getByTestId("run-state")).toHaveText("Finished");
-  await openOutputTab(page, "Trace");
-  await expect(page.getByTestId("trace-list")).toContainText("CALL");
-  await expect(page.getByTestId("trace-list")).toContainText("RET");
+  await step(page);
+  await step(page);
+  await step(page);
+  await selectObservationMode(page, "code-machine");
+  await expect(page.getByTestId("focus-trace-panel")).toContainText("CALL");
+  await expect(page.getByTestId("focus-source-mapping-panel").first()).toContainText("result = add(2, 3);");
   await capture(page, viewport, "cpp-function-arguments-trace.png");
 }
 
 async function captureCppFunctionArgumentsMachineCode(page: Page, viewport: Viewport) {
   await openStudio(page, "Mock Core");
   await selectDemoProgram(page, "cpp-function-arguments");
+  await enterCircuitFocusMode(page);
   await assemble(page);
   await step(page);
   await step(page);
-  await openOutputTab(page, "Machine Code");
-  await page.getByTestId("machine-code-output").locator('[data-testid^="machine-code-row-"]').filter({ hasText: "CALL FUNC_ADD" }).first().click();
-  await expect(page.getByTestId("machine-code-explanation")).toContainText("CALL");
-  await expect(page.getByTestId("machine-code-explanation")).toContainText("Return Addr");
+  await step(page);
+  await selectObservationMode(page, "code-machine");
+  await expect(page.getByTestId("focus-machine-code-panel")).toContainText("CALL FUNC_ADD");
+  await expect(page.getByTestId("focus-source-mapping-panel").first()).toContainText("result = add(2, 3);");
   await capture(page, viewport, "cpp-function-arguments-machine-code.png");
 }
 
@@ -430,6 +487,9 @@ test.describe("visual review screenshot gallery", () => {
 
       await captureProjectOverview(page, viewport);
       await captureCaslGr2Flow(page, viewport);
+      await captureObservationCpuFlow(page, viewport);
+      await captureObservationRegisterStack(page, viewport);
+      await captureObservationCodeMachine(page, viewport);
       await captureStackPreviewFocus(page, viewport);
       await captureCppAdditionGeneratedCasl(page, viewport);
       await captureMachineCodeExplanation(page, viewport);

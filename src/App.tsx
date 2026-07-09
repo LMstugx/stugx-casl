@@ -37,6 +37,7 @@ function StudioShell() {
     cppToCaslMapping,
     selectedDemoProgramId,
     lessonProgress,
+    observationMode,
     setSourceText,
     setSourceMode,
     selectDemoProgram,
@@ -47,7 +48,8 @@ function StudioShell() {
     stop,
     clearOutput,
     toggleLessonStep,
-    resetLessonProgress
+    resetLessonProgress,
+    setObservationMode
   } = useAppStore();
   const [isCircuitFocusMode, setCircuitFocusMode] = useState(false);
   const isRunning = state.runState === "Running";
@@ -109,6 +111,8 @@ function StudioShell() {
           cppToCaslMapping={cppToCaslMapping}
           isSourceDirty={isSourceDirty}
           timelineItems={timelineItems}
+          observationMode={observationMode}
+          onObservationModeChange={setObservationMode}
         />
       ) : (
       <main className="workspace">

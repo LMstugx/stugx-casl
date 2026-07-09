@@ -1,13 +1,13 @@
 import { useMemo, useState } from "react";
 import { selectGeneratedCaslRows } from "../core/generatedCaslRows";
+import { selectMachineCodeRows } from "../core/machineCodeRows";
 import type { CometState } from "../core/types";
 import { VisualPathKind, formatFlags, formatWord } from "../core/types";
-import type { SourceMode } from "../store/useAppStore";
+import type { ObservationMode, SourceMode } from "../store/useAppStore";
 import type { CppToCaslMap } from "../transpiler/cppAst";
 import { cppLineForCaslLine } from "../transpiler/cppMapping";
 import CometCircuitSvg from "../visual/CometCircuitSvg";
 import { summarizeCurrentInstruction } from "../visual/visualState";
-import MemoryPanel from "./MemoryPanel";
 import RegisterPanel from "./RegisterPanel";
 
 type TimelineItem = {
@@ -25,9 +25,15 @@ type CircuitFocusLayoutProps = {
   cppToCaslMapping: CppToCaslMap[];
   isSourceDirty: boolean;
   timelineItems: TimelineItem[];
+  observationMode?: ObservationMode;
+  onObservationModeChange?: (mode: ObservationMode) => void;
 };
 
-type FocusTab = "registers" | "memory";
+const observationModes: Array<{ id: ObservationMode; label: string; summary: string }> = [
+  { id: "cpu-flow", label: "CPU Flow", summary: "Circuit / active path / main memory" },
+  { id: "register-stack", label: "Registers / Stack", summary: "GR, PR, SP, FR, stack, memory" },
+  { id: "code-machine", label: "Code / Machine", summary: "Source, CASL, machine code, trace" }
+];
 
 type FocusInstructionContext = {
   caslLine?: number;
@@ -437,6 +443,197 @@ function FocusTracePanel({ state }: { state: CometState }) {
   );
 }
 
+function memoryWindowCenterAddress(state: CometState): number {
+  return activeMemoryAddress(state) ?? state.currentAddress ?? state.pr;
+}
+
+function FocusMemoryWindowPanel({ state, rowCount = 9, title = "Main Memory" }: { state: CometState; rowCount?: number; title?: string }) {
+  const centerAddress = memoryWindowCenterAddress(state);
+  const startAddress = wrapAddress(centerAddress - Math.floor(rowCount / 2));
+  const rows = Array.from({ length: rowCount }, (_, index) => {
+    const address = wrapAddress(startAddress + index);
+    const markers = [
+      address === state.pr ? "PR" : "",
+      address === state.mar ? "MAR" : "",
+      address === state.lastMemoryReadAddress ? "READ" : "",
+      address === state.lastMemoryWriteAddress ? "WRITE" : ""
+    ].filter(Boolean);
+    return {
+      address,
+      value: state.memory[address] ?? 0,
+      label: labelForAddress(state, address) ?? "",
+      markers
+    };
+  });
+
+  return (
+    <section className="panel focus-memory-window" data-testid="focus-memory-window">
+      <header className="panel-header">
+        <div>
+          <h2>{title}</h2>
+          <span>{rowCount} row window</span>
+        </div>
+        <span>@{formatWord(centerAddress)}</span>
+      </header>
+      <div className="focus-memory-window-body">
+        <div className="focus-memory-window-row focus-memory-window-head" aria-hidden="true">
+          <span>Addr</span>
+          <span>Value</span>
+          <span>Label</span>
+          <span>Mark</span>
+        </div>
+        {rows.map((row) => (
+          <div
+            key={row.address}
+            className="focus-memory-window-row"
+            data-testid="focus-memory-window-row"
+            data-address={formatWord(row.address)}
+            data-pr={row.markers.includes("PR") ? "true" : "false"}
+            data-mar={row.markers.includes("MAR") ? "true" : "false"}
+            data-read={row.markers.includes("READ") ? "true" : "false"}
+            data-write={row.markers.includes("WRITE") ? "true" : "false"}
+          >
+            <code className="mono-value">{formatWord(row.address)}</code>
+            <code className="mono-value">{formatWord(row.value)}</code>
+            <span className="text-ellipsis" title={row.label}>{row.label}</span>
+            <span className="text-ellipsis" title={row.markers.join(" ")}>{row.markers.join(" ")}</span>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function FocusRegisterStackDashboard({ state }: { state: CometState }) {
+  return (
+    <section className="focus-register-stack-dashboard" data-testid="focus-register-stack-dashboard">
+      <section className="panel focus-register-bank" data-testid="focus-register-bank">
+        <header className="panel-header">
+          <div>
+            <h2>Register Bank</h2>
+            <span>GR0-GR7 / PR / SP / FR</span>
+          </div>
+        </header>
+        <RegisterPanel state={state} embedded />
+      </section>
+      <FocusMemoryWindowPanel state={state} rowCount={10} />
+    </section>
+  );
+}
+
+function FocusGeneratedCaslPanel({
+  sourceMode,
+  sourceText,
+  generatedCaslSource,
+  cppToCaslMapping,
+  focus
+}: Pick<CircuitFocusLayoutProps, "sourceMode" | "sourceText" | "generatedCaslSource" | "cppToCaslMapping"> & { focus: FocusInstructionContext }) {
+  const hasGeneratedCasl = sourceMode === "cpp" && generatedCaslSource.trim().length > 0;
+  const rows = hasGeneratedCasl
+    ? selectGeneratedCaslRows(generatedCaslSource, cppToCaslMapping, focus.caslLine, focus.cppLine)
+    : sourceText.split(/\r?\n/).map((raw, index) => ({
+        lineNumber: index + 1,
+        label: "",
+        opcode: "",
+        operand: "",
+        raw,
+        mappingKinds: [],
+        relatedCppLine: undefined,
+        isCurrent: focus.caslLine === index + 1,
+        isRelated: false,
+        isGeneratedMeta: false
+      }));
+
+  return (
+    <section className="panel focus-generated-casl-panel" data-testid="focus-generated-casl-panel">
+      <header className="panel-header">
+        <div>
+          <h2>Generated CASL</h2>
+          <span>{hasGeneratedCasl ? "C++ lowering output" : "CASL source rows"}</span>
+        </div>
+      </header>
+      <div className="focus-code-table focus-generated-casl-table">
+        <div className="focus-code-row focus-code-head" aria-hidden="true">
+          <span>Line</span>
+          <span>Label</span>
+          <span>Op</span>
+          <span>Operand</span>
+          <span>Mapping</span>
+        </div>
+        {rows.slice(0, 18).map((row) => (
+          <div key={`${row.lineNumber}-${row.raw}`} className={`focus-code-row ${row.isCurrent ? "current" : ""}`} data-testid={row.isCurrent ? "focus-generated-casl-current" : "focus-generated-casl-row"}>
+            <code className="mono-value">{String(row.lineNumber).padStart(2, "0")}</code>
+            <span className="text-ellipsis" title={row.label || "-"}>{row.label || "-"}</span>
+            <span className="nowrap-symbol" title={row.opcode || "-"}>{row.opcode || "-"}</span>
+            <span className="nowrap-symbol" title={row.operand || row.raw}>{row.operand || row.raw}</span>
+            <span className="text-ellipsis" title={row.mappingKinds.join(", ") || "-"}>{row.mappingKinds.join(", ") || "-"}</span>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function FocusMachineCodePanel({ state, cppToCaslMapping }: { state: CometState; cppToCaslMapping: CppToCaslMap[] }) {
+  const rows = selectMachineCodeRows(state, cppToCaslMapping);
+
+  return (
+    <section className="panel focus-machine-code-panel" data-testid="focus-machine-code-panel">
+      <header className="panel-header">
+        <div>
+          <h2>Machine Code</h2>
+          <span>COMET II words</span>
+        </div>
+        <span>{rows.length}</span>
+      </header>
+      <div className="focus-code-table focus-machine-code-table">
+        <div className="focus-code-row focus-code-head" aria-hidden="true">
+          <span>Addr</span>
+          <span>Word</span>
+          <span>Source</span>
+          <span>Meaning</span>
+        </div>
+        {rows.slice(0, 18).map((row) => (
+          <div
+            key={`${row.address}-${row.sourceLineIndex}`}
+            className={`focus-code-row ${row.isCurrentIr ? "current" : ""} ${row.isRead ? "read" : ""} ${row.isWritten ? "write" : ""}`}
+            data-testid={row.isCurrentIr ? "focus-machine-code-current" : "focus-machine-code-row"}
+          >
+            <code className="mono-value">{formatWord(row.address)}</code>
+            <code className="mono-value">{formatWord(row.word)}</code>
+            <span className="nowrap-symbol" title={row.sourceText}>{row.sourceText}</span>
+            <span className="text-ellipsis" title={row.meaning}>{row.meaning}</span>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function FocusSourceMappingPanel({ focus, sourceMode }: { focus: FocusInstructionContext; sourceMode: SourceMode }) {
+  const addressText = focus.address === undefined ? "----" : formatWord(focus.address);
+  const instructionText = focus.instructionText ?? "No active instruction";
+
+  return (
+    <section className="panel focus-source-mapping-panel" data-testid="focus-source-mapping-panel">
+      <header className="panel-header">
+        <div>
+          <h2>Current Source Mapping</h2>
+          <span>{sourceMode === "cpp" ? "C++ -> CASL" : "CASL -> machine"}</span>
+        </div>
+      </header>
+      <div className="focus-source-mapping-body">
+        <span className="compact-label">Address</span>
+        <code className="mono-value">{addressText}</code>
+        <span className="compact-label">CASL</span>
+        <code className="nowrap-symbol" title={instructionText}>{instructionText}</code>
+        <span className="compact-label">Source</span>
+        <code className="nowrap-symbol" title={focus.sourceText}>{focus.sourceText}</code>
+      </div>
+    </section>
+  );
+}
+
 type ProbeRow = {
   label: string;
   value: string;
@@ -828,28 +1025,50 @@ function FocusStackPreviewPanel({ state }: { state: CometState }) {
   );
 }
 
-function FocusInspector({ state }: { state: CometState }) {
-  const [activeTab, setActiveTab] = useState<FocusTab>("registers");
+function ObservationModeSelector({
+  mode,
+  onChange
+}: {
+  mode: ObservationMode;
+  onChange: (mode: ObservationMode) => void;
+}) {
+  const current = observationModes.find((item) => item.id === mode) ?? observationModes[0];
 
   return (
-    <section className="panel focus-inspector-panel" data-testid="focus-registers-panel">
+    <section className="panel observation-mode-bar" data-testid="observation-mode-selector">
+      <div className="observation-mode-copy">
+        <h2>Observation Mode</h2>
+        <span>{current.summary}</span>
+      </div>
+      <div className="segmented observation-mode-tabs" role="tablist" aria-label="Observation mode">
+        {observationModes.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            className={mode === item.id ? "selected" : ""}
+            role="tab"
+            aria-selected={mode === item.id}
+            aria-label={`Observation mode: ${item.label}`}
+            title={item.summary}
+            data-testid={`observation-mode-${item.id}`}
+            onClick={() => onChange(item.id)}
+          >
+            {item.label}
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function FocusSourceContextPanel({ focus, sourceMode }: { focus: FocusInstructionContext; sourceMode: SourceMode }) {
+  return (
+    <section className="panel focus-source-context" data-testid="focus-source-context">
       <header className="panel-header">
-        <div>
-          <h2>Registers / Memory</h2>
-          <span>Machine: {state.runState}</span>
-        </div>
+        <h2>Source Context</h2>
+        <span>{sourceMode === "cpp" ? "C++" : "CASL"}</span>
       </header>
-      <div className="tab-list compact-tabs" role="tablist" aria-label="Circuit focus inspector">
-        <button className={activeTab === "registers" ? "tab-button active" : "tab-button"} type="button" role="tab" aria-selected={activeTab === "registers"} onClick={() => setActiveTab("registers")}>
-          Registers
-        </button>
-        <button className={activeTab === "memory" ? "tab-button active" : "tab-button"} type="button" role="tab" aria-selected={activeTab === "memory"} onClick={() => setActiveTab("memory")}>
-          Memory
-        </button>
-      </div>
-      <div className="tab-content focus-inspector-content">
-        {activeTab === "registers" ? <RegisterPanel state={state} embedded /> : <MemoryPanel state={state} embedded />}
-      </div>
+      <code className="nowrap-symbol" data-testid="focus-source-context-text" title={focus.sourceText}>{focus.sourceText}</code>
     </section>
   );
 }
@@ -862,6 +1081,8 @@ export default function CircuitFocusLayout({
   cppToCaslMapping,
   isSourceDirty,
   timelineItems,
+  observationMode = "cpu-flow",
+  onObservationModeChange = () => undefined,
 }: CircuitFocusLayoutProps) {
   const focus = focusInstructionContext(state, sourceMode, sourceText, cppToCaslMapping);
   const circuitSubtitle = useMemo(() => {
@@ -871,7 +1092,9 @@ export default function CircuitFocusLayout({
   }, [isSourceDirty, state.assembled]);
 
   return (
-    <main className="circuit-focus-workspace" data-testid="circuit-focus-layout">
+    <main className="circuit-focus-workspace" data-testid="circuit-focus-layout" data-observation-mode={observationMode}>
+      <ObservationModeSelector mode={observationMode} onChange={onObservationModeChange} />
+
       <aside className="focus-left-column">
         <FocusProgramPanel state={state} sourceMode={sourceMode} sourceText={sourceText} generatedCaslSource={generatedCaslSource} cppToCaslMapping={cppToCaslMapping} focus={focus} />
         <FocusCurrentInstructionPanel state={state} isSourceDirty={isSourceDirty} focus={focus} />
@@ -879,32 +1102,51 @@ export default function CircuitFocusLayout({
       </aside>
 
       <section className="focus-center-column">
-        <section className="panel focus-circuit-panel" data-testid="focus-circuit-panel">
-          <header className="panel-header">
-            <div>
-              <h2>Circuit Focus Mode</h2>
-              <span>{circuitSubtitle}</span>
-            </div>
-            <span className={`run-pill ${state.runState.toLowerCase()}`}>Machine: {state.runState}</span>
-          </header>
-          <CometCircuitSvg state={state} sourceMapFocus={{ line: focus.caslLine, address: focus.address, instruction: focus.instructionText }} />
-        </section>
-        <FocusTimeline state={state} timelineItems={timelineItems} />
+        {observationMode === "code-machine" ? (
+          <section className="focus-code-machine-grid" data-testid="focus-code-machine-grid">
+            <FocusGeneratedCaslPanel sourceMode={sourceMode} sourceText={sourceText} generatedCaslSource={generatedCaslSource} cppToCaslMapping={cppToCaslMapping} focus={focus} />
+            <FocusMachineCodePanel state={state} cppToCaslMapping={cppToCaslMapping} />
+          </section>
+        ) : observationMode === "register-stack" ? (
+          <FocusRegisterStackDashboard state={state} />
+        ) : (
+          <section className="panel focus-circuit-panel" data-testid="focus-circuit-panel">
+            <header className="panel-header">
+              <div>
+                <h2>Circuit Focus Mode</h2>
+                <span>{circuitSubtitle}</span>
+              </div>
+              <span className={`run-pill ${state.runState.toLowerCase()}`}>Machine: {state.runState}</span>
+            </header>
+            <CometCircuitSvg state={state} sourceMapFocus={{ line: focus.caslLine, address: focus.address, instruction: focus.instructionText }} />
+          </section>
+        )}
+        {observationMode === "code-machine" ? <FocusSourceMappingPanel focus={focus} sourceMode={sourceMode} /> : <FocusTimeline state={state} timelineItems={timelineItems} />}
       </section>
 
       <aside className="focus-right-column">
-        <FocusInspector state={state} />
-        <FocusSignalProbePanel state={state} focus={focus} />
-        <FocusCallStackPanel state={state} focus={focus} />
-        <FocusStackPreviewPanel state={state} />
-        <FocusTracePanel state={state} />
-        <section className="panel focus-source-context" data-testid="focus-source-context">
-          <header className="panel-header">
-            <h2>Source Context</h2>
-            <span>{sourceMode === "cpp" ? "C++" : "CASL"}</span>
-          </header>
-          <code className="nowrap-symbol" data-testid="focus-source-context-text" title={focus.sourceText}>{focus.sourceText}</code>
-        </section>
+        {observationMode === "cpu-flow" ? (
+          <>
+            <FocusMemoryWindowPanel state={state} rowCount={9} />
+            <FocusSignalProbePanel state={state} focus={focus} />
+            <FocusTracePanel state={state} />
+            <FocusSourceContextPanel focus={focus} sourceMode={sourceMode} />
+          </>
+        ) : observationMode === "register-stack" ? (
+          <>
+            <FocusStackPreviewPanel state={state} />
+            <FocusCallStackPanel state={state} focus={focus} />
+            <FocusSignalProbePanel state={state} focus={focus} />
+            <FocusTracePanel state={state} />
+          </>
+        ) : (
+          <>
+            <FocusTracePanel state={state} />
+            <FocusSourceMappingPanel focus={focus} sourceMode={sourceMode} />
+            <FocusCallStackPanel state={state} focus={focus} />
+            <FocusSignalProbePanel state={state} focus={focus} />
+          </>
+        )}
       </aside>
     </main>
   );

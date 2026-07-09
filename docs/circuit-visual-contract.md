@@ -4,6 +4,8 @@ This document is the long-term visual contract for Circuit Focus Mode. It is not
 
 The guiding rule is simple: the circuit should explain the instruction that just executed without implying hardware behavior that the simulator does not perform.
 
+Circuit Focus Mode may expose different Observation Modes for CPU flow, register/stack values, and code/machine mapping. These modes may hide or de-emphasize panels, but they must not change active-path semantics, anchor meanings, VM state, trace state, or the current/next instruction rule.
+
 ## 1. Routing Philosophy
 
 All active paths must be derived from the current instruction category, current VM state, instruction path template, lane metadata, and stable anchors. Do not draw screenshot-specific paths.

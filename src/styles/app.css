@@ -349,13 +349,61 @@ button {
 .circuit-focus-workspace {
   display: grid;
   grid-template-columns: clamp(260px, 19vw, 320px) minmax(660px, 1fr) clamp(300px, 22vw, 360px);
+  grid-template-rows: auto minmax(0, 1fr);
   gap: 8px;
   min-height: 0;
+}
+
+.observation-mode-bar {
+  grid-column: 1 / -1;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 10px;
+  border-color: #aebbd0;
+  border-radius: var(--radius-sm);
+  box-shadow: none;
+}
+
+.observation-mode-copy {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.observation-mode-copy h2 {
+  margin: 0;
+  color: #142b55;
+  font-size: 13px;
+  line-height: 1.1;
+}
+
+.observation-mode-copy span {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--color-muted);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.observation-mode-tabs {
+  flex: 0 0 auto;
+}
+
+.observation-mode-tabs button {
+  min-height: 28px;
+  padding: 0 10px;
+  font-size: 11px;
+  font-weight: 800;
 }
 
 .focus-left-column,
 .focus-center-column,
 .focus-right-column {
+  grid-row: 2;
   min-height: 0;
   display: grid;
   gap: 8px;
@@ -370,16 +418,49 @@ button {
 }
 
 .focus-right-column {
-  grid-template-rows: 218px 158px 146px 130px 150px 54px;
+  grid-template-rows: 168px 158px minmax(0, 1fr) 54px;
   align-content: start;
   overflow-y: auto;
   padding-right: 2px;
 }
 
+.circuit-focus-workspace[data-observation-mode="cpu-flow"] {
+  grid-template-columns: clamp(250px, 18vw, 306px) minmax(700px, 1fr) clamp(292px, 21vw, 344px);
+}
+
+.circuit-focus-workspace[data-observation-mode="register-stack"] {
+  grid-template-columns: clamp(238px, 17vw, 292px) minmax(650px, 1fr) clamp(318px, 24vw, 390px);
+}
+
+.circuit-focus-workspace[data-observation-mode="code-machine"] {
+  grid-template-columns: clamp(250px, 18vw, 310px) minmax(700px, 1fr) clamp(300px, 22vw, 360px);
+}
+
+.circuit-focus-workspace[data-observation-mode="register-stack"] .focus-center-column {
+  grid-template-rows: minmax(0, 1fr) 112px;
+}
+
+.circuit-focus-workspace[data-observation-mode="register-stack"] .focus-right-column {
+  grid-template-rows: 172px 146px 150px minmax(0, 1fr);
+}
+
+.circuit-focus-workspace[data-observation-mode="code-machine"] .focus-center-column {
+  grid-template-rows: minmax(0, 1fr) 96px;
+}
+
+.circuit-focus-workspace[data-observation-mode="code-machine"] .focus-right-column {
+  grid-template-rows: minmax(0, 1fr) 104px 146px 150px;
+}
+
 .focus-program-panel,
 .focus-circuit-panel,
 .focus-inspector-panel,
-.focus-trace-panel {
+.focus-trace-panel,
+.focus-memory-window,
+.focus-generated-casl-panel,
+.focus-machine-code-panel,
+.focus-source-mapping-panel,
+.focus-register-bank {
   min-height: 0;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
@@ -528,6 +609,161 @@ button {
     linear-gradient(transparent 0, transparent 132px, rgba(121, 143, 172, 0.12) 133px, transparent 134px),
     #f5f8fc;
   background-size: 40px 40px, 40px 40px, 100% 100%, 100% 100%;
+}
+
+.focus-register-stack-dashboard {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: 8px;
+}
+
+.focus-register-bank {
+  overflow: auto;
+  background: #f8fafc;
+}
+
+.focus-register-bank .embedded-panel {
+  min-height: 0;
+  overflow: auto;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.focus-memory-window {
+  background: #f8fafc;
+}
+
+.focus-memory-window-body {
+  min-height: 0;
+  overflow: auto;
+  display: grid;
+  align-content: start;
+  gap: 3px;
+  padding: 7px 8px;
+}
+
+.focus-memory-window-row {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 48px 48px minmax(0, 1fr) minmax(42px, 0.5fr);
+  gap: 7px;
+  align-items: center;
+  min-height: 20px;
+  padding: 2px 5px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: #ffffff;
+  color: #334155;
+  font-size: 10.5px;
+}
+
+.focus-memory-window-head {
+  min-height: 18px;
+  background: transparent;
+  border-color: transparent;
+  color: var(--color-muted);
+  font-size: 9.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.focus-memory-window-row[data-pr="true"] {
+  border-color: #bfdbfe;
+  box-shadow: inset 2px 0 0 var(--color-primary);
+}
+
+.focus-memory-window-row[data-mar="true"],
+.focus-memory-window-row[data-read="true"] {
+  border-color: #b8dfc4;
+  background: #f1fbf4;
+}
+
+.focus-memory-window-row[data-write="true"] {
+  border-color: #f3b6b6;
+  background: #fff4f4;
+  box-shadow: inset 2px 0 0 var(--color-active-red);
+}
+
+.focus-code-machine-grid {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8px;
+}
+
+.focus-code-table {
+  min-height: 0;
+  overflow: auto;
+  display: grid;
+  align-content: start;
+  gap: 3px;
+  padding: 7px 8px;
+  background: #f8fafc;
+}
+
+.focus-code-row {
+  min-width: 0;
+  display: grid;
+  align-items: center;
+  min-height: 22px;
+  gap: 7px;
+  padding: 2px 5px;
+  border: 1px solid #d9e1ec;
+  border-radius: var(--radius-sm);
+  background: #ffffff;
+  color: #334155;
+  font-size: 10.5px;
+}
+
+.focus-generated-casl-table .focus-code-row {
+  grid-template-columns: 34px minmax(54px, 0.7fr) minmax(44px, 0.5fr) minmax(0, 1.2fr) minmax(0, 1fr);
+}
+
+.focus-machine-code-table .focus-code-row {
+  grid-template-columns: 48px 48px minmax(0, 1.1fr) minmax(0, 1.4fr);
+}
+
+.focus-code-head {
+  min-height: 18px;
+  border-color: transparent;
+  background: transparent;
+  color: var(--color-muted);
+  font-size: 9.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.focus-code-row.current {
+  border-color: #f3b6b6;
+  background: #fff7f7;
+  box-shadow: inset 2px 0 0 var(--color-active-red);
+}
+
+.focus-code-row.read {
+  border-color: #b8dfc4;
+}
+
+.focus-code-row.write {
+  border-color: #f3b6b6;
+}
+
+.focus-source-mapping-body {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  gap: 5px 8px;
+  align-content: start;
+  padding: 8px 10px;
+  background: #f8fafc;
+}
+
+.focus-source-mapping-body code {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .focus-stage-timeline {
@@ -2619,6 +2855,18 @@ button {
     gap: 6px;
   }
 
+  .circuit-focus-workspace[data-observation-mode="cpu-flow"] {
+    grid-template-columns: clamp(230px, 17vw, 280px) minmax(620px, 1fr) clamp(260px, 20vw, 315px);
+  }
+
+  .circuit-focus-workspace[data-observation-mode="register-stack"] {
+    grid-template-columns: clamp(224px, 17vw, 270px) minmax(600px, 1fr) clamp(280px, 22vw, 340px);
+  }
+
+  .circuit-focus-workspace[data-observation-mode="code-machine"] {
+    grid-template-columns: clamp(230px, 17vw, 280px) minmax(620px, 1fr) clamp(270px, 21vw, 324px);
+  }
+
   .focus-left-column,
   .focus-center-column,
   .focus-right-column {
@@ -2634,7 +2882,26 @@ button {
   }
 
   .focus-right-column {
-    grid-template-rows: 202px 140px 132px 118px 132px 50px;
+    grid-template-rows: 150px 132px minmax(0, 1fr) 46px;
+  }
+
+  .circuit-focus-workspace[data-observation-mode="register-stack"] .focus-right-column {
+    grid-template-rows: 150px 126px 132px minmax(0, 1fr);
+  }
+
+  .circuit-focus-workspace[data-observation-mode="code-machine"] .focus-right-column {
+    grid-template-rows: minmax(0, 1fr) 92px 126px 132px;
+  }
+
+  .focus-register-stack-dashboard,
+  .focus-code-machine-grid {
+    gap: 6px;
+  }
+
+  .focus-memory-window-row,
+  .focus-code-row {
+    gap: 5px;
+    padding-inline: 4px;
   }
 
   .focus-stage-timeline {

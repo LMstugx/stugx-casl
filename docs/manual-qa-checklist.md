@@ -16,6 +16,12 @@ Use this checklist before a study demo, a teacher review, or a release-candidate
 
 Open Circuit Focus Mode and inspect these paths. The current instruction must match Program, Current Instruction, Source Mapping, Source Context, and the latest Trace row.
 
+Use the Observation Mode selector instead of trying to inspect every panel at once:
+
+- `CPU Flow`: use this for LD / ADDA / ST, index effective-address routing, and active circuit paths.
+- `Registers / Stack`: use this for GR0-GR7, PR / SP / FR, Stack Preview, Call Stack, and main-memory value checks.
+- `Code / Machine`: use this for Source / Generated CASL / Machine Code / Trace mapping, especially C++ function argument examples.
+
 - `CASL: GR2 Addition`, after `LD GR2,A`: Memory row `A` -> MDR -> `GR2`; ALU stays inactive.
 - `CASL: GR2 Addition`, after `ADDA GR2,B`: `GR2` and Memory row `B` feed the ALU; ALU output returns to `GR2`; FR is involved.
 - `CASL: GR2 Addition`, after `ST GR2,C`: `GR2` -> MDR -> Memory row `C`; ALU stays inactive.
@@ -34,6 +40,7 @@ Open Circuit Focus Mode and inspect these paths. The current instruction must ma
 - Signal Probe shows compact involved nodes without overlapping text.
 - Call Stack shows depth, RET mode, top return address, and stored stack row.
 - Stack Preview shows SP and nearby memory rows without implying unsupported stack behavior.
+- Switching Observation Mode does not reset VM state, trace, source text, generated CASL, or Study Mode progress.
 
 ## 4. Keyboard-Only Walkthrough
 

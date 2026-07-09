@@ -285,7 +285,7 @@ The viewer does not render all 65536 memory words at once.
 
 Circuit Focus Mode is the dedicated hardware view opened from the toolbar. It keeps the normal IDE available, but reorganizes the same runtime state for teaching:
 
-- left: Program, Display, Current Instruction
+- left: Program, OUT Display, Current Instruction
 - center: large COMET II circuit and Step Timeline
 - right: Registers / Memory, recent Trace, and Source Context
 
@@ -298,6 +298,16 @@ Read it by layers:
 The active data path targets specific rows where possible. For example, `LD GR2,A` highlights the Memory row for `A`, routes it through `MDR`, and lands on the `GR2` row. Arithmetic and compare instructions route the selected GR row and `MDR` into the ALU, then update either the GR row and `FR` or only `FR`.
 
 `SP` is visible as an independent register. Since stack instructions are not implemented yet, it is not part of the default `PR -> MAR` fetch path and should not become active during ordinary arithmetic or memory instructions.
+
+Circuit Focus Mode uses a deliberate current/next split. The main teaching target is the last executed instruction: Program, Current Instruction, Current Source Mapping, Source Context, and the latest Trace row should all point to that same instruction. `PR` is the next address and is shown only as a secondary hint together with the next instruction.
+
+Machine state and pipeline stage are also separate. `Machine: Ready` describes the VM state, while the Current Instruction card and Step Timeline show the teaching stage such as `Operand Read`, `Execute`, or `Write Back`.
+
+Display naming is intentionally narrow:
+
+- `OUT Display`: the output device panel. It shows `No output` until an OUT-like instruction exists.
+- `Display Device`: the same concept inside the circuit schematic.
+- `Output Log`: the bottom dock for assemble/run summaries.
 
 ## 13. How To Use Trace
 

@@ -50,7 +50,7 @@ export function registerRowY(index: number): number {
 
 export function memoryRowY(address: number, windowStart = 0x20): number {
   const index = clamp(address - windowStart, 0, CIRCUIT_MEMORY_ROW_COUNT - 1);
-  return circuitLayout.memory.y + 49 + index * 28;
+  return circuitLayout.memory.y + 65 + index * 28;
 }
 
 export const circuitAnchors = {
@@ -85,6 +85,7 @@ export const circuitAnchors = {
   mdr: {
     left: () => rectPoint(circuitLayout.mdr, "left"),
     right: () => rectPoint(circuitLayout.mdr, "right"),
+    top: () => rectPoint(circuitLayout.mdr, "top"),
     outputToAlu: () => rectPoint(circuitLayout.mdr, "left", 0.58),
     inputFromMemory: () => rectPoint(circuitLayout.mdr, "right", 0.45)
   },

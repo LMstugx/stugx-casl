@@ -45,6 +45,7 @@ export function buildWirePaths({ grIndex = 1, memoryAddress = 0x27, memoryWindow
   const memoryRight = circuitAnchors.memory.rowRight(memoryAddress, memoryWindowStart);
   const mdrLeft = circuitAnchors.mdr.left();
   const mdrRight = circuitAnchors.mdr.right();
+  const mdrTop = circuitAnchors.mdr.top();
   const mdrToAlu = circuitAnchors.mdr.outputToAlu();
   const aluInputA = circuitAnchors.alu.inputA();
   const aluInputB = circuitAnchors.alu.inputB();
@@ -56,8 +57,8 @@ export function buildWirePaths({ grIndex = 1, memoryAddress = 0x27, memoryWindow
   const marLeft = circuitAnchors.mar.left();
   const marRight = circuitAnchors.mar.right();
   const addressBusY = 24;
-  const dataBusY = circuitLayout.alu.y + circuitLayout.alu.h + 18;
-  const grBusX = circuitLayout.gr.x + circuitLayout.gr.w + 18;
+  const directDataBusY = circuitLayout.gr.y - 28;
+  const grBusX = circuitLayout.gr.x + circuitLayout.gr.w + 6;
   const aluBusLeftX = circuitLayout.alu.x - 14;
   const aluBusRightX = circuitLayout.alu.x + circuitLayout.alu.w + 16;
   const memoryBusX = circuitLayout.memory.x - 18;
@@ -82,8 +83,8 @@ export function buildWirePaths({ grIndex = 1, memoryAddress = 0x27, memoryWindow
     },
     { id: "mar-to-memory", role: "address", d: pathThrough([marRight, { x: memoryBusX, y: marRight.y }, { x: memoryBusX, y: memoryLeft.y }, memoryLeft]) },
     { id: "memory-to-mdr", role: "data", d: pathThrough([memoryLeft, { x: memoryBusX, y: memoryLeft.y }, { x: memoryBusX, y: mdrRight.y }, mdrRight]) },
-    { id: "mdr-to-gr", role: "data", d: pathThrough([mdrLeft, { x: aluBusRightX, y: mdrLeft.y }, { x: aluBusRightX, y: dataBusY }, { x: grBusX, y: dataBusY }, { x: grBusX, y: grRight.y }, grRight]) },
-    { id: "gr-to-mdr", role: "data", d: pathThrough([grRight, { x: grBusX, y: grRight.y }, { x: grBusX, y: dataBusY }, { x: aluBusRightX, y: dataBusY }, { x: aluBusRightX, y: mdrLeft.y }, mdrLeft]) },
+    { id: "mdr-to-gr", role: "data", d: pathThrough([mdrTop, { x: mdrTop.x, y: directDataBusY }, { x: grBusX, y: directDataBusY }, { x: grBusX, y: grRight.y }, grRight]) },
+    { id: "gr-to-mdr", role: "data", d: pathThrough([grRight, { x: grBusX, y: grRight.y }, { x: grBusX, y: directDataBusY }, { x: mdrTop.x, y: directDataBusY }, mdrTop]) },
     { id: "mdr-to-memory", role: "data", d: pathThrough([mdrRight, { x: memoryBusX, y: mdrRight.y }, { x: memoryBusX, y: memoryRight.y }, memoryRight]) },
     { id: "gr-to-alu", role: "data", d: pathThrough([grRight, { x: grBusX, y: grRight.y }, { x: grBusX, y: aluInputA.y }, aluInputA]) },
     { id: "mdr-to-alu", role: "data", d: pathThrough([mdrToAlu, { x: aluBusRightX, y: mdrToAlu.y }, { x: aluBusRightX, y: aluInputB.y }, aluInputB]) },

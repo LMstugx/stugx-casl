@@ -2,6 +2,8 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import CircuitFocusLayout from "../components/CircuitFocusLayout";
+import OutputPanel from "../components/OutputPanel";
+import StatusBar from "../components/StatusBar";
 import { mockCaslCore } from "../core/mockCaslCore";
 import type { CometState } from "../core/types";
 import { getDemoProgram } from "../examples/demoPrograms";
@@ -31,6 +33,40 @@ function activeWireIds(markup: string): string[] {
   return Array.from(markup.matchAll(/data-active="true" data-path-id="([^"]+)"/g)).map((match) => match[1]);
 }
 
+function stepTimes(count: number): CometState {
+  let state = mockCaslCore.assemble(gr2Source);
+  for (let index = 0; index < count; index += 1) {
+    state = mockCaslCore.step(state);
+  }
+  return state;
+}
+
+function currentPanel(markup: string): string {
+  return /data-testid="focus-current-instruction-panel"[\s\S]*?<\/section>/.exec(markup)?.[0] ?? "";
+}
+
+function programCurrentLine(markup: string): string {
+  return /data-testid="focus-program-current-line"[\s\S]*?<\/div>/.exec(markup)?.[0] ?? "";
+}
+
+function sourceContext(markup: string): string {
+  return /data-testid="focus-source-context-text"[^>]*>([\s\S]*?)<\/code>/.exec(markup)?.[1] ?? "";
+}
+
+function traceLatest(markup: string): string {
+  return /data-testid="focus-trace-latest"[\s\S]*?<\/article>/.exec(markup)?.[0] ?? "";
+}
+
+function expectFocusAligned(markup: string, instruction: string, line: number, address: string): void {
+  expect(programCurrentLine(markup).replace(/\s+/g, " ")).toContain(instruction);
+  expect(currentPanel(markup)).toContain(instruction.split(/\s+/)[0]);
+  expect(markup).toContain(`data-testid="source-map-highlight" data-current-line="${line}"`);
+  expect(markup).toContain(`Addr ${address}`);
+  expect(markup).toContain(`CASL ${instruction}`);
+  expect(sourceContext(markup).replace(/\s+/g, " ")).toContain(instruction);
+  expect(traceLatest(markup)).toContain(instruction.split(/\s+/)[0]);
+}
+
 describe("Circuit Focus Mode layout", () => {
   it("focus_mode_layout_renders_program_display_instruction", () => {
     const markup = renderFocus(mockCaslCore.assemble(gr2Source));
@@ -40,6 +76,49 @@ describe("Circuit Focus Mode layout", () => {
     expect(markup).toContain('data-testid="focus-display-panel"');
     expect(markup).toContain("No output");
     expect(markup).toContain('data-testid="focus-current-instruction-panel"');
+  });
+
+  it("focus_mode_aligns_program_current_instruction_sourcemap_and_source_context", () => {
+    const state = stepTimes(1);
+    const markup = renderFocus(state);
+    const normalizedProgram = programCurrentLine(markup).replace(/\s+/g, " ");
+    const normalizedSourceContext = sourceContext(markup).replace(/\s+/g, " ");
+
+    expect(normalizedProgram).toContain("LD GR2,A");
+    expect(normalizedProgram).not.toContain("ADDA GR2,B");
+    expect(currentPanel(markup)).toContain("LD");
+    expect(currentPanel(markup)).toContain("Current 0020");
+    expect(currentPanel(markup)).toContain("Next PR 0022");
+    expect(currentPanel(markup)).toContain("Next ADDA GR2,B");
+    expect(currentPanel(markup)).not.toContain(">Ready<");
+    expect(markup).toContain('data-testid="source-map-highlight" data-current-line="2"');
+    expect(markup).toContain("Addr 0020");
+    expect(normalizedSourceContext).toContain("LD GR2,A");
+  });
+
+  it("focus_mode_current_instruction_aligns_for_ld_adda_and_st", () => {
+    expectFocusAligned(renderFocus(stepTimes(1)), "LD GR2,A", 2, "0020");
+    expectFocusAligned(renderFocus(stepTimes(2)), "ADDA GR2,B", 3, "0022");
+    expectFocusAligned(renderFocus(stepTimes(3)), "ST GR2,C", 4, "0024");
+  });
+
+  it("focus_mode_footer_distinguishes_current_and_next", () => {
+    const state = stepTimes(1);
+    const markup = renderToStaticMarkup(<StatusBar state={state} backendInfo={{ kind: "mock", label: "Mock Core", status: "ready" }} />);
+
+    expect(markup).toContain("Machine: ");
+    expect(markup).toContain(">Ready<");
+    expect(markup).toContain("Current: LD GR2,A");
+    expect(markup).toContain("Next PR: 0022");
+    expect(markup).toContain("Next Instruction: ADDA GR2,B");
+  });
+
+  it("focus_mode_separates_machine_state_and_pipeline_stage", () => {
+    const markup = renderFocus(stepTimes(3));
+
+    expect(currentPanel(markup)).toContain("Write Back");
+    expect(markup).toContain("Pipeline: Write Back");
+    expect(markup).toContain("Machine: Ready");
   });
 
   it("focus_mode_renders_circuit_as_primary_panel", () => {
@@ -83,15 +162,14 @@ describe("Circuit Focus Mode layout", () => {
     expect(markup).toContain('data-testid="register-gr2" data-active="true"');
     expect(activeWireIds(markup)).toContain("memory-to-mdr");
     expect(activeWireIds(markup)).toContain("mdr-to-gr");
+    expect(markup).toContain('data-testid="module-alu" data-active="false"');
   });
 
   it("focus_mode_alu_path_visible_for_adda", () => {
-    let state = mockCaslCore.assemble(gr2Source);
-    state = mockCaslCore.step(state);
-    state = mockCaslCore.step(state);
-    const markup = renderFocus(state);
+    const markup = renderFocus(stepTimes(2));
 
     expect(markup).toContain('data-testid="module-alu" data-active="true"');
+    expect(markup).toContain('data-testid="module-fr" data-active="true"');
     expect(activeWireIds(markup)).toContain("gr-to-alu");
     expect(activeWireIds(markup)).toContain("mdr-to-alu");
     expect(activeWireIds(markup)).toContain("alu-to-gr");
@@ -99,14 +177,12 @@ describe("Circuit Focus Mode layout", () => {
   });
 
   it("focus_mode_st_path_targets_memory_row", () => {
-    let state = mockCaslCore.assemble(gr2Source);
-    state = mockCaslCore.step(state);
-    state = mockCaslCore.step(state);
-    state = mockCaslCore.step(state);
-    const markup = renderFocus(state);
+    const markup = renderFocus(stepTimes(3));
 
     expect(markup).toContain('data-testid="memory-row-0029"');
     expect(markup).toContain('data-write="true"');
+    expect(markup).toContain('data-testid="module-alu" data-active="false"');
+    expect(markup).toContain('data-testid="module-fr" data-active="false"');
     expect(activeWireIds(markup)).toContain("gr-to-mdr");
     expect(activeWireIds(markup)).toContain("mdr-to-memory");
   });
@@ -117,5 +193,23 @@ describe("Circuit Focus Mode layout", () => {
     const displayMatch = /data-testid="focus-display-panel"[\s\S]*?<\/section>/.exec(markup)?.[0] ?? "";
     expect(displayMatch).toContain("No output");
     expect(displayMatch).not.toContain("0020");
+  });
+
+  it("focus_mode_output_log_label_distinct_from_out_display", () => {
+    const outputMarkup = renderToStaticMarkup(
+      <OutputPanel lines={["Assemble succeeded."]} onClear={() => undefined} />
+    );
+    const focusMarkup = renderFocus(mockCaslCore.assemble(gr2Source));
+
+    expect(outputMarkup).toContain("Output Log");
+    expect(focusMarkup).toContain("OUT Display");
+    expect(focusMarkup).toContain("Display Device");
+  });
+
+  it("focus_mode_memory_target_badge_not_overlapping_title", () => {
+    const markup = renderFocus(stepTimes(3));
+
+    expect(markup).toContain('data-testid="memory-target-badge"');
+    expect(markup).toContain("Target @0029");
   });
 });

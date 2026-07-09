@@ -82,6 +82,7 @@ test("Mock backend keeps circuit focus paths anchored to rows", async ({ page })
   await expect(circuit.locator("[data-testid='register-gr2']")).toHaveAttribute("data-active", "true");
   await expect(circuit.locator("[data-testid='memory-row-0027']")).toHaveAttribute("data-read", "true");
   await expect(circuit.locator("[data-testid='wire-memory-to-mdr']")).toBeVisible();
+  await expect(circuit.locator("[data-testid='module-alu']")).toHaveAttribute("data-active", "false");
   await expect(circuit.locator("[data-testid='module-sp']")).toHaveAttribute("data-active", "false");
 
   await step(page);
@@ -114,18 +115,44 @@ test("Mock backend presents Circuit Focus Mode as a teaching layout", async ({ p
 
   await step(page);
   await expect(circuit.locator("[data-testid='module-sp']")).toHaveAttribute("data-active", "false");
+  await expect(page.getByTestId("focus-program-current-line")).toContainText(/LD\s+GR2,A/);
+  await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("LD");
+  await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("Current 0020");
+  await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("Next PR 0022");
+  await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("Next ADDA GR2,B");
+  await expect(page.getByTestId("focus-current-instruction-panel")).not.toContainText(/^Ready$/);
+  await expect(page.getByTestId("source-map-highlight")).toHaveAttribute("data-current-line", "2");
+  await expect(page.getByTestId("focus-source-context-text")).toContainText(/LD\s+GR2,A/);
+  await expect(page.getByTestId("focus-trace-latest")).toContainText(/LD/);
   await expect(circuit.locator("[data-testid='register-gr2']")).toHaveAttribute("data-active", "true");
   await expect(circuit.locator("[data-testid='memory-row-0027']")).toHaveAttribute("data-read", "true");
   await expect(circuit.locator("[data-testid='wire-memory-to-mdr']")).toBeVisible();
 
   await step(page);
+  await expect(page.getByTestId("focus-program-current-line")).toContainText(/ADDA\s+GR2,B/);
+  await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("ADDA");
+  await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("Current 0022");
+  await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("Next PR 0024");
+  await expect(page.getByTestId("source-map-highlight")).toHaveAttribute("data-current-line", "3");
+  await expect(page.getByTestId("focus-source-context-text")).toContainText(/ADDA\s+GR2,B/);
+  await expect(page.getByTestId("focus-trace-latest")).toContainText(/ADDA/);
   await expect(circuit.locator("[data-testid='module-alu']")).toHaveAttribute("data-active", "true");
   await expect(circuit.locator("[data-testid='wire-gr-to-alu']")).toBeVisible();
   await expect(circuit.locator("[data-testid='wire-alu-to-fr']")).toBeVisible();
 
   await step(page);
+  await expect(page.getByTestId("focus-program-current-line")).toContainText(/ST\s+GR2,C/);
+  await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("ST");
+  await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("Current 0024");
+  await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("Next PR 0026");
+  await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("Next RET");
+  await expect(page.getByTestId("source-map-highlight")).toHaveAttribute("data-current-line", "4");
+  await expect(page.getByTestId("focus-source-context-text")).toContainText(/ST\s+GR2,C/);
+  await expect(page.getByTestId("focus-trace-latest")).toContainText(/ST/);
   await expect(circuit.locator("[data-testid='memory-row-0029']")).toHaveAttribute("data-write", "true");
   await expect(circuit.locator("[data-testid='wire-mdr-to-memory']")).toBeVisible();
+  await expect(circuit.locator("[data-testid='module-alu']")).toHaveAttribute("data-active", "false");
+  await expect(circuit.locator("[data-testid='module-fr']")).toHaveAttribute("data-active", "false");
 });
 
 test("Mock backend executes C++ subset if else lowering in the browser UI", async ({ page }) => {

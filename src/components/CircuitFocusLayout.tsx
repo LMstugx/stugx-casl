@@ -29,20 +29,32 @@ type CircuitFocusLayoutProps = {
 
 type FocusTab = "registers" | "memory";
 
+type FocusInstructionContext = {
+  caslLine?: number;
+  cppLine?: number;
+  address?: number;
+  instructionText?: string;
+  nextInstructionText?: string;
+  sourceText: string;
+  pipelineStage: string;
+};
+
 function sourceLine(source: string, line?: number): string {
   if (!line) return "No active source line";
   return source.split(/\r?\n/)[line - 1]?.trim() || "No active source line";
 }
 
-function instructionMnemonic(state: CometState): string {
-  const text = state.lastStep?.executedInstruction ?? state.currentInstruction ?? "";
-  const match = /\b(NOP|LD|LAD|ST|ADDA|SUBA|ADDL|SUBL|AND|OR|XOR|CPA|CPL|JUMP|JZE|JNZ|JPL|JMI|JOV|RET)\b/i.exec(text);
-  return match?.[1]?.toUpperCase() ?? state.runState;
+function compactInstructionText(text?: string): string | undefined {
+  return text?.replace(/\s+/g, " ").trim();
 }
 
-function instructionMeaning(state: CometState): string {
-  const text = state.lastStep?.executedInstruction ?? state.currentInstruction ?? "";
-  const compact = text.replace(/\s+/g, " ").trim();
+function instructionMnemonic(text: string | undefined, fallback: string): string {
+  const match = /\b(NOP|LD|LAD|ST|ADDA|SUBA|ADDL|SUBL|AND|OR|XOR|CPA|CPL|JUMP|JZE|JNZ|JPL|JMI|JOV|RET)\b/i.exec(text ?? "");
+  return match?.[1]?.toUpperCase() ?? fallback;
+}
+
+function instructionMeaning(text: string | undefined, fallback: string): string {
+  const compact = (text ?? "").replace(/\s+/g, " ").trim();
   const [mnemonic = "", operand = ""] = compact.split(/\s+/, 2);
   const [register = "", target = ""] = operand.split(",").map((part) => part.trim());
 
@@ -79,7 +91,7 @@ function instructionMeaning(state: CometState): string {
     case "NOP":
       return "sequential execution";
     default:
-      return summarizeCurrentInstruction(state);
+      return fallback;
   }
 }
 
@@ -102,18 +114,45 @@ function timelineStageIndex(state: CometState): number {
   return 1;
 }
 
+function pipelineStageLabel(state: CometState): string {
+  return ["Fetch", "Decode", "Operand Read", "Execute", "Write Back", "Next"][timelineStageIndex(state)] ?? "Fetch";
+}
+
+function focusInstructionContext(state: CometState, sourceMode: SourceMode, sourceText: string, cppToCaslMapping: CppToCaslMap[]): FocusInstructionContext {
+  const caslLine = state.lastStep?.executedLine ?? state.currentLine;
+  const address = state.lastStep?.executedAddress ?? state.currentAddress;
+  const instructionText = state.lastStep?.executedInstruction ?? state.currentInstruction ?? summarizeCurrentInstruction(state);
+  const nextInstructionText =
+    state.lastStep && state.currentInstruction && state.currentInstruction !== instructionText
+      ? compactInstructionText(state.currentInstruction)
+      : undefined;
+  const cppLine = sourceMode === "cpp" ? cppLineForCaslLine(cppToCaslMapping, caslLine) : undefined;
+  const activeSourceLine = sourceMode === "cpp" ? cppLine : caslLine;
+
+  return {
+    caslLine,
+    cppLine,
+    address,
+    instructionText,
+    nextInstructionText,
+    sourceText: sourceLine(sourceText, activeSourceLine),
+    pipelineStage: pipelineStageLabel(state)
+  };
+}
+
 function FocusProgramPanel({
   state,
   sourceMode,
   sourceText,
   generatedCaslSource,
   cppToCaslMapping,
-}: Pick<CircuitFocusLayoutProps, "state" | "sourceMode" | "sourceText" | "generatedCaslSource" | "cppToCaslMapping">) {
+  focus,
+}: Pick<CircuitFocusLayoutProps, "state" | "sourceMode" | "sourceText" | "generatedCaslSource" | "cppToCaslMapping"> & { focus: FocusInstructionContext }) {
   const hasGeneratedCasl = sourceMode === "cpp" && generatedCaslSource.trim().length > 0;
   const programTitle = hasGeneratedCasl ? "Generated CASL Program" : sourceMode === "cpp" ? "C++ Program" : "CASL Program";
-  const currentLine = hasGeneratedCasl ? state.currentLine : sourceMode === "cpp" ? cppLineForCaslLine(cppToCaslMapping, state.currentLine) : state.currentLine;
+  const currentLine = hasGeneratedCasl ? focus.caslLine : sourceMode === "cpp" ? focus.cppLine : focus.caslLine;
   const rows = hasGeneratedCasl
-    ? selectGeneratedCaslRows(generatedCaslSource, cppToCaslMapping, state.currentLine, cppLineForCaslLine(cppToCaslMapping, state.currentLine)).map((row) => ({
+    ? selectGeneratedCaslRows(generatedCaslSource, cppToCaslMapping, focus.caslLine, focus.cppLine).map((row) => ({
         lineNumber: row.lineNumber,
         text: row.raw,
         isCurrent: row.isCurrent,
@@ -156,7 +195,7 @@ function FocusDisplayPanel() {
   return (
     <section className="panel focus-display-panel" data-testid="focus-display-panel">
       <header className="panel-header">
-        <h2>Display</h2>
+        <h2>OUT Display</h2>
         <span>OUT</span>
       </header>
       <div className="focus-display-value" data-testid="focus-display-value">
@@ -166,19 +205,20 @@ function FocusDisplayPanel() {
   );
 }
 
-function FocusCurrentInstructionPanel({ state, isSourceDirty }: { state: CometState; isSourceDirty: boolean }) {
+function FocusCurrentInstructionPanel({ state, isSourceDirty, focus }: { state: CometState; isSourceDirty: boolean; focus: FocusInstructionContext }) {
   return (
     <section className="panel focus-current-panel" data-testid="focus-current-instruction-panel">
       <header className="panel-header">
         <h2>Current Instruction</h2>
-        <span className={`run-pill ${state.runState.toLowerCase()}`}>{isSourceDirty ? "Dirty" : state.runState}</span>
+        <span className="pipeline-pill">{isSourceDirty ? "Dirty" : focus.pipelineStage}</span>
       </header>
       <div className="focus-current-body">
-        <strong data-testid="focus-current-mnemonic">{instructionMnemonic(state)}</strong>
-        <code>{state.lastStep?.executedInstruction ?? state.currentInstruction ?? summarizeCurrentInstruction(state)}</code>
-        <span>{instructionMeaning(state)}</span>
+        <strong data-testid="focus-current-mnemonic">{instructionMnemonic(focus.instructionText, state.runState)}</strong>
+        <code>{focus.instructionText ?? summarizeCurrentInstruction(state)}</code>
+        <span>{instructionMeaning(focus.instructionText, summarizeCurrentInstruction(state))}</span>
         <small>
-          PR {formatWord(state.pr)} / MAR {formatWord(state.mar)} / FR {formatFlags(state.fr)}
+          Current {focus.address !== undefined ? formatWord(focus.address) : "----"} / Next PR {formatWord(state.pr)}
+          {focus.nextInstructionText ? ` / Next ${focus.nextInstructionText}` : ""} / MAR {formatWord(state.mar)} / FR {formatFlags(state.fr)}
         </small>
       </div>
     </section>
@@ -188,6 +228,7 @@ function FocusCurrentInstructionPanel({ state, isSourceDirty }: { state: CometSt
 function FocusTimeline({ state, timelineItems }: { state: CometState; timelineItems: TimelineItem[] }) {
   const stages = ["Fetch", "Decode", "Operand Read", "Execute", "Write Back", "Next"];
   const activeIndex = timelineStageIndex(state);
+  const stageLabel = pipelineStageLabel(state);
 
   return (
     <section className="panel focus-timeline-panel" data-testid="focus-step-timeline">
@@ -196,7 +237,7 @@ function FocusTimeline({ state, timelineItems }: { state: CometState; timelineIt
           <h2>Step Timeline</h2>
           <span>Instruction pipeline view</span>
         </div>
-        <span>{timelineItems[0]?.label ?? state.runState}</span>
+        <span>Pipeline: {stageLabel}</span>
       </header>
       <div className="focus-stage-timeline">
         {stages.map((stage, index) => (
@@ -211,6 +252,22 @@ function FocusTimeline({ state, timelineItems }: { state: CometState; timelineIt
 }
 
 function FocusTracePanel({ state }: { state: CometState }) {
+  function traceChangeText(event: CometState["trace"][number]): string {
+    if (event.changedRegister) {
+      if (event.changedRegisterValueBefore !== undefined && event.changedRegisterValueAfter !== undefined) {
+        return `${event.changedRegister}: ${formatWord(event.changedRegisterValueBefore)} -> ${formatWord(event.changedRegisterValueAfter)}`;
+      }
+      return `${event.changedRegister} updated`;
+    }
+    if (event.changedMemoryAddress !== undefined) {
+      if (event.changedMemoryValueBefore !== undefined && event.changedMemoryValueAfter !== undefined) {
+        return `MEM[${formatWord(event.changedMemoryAddress)}]: ${formatWord(event.changedMemoryValueBefore)} -> ${formatWord(event.changedMemoryValueAfter)}`;
+      }
+      return `MEM[${formatWord(event.changedMemoryAddress)}] updated`;
+    }
+    return event.visualPath ?? "control";
+  }
+
   return (
     <section className="panel focus-trace-panel" data-testid="focus-trace-panel">
       <header className="panel-header">
@@ -222,13 +279,18 @@ function FocusTracePanel({ state }: { state: CometState }) {
       </header>
       <div className="focus-trace-list">
         {state.trace.length === 0 ? <p className="muted">No steps yet.</p> : null}
-        {state.trace.slice(0, 6).map((event) => (
-          <article key={`${event.index}-${event.address}`} className="focus-trace-item">
+        {state.trace.slice(0, 6).map((event, index) => (
+          <article
+            key={`${event.index}-${event.address}`}
+            className={`focus-trace-item ${index === 0 ? "latest" : ""}`}
+            data-testid={index === 0 ? "focus-trace-latest" : "focus-trace-item"}
+            data-instruction={event.instruction}
+          >
             <strong>#{event.index}</strong>
             <code>
               PR {formatWord(event.pr ?? event.address)} / {event.instruction}
             </code>
-            <span>{event.changedRegister ? `${event.changedRegister} updated` : event.changedMemoryAddress !== undefined ? `MEM[${formatWord(event.changedMemoryAddress)}] updated` : event.visualPath ?? "control"}</span>
+            <span>{traceChangeText(event)}</span>
           </article>
         ))}
       </div>
@@ -244,7 +306,7 @@ function FocusInspector({ state }: { state: CometState }) {
       <header className="panel-header">
         <div>
           <h2>Registers / Memory</h2>
-          <span>{state.runState}</span>
+          <span>Machine: {state.runState}</span>
         </div>
       </header>
       <div className="tab-list compact-tabs" role="tablist" aria-label="Circuit focus inspector">
@@ -271,8 +333,7 @@ export default function CircuitFocusLayout({
   isSourceDirty,
   timelineItems,
 }: CircuitFocusLayoutProps) {
-  const currentCppLine = sourceMode === "cpp" ? cppLineForCaslLine(cppToCaslMapping, state.currentLine) : undefined;
-  const currentSource = sourceMode === "cpp" ? sourceLine(sourceText, currentCppLine) : sourceLine(sourceText, state.currentLine);
+  const focus = focusInstructionContext(state, sourceMode, sourceText, cppToCaslMapping);
   const circuitSubtitle = useMemo(() => {
     if (isSourceDirty) return "Modified source; assemble before stepping.";
     if (!state.assembled) return "Assemble a program to visualize data and control paths.";
@@ -282,9 +343,9 @@ export default function CircuitFocusLayout({
   return (
     <main className="circuit-focus-workspace" data-testid="circuit-focus-layout">
       <aside className="focus-left-column">
-        <FocusProgramPanel state={state} sourceMode={sourceMode} sourceText={sourceText} generatedCaslSource={generatedCaslSource} cppToCaslMapping={cppToCaslMapping} />
+        <FocusProgramPanel state={state} sourceMode={sourceMode} sourceText={sourceText} generatedCaslSource={generatedCaslSource} cppToCaslMapping={cppToCaslMapping} focus={focus} />
         <FocusDisplayPanel />
-        <FocusCurrentInstructionPanel state={state} isSourceDirty={isSourceDirty} />
+        <FocusCurrentInstructionPanel state={state} isSourceDirty={isSourceDirty} focus={focus} />
       </aside>
 
       <section className="focus-center-column">
@@ -294,9 +355,9 @@ export default function CircuitFocusLayout({
               <h2>Circuit Focus Mode</h2>
               <span>{circuitSubtitle}</span>
             </div>
-            <span className={`run-pill ${state.runState.toLowerCase()}`}>{state.runState}</span>
+            <span className={`run-pill ${state.runState.toLowerCase()}`}>Machine: {state.runState}</span>
           </header>
-          <CometCircuitSvg state={state} />
+          <CometCircuitSvg state={state} sourceMapFocus={{ line: focus.caslLine, address: focus.address, instruction: focus.instructionText }} />
         </section>
         <FocusTimeline state={state} timelineItems={timelineItems} />
       </section>
@@ -309,7 +370,7 @@ export default function CircuitFocusLayout({
             <h2>Source Context</h2>
             <span>{sourceMode === "cpp" ? "C++" : "CASL"}</span>
           </header>
-          <code>{currentSource}</code>
+          <code data-testid="focus-source-context-text">{focus.sourceText}</code>
         </section>
       </aside>
     </main>

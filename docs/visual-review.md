@@ -92,10 +92,13 @@ This phase does not install tunnel tools automatically.
 Use the gallery to inspect:
 
 - Circuit Focus screenshots include Program, Display, Current Instruction, Circuit, Registers, Trace, and Timeline together.
+- Program, Current Instruction, Current Source Mapping, Source Context, and the newest Trace row agree on the same last executed instruction.
+- PR and Next Instruction are visible only as secondary hints.
+- Machine state and pipeline stage are labeled separately.
 - Memory arrow points to the active memory row.
 - GR arrow points to the active GR row.
 - SP is visible but inactive for ordinary execution.
-- ALU active path does not cover text.
+- LD and ST do not make the ALU look active; ADDA and related ALU instructions do.
 - Machine Code explanation is readable.
 - Control Flow target text is readable.
 - Source Editor is not squeezed.

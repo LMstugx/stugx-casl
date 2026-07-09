@@ -31,7 +31,7 @@ type OutputPanelProps = {
 type OutputTab = "output" | "console" | "messages" | "generated" | "machine";
 
 const tabs: Array<{ id: OutputTab; label: string }> = [
-  { id: "output", label: "Output" },
+  { id: "output", label: "Output Log" },
   { id: "console", label: "Console" },
   { id: "messages", label: "Messages" },
   { id: "generated", label: "Generated CASL" },

@@ -17,6 +17,7 @@ const viewports: Viewport[] = [
 ];
 
 async function capture(page: Page, viewport: Viewport, fileName: string) {
+  await page.waitForTimeout(220);
   const viewportDir = path.join(screenshotRoot, viewport.name);
   await mkdir(viewportDir, { recursive: true });
   await page.screenshot({ path: path.join(viewportDir, fileName), fullPage: true });

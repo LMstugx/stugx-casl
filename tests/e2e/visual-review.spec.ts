@@ -38,6 +38,7 @@ async function enterCircuitFocusMode(page: Page) {
   await expect(page.getByTestId("focus-current-instruction-panel")).toBeVisible();
   await expect(page.getByTestId("focus-circuit-panel")).toBeVisible();
   await expect(page.getByTestId("focus-registers-panel")).toBeVisible();
+  await expect(page.getByTestId("focus-signal-probe")).toBeVisible();
   await expect(page.getByTestId("focus-trace-panel")).toBeVisible();
   await expect(page.getByTestId("focus-step-timeline")).toBeVisible();
 }

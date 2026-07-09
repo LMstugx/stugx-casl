@@ -107,8 +107,10 @@ test("Mock backend presents Circuit Focus Mode as a teaching layout", async ({ p
   await expect(page.getByTestId("focus-current-instruction-panel")).toBeVisible();
   await expect(page.getByTestId("focus-circuit-panel")).toContainText("Circuit Focus Mode");
   await expect(page.getByTestId("focus-registers-panel")).toBeVisible();
+  await expect(page.getByTestId("focus-signal-probe")).toBeVisible();
   await expect(page.getByTestId("focus-trace-panel")).toBeVisible();
   await expect(page.getByTestId("focus-step-timeline")).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Output" })).toBeVisible();
 
   await assemble(page);
   const circuit = page.getByTestId("comet-circuit-svg");
@@ -134,6 +136,8 @@ test("Mock backend presents Circuit Focus Mode as a teaching layout", async ({ p
   await expect(circuit.locator("[data-testid='wire-mdr-to-gr']")).toHaveAttribute("data-avoids-alu", "true");
   await expect(circuit.locator("[data-testid='status-indicator-read']")).toHaveAttribute("data-active", "true");
   await expect(circuit.locator("[data-testid='status-indicator-exec']")).toHaveAttribute("data-active", "false");
+  await expect(page.getByTestId("focus-signal-probe")).toContainText("GR2");
+  await expect(page.getByTestId("focus-signal-probe")).toContainText("MDR");
 
   await step(page);
   await expect(page.getByTestId("focus-program-current-line")).toContainText(/ADDA\s+GR2,B/);
@@ -149,6 +153,9 @@ test("Mock backend presents Circuit Focus Mode as a teaching layout", async ({ p
   await expect(circuit.locator("[data-testid='wire-alu-to-fr']")).toBeVisible();
   await expect(circuit.locator("[data-testid='status-indicator-exec']")).toHaveAttribute("data-active", "true");
   await expect(circuit.locator("[data-testid='status-indicator-flag']")).toHaveAttribute("data-active", "true");
+  await expect(page.getByTestId("focus-signal-probe")).toContainText("ALU.Y");
+  await expect(page.getByTestId("focus-signal-probe")).toContainText("0003");
+  await expect(page.getByTestId("focus-signal-probe")).toContainText("0007");
 
   await step(page);
   await expect(page.getByTestId("focus-program-current-line")).toContainText(/ST\s+GR2,C/);
@@ -167,6 +174,7 @@ test("Mock backend presents Circuit Focus Mode as a teaching layout", async ({ p
   await expect(circuit.locator("[data-testid='module-fr']")).toHaveAttribute("data-active", "false");
   await expect(circuit.locator("[data-testid='status-indicator-write']")).toHaveAttribute("data-active", "true");
   await expect(circuit.locator("[data-testid='status-indicator-exec']")).toHaveAttribute("data-active", "false");
+  await expect(page.getByTestId("focus-signal-probe")).toContainText("MEM[0029]");
 });
 
 test("Mock backend executes C++ subset if else lowering in the browser UI", async ({ page }) => {

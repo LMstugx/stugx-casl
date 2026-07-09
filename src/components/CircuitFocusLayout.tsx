@@ -118,6 +118,39 @@ function pipelineStageLabel(state: CometState): string {
   return ["Fetch", "Decode", "Operand Read", "Execute", "Write Back", "Next"][timelineStageIndex(state)] ?? "Fetch";
 }
 
+function activeVisualPath(state: CometState): VisualPathKind {
+  return state.lastStep?.visualPath ?? state.visualPath ?? VisualPathKind.None;
+}
+
+function isAluVisualPath(visualPath: VisualPathKind): boolean {
+  return visualPath === VisualPathKind.ADDA_GrMdrToAluToGr || visualPath === VisualPathKind.SUBA_GrMdrToAluToGr || visualPath === VisualPathKind.CPA_GrMdrToAluToFr;
+}
+
+function activeRegisterIndexFromInstruction(instructionText?: string): number | undefined {
+  const match = /GR([0-7])/i.exec(instructionText ?? "");
+  return match ? Number(match[1]) : undefined;
+}
+
+function activeMemoryAddress(state: CometState): number | undefined {
+  return state.lastMemoryWriteAddress ?? state.lastMemoryReadAddress ?? state.changedMemoryAddresses[0] ?? state.mar;
+}
+
+function traceChangeText(event: CometState["trace"][number]): string {
+  if (event.changedRegister) {
+    if (event.changedRegisterValueBefore !== undefined && event.changedRegisterValueAfter !== undefined) {
+      return `${event.changedRegister}: ${formatWord(event.changedRegisterValueBefore)} -> ${formatWord(event.changedRegisterValueAfter)}`;
+    }
+    return `${event.changedRegister} updated`;
+  }
+  if (event.changedMemoryAddress !== undefined) {
+    if (event.changedMemoryValueBefore !== undefined && event.changedMemoryValueAfter !== undefined) {
+      return `MEM[${formatWord(event.changedMemoryAddress)}]: ${formatWord(event.changedMemoryValueBefore)} -> ${formatWord(event.changedMemoryValueAfter)}`;
+    }
+    return `MEM[${formatWord(event.changedMemoryAddress)}] updated`;
+  }
+  return event.visualPath ?? "control";
+}
+
 function focusInstructionContext(state: CometState, sourceMode: SourceMode, sourceText: string, cppToCaslMapping: CppToCaslMap[]): FocusInstructionContext {
   const caslLine = state.lastStep?.executedLine ?? state.currentLine;
   const address = state.lastStep?.executedAddress ?? state.currentAddress;
@@ -252,22 +285,6 @@ function FocusTimeline({ state, timelineItems }: { state: CometState; timelineIt
 }
 
 function FocusTracePanel({ state }: { state: CometState }) {
-  function traceChangeText(event: CometState["trace"][number]): string {
-    if (event.changedRegister) {
-      if (event.changedRegisterValueBefore !== undefined && event.changedRegisterValueAfter !== undefined) {
-        return `${event.changedRegister}: ${formatWord(event.changedRegisterValueBefore)} -> ${formatWord(event.changedRegisterValueAfter)}`;
-      }
-      return `${event.changedRegister} updated`;
-    }
-    if (event.changedMemoryAddress !== undefined) {
-      if (event.changedMemoryValueBefore !== undefined && event.changedMemoryValueAfter !== undefined) {
-        return `MEM[${formatWord(event.changedMemoryAddress)}]: ${formatWord(event.changedMemoryValueBefore)} -> ${formatWord(event.changedMemoryValueAfter)}`;
-      }
-      return `MEM[${formatWord(event.changedMemoryAddress)}] updated`;
-    }
-    return event.visualPath ?? "control";
-  }
-
   return (
     <section className="panel focus-trace-panel" data-testid="focus-trace-panel">
       <header className="panel-header">
@@ -285,6 +302,7 @@ function FocusTracePanel({ state }: { state: CometState }) {
             className={`focus-trace-item ${index === 0 ? "latest" : ""}`}
             data-testid={index === 0 ? "focus-trace-latest" : "focus-trace-item"}
             data-instruction={event.instruction}
+            data-latest={index === 0 ? "true" : "false"}
           >
             <strong>#{event.index}</strong>
             <code>
@@ -293,6 +311,97 @@ function FocusTracePanel({ state }: { state: CometState }) {
             <span>{traceChangeText(event)}</span>
           </article>
         ))}
+      </div>
+    </section>
+  );
+}
+
+type ProbeRow = {
+  label: string;
+  value: string;
+  note: string;
+  active: boolean;
+};
+
+function signalProbeRows(state: CometState, focus: FocusInstructionContext): ProbeRow[] {
+  const visualPath = activeVisualPath(state);
+  const latest = state.trace[0];
+  const registerIndex = activeRegisterIndexFromInstruction(focus.instructionText);
+  const changedRegisterIndex = latest?.changedRegister && /^GR[0-7]$/.test(latest.changedRegister) ? Number(latest.changedRegister.slice(2)) : undefined;
+  const probeRegisterIndex = changedRegisterIndex ?? registerIndex ?? 0;
+  const registerLabel = `GR${probeRegisterIndex}`;
+  const registerValue =
+    latest?.changedRegister === registerLabel && latest.changedRegisterValueBefore !== undefined && latest.changedRegisterValueAfter !== undefined
+      ? `${formatWord(latest.changedRegisterValueBefore)} -> ${formatWord(latest.changedRegisterValueAfter)}`
+      : formatWord(state.gr[probeRegisterIndex] ?? 0);
+  const memoryAddress = activeMemoryAddress(state);
+  const memoryValue =
+    latest?.changedMemoryAddress === memoryAddress && latest.changedMemoryValueBefore !== undefined && latest.changedMemoryValueAfter !== undefined
+      ? `${formatWord(latest.changedMemoryValueBefore)} -> ${formatWord(latest.changedMemoryValueAfter)}`
+      : memoryAddress !== undefined
+        ? formatWord(state.memory[memoryAddress] ?? 0)
+        : "inactive";
+
+  return [
+    {
+      label: registerLabel,
+      value: registerValue,
+      note: "selected register",
+      active: registerIndex !== undefined || latest?.changedRegister === registerLabel
+    },
+    {
+      label: "MDR",
+      value: formatWord(state.mdr),
+      note: "memory buffer",
+      active: visualPath === VisualPathKind.LD_MemoryToMdrToGr || visualPath === VisualPathKind.ST_GrToMdrToMemory || isAluVisualPath(visualPath)
+    },
+    {
+      label: "ALU.Y",
+      value: isAluVisualPath(visualPath) ? formatWord(state.gr[probeRegisterIndex] ?? 0) : "inactive",
+      note: "ALU result",
+      active: isAluVisualPath(visualPath)
+    },
+    {
+      label: "FR",
+      value: formatFlags(state.fr),
+      note: "flags",
+      active: visualPath === VisualPathKind.CPA_GrMdrToAluToFr || visualPath === VisualPathKind.ADDA_GrMdrToAluToGr || visualPath === VisualPathKind.SUBA_GrMdrToAluToGr
+    },
+    {
+      label: memoryAddress !== undefined ? `MEM[${formatWord(memoryAddress)}]` : "MEM",
+      value: memoryValue,
+      note: "target memory",
+      active: memoryAddress !== undefined && (state.lastMemoryReadAddress === memoryAddress || state.lastMemoryWriteAddress === memoryAddress || state.changedMemoryAddresses.includes(memoryAddress))
+    }
+  ];
+}
+
+function FocusSignalProbePanel({ state, focus }: { state: CometState; focus: FocusInstructionContext }) {
+  const rows = signalProbeRows(state, focus);
+  const recent = state.trace.slice(0, 5);
+
+  return (
+    <section className="panel focus-signal-probe" data-testid="focus-signal-probe">
+      <header className="panel-header">
+        <div>
+          <h2>Signal Probe</h2>
+          <span>Read-only nodes</span>
+        </div>
+        <span>compact</span>
+      </header>
+      <div className="signal-probe-body">
+        <div className="signal-probe-grid">
+          {rows.map((row) => (
+            <div key={row.label} className="signal-probe-row" data-testid="signal-probe-row" data-active={row.active ? "true" : "false"}>
+              <span>{row.label}</span>
+              <code>{row.value}</code>
+              <small>{row.note}</small>
+            </div>
+          ))}
+        </div>
+        <div className="signal-probe-evolution" data-testid="signal-probe-evolution">
+          {recent.length === 0 ? <span>No signal changes yet.</span> : recent.map((event) => <span key={`${event.index}-${event.address}`}>{traceChangeText(event)}</span>)}
+        </div>
       </div>
     </section>
   );
@@ -344,8 +453,8 @@ export default function CircuitFocusLayout({
     <main className="circuit-focus-workspace" data-testid="circuit-focus-layout">
       <aside className="focus-left-column">
         <FocusProgramPanel state={state} sourceMode={sourceMode} sourceText={sourceText} generatedCaslSource={generatedCaslSource} cppToCaslMapping={cppToCaslMapping} focus={focus} />
-        <FocusDisplayPanel />
         <FocusCurrentInstructionPanel state={state} isSourceDirty={isSourceDirty} focus={focus} />
+        <FocusDisplayPanel />
       </aside>
 
       <section className="focus-center-column">
@@ -364,8 +473,9 @@ export default function CircuitFocusLayout({
 
       <aside className="focus-right-column">
         <FocusInspector state={state} />
+        <FocusSignalProbePanel state={state} focus={focus} />
         <FocusTracePanel state={state} />
-        <section className="panel focus-source-context">
+        <section className="panel focus-source-context" data-testid="focus-source-context">
           <header className="panel-header">
             <h2>Source Context</h2>
             <span>{sourceMode === "cpp" ? "C++" : "CASL"}</span>

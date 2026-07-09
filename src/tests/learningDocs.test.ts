@@ -5,7 +5,9 @@ import learningGuide from "../../docs/learning-guide.md?raw";
 import phase8e from "../../docs/phase8e-circuit-focus-final-layout.md?raw";
 import phase8g from "../../docs/phase8g-circuit-focus-visual-convergence.md?raw";
 import phase8j from "../../docs/phase8j-lab-style-schematic-polish.md?raw";
+import phase8k from "../../docs/phase8k-layered-study-mode-density-refinement.md?raw";
 import phase9a from "../../docs/phase9a-casl-instruction-coverage.md?raw";
+import futureCustomCircuit from "../../docs/future-custom-circuit-design.md?raw";
 import practiceTasks from "../../docs/practice-tasks.md?raw";
 import projectOverview from "../../docs/project-overview.md?raw";
 import screenshotsGuide from "../../docs/screenshots-guide.md?raw";
@@ -105,6 +107,21 @@ describe("learning use documentation", () => {
     expect(phase8j).toContain("Status Indicator Rule");
   });
 
+  it("phase8k_layered_study_mode_doc_exists", () => {
+    expect(phase8k).toContain("Phase 8K: Layered Study Mode and Circuit Flow Refinement");
+    expect(phase8k).toContain("Primary layer");
+    expect(phase8k).toContain("Signal Probe Foundation");
+    expect(phase8k).toContain("Dynamic Path Metadata");
+  });
+
+  it("future_custom_circuit_design_doc_exists", () => {
+    expect(futureCustomCircuit).toContain("Future Custom Circuit Design");
+    expect(futureCustomCircuit).toContain("inputs");
+    expect(futureCustomCircuit).toContain("outputs");
+    expect(futureCustomCircuit).toContain("anchors");
+    expect(futureCustomCircuit).toContain("current phase does not implement");
+  });
+
   it("practice_tasks_do_not_use_unsupported_syntax", () => {
     expect(practiceTasks).not.toContain("std::");
     expect(practiceTasks).not.toContain("cout");
@@ -129,6 +146,8 @@ describe("learning use documentation", () => {
     expect(readme).toContain("docs/phase8e-circuit-focus-final-layout.md");
     expect(readme).toContain("docs/phase8g-circuit-focus-visual-convergence.md");
     expect(readme).toContain("docs/phase8j-lab-style-schematic-polish.md");
+    expect(readme).toContain("docs/phase8k-layered-study-mode-density-refinement.md");
+    expect(readme).toContain("docs/future-custom-circuit-design.md");
     expect(normalized).not.toContain("hackathon");
     expect(normalized).not.toContain("contest submission");
     expect(normalized).not.toContain("submission-oriented");

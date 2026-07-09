@@ -78,6 +78,17 @@ describe("Circuit Focus Mode layout", () => {
     expect(markup).toContain('data-testid="focus-current-instruction-panel"');
   });
 
+  it("focus_mode_current_instruction_is_primary_left_info", () => {
+    const markup = renderFocus(stepTimes(1));
+
+    expect(markup.indexOf('data-testid="focus-program-panel"')).toBeLessThan(markup.indexOf('data-testid="focus-current-instruction-panel"'));
+    expect(markup.indexOf('data-testid="focus-current-instruction-panel"')).toBeLessThan(markup.indexOf('data-testid="focus-display-panel"'));
+    expect(markup).toContain('class="panel focus-current-panel"');
+    expect(markup).toContain('data-testid="focus-current-mnemonic"');
+    expect(currentPanel(markup)).toContain("LD");
+    expect(currentPanel(markup)).toContain("Current 0020");
+  });
+
   it("focus_mode_aligns_program_current_instruction_sourcemap_and_source_context", () => {
     const state = stepTimes(1);
     const markup = renderFocus(state);
@@ -176,6 +187,28 @@ describe("Circuit Focus Mode layout", () => {
     expect(markup).toContain('data-testid="bus-guide-ctrl"');
   });
 
+  it("focus_mode_bus_labels_are_subtle and inactive_wires_are_deemphasized", () => {
+    const markup = renderFocus(stepTimes(1));
+
+    expect(markup).toContain('class="bus-labels"');
+    expect(markup).toContain("DATA BUS");
+    expect(markup).toContain("ADDR BUS");
+    expect(markup).toContain("CTRL");
+    expect(markup).toContain('class="wire wire-data"');
+    expect(markup).toContain('data-active="false" data-path-id="memory-to-mdr"');
+    expect(markup).toContain('class="wire wire-data wire-active"');
+  });
+
+  it("focus_mode_primary_active_path_is_prominent", () => {
+    const markup = renderFocus(stepTimes(2));
+
+    expect(markup).toContain('class="wire wire-data wire-active"');
+    expect(markup).toContain('data-primary="true"');
+    expect(markup).toContain('data-semantic-type="data"');
+    expect(markup).toContain('marker-mid="url(#arrow-red-mid)"');
+    expect(markup).toContain('marker-end="url(#arrow-red)"');
+  });
+
   it("circuit_status_indicators_render_without_fake_state", () => {
     const ldMarkup = renderFocus(stepTimes(1));
     const addaMarkup = renderFocus(stepTimes(2));
@@ -190,11 +223,23 @@ describe("Circuit Focus Mode layout", () => {
     expect(stMarkup).toContain('data-testid="status-indicator-exec" data-active="false"');
   });
 
+  it("focus_mode_status_indicators_are_compact", () => {
+    const markup = renderFocus(stepTimes(2));
+
+    expect(markup).toContain('data-testid="circuit-status-indicators"');
+    expect(markup).toContain("SIGNALS");
+    expect(markup).toContain('data-testid="status-indicator-exec" data-active="true"');
+    expect(markup).toContain('data-testid="status-indicator-flag" data-active="true"');
+    expect(markup).toContain('data-testid="status-indicator-write" data-active="false"');
+  });
+
   it("circuit_ld_data_bus_does_not_cross_alu_active_region", () => {
     const markup = renderFocus(stepTimes(1));
 
     expect(markup).toContain('data-testid="wire-mdr-to-gr"');
-    expect(markup).toContain('data-path-id="mdr-to-gr" data-lane="data-bypass" data-avoids-alu="true"');
+    expect(markup).toContain('data-path-id="mdr-to-gr"');
+    expect(markup).toContain('data-lane="data-bypass"');
+    expect(markup).toContain('data-avoids-alu="true"');
     expect(markup).toContain('data-testid="module-alu" data-active="false"');
   });
 
@@ -207,7 +252,8 @@ describe("Circuit Focus Mode layout", () => {
     expect(activeWireIds(markup)).toContain("mdr-to-alu");
     expect(activeWireIds(markup)).toContain("alu-to-gr");
     expect(activeWireIds(markup)).toContain("alu-to-fr");
-    expect(markup).toContain('data-path-id="gr-to-alu" data-lane="data-compute"');
+    expect(markup).toContain('data-path-id="gr-to-alu"');
+    expect(markup).toContain('data-lane="data-compute"');
   });
 
   it("focus_mode_st_path_targets_memory_row", () => {
@@ -219,7 +265,9 @@ describe("Circuit Focus Mode layout", () => {
     expect(markup).toContain('data-testid="module-fr" data-active="false"');
     expect(activeWireIds(markup)).toContain("gr-to-mdr");
     expect(activeWireIds(markup)).toContain("mdr-to-memory");
-    expect(markup).toContain('data-path-id="gr-to-mdr" data-lane="data-bypass" data-avoids-alu="true"');
+    expect(markup).toContain('data-path-id="gr-to-mdr"');
+    expect(markup).toContain('data-lane="data-bypass"');
+    expect(markup).toContain('data-avoids-alu="true"');
   });
 
   it("focus_mode_display_does_not_show_pr_as_output", () => {
@@ -239,6 +287,59 @@ describe("Circuit Focus Mode layout", () => {
     expect(outputMarkup).toContain("Output Log");
     expect(focusMarkup).toContain("OUT Display");
     expect(focusMarkup).toContain("Display Device");
+  });
+
+  it("focus_mode_output_dock_is_compact", () => {
+    const outputMarkup = renderToStaticMarkup(
+      <div className="app-shell circuit-focus-active">
+        <OutputPanel lines={["Run finished after 4 steps."]} onClear={() => undefined} />
+      </div>
+    );
+
+    expect(outputMarkup).toContain('class="app-shell circuit-focus-active"');
+    expect(outputMarkup).toContain('class="output-panel"');
+    expect(outputMarkup).toContain("Output Log");
+    expect(outputMarkup).toContain("Run finished after 4 steps.");
+  });
+
+  it("focus_mode_out_display_is_low_emphasis_when_empty", () => {
+    const markup = renderFocus(mockCaslCore.assemble(gr2Source));
+    const displayMatch = /data-testid="focus-display-panel"[\s\S]*?<\/section>/.exec(markup)?.[0] ?? "";
+
+    expect(markup).toContain('data-testid="focus-display-value"');
+    expect(displayMatch).toContain("OUT Display");
+    expect(displayMatch).toContain("No output");
+    expect(displayMatch).not.toContain("PR");
+  });
+
+  it("focus_mode_trace_history_rows_are_deemphasized", () => {
+    const markup = renderFocus(stepTimes(3));
+
+    expect(markup).toContain('data-testid="focus-trace-latest"');
+    expect(markup).toContain('data-latest="true"');
+    expect(markup).toContain('data-testid="focus-trace-item"');
+    expect(markup).toContain('data-latest="false"');
+  });
+
+  it("signal_probe_card_renders_compact", () => {
+    const markup = renderFocus(stepTimes(1));
+
+    expect(markup).toContain('data-testid="focus-signal-probe"');
+    expect(markup).toContain("Signal Probe");
+    expect(markup).toContain("Read-only nodes");
+    expect(markup).toContain('data-testid="signal-probe-evolution"');
+  });
+
+  it("signal_probe_shows_current_involved_values", () => {
+    const addaMarkup = renderFocus(stepTimes(2));
+    const stMarkup = renderFocus(stepTimes(3));
+
+    expect(addaMarkup).toContain("GR2");
+    expect(addaMarkup).toContain("0007");
+    expect(addaMarkup).toContain("ALU.Y");
+    expect(addaMarkup).toContain('data-testid="signal-probe-row" data-active="true"');
+    expect(stMarkup).toContain("MEM[0029]");
+    expect(stMarkup).toContain("0007");
   });
 
   it("focus_mode_memory_target_badge_not_overlapping_title", () => {

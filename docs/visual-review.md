@@ -100,6 +100,9 @@ Use the gallery to inspect:
 - `DATA BUS`, `ADDR BUS`, and `CTRL` lanes are visible but not visually noisy.
 - LD / ST data-bypass paths avoid the ALU body.
 - READ / WRITE / EXEC / FLAG indicators match the visible active path.
+- Signal Probe is compact and derived from the current instruction / recent trace.
+- Older Trace rows are lower emphasis than the latest row.
+- Output Log remains available but compact in Focus Mode.
 - SP is visible but inactive for ordinary execution.
 - LD and ST do not make the ALU look active; ADDA and related ALU instructions do.
 - Machine Code explanation is readable.

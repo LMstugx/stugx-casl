@@ -271,7 +271,7 @@ button {
 }
 
 .app-shell.circuit-focus-active {
-  grid-template-rows: auto minmax(0, 1fr) 112px auto;
+  grid-template-rows: auto minmax(0, 1fr) 94px auto;
   background: #e7edf4;
 }
 
@@ -291,7 +291,7 @@ button {
 }
 
 .focus-left-column {
-  grid-template-rows: minmax(0, 1fr) 88px 152px;
+  grid-template-rows: minmax(0, 1fr) 164px 72px;
 }
 
 .focus-center-column {
@@ -299,7 +299,7 @@ button {
 }
 
 .focus-right-column {
-  grid-template-rows: minmax(0, 1fr) 190px 92px;
+  grid-template-rows: minmax(0, 1fr) 146px 150px 54px;
 }
 
 .focus-program-panel,
@@ -318,7 +318,7 @@ button {
   min-height: 0;
   overflow: auto;
   padding: 7px 8px;
-  background: #f4f7fb;
+  background: #f7f9fc;
 }
 
 .focus-program-line {
@@ -329,14 +329,14 @@ button {
   min-height: 23px;
   padding: 0 5px;
   border-left: 3px solid transparent;
-  color: #334155;
+  color: #536172;
   font-family: "Cascadia Mono", Consolas, monospace;
   font-size: 11.5px;
 }
 
 .focus-program-line.current {
   color: var(--color-primary);
-  background: #e7f0ff;
+  background: #e9f2ff;
   border-left-color: var(--color-primary);
   font-weight: 800;
 }
@@ -365,7 +365,7 @@ button {
 .focus-display-value {
   display: grid;
   place-items: center;
-  margin: 10px;
+  margin: 8px 10px;
   border: 1px solid #cbd5e1;
   border-radius: 4px;
   background: #0f172a;
@@ -381,9 +381,19 @@ button {
   padding: 9px 11px;
 }
 
+.focus-current-panel {
+  border-color: #d99b9b;
+  background: #fffafa;
+}
+
+.focus-current-panel .panel-header {
+  background: #fff6f6;
+  border-bottom-color: #efc2c2;
+}
+
 .focus-current-body strong {
   color: var(--color-danger);
-  font-size: 20px;
+  font-size: 22px;
   line-height: 1;
 }
 
@@ -411,10 +421,10 @@ button {
 
 .focus-circuit-panel .comet-circuit {
   background:
-    linear-gradient(rgba(196, 208, 224, 0.18) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(196, 208, 224, 0.18) 1px, transparent 1px),
-    linear-gradient(90deg, transparent 0, transparent 279px, rgba(121, 143, 172, 0.18) 280px, transparent 281px),
-    linear-gradient(transparent 0, transparent 132px, rgba(121, 143, 172, 0.18) 133px, transparent 134px),
+    linear-gradient(rgba(196, 208, 224, 0.12) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(196, 208, 224, 0.12) 1px, transparent 1px),
+    linear-gradient(90deg, transparent 0, transparent 279px, rgba(121, 143, 172, 0.12) 280px, transparent 281px),
+    linear-gradient(transparent 0, transparent 132px, rgba(121, 143, 172, 0.12) 133px, transparent 134px),
     #f5f8fc;
   background-size: 40px 40px, 40px 40px, 100% 100%, 100% 100%;
 }
@@ -476,6 +486,86 @@ button {
   background: #f8fafc;
 }
 
+.focus-signal-probe {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.signal-probe-body {
+  min-height: 0;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 6px;
+  padding: 7px 8px;
+  background: #f8fafc;
+}
+
+.signal-probe-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+  min-height: 0;
+}
+
+.signal-probe-row {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  gap: 3px 6px;
+  align-items: center;
+  min-height: 31px;
+  padding: 4px 6px;
+  border: 1px solid #d9e1ec;
+  border-radius: var(--radius-sm);
+  background: #fbfcfe;
+  opacity: 0.72;
+}
+
+.signal-probe-row[data-active="true"] {
+  opacity: 1;
+  background: #fff7f7;
+  border-color: #f3b6b6;
+  box-shadow: inset 2px 0 0 var(--color-active-red);
+}
+
+.signal-probe-row span,
+.signal-probe-row small {
+  color: var(--color-muted);
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.signal-probe-row code {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--color-code-green);
+  font-family: "Cascadia Mono", Consolas, monospace;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.signal-probe-row small {
+  grid-column: 1 / -1;
+  font-weight: 650;
+}
+
+.signal-probe-evolution {
+  display: flex;
+  gap: 5px;
+  overflow: hidden;
+  color: var(--color-muted);
+  font-family: "Cascadia Mono", Consolas, monospace;
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.signal-probe-evolution span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .focus-trace-list {
   min-height: 0;
   overflow: auto;
@@ -489,17 +579,19 @@ button {
   grid-template-columns: 34px minmax(0, 1fr);
   gap: 6px;
   align-items: center;
-  min-height: 38px;
+  min-height: 34px;
   padding: 5px 7px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   background: #fbfcfe;
   border-left: 3px solid transparent;
+  opacity: 0.62;
 }
 
 .focus-trace-item.latest {
   border-left-color: var(--color-active-red);
   background: #fffafa;
+  opacity: 1;
 }
 
 .focus-trace-item strong {
@@ -531,15 +623,16 @@ button {
   min-height: 0;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
+  opacity: 0.76;
 }
 
 .focus-source-context code {
   min-width: 0;
-  padding: 10px;
+  padding: 7px 9px;
   overflow: hidden;
   color: #10233d;
   font-family: "Cascadia Mono", Consolas, monospace;
-  font-size: 12px;
+  font-size: 11px;
   text-overflow: ellipsis;
   white-space: nowrap;
   background: #fbfcfe;
@@ -1078,7 +1171,7 @@ button {
 }
 
 .module-muted {
-  fill: #718096;
+  fill: #8794a6;
 }
 
 .memory-target-badge,
@@ -1115,17 +1208,17 @@ button {
 .bus-labels text {
   fill: #6b7f9c;
   font-family: "Cascadia Mono", Consolas, monospace;
-  font-size: 9px;
+  font-size: 8px;
   font-weight: 800;
   letter-spacing: 0.6px;
-  opacity: 0.72;
+  opacity: 0.42;
 }
 
 .bus-guide {
   fill: none;
   stroke-width: 1;
   stroke-dasharray: 5 6;
-  opacity: 0.38;
+  opacity: 0.24;
 }
 
 .bus-guide-data {
@@ -1144,7 +1237,7 @@ button {
   fill: #f8fafc;
   stroke: #7f93ad;
   stroke-width: 1.2;
-  opacity: 0.86;
+  opacity: 0.58;
 }
 
 .anchor-point {
@@ -1171,7 +1264,7 @@ button {
   stroke-width: 1.35;
   stroke-linecap: round;
   stroke-linejoin: round;
-  opacity: 0.36;
+  opacity: 0.18;
   transition:
     stroke var(--motion-base) var(--ease-standard),
     stroke-width var(--motion-base) var(--ease-standard),
@@ -1188,7 +1281,7 @@ button {
 
 .wire-data {
   stroke: var(--color-wire-data);
-  opacity: 0.3;
+  opacity: 0.16;
 }
 
 .wire-inactive {
@@ -1197,8 +1290,8 @@ button {
 }
 
 .wire-active {
-  stroke-width: 2.55;
-  opacity: 0.88;
+  stroke-width: 2.85;
+  opacity: 0.96;
   filter: none;
 }
 
@@ -1224,12 +1317,14 @@ button {
   font-size: 9px;
   font-weight: 800;
   letter-spacing: 0.5px;
+  opacity: 0.62;
 }
 
 .status-light circle {
   fill: #cbd5e1;
   stroke: #94a3b8;
   stroke-width: 1;
+  opacity: 0.34;
 }
 
 .status-light text {
@@ -1237,15 +1332,28 @@ button {
   font-family: "Cascadia Mono", Consolas, monospace;
   font-size: 9px;
   font-weight: 800;
+  opacity: 0.45;
 }
 
 .status-light.active circle {
   fill: #dc5b5b;
   stroke: #a72f2f;
+  opacity: 0.95;
 }
 
 .status-light.active text {
   fill: #a72f2f;
+  opacity: 0.92;
+}
+
+.app-shell.circuit-focus-active .output-panel {
+  opacity: 0.86;
+}
+
+.app-shell.circuit-focus-active .output-panel .console-lines {
+  padding-top: 6px;
+  padding-bottom: 6px;
+  font-size: 11px;
 }
 
 .learning-flow {

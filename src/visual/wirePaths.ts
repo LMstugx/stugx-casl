@@ -4,12 +4,28 @@ import type { CircuitPoint } from "./circuitLayout";
 
 export type WireRole = "address" | "control" | "data" | "inactive";
 export type WireLane = "addr" | "ctrl" | "data-bypass" | "data-compute" | "flag";
+export type AnchorSemanticRole = "input" | "output" | "bidirectional" | "address" | "data" | "control" | "flag";
+export type WireSemanticType = "data" | "address" | "control" | "flag";
+
+export type CircuitAnchorRef = CircuitPoint & {
+  id: string;
+  role: AnchorSemanticRole;
+};
 
 export type WirePath = {
   id: string;
   role: WireRole;
   lane: WireLane;
+  semanticType: WireSemanticType;
+  fromAnchor: CircuitAnchorRef;
+  toAnchor: CircuitAnchorRef;
+  direction: "forward";
+  isPrimary: boolean;
   avoidsAlu?: boolean;
+  relatedRegister?: number;
+  relatedMemoryAddress?: number;
+  relatedStage?: string;
+  relatedInstructionKind?: string;
   d: string;
 };
 
@@ -38,6 +54,34 @@ function pathThrough(points: CircuitPoint[]): string {
 
 function clampRegisterIndex(index = 1): number {
   return Math.max(0, Math.min(7, index));
+}
+
+function anchor(id: string, point: CircuitPoint, role: AnchorSemanticRole): CircuitAnchorRef {
+  return { id, role, x: point.x, y: point.y };
+}
+
+function wire(
+  id: string,
+  role: WireRole,
+  lane: WireLane,
+  semanticType: WireSemanticType,
+  fromAnchor: CircuitAnchorRef,
+  toAnchor: CircuitAnchorRef,
+  points: CircuitPoint[],
+  options: Pick<WirePath, "avoidsAlu" | "relatedRegister" | "relatedMemoryAddress" | "relatedStage" | "relatedInstructionKind"> = {}
+): WirePath {
+  return {
+    id,
+    role,
+    lane,
+    semanticType,
+    fromAnchor,
+    toAnchor,
+    direction: "forward",
+    isPrimary: role !== "inactive",
+    d: pathThrough(points),
+    ...options
+  };
 }
 
 export function buildWirePaths({ grIndex = 1, memoryAddress = 0x27, memoryWindowStart = 0x20 }: WirePathOptions = {}): readonly WirePath[] {
@@ -70,35 +114,64 @@ export function buildWirePaths({ grIndex = 1, memoryAddress = 0x27, memoryWindow
   const decoderBottom = { x: circuitLayout.decoder.x + circuitLayout.decoder.w / 2, y: circuitLayout.decoder.y + circuitLayout.decoder.h };
   const controllerTop = { x: circuitLayout.controller.x + circuitLayout.controller.w / 2, y: circuitLayout.controller.y };
   const controllerRight = { x: circuitLayout.controller.x + circuitLayout.controller.w, y: circuitLayout.controller.y + circuitLayout.controller.h / 2 };
+  const anchors = {
+    prLeft: anchor("pr.left", prLeft, "control"),
+    prRight: anchor("pr.right", prRight, "control"),
+    plus2Left: anchor("plus2.left", { x: circuitLayout.addressResult.x, y: prRight.y }, "control"),
+    spBottom: anchor("sp.bottom", { x: circuitLayout.sp.x + circuitLayout.sp.w / 2, y: circuitLayout.sp.y + circuitLayout.sp.h }, "address"),
+    marLeft: anchor("mar.left", marLeft, "address"),
+    marRight: anchor("mar.right", marRight, "address"),
+    memoryLeft: anchor(`memory.${memoryAddress.toString(16).padStart(4, "0")}.left`, memoryLeft, "bidirectional"),
+    memoryRight: anchor(`memory.${memoryAddress.toString(16).padStart(4, "0")}.right`, memoryRight, "bidirectional"),
+    grLeft: anchor(`gr${gr}.left`, grLeft, "bidirectional"),
+    grRight: anchor(`gr${gr}.right`, grRight, "bidirectional"),
+    mdrRight: anchor("mdr.right", mdrRight, "bidirectional"),
+    mdrBottom: anchor("mdr.bottom", mdrBottom, "bidirectional"),
+    mdrToAlu: anchor("mdr.toAlu", mdrToAlu, "output"),
+    aluInputA: anchor("alu.inputA", aluInputA, "input"),
+    aluInputB: anchor("alu.inputB", aluInputB, "input"),
+    aluOutputY: anchor("alu.outputY", aluOutputY, "output"),
+    aluFlagOut: anchor("alu.flagOut", aluFlagOut, "flag"),
+    frInput: anchor("fr.input", frInput, "flag"),
+    irBottom: anchor("ir.bottom", irBottom, "control"),
+    decoderTop: anchor("decoder.top", decoderTop, "control"),
+    decoderBottom: anchor("decoder.bottom", decoderBottom, "control"),
+    controllerTop: anchor("controller.top", controllerTop, "control"),
+    controllerRight: anchor("controller.right", controllerRight, "control")
+  };
 
   return Object.freeze([
-    { id: "pr-to-mar", role: "address", lane: "addr", d: pathThrough([prRight, { x: prRight.x + 18, y: prRight.y }, { x: prRight.x + 18, y: addressBusY }, { x: marLeft.x - 18, y: addressBusY }, { x: marLeft.x - 18, y: marLeft.y }, marLeft]) },
-    { id: "pr-to-plus2", role: "control", lane: "ctrl", d: pathThrough([prRight, { x: circuitLayout.addressResult.x, y: prRight.y }]) },
-    {
-      id: "sp-reference",
-      role: "inactive",
-      lane: "addr",
-      d: pathThrough([
+    wire("pr-to-mar", "address", "addr", "address", anchors.prRight, anchors.marLeft, [prRight, { x: prRight.x + 18, y: prRight.y }, { x: prRight.x + 18, y: addressBusY }, { x: marLeft.x - 18, y: addressBusY }, { x: marLeft.x - 18, y: marLeft.y }, marLeft], { relatedStage: "Fetch" }),
+    wire("pr-to-plus2", "control", "ctrl", "control", anchors.prRight, anchors.plus2Left, [prRight, { x: circuitLayout.addressResult.x, y: prRight.y }], { relatedStage: "Next" }),
+    wire(
+      "sp-reference",
+      "inactive",
+      "addr",
+      "address",
+      anchors.spBottom,
+      anchor("mar.stackReference", { x: circuitLayout.mar.x + circuitLayout.mar.w / 2, y: circuitLayout.mar.y + circuitLayout.mar.h }, "address"),
+      [
         { x: circuitLayout.sp.x + circuitLayout.sp.w / 2, y: circuitLayout.sp.y + circuitLayout.sp.h },
         { x: circuitLayout.sp.x + circuitLayout.sp.w / 2, y: circuitLayout.sp.y + circuitLayout.sp.h + 15 },
         { x: circuitLayout.mar.x + circuitLayout.mar.w / 2, y: circuitLayout.sp.y + circuitLayout.sp.h + 15 },
         { x: circuitLayout.mar.x + circuitLayout.mar.w / 2, y: circuitLayout.mar.y + circuitLayout.mar.h }
-      ])
-    },
-    { id: "mar-to-memory", role: "address", lane: "addr", d: pathThrough([marRight, { x: memoryBusX, y: marRight.y }, { x: memoryBusX, y: memoryLeft.y }, memoryLeft]) },
-    { id: "memory-to-mdr", role: "data", lane: "data-bypass", avoidsAlu: true, d: pathThrough([memoryLeft, { x: memoryBusX, y: memoryLeft.y }, { x: memoryBusX, y: mdrRight.y }, mdrRight]) },
-    { id: "mdr-to-gr", role: "data", lane: "data-bypass", avoidsAlu: true, d: pathThrough([mdrBottom, { x: mdrBottom.x, y: dataBypassY }, { x: grBusX, y: dataBypassY }, { x: grBusX, y: grRight.y }, grRight]) },
-    { id: "gr-to-mdr", role: "data", lane: "data-bypass", avoidsAlu: true, d: pathThrough([grRight, { x: grBusX, y: grRight.y }, { x: grBusX, y: dataBypassY }, { x: mdrBottom.x, y: dataBypassY }, mdrBottom]) },
-    { id: "mdr-to-memory", role: "data", lane: "data-bypass", avoidsAlu: true, d: pathThrough([mdrRight, { x: memoryBusX, y: mdrRight.y }, { x: memoryBusX, y: memoryRight.y }, memoryRight]) },
-    { id: "gr-to-alu", role: "data", lane: "data-compute", d: pathThrough([grRight, { x: grBusX, y: grRight.y }, { x: grBusX, y: aluInputA.y }, aluInputA]) },
-    { id: "mdr-to-alu", role: "data", lane: "data-compute", d: pathThrough([mdrToAlu, { x: aluBusRightX, y: mdrToAlu.y }, { x: aluBusRightX, y: aluInputB.y }, aluInputB]) },
-    { id: "alu-to-gr", role: "data", lane: "data-compute", d: pathThrough([aluOutputY, { x: aluBusLeftX, y: aluOutputY.y }, { x: aluBusLeftX, y: grRight.y }, grRight]) },
-    { id: "alu-to-fr", role: "control", lane: "flag", d: pathThrough([aluFlagOut, { x: aluFlagOut.x, y: frInput.y - 12 }, frInput]) },
-    { id: "address-to-gr", role: "address", lane: "addr", d: pathThrough([marLeft, { x: marLeft.x - 20, y: marLeft.y }, { x: marLeft.x - 20, y: grLeft.y }, grLeft]) },
-    { id: "address-to-pr", role: "address", lane: "ctrl", d: pathThrough([marLeft, { x: marLeft.x - 18, y: marLeft.y }, { x: marLeft.x - 18, y: addressBusY }, { x: prLeft.x - 18, y: addressBusY }, { x: prLeft.x - 18, y: prLeft.y }, prLeft]) },
-    { id: "ir-to-decoder", role: "control", lane: "ctrl", d: pathThrough([irBottom, decoderTop]) },
-    { id: "decoder-to-controller", role: "control", lane: "ctrl", d: pathThrough([decoderBottom, controllerTop]) },
-    { id: "controller-to-pr", role: "control", lane: "ctrl", d: pathThrough([controllerRight, { x: prLeft.x - 22, y: controllerRight.y }, { x: prLeft.x - 22, y: controlBusY }, { x: prLeft.x - 22, y: prLeft.y }, prLeft]) }
+      ],
+      { relatedStage: "Stack reference" }
+    ),
+    wire("mar-to-memory", "address", "addr", "address", anchors.marRight, anchors.memoryLeft, [marRight, { x: memoryBusX, y: marRight.y }, { x: memoryBusX, y: memoryLeft.y }, memoryLeft], { relatedMemoryAddress: memoryAddress, relatedStage: "Operand Read" }),
+    wire("memory-to-mdr", "data", "data-bypass", "data", anchors.memoryLeft, anchors.mdrRight, [memoryLeft, { x: memoryBusX, y: memoryLeft.y }, { x: memoryBusX, y: mdrRight.y }, mdrRight], { avoidsAlu: true, relatedMemoryAddress: memoryAddress, relatedStage: "Operand Read" }),
+    wire("mdr-to-gr", "data", "data-bypass", "data", anchors.mdrBottom, anchors.grRight, [mdrBottom, { x: mdrBottom.x, y: dataBypassY }, { x: grBusX, y: dataBypassY }, { x: grBusX, y: grRight.y }, grRight], { avoidsAlu: true, relatedRegister: gr, relatedStage: "Write Back" }),
+    wire("gr-to-mdr", "data", "data-bypass", "data", anchors.grRight, anchors.mdrBottom, [grRight, { x: grBusX, y: grRight.y }, { x: grBusX, y: dataBypassY }, { x: mdrBottom.x, y: dataBypassY }, mdrBottom], { avoidsAlu: true, relatedRegister: gr, relatedStage: "Execute" }),
+    wire("mdr-to-memory", "data", "data-bypass", "data", anchors.mdrRight, anchors.memoryRight, [mdrRight, { x: memoryBusX, y: mdrRight.y }, { x: memoryBusX, y: memoryRight.y }, memoryRight], { avoidsAlu: true, relatedMemoryAddress: memoryAddress, relatedStage: "Write Back" }),
+    wire("gr-to-alu", "data", "data-compute", "data", anchors.grRight, anchors.aluInputA, [grRight, { x: grBusX, y: grRight.y }, { x: grBusX, y: aluInputA.y }, aluInputA], { relatedRegister: gr, relatedStage: "Execute" }),
+    wire("mdr-to-alu", "data", "data-compute", "data", anchors.mdrToAlu, anchors.aluInputB, [mdrToAlu, { x: aluBusRightX, y: mdrToAlu.y }, { x: aluBusRightX, y: aluInputB.y }, aluInputB], { relatedMemoryAddress: memoryAddress, relatedStage: "Execute" }),
+    wire("alu-to-gr", "data", "data-compute", "data", anchors.aluOutputY, anchors.grRight, [aluOutputY, { x: aluBusLeftX, y: aluOutputY.y }, { x: aluBusLeftX, y: grRight.y }, grRight], { relatedRegister: gr, relatedStage: "Write Back" }),
+    wire("alu-to-fr", "control", "flag", "flag", anchors.aluFlagOut, anchors.frInput, [aluFlagOut, { x: aluFlagOut.x, y: frInput.y - 12 }, frInput], { relatedStage: "Write Back" }),
+    wire("address-to-gr", "address", "addr", "address", anchors.marLeft, anchors.grLeft, [marLeft, { x: marLeft.x - 20, y: marLeft.y }, { x: marLeft.x - 20, y: grLeft.y }, grLeft], { relatedRegister: gr, relatedStage: "Write Back" }),
+    wire("address-to-pr", "address", "ctrl", "control", anchors.marLeft, anchors.prLeft, [marLeft, { x: marLeft.x - 18, y: marLeft.y }, { x: marLeft.x - 18, y: addressBusY }, { x: prLeft.x - 18, y: addressBusY }, { x: prLeft.x - 18, y: prLeft.y }, prLeft], { relatedStage: "Next" }),
+    wire("ir-to-decoder", "control", "ctrl", "control", anchors.irBottom, anchors.decoderTop, [irBottom, decoderTop], { relatedStage: "Decode" }),
+    wire("decoder-to-controller", "control", "ctrl", "control", anchors.decoderBottom, anchors.controllerTop, [decoderBottom, controllerTop], { relatedStage: "Decode" }),
+    wire("controller-to-pr", "control", "ctrl", "control", anchors.controllerRight, anchors.prLeft, [controllerRight, { x: prLeft.x - 22, y: controllerRight.y }, { x: prLeft.x - 22, y: controlBusY }, { x: prLeft.x - 22, y: prLeft.y }, prLeft], { relatedStage: "Next" })
   ]);
 }
 

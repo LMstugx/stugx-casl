@@ -327,6 +327,13 @@ function CometCircuitSvg({ state, sourceMapFocus }: { state: CometState; sourceM
               data-active="false"
               data-path-id={path.id}
               data-lane={path.lane}
+              data-semantic-type={path.semanticType}
+              data-from-anchor={path.fromAnchor.id}
+              data-to-anchor={path.toAnchor.id}
+              data-primary={path.isPrimary ? "true" : "false"}
+              data-related-register={path.relatedRegister !== undefined ? `GR${path.relatedRegister}` : undefined}
+              data-related-memory-address={path.relatedMemoryAddress !== undefined ? formatWord(path.relatedMemoryAddress) : undefined}
+              data-related-stage={path.relatedStage}
               data-avoids-alu={path.avoidsAlu ? "true" : "false"}
               className={`wire wire-${path.role}`}
               markerEnd={path.role === "address" || path.role === "control" ? "url(#arrow-blue)" : undefined}
@@ -355,6 +362,13 @@ function CometCircuitSvg({ state, sourceMapFocus }: { state: CometState; sourceM
               data-active="true"
               data-path-id={path.id}
               data-lane={path.lane}
+              data-semantic-type={path.semanticType}
+              data-from-anchor={path.fromAnchor.id}
+              data-to-anchor={path.toAnchor.id}
+              data-primary={path.isPrimary ? "true" : "false"}
+              data-related-register={path.relatedRegister !== undefined ? `GR${path.relatedRegister}` : undefined}
+              data-related-memory-address={path.relatedMemoryAddress !== undefined ? formatWord(path.relatedMemoryAddress) : undefined}
+              data-related-stage={path.relatedStage}
               data-avoids-alu={path.avoidsAlu ? "true" : "false"}
               className={`wire wire-${path.role} wire-active`}
               markerMid={markerMid}

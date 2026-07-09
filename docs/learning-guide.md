@@ -307,6 +307,10 @@ The schematic separates `DATA BUS`, `ADDR BUS`, and `CTRL` lanes. `LD` and `ST` 
 
 Small signal indicators such as `READ`, `WRITE`, `EXEC`, and `FLAG` are visual hints derived from the current instruction and VM state. They are not separate simulator state.
 
+Focus Mode is layered intentionally. Current Instruction and the active path are the primary teaching objects. Program, Timeline, Registers, Memory, and latest Trace are secondary. Bus labels, inactive wires, older trace rows, Source Context, and Output Log are tertiary context.
+
+The compact Signal Probe card is read-only. It shows current or recent values for the selected GR row, `MDR`, `ALU.Y` when involved, `FR`, target memory, and recent trace changes. It is a study aid, not an automatic grader or custom circuit editor.
+
 Display naming is intentionally narrow:
 
 - `OUT Display`: the output device panel. It shows `No output` until an OUT-like instruction exists.

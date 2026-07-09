@@ -108,4 +108,33 @@ describe("circuit focus layout", () => {
     expect(jumpWires.map((wire) => wire.lane)).toEqual(["addr", "ctrl"]);
     expect(jumpWires.some((wire) => wire.role === "data")).toBe(false);
   });
+
+  it("visual_path_segments_have_anchor_metadata", () => {
+    const ldWires = activeWiresFor(VisualPathKind.LD_MemoryToMdrToGr);
+
+    for (const wire of ldWires) {
+      expect(wire.fromAnchor.id).toMatch(/\./);
+      expect(wire.toAnchor.id).toMatch(/\./);
+      expect(wire.fromAnchor.role).toBeTruthy();
+      expect(wire.toAnchor.role).toBeTruthy();
+      expect(wire.direction).toBe("forward");
+      expect(wire.isPrimary).toBe(true);
+    }
+  });
+
+  it("visual_path_segments_have_lane_metadata", () => {
+    const paths = buildWirePaths({ grIndex: 2, memoryAddress: 0x29 });
+
+    expect(paths.find((wire) => wire.id === "mdr-to-memory")).toMatchObject({
+      lane: "data-bypass",
+      semanticType: "data",
+      avoidsAlu: true,
+      relatedMemoryAddress: 0x29
+    });
+    expect(paths.find((wire) => wire.id === "alu-to-fr")).toMatchObject({
+      lane: "flag",
+      semanticType: "flag",
+      relatedStage: "Write Back"
+    });
+  });
 });

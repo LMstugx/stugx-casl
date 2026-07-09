@@ -717,6 +717,18 @@ SUB  RET
     expect(state.trace[0].detail).toContain("callDepth: 0 -> 1");
   });
 
+  it("trace_call_row_shows_target_return_sp_depth", () => {
+    const state = stepTimes(callReturnSource, 2);
+    const trace = state.trace[0];
+
+    expect(trace.instruction).toBe("CALL");
+    expect(trace.detail).toContain("target: 0027");
+    expect(trace.detail).toContain("return: 0024");
+    expect(trace.detail).toContain("SP: FFFE -> FFFD");
+    expect(trace.detail).toContain("MEM[FFFD]");
+    expect(trace.detail).toContain("callDepth: 0 -> 1");
+  });
+
   it("execute_call_with_index", () => {
     const source = `MAIN START
      LAD   GR2,1
@@ -745,6 +757,18 @@ SUB  LAD   GR1,7
     expect(state.trace[0].detail).toContain("RET stack return");
   });
 
+  it("trace_stack_ret_row_shows_memory_to_pr", () => {
+    const state = stepTimes(callReturnSource, 4);
+    const trace = state.trace[0];
+
+    expect(trace.instruction).toBe("RET");
+    expect(trace.detail).toContain("RET stack return");
+    expect(trace.detail).toContain("MEM[FFFD]");
+    expect(trace.detail).toContain("PR <- MEM[FFFD] = 0024");
+    expect(trace.detail).toContain("SP: FFFD -> FFFE");
+    expect(trace.detail).toContain("callDepth: 1 -> 0");
+  });
+
   it("execute_ret_without_call_depth_finishes_program", () => {
     const state = stepTimes(nopSource, 2);
 
@@ -752,6 +776,15 @@ SUB  LAD   GR1,7
     expect(state.callDepth).toBe(0);
     expect(state.visualPath).toBe(VisualPathKind.Finished_None);
     expect(state.trace[0].detail).toContain("RET program finish");
+  });
+
+  it("trace_top_level_ret_row_shows_finish", () => {
+    const state = stepTimes(nopSource, 2);
+
+    expect(state.trace[0].instruction).toBe("RET");
+    expect(state.trace[0].detail).toContain("RET program finish");
+    expect(state.lastMemoryReadAddress).toBeUndefined();
+    expect(state.lastMemoryWriteAddress).toBeUndefined();
   });
 
   it("nested_call_return_order", () => {
@@ -809,5 +842,34 @@ RESULT DS  1
     expect(state.gr[1]).toBe(0x0006);
     expect(state.memory[state.symbols.RESULT]).toBe(0x0006);
     expect(state.callDepth).toBe(0);
+  });
+
+  it("nested_call_demo_runs_to_expected_result", () => {
+    const program = getDemoProgram("casl-nested-call-return");
+    expect(program).toBeDefined();
+    let state = mockCaslCore.assemble(program!.source);
+    for (let step = 0; step < 16 && state.runState !== "Finished"; step += 1) {
+      state = mockCaslCore.step(state);
+    }
+
+    expect(state.runState).toBe("Finished");
+    expect(state.gr[1]).toBe(0x0004);
+    expect(state.memory[state.symbols.RESULT]).toBe(0x0004);
+    expect(state.callDepth).toBe(0);
+  });
+
+  it("nested_call_depth_returns_to_zero", () => {
+    const program = getDemoProgram("casl-nested-call-return");
+    expect(program).toBeDefined();
+    const afterFirstCall = stepTimes(program!.source, 2);
+    const afterSecondCall = stepTimes(program!.source, 3);
+    const afterSub2Ret = stepTimes(program!.source, 5);
+    const finished = stepTimes(program!.source, 9);
+
+    expect(afterFirstCall.callDepth).toBe(1);
+    expect(afterSecondCall.callDepth).toBe(2);
+    expect(afterSub2Ret.callDepth).toBe(1);
+    expect(finished.callDepth).toBe(0);
+    expect(finished.runState).toBe("Finished");
   });
 });

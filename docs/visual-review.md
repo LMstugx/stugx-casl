@@ -116,7 +116,8 @@ Use the gallery to inspect:
 - Shift screenshots show the ALU/Shifter path and do not mark Memory as the shift-count data source.
 - Index addressing screenshots show the `IDX` register badge, Effective Address Unit, base/index/effective calculation, and effective Memory row highlight.
 - PUSH / POP screenshots show `SP`, Stack Preview, stack row write/read, and Machine Code explanations that distinguish effective address values from memory data.
-- CALL / RET screenshots show return-address stack writes, stack return reads, PR target changes, and the final top-level `RET` finish.
+- CALL / RET screenshots show return-address stack writes, stack return reads, PR target changes, Call Stack depth, return edge text, and the final top-level `RET` finish.
+- Nested CALL screenshot shows `callDepth` greater than 1 and last-in-first-out return order context.
 - Machine Code explanation is readable.
 - Control Flow target text is readable.
 - Source Editor is not squeezed.
@@ -138,6 +139,7 @@ Use the gallery to inspect:
 - `call-return-ret-stack.png` (Circuit Focus Mode)
 - `call-return-finish.png` (Circuit Focus Mode)
 - `call-return-machine-code.png` (Machine Code explanation)
+- `nested-call-return.png` (Circuit Focus Mode)
 - `cpp-addition-generated-casl.png`
 - `machine-code-explanation.png`
 - `for-sum-control-flow.png`

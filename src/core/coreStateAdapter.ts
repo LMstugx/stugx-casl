@@ -271,6 +271,7 @@ function traceFromDto(dto: CometStateDto, previous?: CometState): TraceEvent[] {
     callDepthBefore: dto.lastInstructionKind === "CALL" || dto.lastInstructionKind === "RET" ? previous?.callDepth : undefined,
     callDepthAfter: dto.lastInstructionKind === "CALL" || dto.lastInstructionKind === "RET" ? dto.callDepth : undefined,
     returnAddress: dto.lastInstructionKind === "CALL" ? ((row?.address ?? dto.pr) + 2) & 0xffff : dto.lastInstructionKind === "RET" && dto.lastMemoryReadAddress !== null ? dto.pr : undefined,
+    stackAddress: dto.lastMemoryWriteAddress ?? (dto.lastInstructionKind === "RET" || dto.lastInstructionKind === "POP" ? dto.lastMemoryReadAddress ?? undefined : undefined),
     baseAddress: dto.baseAddress ?? undefined,
     indexRegister: dto.indexRegister ?? undefined,
     indexValue: dto.indexValue ?? undefined,

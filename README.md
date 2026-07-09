@@ -53,19 +53,22 @@ Each built-in example includes a collapsible `Guided Lesson` in the Demo Guide. 
 7. `CASL: Call Return`
    Learn `CALL`, return-address stack writes, stack-aware `RET`, and top-level `RET` finish compatibility.
 
-8. `C++: Addition`
+8. `CASL: Nested Call Return`
+   Learn nested `CALL`, last-in-first-out return order, and how `callDepth` explains stack-aware `RET`.
+
+9. `C++: Addition`
    Learn how assignment and arithmetic become `LD`, `ADDA`, `ST`, and return through `GR0`.
 
-9. `C++: If Else`
+10. `C++: If Else`
    Learn `CPA`, conditional jumps, labels, and branch targets.
 
-10. `C++: While Sum`
+11. `C++: While Sum`
    Learn loop labels, loop-back jumps, Trace, and Memory Viewer.
 
-11. `C++: For Sum Sugar`
+12. `C++: For Sum Sugar`
    Learn for-loop initializer, condition, increment, `i++`, and `+=` lowering.
 
-12. `C++: Break Continue`
+13. `C++: Break Continue`
    Learn why `continue` jumps to the increment block and `break` jumps to the loop end.
 
 For detailed study guidance, see [docs/learning-guide.md](docs/learning-guide.md).
@@ -82,6 +85,7 @@ For index addressing, see [docs/phase9c-index-addressing.md](docs/phase9c-index-
 For the stack address path preview foundation, see [docs/phase9e-stack-address-path-foundation.md](docs/phase9e-stack-address-path-foundation.md).
 For `PUSH` / `POP` stack semantics, see [docs/phase9f-push-pop-stack.md](docs/phase9f-push-pop-stack.md).
 For `CALL` and stack-aware `RET`, see [docs/phase9g-call-ret-stack-semantics.md](docs/phase9g-call-ret-stack-semantics.md).
+For subroutine teaching polish and return-edge explanation, see [docs/phase9h-subroutine-teaching-polish.md](docs/phase9h-subroutine-teaching-polish.md).
 
 ## Key Views
 
@@ -104,6 +108,7 @@ For `CALL` and stack-aware `RET`, see [docs/phase9g-call-ret-stack-semantics.md]
 - `CASL: Index Addressing`
 - `CASL: Push Pop Stack`
 - `CASL: Call Return`
+- `CASL: Nested Call Return`
 - `C++: Addition`
 - `C++: If Else`
 - `C++: While Sum`
@@ -292,6 +297,8 @@ The current backend is shown in the status bar as `Mock Core`, `WASM Core`, or `
 - [docs/phase9d-effective-address-unit.md](docs/phase9d-effective-address-unit.md): Effective Address Unit visualization for indexed operands.
 - [docs/phase9e-stack-address-path-foundation.md](docs/phase9e-stack-address-path-foundation.md): SP, Stack Preview, and inactive stack-address path foundation for future stack instructions.
 - [docs/phase9f-push-pop-stack.md](docs/phase9f-push-pop-stack.md): `PUSH` / `POP` stack semantics, Stack Preview updates, and circuit stack path.
+- [docs/phase9g-call-ret-stack-semantics.md](docs/phase9g-call-ret-stack-semantics.md): `CALL`, stack-aware `RET`, and top-level `RET` compatibility.
+- [docs/phase9h-subroutine-teaching-polish.md](docs/phase9h-subroutine-teaching-polish.md): Call Stack view, return edge explanation, and nested-call teaching notes.
 
 ## Current Limitations
 

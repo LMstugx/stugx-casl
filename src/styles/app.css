@@ -299,7 +299,10 @@ button {
 }
 
 .focus-right-column {
-  grid-template-rows: minmax(0, 1fr) 136px 132px 134px 48px;
+  grid-template-rows: 228px 132px 114px 130px 142px 58px;
+  align-content: start;
+  overflow-y: auto;
+  padding-right: 2px;
 }
 
 .focus-program-panel,
@@ -491,6 +494,7 @@ button {
 }
 
 .focus-signal-probe,
+.focus-call-stack,
 .focus-stack-preview {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
@@ -569,6 +573,64 @@ button {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.call-stack-body {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 5px 7px;
+  background: #f8fafc;
+}
+
+.call-stack-body[data-active="true"] {
+  background: #fffdf8;
+}
+
+.call-stack-row {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr);
+  gap: 3px 6px;
+  align-items: center;
+  min-height: 26px;
+  padding: 3px 5px;
+  border: 1px solid #d9e1ec;
+  border-radius: var(--radius-sm);
+  background: #fbfcfe;
+}
+
+.call-stack-body[data-active="true"] .call-stack-row {
+  border-color: #d9c9a4;
+  box-shadow: inset 2px 0 0 #b7791f;
+}
+
+.call-stack-row span,
+.call-stack-row small {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--color-muted);
+  font-size: 10px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.call-stack-row code {
+  min-width: 0;
+  overflow: hidden;
+  color: #10233d;
+  font-family: "Cascadia Mono", Consolas, monospace;
+  font-size: 11px;
+  font-weight: 750;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.call-stack-row small {
+  grid-column: 1 / -1;
+  font-weight: 650;
 }
 
 .stack-preview-body {

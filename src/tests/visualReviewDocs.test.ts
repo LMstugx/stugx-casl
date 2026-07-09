@@ -22,6 +22,7 @@ describe("visual review screenshot gallery setup", () => {
     expect(visualReviewSpec).toContain("call-return-ret-stack.png");
     expect(visualReviewSpec).toContain("call-return-finish.png");
     expect(visualReviewSpec).toContain("call-return-machine-code.png");
+    expect(visualReviewSpec).toContain("nested-call-return.png");
     expect(visualReviewSpec).toContain("page.screenshot");
   });
 
@@ -63,6 +64,7 @@ describe("visual review screenshot gallery setup", () => {
     expect(visualReviewDoc).toContain("call-return-ret-stack.png");
     expect(visualReviewDoc).toContain("call-return-finish.png");
     expect(visualReviewDoc).toContain("call-return-machine-code.png");
+    expect(visualReviewDoc).toContain("nested-call-return.png");
   });
 
   it("package_json_has_visual_review_scripts", () => {

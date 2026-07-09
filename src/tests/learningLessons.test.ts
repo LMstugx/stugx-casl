@@ -76,6 +76,26 @@ describe("guided learning lessons", () => {
     expect(text).toContain("break");
   });
 
+  it("lesson_for_call_return_mentions_call_stack_and_return_edge", () => {
+    const lesson = getLearningLesson("casl-call-return");
+    const text = JSON.stringify(lesson);
+
+    expect(text).toContain("return address");
+    expect(text).toContain("stack-aware RET");
+    expect(text).toContain("top-level RET");
+    expect(text).toContain("callDepth");
+  });
+
+  it("lesson_for_nested_call_return_mentions_lifo_order", () => {
+    const lesson = getLearningLesson("casl-nested-call-return");
+    const text = JSON.stringify(lesson);
+
+    expect(text).toContain("nested CALL");
+    expect(text).toContain("callDepth");
+    expect(text).toContain("LIFO");
+    expect(text).toContain("0004");
+  });
+
   it("learning_lessons_have_recommended_tabs", () => {
     for (const lesson of learningLessons) {
       expect(lesson.suggestedSteps.every((step) => step.recommendedTab)).toBe(true);

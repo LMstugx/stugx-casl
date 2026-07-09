@@ -21,6 +21,10 @@ export type MachineCodeRow = {
   indexValue?: number;
   effectiveAddress?: number;
   callDepth?: number;
+  callDepthBefore?: number;
+  callDepthAfter?: number;
+  returnAddress?: number;
+  stackAddress?: number;
   isStackReturnContext?: boolean;
   resolvedLabel?: string;
   effectiveLabel?: string;
@@ -47,6 +51,10 @@ export type MachineCodeExplanation = {
   operandAddress?: number;
   effectiveAddress?: number;
   callDepth?: number;
+  callDepthBefore?: number;
+  callDepthAfter?: number;
+  returnAddress?: number;
+  stackAddress?: number;
   isStackReturnContext?: boolean;
   resolvedLabel?: string;
   effectiveLabel?: string;
@@ -87,6 +95,7 @@ const EXECUTABLE_INSTRUCTIONS = new Set<InstructionKind>([
 export function selectMachineCodeRows(state: CometState, mapping: CppToCaslMap[] = []): MachineCodeRow[] {
   const labels = labelByAddress(state);
   const lastInstruction = state.lastStep ? state.program?.find((instruction) => instruction.address === state.lastStep?.executedAddress) : undefined;
+  const latestTrace = state.trace[0];
   const irAddresses = new Set<number>();
   if (lastInstruction) {
     for (let offset = 0; offset < lastInstruction.size; offset += 1) irAddresses.add((lastInstruction.address + offset) & 0xffff);
@@ -108,6 +117,8 @@ export function selectMachineCodeRows(state: CometState, mapping: CppToCaslMap[]
       const address = (entry.address + offset) & 0xffff;
       const rowBaseAddress = offset > 0 ? word : baseOperand;
       const rowEffectiveAddress = rowBaseAddress === undefined ? undefined : toWord(rowBaseAddress + (indexValue ?? 0));
+      const isLatestInstruction = latestTrace?.address === entry.address && latestTrace.instruction === entry.instruction;
+      const staticReturnAddress = entry.instruction === "CALL" ? toWord(entry.address + 2) : undefined;
       return {
         address,
         word,
@@ -122,6 +133,10 @@ export function selectMachineCodeRows(state: CometState, mapping: CppToCaslMap[]
         indexValue,
         effectiveAddress: rowEffectiveAddress,
         callDepth: state.callDepth,
+        callDepthBefore: isLatestInstruction ? latestTrace?.callDepthBefore : undefined,
+        callDepthAfter: isLatestInstruction ? latestTrace?.callDepthAfter : undefined,
+        returnAddress: isLatestInstruction ? latestTrace?.returnAddress ?? staticReturnAddress : staticReturnAddress,
+        stackAddress: isLatestInstruction ? latestTrace?.stackAddress : undefined,
         isStackReturnContext: entry.instruction === "RET" && (state.callDepth > 0 || (state.lastStep?.executedAddress === entry.address && state.lastMemoryReadAddress !== undefined)),
         resolvedLabel: rowBaseAddress === undefined ? undefined : labels.get(rowBaseAddress),
         effectiveLabel: rowEffectiveAddress === undefined ? undefined : labels.get(rowEffectiveAddress),
@@ -162,6 +177,10 @@ export function explainMachineCodeRow(row: MachineCodeRow): MachineCodeExplanati
       operandAddress: row.operandAddress,
       effectiveAddress: row.effectiveAddress,
       callDepth: row.callDepth,
+      callDepthBefore: row.callDepthBefore,
+      callDepthAfter: row.callDepthAfter,
+      returnAddress: row.returnAddress,
+      stackAddress: row.stackAddress,
       isStackReturnContext: row.isStackReturnContext,
       resolvedLabel: row.resolvedLabel,
       effectiveLabel: row.effectiveLabel,
@@ -183,6 +202,10 @@ export function explainMachineCodeRow(row: MachineCodeRow): MachineCodeExplanati
       operandAddress: row.word,
       effectiveAddress: row.effectiveAddress,
       callDepth: row.callDepth,
+      callDepthBefore: row.callDepthBefore,
+      callDepthAfter: row.callDepthAfter,
+      returnAddress: row.returnAddress,
+      stackAddress: row.stackAddress,
       isStackReturnContext: row.isStackReturnContext,
       resolvedLabel: row.resolvedLabel,
       effectiveLabel: row.effectiveLabel,
@@ -289,7 +312,7 @@ function instructionMeaning(row: MachineCodeRow, register?: number): string {
     case "POP":
       return `Load memory[SP] into ${gr}, then increment SP.`;
     case "CALL":
-      return `Push the return address to memory[SP], then jump to ${operand}.`;
+      return `Push return address ${row.returnAddress !== undefined ? formatWord(row.returnAddress) : "next instruction"} to memory[SP], then jump to ${operand}${row.stackAddress !== undefined ? `; stack write MEM[${formatWord(row.stackAddress)}]` : ""}${row.callDepthBefore !== undefined && row.callDepthAfter !== undefined ? `; callDepth ${row.callDepthBefore} -> ${row.callDepthAfter}` : ""}.`;
     case "JUMP":
       return `Jump to ${operand}.`;
     case "JZE":
@@ -304,7 +327,7 @@ function instructionMeaning(row: MachineCodeRow, register?: number): string {
       return `Jump to ${operand} when the overflow flag is set.`;
     case "RET":
       return row.isStackReturnContext
-        ? `Return through the stack: read memory[SP] into PR, increment SP, and decrease call depth from ${row.callDepth ?? 0}.`
+        ? `Stack return: read ${row.stackAddress !== undefined ? `MEM[${formatWord(row.stackAddress)}]` : "memory[SP]"} into PR${row.returnAddress !== undefined ? ` (${formatWord(row.returnAddress)})` : ""}, increment SP${row.callDepthBefore !== undefined && row.callDepthAfter !== undefined ? `, and change callDepth ${row.callDepthBefore} -> ${row.callDepthAfter}` : ""}.`
         : "Top-level return: finish execution because there is no active call frame.";
     default:
       return row.meaning;

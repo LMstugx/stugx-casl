@@ -25,7 +25,7 @@ The purpose is not to replace a full compiler. The purpose is to make each trans
 
 Example: `CASL: GR2 Addition`
 
-Follow-up examples: `CASL: Logic Operations`, `CASL: Logical Add Compare`, `CASL: Shift Operations`, `CASL: Index Addressing`, `CASL: Push Pop Stack`, `CASL: Call Return`
+Follow-up examples: `CASL: Logic Operations`, `CASL: Logical Add Compare`, `CASL: Shift Operations`, `CASL: Index Addressing`, `CASL: Push Pop Stack`, `CASL: Call Return`, `CASL: Nested Call Return`
 
 Learn:
 
@@ -36,11 +36,13 @@ Learn:
 - `adr,x` for base plus index-register effective addressing
 - `PUSH` and `POP` for the first stack-memory convention
 - `CALL` and stack-aware `RET` for subroutine return-address flow
+- nested `CALL` / `RET` return order through `callDepth`
 - how GR registers change
 - how shift instructions update GR and FR without reading memory as shift data
 - how indexed instructions keep a base operand word but access the effective memory row
 - how `PUSH` stores an effective address value on the stack, and how `POP` reads `Memory[SP]`
 - how `CALL` stores a return address on the stack, and how `RET` either returns from a call frame or finishes a top-level program
+- how the Call Stack card explains `CALL` target, return address, stack `RET`, and top-level `RET`
 - how a memory write appears in the Memory Viewer
 - how PR advances through instruction words
 
@@ -56,6 +58,7 @@ Suggested actions:
 8. Load `CASL: Index Addressing` and compare the base address `A` with the effective address `B`.
 9. Load `CASL: Push Pop Stack` and watch `SP`, Stack Preview, and `Memory[SP]` during `PUSH` / `POP`.
 10. Load `CASL: Call Return` and compare the stack return address with the final top-level `RET`.
+11. Load `CASL: Nested Call Return` and watch `callDepth` rise to 2, then return in last-in-first-out order.
 
 ### Step 2: C++ to CASL
 
@@ -224,12 +227,13 @@ Use the examples in this order:
 5. `CASL: Index Addressing`: learn x-field encoding, index registers, and effective address calculation.
 6. `CASL: Push Pop Stack`: learn `SP`, Stack Preview, stack memory writes, and `POP` register updates.
 7. `CASL: Call Return`: learn `CALL`, return-address stack writes, stack-aware `RET`, and top-level `RET` finish compatibility.
-8. `C++: Addition`: learn C++ to CASL and machine-code rows.
-9. `C++: If Else`: learn compare, flags, conditional jump, and target labels.
-10. `C++: While Sum`: learn repeated execution with Trace.
-11. `C++: For Sum`: learn initializer, condition, increment, and loop exit.
-12. `C++: For Sum Sugar`: learn `i++` and `+=` lowering.
-13. `C++: Break Continue`: learn jump targets for loop control.
+8. `CASL: Nested Call Return`: learn nested `CALL`, LIFO return order, and call-depth changes.
+9. `C++: Addition`: learn C++ to CASL and machine-code rows.
+10. `C++: If Else`: learn compare, flags, conditional jump, and target labels.
+11. `C++: While Sum`: learn repeated execution with Trace.
+12. `C++: For Sum`: learn initializer, condition, increment, and loop exit.
+13. `C++: For Sum Sugar`: learn `i++` and `+=` lowering.
+14. `C++: Break Continue`: learn jump targets for loop control.
 
 ## 8. How To Verify Your Understanding
 
@@ -321,6 +325,8 @@ The active data path targets specific rows where possible. For example, `LD GR2,
 `CALL` also activates the stack path. It writes the return address to `Memory[SP]`, then redirects `PR` to the subroutine target. `RET` is stack-aware only when a call frame exists: it reads the return address from the stack and returns to the caller. A top-level `RET` with no call frame still finishes the program, so existing examples keep their original ending behavior.
 
 The Stack Preview card is read-only but now reflects real `PUSH` / `POP` / `CALL` / stack-`RET` execution. It shows the current `SP` value, nearby stack memory, written return-address rows, and read return-address rows.
+
+The Call Stack card is also read-only. It shows `callDepth`, the top return address, the stack row that stores it, the current or target routine label, and whether the current `RET` explanation is a stack return or top-level finish. It does not show arguments, locals, or a full call-frame model.
 
 Circuit Focus Mode uses a deliberate current/next split. The main teaching target is the last executed instruction: Program, Current Instruction, Current Source Mapping, Source Context, and the latest Trace row should all point to that same instruction. `PR` is the next address and is shown only as a secondary hint together with the next instruction.
 

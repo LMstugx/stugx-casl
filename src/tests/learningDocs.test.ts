@@ -14,6 +14,7 @@ import phase9d from "../../docs/phase9d-effective-address-unit.md?raw";
 import phase9e from "../../docs/phase9e-stack-address-path-foundation.md?raw";
 import phase9f from "../../docs/phase9f-push-pop-stack.md?raw";
 import phase9g from "../../docs/phase9g-call-ret-stack-semantics.md?raw";
+import phase9h from "../../docs/phase9h-subroutine-teaching-polish.md?raw";
 import futureCustomCircuit from "../../docs/future-custom-circuit-design.md?raw";
 import practiceTasks from "../../docs/practice-tasks.md?raw";
 import projectOverview from "../../docs/project-overview.md?raw";
@@ -33,6 +34,7 @@ describe("learning use documentation", () => {
     expect(learningGuide).toContain("CASL: Shift Operations");
     expect(learningGuide).toContain("CASL: Push Pop Stack");
     expect(learningGuide).toContain("CASL: Call Return");
+    expect(learningGuide).toContain("CASL: Nested Call Return");
     expect(learningGuide).toContain("Step 2: C++ to CASL");
     expect(learningGuide).toContain("Step 6: break / continue");
   });
@@ -88,6 +90,7 @@ describe("learning use documentation", () => {
     expect(practiceTasks).toContain("Observe shift instructions");
     expect(practiceTasks).toContain("Observe PUSH / POP stack behavior");
     expect(practiceTasks).toContain("Observe CALL / stack-aware RET");
+    expect(practiceTasks).toContain("Trace nested return order");
     expect(practiceTasks).toContain("Level 5: break / continue");
   });
 
@@ -144,6 +147,16 @@ describe("learning use documentation", () => {
     expect(phase9g).toContain("callDepth");
     expect(phase9g).toContain("Top-level `RET`");
     expect(phase9g).toContain("Stack Preview");
+  });
+
+  it("phase9h_subroutine_teaching_polish_doc_exists", () => {
+    expect(phase9h).toContain("Phase 9H: Subroutine Teaching Polish");
+    expect(phase9h).toContain("CALL target");
+    expect(phase9h).toContain("return address");
+    expect(phase9h).toContain("Call Stack view");
+    expect(phase9h).toContain("stack RET vs top-level RET");
+    expect(phase9h).toContain("return edge");
+    expect(phase9h).toContain("Nested Call Return");
   });
 
   it("phase8e_circuit_focus_doc_exists", () => {
@@ -235,6 +248,7 @@ describe("learning use documentation", () => {
     expect(readme).toContain("docs/phase9e-stack-address-path-foundation.md");
     expect(readme).toContain("docs/phase9f-push-pop-stack.md");
     expect(readme).toContain("docs/phase9g-call-ret-stack-semantics.md");
+    expect(readme).toContain("docs/phase9h-subroutine-teaching-polish.md");
     expect(readme).toContain("docs/future-custom-circuit-design.md");
     expect(normalized).not.toContain("hackathon");
     expect(normalized).not.toContain("contest submission");

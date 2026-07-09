@@ -155,7 +155,37 @@ function activeMemoryAddress(state: CometState): number | undefined {
 }
 
 function traceChangeText(event: CometState["trace"][number]): string {
-  if (event.instruction === "PUSH" || event.instruction === "POP" || event.instruction === "CALL" || event.instruction === "RET") {
+  if (event.instruction === "CALL") {
+    const target = event.effectiveAddress !== undefined ? formatWord(event.effectiveAddress) : "----";
+    const returnAddress = event.returnAddress !== undefined ? formatWord(event.returnAddress) : "----";
+    const stackAddress = event.stackAddress !== undefined ? formatWord(event.stackAddress) : "SP";
+    const sp =
+      event.stackPointerValueBefore !== undefined && event.stackPointerValueAfter !== undefined
+        ? `${formatWord(event.stackPointerValueBefore)} -> ${formatWord(event.stackPointerValueAfter)}`
+        : "updated";
+    const depth =
+      event.callDepthBefore !== undefined && event.callDepthAfter !== undefined
+        ? `${event.callDepthBefore} -> ${event.callDepthAfter}`
+        : "updated";
+    return `CALL target ${target}; return ${returnAddress}; SP ${sp}; MEM[${stackAddress}] write; callDepth ${depth}`;
+  }
+  if (event.instruction === "RET") {
+    if (event.visualPath === VisualPathKind.RET_StackToPr || event.changedMemoryAddress !== undefined) {
+      const stackAddress = event.stackAddress ?? event.changedMemoryAddress;
+      const returnAddress = event.returnAddress ?? event.pr;
+      const sp =
+        event.stackPointerValueBefore !== undefined && event.stackPointerValueAfter !== undefined
+          ? `${formatWord(event.stackPointerValueBefore)} -> ${formatWord(event.stackPointerValueAfter)}`
+          : "updated";
+      const depth =
+        event.callDepthBefore !== undefined && event.callDepthAfter !== undefined
+          ? `${event.callDepthBefore} -> ${event.callDepthAfter}`
+          : "updated";
+      return `RET stack return; MEM[${stackAddress !== undefined ? formatWord(stackAddress) : "SP"}] -> PR ${returnAddress !== undefined ? formatWord(returnAddress) : "----"}; SP ${sp}; callDepth ${depth}`;
+    }
+    return "RET top-level finish; no stack access";
+  }
+  if (event.instruction === "PUSH" || event.instruction === "POP") {
     return event.detail;
   }
   if (event.changedRegister) {
@@ -353,6 +383,17 @@ type StackPreviewRow = {
   isWrite: boolean;
 };
 
+type CallStackInfo = {
+  depthText: string;
+  transitionText?: string;
+  topReturnText: string;
+  storedAtText: string;
+  routineText: string;
+  retModeText: string;
+  edgeText: string;
+  active: boolean;
+};
+
 function wrapAddress(address: number): number {
   return address & 0xffff;
 }
@@ -368,6 +409,62 @@ function stackPreviewRows(state: CometState): StackPreviewRow[] {
       isWrite: address === state.lastMemoryWriteAddress
     };
   });
+}
+
+function labelForAddress(state: CometState, address: number | undefined): string | undefined {
+  if (address === undefined) return undefined;
+  return state.sourceMap.find((entry) => entry.address === address && entry.label)?.label;
+}
+
+function routineLabelForAddress(state: CometState, address: number | undefined): string {
+  if (address === undefined) return "none";
+  const labeledRows = state.sourceMap
+    .filter((entry) => entry.label && entry.address <= address)
+    .sort((left, right) => right.address - left.address);
+  return labeledRows[0]?.label ?? "anonymous";
+}
+
+function callStackInfo(state: CometState, focus: FocusInstructionContext): CallStackInfo {
+  const latest = state.trace[0];
+  const visualPath = activeVisualPath(state);
+  const stackActive =
+    visualPath === VisualPathKind.CALL_ReturnAddressToStackAndPr ||
+    visualPath === VisualPathKind.RET_StackToPr;
+  const topReturnAddress = state.callDepth > 0 ? state.memory[state.sp] : latest?.returnAddress;
+  const stackAddress = state.callDepth > 0 ? state.sp : latest?.stackAddress;
+  const targetLabel = labelForAddress(state, latest?.effectiveAddress ?? state.lastEffectiveAddress);
+  const currentRoutine = visualPath === VisualPathKind.CALL_ReturnAddressToStackAndPr
+    ? targetLabel ?? (latest?.effectiveAddress !== undefined ? formatWord(latest.effectiveAddress) : "target")
+    : routineLabelForAddress(state, focus.address);
+  const transitionText =
+    latest?.callDepthBefore !== undefined && latest.callDepthAfter !== undefined
+      ? `${latest.callDepthBefore} -> ${latest.callDepthAfter}`
+      : undefined;
+  const retModeText =
+    visualPath === VisualPathKind.RET_StackToPr
+      ? "Stack return"
+      : state.callDepth > 0
+        ? "Stack return"
+        : "Top-level finish";
+  const edgeText =
+    visualPath === VisualPathKind.CALL_ReturnAddressToStackAndPr
+      ? `CALL -> ${targetLabel ?? (latest?.effectiveAddress !== undefined ? formatWord(latest.effectiveAddress) : "target")}; return ${latest?.returnAddress !== undefined ? formatWord(latest.returnAddress) : "----"}`
+      : visualPath === VisualPathKind.RET_StackToPr
+        ? `RET -> ${latest?.returnAddress !== undefined ? formatWord(latest.returnAddress) : "return address"} from MEM[${latest?.stackAddress !== undefined ? formatWord(latest.stackAddress) : "SP"}]`
+        : state.callDepth === 0
+          ? "Final RET finishes program"
+          : "Waiting for subroutine RET";
+
+  return {
+    depthText: String(state.callDepth),
+    transitionText,
+    topReturnText: topReturnAddress !== undefined ? formatWord(topReturnAddress) : "none",
+    storedAtText: stackAddress !== undefined ? `MEM[${formatWord(stackAddress)}]` : "none",
+    routineText: currentRoutine,
+    retModeText,
+    edgeText,
+    active: stackActive || state.callDepth > 0
+  };
 }
 
 function signalProbeRows(state: CometState, focus: FocusInstructionContext): ProbeRow[] {
@@ -493,6 +590,44 @@ function signalProbeRows(state: CometState, focus: FocusInstructionContext): Pro
   }
 
   return rows;
+}
+
+function FocusCallStackPanel({ state, focus }: { state: CometState; focus: FocusInstructionContext }) {
+  const info = callStackInfo(state, focus);
+
+  return (
+    <section className="panel focus-call-stack" data-testid="focus-call-stack">
+      <header className="panel-header">
+        <div>
+          <h2>Call Stack</h2>
+          <span>{info.active ? "Return edge active" : "Subroutine context"}</span>
+        </div>
+        <span>Depth {info.depthText}</span>
+      </header>
+      <div className="call-stack-body" data-active={info.active ? "true" : "false"}>
+        <div className="call-stack-row">
+          <span>Depth</span>
+          <code data-testid="call-stack-depth">{info.depthText}</code>
+          <small>{info.transitionText ? `last ${info.transitionText}` : "current"}</small>
+        </div>
+        <div className="call-stack-row">
+          <span>Top return</span>
+          <code data-testid="call-stack-return-address">{info.topReturnText}</code>
+          <small>{info.storedAtText}</small>
+        </div>
+        <div className="call-stack-row">
+          <span>Routine</span>
+          <code data-testid="call-stack-routine">{info.routineText}</code>
+          <small>current / target</small>
+        </div>
+        <div className="call-stack-row">
+          <span>RET mode</span>
+          <code data-testid="call-stack-ret-mode">{info.retModeText}</code>
+          <small>{info.edgeText}</small>
+        </div>
+      </div>
+    </section>
+  );
 }
 
 function FocusSignalProbePanel({ state, focus }: { state: CometState; focus: FocusInstructionContext }) {
@@ -637,6 +772,7 @@ export default function CircuitFocusLayout({
       <aside className="focus-right-column">
         <FocusInspector state={state} />
         <FocusSignalProbePanel state={state} focus={focus} />
+        <FocusCallStackPanel state={state} focus={focus} />
         <FocusStackPreviewPanel state={state} />
         <FocusTracePanel state={state} />
         <section className="panel focus-source-context" data-testid="focus-source-context">

@@ -293,6 +293,28 @@ export default function OutputPanel({
                               </dd>
                             </div>
                             <div>
+                              <dt>Return Addr</dt>
+                              <dd>{machineExplanation.returnAddress !== undefined ? formatWord(machineExplanation.returnAddress) : "-"}</dd>
+                            </div>
+                            <div>
+                              <dt>Stack Addr</dt>
+                              <dd>{machineExplanation.stackAddress !== undefined ? `MEM[${formatWord(machineExplanation.stackAddress)}]` : "-"}</dd>
+                            </div>
+                            <div>
+                              <dt>Call Depth</dt>
+                              <dd>
+                                {machineExplanation.callDepthBefore !== undefined && machineExplanation.callDepthAfter !== undefined
+                                  ? `${machineExplanation.callDepthBefore} -> ${machineExplanation.callDepthAfter}`
+                                  : machineExplanation.callDepth !== undefined
+                                    ? String(machineExplanation.callDepth)
+                                    : "-"}
+                              </dd>
+                            </div>
+                            <div>
+                              <dt>RET Mode</dt>
+                              <dd>{machineExplanation.mnemonic === "RET" ? (machineExplanation.isStackReturnContext ? "stack return" : "top-level finish") : "-"}</dd>
+                            </div>
+                            <div>
                               <dt>Binary</dt>
                               <dd>{machineExplanation.binaryText}</dd>
                             </div>

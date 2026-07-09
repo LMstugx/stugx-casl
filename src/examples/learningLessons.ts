@@ -516,6 +516,74 @@ export const learningLessons: LearningLesson[] = [
     ]
   },
   {
+    exampleId: "casl-nested-call-return",
+    title: "Nested CALL return order",
+    level: "Machine code",
+    concepts: ["nested CALL", "return address stack", "last-in-first-out (LIFO) return", "callDepth", "top-level RET"],
+    learningGoals: [
+      "Observe callDepth rising above one when a subroutine calls another subroutine.",
+      "Confirm that each RET returns to the most recent saved return address."
+    ],
+    observe: ["callDepth 0 -> 1 -> 2", "Return addresses on Stack Preview", "RET order from SUB2 to SUB1 to MAIN", "RESULT after final ST"],
+    suggestedSteps: [
+      {
+        id: "assemble",
+        label: "Assemble nested call",
+        action: "Click Assemble for CASL: Nested Call Return.",
+        expectedObservation: "Machine Code shows CALL SUB1 and CALL SUB2 rows.",
+        recommendedTab: "Machine Code"
+      },
+      {
+        id: "step-calls",
+        label: "Step both CALLs",
+        action: "Enter Circuit Focus Mode and Step until after CALL SUB2.",
+        expectedObservation: "Call Stack depth reaches 2 and Stack Preview contains two return addresses.",
+        recommendedTab: "Trace"
+      },
+      {
+        id: "step-returns",
+        label: "Step both stack RETs",
+        action: "Step through RET in SUB2, then RET in SUB1.",
+        expectedObservation: "Each RET reads Memory[SP] into PR and callDepth returns toward zero.",
+        recommendedTab: "Trace"
+      },
+      {
+        id: "check-result",
+        label: "Check final result",
+        action: "Run to completion.",
+        expectedObservation: "RESULT becomes 0004 and the final RET finishes at callDepth zero.",
+        recommendedTab: "Memory"
+      }
+    ],
+    checkpoints: [
+      {
+        id: "depth-two",
+        label: "Nested depth",
+        expected: "Call Stack depth should reach 2 after CALL SUB2.",
+        whereToLook: "Call Stack / Trace",
+        note: "Nested calls are returned in last-in-first-out order."
+      },
+      {
+        id: "ret-order",
+        label: "Return order",
+        expected: "RET in SUB2 returns to ADDA GR1,ONE; RET in SUB1 returns to ST GR1,RESULT.",
+        whereToLook: "Trace / Program panel",
+        note: "The return edge is dynamic and comes from Memory[SP]."
+      },
+      {
+        id: "result",
+        label: "Final result",
+        expected: "Memory[RESULT] should be 0004.",
+        whereToLook: "Memory Viewer / Trace",
+        note: "GR1 starts at 1, SUB2 adds 2, and SUB1 adds 1."
+      }
+    ],
+    commonQuestions: [
+      "Why does callDepth reach 2?",
+      "Why does SUB2 return before SUB1 continues?"
+    ]
+  },
+  {
     exampleId: "cpp-addition",
     title: "C++ addition lowered to CASL",
     level: "C++ to CASL",

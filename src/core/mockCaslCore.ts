@@ -879,6 +879,7 @@ function traceEvent(
     callDepthBefore: callChange?.before,
     callDepthAfter: callChange?.after,
     returnAddress: callChange?.returnAddress,
+    stackAddress: state.lastMemoryWriteAddress ?? (instruction === "RET" || instruction === "POP" ? state.lastMemoryReadAddress : undefined),
     baseAddress: state.lastBaseAddress,
     indexRegister: state.lastIndexRegister,
     indexValue: state.lastIndexValue,
@@ -1222,6 +1223,7 @@ export const mockCaslCore: CaslCore = {
         event.changedMemoryAddress = spBefore;
         event.changedMemoryValueBefore = returnAddress;
         event.changedMemoryValueAfter = returnAddress;
+        event.stackAddress = spBefore;
         prependTrace(next, event);
       } else {
         next.runState = "Finished";

@@ -565,13 +565,19 @@ describe("machine code rows", () => {
     let state = mockCaslCore.assemble(getDemoProgram("casl-call-return")!.source);
     state = mockCaslCore.step(state);
     state = mockCaslCore.step(state);
-    const rows = selectMachineCodeRows(stateFromRaw(state));
+    const rows = selectMachineCodeRows(state);
     const explanation = explainMachineCodeRow(rows.find((row) => row.address === 0x22)!);
 
     expect(explanation.mnemonic).toBe("CALL");
     expect(explanation.opcode).toBe(0x80);
-    expect(explanation.meaning).toContain("Push the return address");
+    expect(explanation.meaning).toContain("Push return address");
     expect(explanation.effectiveAddress).toBe(0x27);
+    expect(explanation.returnAddress).toBe(0x24);
+    expect(explanation.stackAddress).toBe(0xfffd);
+    expect(explanation.callDepthBefore).toBe(0);
+    expect(explanation.callDepthAfter).toBe(1);
+    expect(explanation.meaning).toContain("stack write MEM[FFFD]");
+    expect(explanation.meaning).toContain("callDepth 0 -> 1");
   });
 
   it("machine_code_explanation_ret_stack_vs_finish", () => {
@@ -582,7 +588,43 @@ describe("machine code rows", () => {
     const finishRows = selectMachineCodeRows(stateFromRaw(mockCaslCore.assemble(getDemoProgram("casl-call-return")!.source)));
     const topLevelRet = explainMachineCodeRow(finishRows.find((row) => row.address === 0x26)!);
 
-    expect(stackRet.meaning).toContain("Return through the stack");
+    expect(stackRet.meaning).toContain("Stack return");
+    expect(stackRet.meaning).toContain("MEM[FFFD]");
+    expect(stackRet.meaning).toContain("callDepth 1 -> 0");
+    expect(stackRet.returnAddress).toBe(0x24);
+    expect(stackRet.stackAddress).toBe(0xfffd);
+    expect(stackRet.isStackReturnContext).toBe(true);
     expect(topLevelRet.meaning).toContain("Top-level return");
+    expect(topLevelRet.isStackReturnContext).toBe(false);
+  });
+
+  it("machine_code_ret_explanation_distinguishes_stack_return_and_finish_in_panel", async () => {
+    let stackState = mockCaslCore.assemble(getDemoProgram("casl-call-return")!.source);
+    for (let index = 0; index < 4; index += 1) stackState = mockCaslCore.step(stackState);
+    await renderOutputPanel(<OutputPanel lines={[]} state={stackState} initialTab="machine" onClear={() => undefined} />);
+    await act(async () => {
+      (container?.querySelector('[data-testid="machine-code-row-0029"]') as HTMLDivElement).click();
+    });
+    let explanationText = container?.querySelector('[data-testid="machine-code-explanation"]')?.textContent ?? "";
+    expect(explanationText).toContain("RET Mode");
+    expect(explanationText).toContain("stack return");
+    expect(explanationText).toContain("MEM[FFFD]");
+
+    await act(async () => {
+      root?.unmount();
+    });
+    container?.remove();
+    root = null;
+    container = null;
+
+    const finishState = stateFromRaw(mockCaslCore.assemble(getDemoProgram("casl-call-return")!.source));
+    await renderOutputPanel(<OutputPanel lines={[]} state={finishState} initialTab="machine" onClear={() => undefined} />);
+    const finishContainer = container as unknown as HTMLDivElement;
+    await act(async () => {
+      (finishContainer.querySelector('[data-testid="machine-code-row-0026"]') as HTMLDivElement).click();
+    });
+    explanationText = finishContainer.querySelector('[data-testid="machine-code-explanation"]')?.textContent ?? "";
+    expect(explanationText).toContain("RET Mode");
+    expect(explanationText).toContain("top-level finish");
   });
 });

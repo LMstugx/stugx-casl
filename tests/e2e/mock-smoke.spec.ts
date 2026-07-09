@@ -190,6 +190,12 @@ test("Mock backend runs CASL CALL RETURN demo and shows stack-aware RET", async 
   await expect(circuit.locator("[data-testid='memory-row-FFFD']")).toHaveAttribute("data-write", "true");
   await expect(page.getByTestId("focus-signal-probe")).toContainText("RETADDR");
   await expect(page.getByTestId("focus-signal-probe")).toContainText("CALLDEPTH");
+  await expect(page.getByTestId("focus-call-stack")).toBeVisible();
+  await expect(page.getByTestId("call-stack-depth")).toHaveText("1");
+  await expect(page.getByTestId("call-stack-return-address")).toHaveText("0024");
+  await expect(page.getByTestId("call-stack-routine")).toHaveText("SUB");
+  await expect(page.getByTestId("call-stack-ret-mode")).toHaveText("Stack return");
+  await expect(page.getByTestId("focus-call-stack")).toContainText("CALL -> SUB; return 0024");
 
   await step(page);
   await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("ADDA");
@@ -199,9 +205,16 @@ test("Mock backend runs CASL CALL RETURN demo and shows stack-aware RET", async 
   await expect(circuit.locator("[data-testid='wire-mdr-to-pr']")).toHaveAttribute("data-active", "true");
   await expect(circuit.locator("[data-testid='memory-row-FFFD']")).toHaveAttribute("data-read", "true");
   await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("Next ST GR1,RESULT");
+  await expect(page.getByTestId("call-stack-depth")).toHaveText("0");
+  await expect(page.getByTestId("call-stack-return-address")).toHaveText("0024");
+  await expect(page.getByTestId("call-stack-ret-mode")).toHaveText("Stack return");
+  await expect(page.getByTestId("focus-call-stack")).toContainText("RET -> 0024 from MEM[FFFD]");
 
   await run(page);
   await expect(page.getByTestId("run-state")).toHaveText("Finished");
+  await expect(page.getByTestId("call-stack-depth")).toHaveText("0");
+  await expect(page.getByTestId("call-stack-ret-mode")).toHaveText("Top-level finish");
+  await expect(circuit.locator("[data-testid='module-sp']")).toHaveAttribute("data-active", "false");
   const focusInspector = page.getByTestId("focus-registers-panel");
   await focusInspector.getByRole("tab", { name: "Memory" }).click();
   await expect(focusInspector.getByTestId("memory-view-row-002B")).toContainText("RESULT");

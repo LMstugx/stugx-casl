@@ -11,6 +11,7 @@ import { getDemoProgram } from "../examples/demoPrograms";
 const gr2Source = getDemoProgram("casl-gr2-addition")!.source;
 const pushPopSource = getDemoProgram("casl-push-pop-stack")!.source;
 const callReturnSource = getDemoProgram("casl-call-return")!.source;
+const nestedCallReturnSource = getDemoProgram("casl-nested-call-return")!.source;
 const timelineItems = [
   { key: "ready", index: 0, label: "Ready", phase: "completed" },
   { key: "ld", index: 1, label: "LD", phase: "current" },
@@ -253,8 +254,55 @@ describe("Circuit Focus Mode layout", () => {
     expect(activeWireIds(markup)).toEqual(expect.arrayContaining(["pr-to-plus2", "return-address-to-mdr", "sp-to-mar-preview", "mar-to-memory", "mdr-to-memory", "base-to-eau", "eau-to-pr"]));
     expect(markup).toContain('data-testid="memory-row-FFFD"');
     expect(markup).toContain('data-write="true"');
-    expect(markup).toContain("return: 0024");
+    expect(markup).toContain("return 0024");
     expect(markup).toContain("CALLDEPTH");
+  });
+
+  it("call_stack_view_shows_call_depth_and_top_return_address", () => {
+    const state = stepSource(callReturnSource, 2);
+    const markup = renderFocus(state, callReturnSource);
+
+    expect(markup).toContain('data-testid="focus-call-stack"');
+    expect(markup).toContain('data-testid="call-stack-depth">1</code>');
+    expect(markup).toContain('data-testid="call-stack-return-address">0024</code>');
+    expect(markup).toContain("MEM[FFFD]");
+    expect(markup).toContain('data-testid="call-stack-routine">SUB</code>');
+    expect(markup).toContain('data-testid="call-stack-ret-mode">Stack return</code>');
+    expect(markup).toContain("CALL -&gt; SUB; return 0024");
+  });
+
+  it("call_stack_view_shows_top_level_ret_mode", () => {
+    const state = mockCaslCore.assemble(gr2Source);
+    const markup = renderFocus(state, gr2Source);
+
+    expect(markup).toContain('data-testid="focus-call-stack"');
+    expect(markup).toContain('data-testid="call-stack-depth">0</code>');
+    expect(markup).toContain('data-testid="call-stack-return-address">none</code>');
+    expect(markup).toContain('data-testid="call-stack-ret-mode">Top-level finish</code>');
+    expect(markup).toContain("Final RET finishes program");
+  });
+
+  it("call_stack_view_shows_stack_return_mode", () => {
+    const state = stepSource(callReturnSource, 4);
+    const markup = renderFocus(state, callReturnSource);
+
+    expect(markup).toContain('data-testid="call-stack-depth">0</code>');
+    expect(markup).toContain('data-testid="call-stack-return-address">0024</code>');
+    expect(markup).toContain('data-testid="call-stack-ret-mode">Stack return</code>');
+    expect(markup).toContain("RET -&gt; 0024 from MEM[FFFD]");
+  });
+
+  it("nested_call_demo_shows_depth_two_and_lifo_return_order", () => {
+    const afterSecondCall = stepSource(nestedCallReturnSource, 3);
+    const afterSub2Ret = stepSource(nestedCallReturnSource, 5);
+    const depthMarkup = renderFocus(afterSecondCall, nestedCallReturnSource);
+    const retMarkup = renderFocus(afterSub2Ret, nestedCallReturnSource);
+
+    expect(depthMarkup).toContain('data-testid="call-stack-depth">2</code>');
+    expect(depthMarkup).toContain('data-testid="call-stack-return-address">0029</code>');
+    expect(depthMarkup).toContain('data-testid="call-stack-routine">SUB2</code>');
+    expect(retMarkup).toContain('data-testid="call-stack-depth">1</code>');
+    expect(retMarkup).toContain("RET -&gt; 0029 from MEM[FFFC]");
   });
 
   it("circuit_stack_ret_activates_sp_memory_read_pr", () => {
@@ -277,7 +325,7 @@ describe("Circuit Focus Mode layout", () => {
     expect(markup).toContain('data-testid="module-sp" data-active="false"');
     expect(activeWireIds(markup)).not.toContain("sp-to-mar-preview");
     expect(activeWireIds(markup)).not.toContain("memory-to-mdr");
-    expect(markup).toContain("RET program finish");
+    expect(markup).toContain("RET top-level finish");
   });
 
   it("non_stack_instructions_do_not_activate_sp", () => {

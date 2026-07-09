@@ -97,16 +97,25 @@ Signal Probe stays compact and adds:
 - stack memory row
 - `callDepth`
 
+## Phase 9H Teaching Layer
+
+Phase 9H keeps the same execution semantics and adds clearer subroutine teaching views:
+
+- a compact Call Stack card for `callDepth`, top return address, stored stack row, and `RET` mode
+- explicit return-edge text such as `CALL -> SUB; return 0024` and `RET -> 0024 from MEM[FFFD]`
+- Machine Code explanation fields for return address, stack address, and call-depth transition
+- Trace wording that distinguishes stack `RET` from top-level finish
+- `CASL: Nested Call Return` for last-in-first-out return order
+
 ## Current Limitations
 
 - No `SVC`, `IN`, or `OUT`.
 - No C++ function-call lowering yet.
 - No call-frame locals or arguments.
-- `CALL` target edge is shown statically; a richer return-edge view can be added later.
+- Return-edge explanation is runtime-oriented and compact; there is still no full static call graph.
 
 ## Future Work
 
-- Nested call teaching examples with clearer call-depth timeline.
 - C++ subset function-call lowering.
-- Optional call-stack pane for deeper subroutine lessons.
-- More detailed return-edge visualization in Control Flow.
+- Optional call-depth timeline for deeper subroutine lessons.
+- More detailed static call graph visualization in Control Flow.

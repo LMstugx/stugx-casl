@@ -152,6 +152,29 @@ RESULT DS  1
     suggestedActions: ["Click Assemble.", "Step CALL in Circuit Focus Mode and watch the return address stack write.", "Step through SUB and RET to see PR return to ST.", "Open Machine Code and inspect CALL opcode 80.", "Run and confirm RESULT is 0006."]
   },
   {
+    id: "casl-nested-call-return",
+    name: "CASL: Nested Call Return",
+    mode: "casl",
+    source: `MAIN START
+     LAD   GR1,1
+     CALL  SUB1
+     ST    GR1,RESULT
+     RET
+SUB1 CALL  SUB2
+     ADDA  GR1,ONE
+     RET
+SUB2 ADDA  GR1,TWO
+     RET
+ONE  DC    1
+TWO  DC    2
+RESULT DS  1
+     END`,
+    description: "Nested CALL / RET execution showing callDepth increasing and returning in last-in-first-out order.",
+    whatThisShows: "Nested CALLs push multiple return addresses; each stack-aware RET returns to the most recent caller, and the final top-level RET finishes.",
+    expectedResult: "GR1 starts at 0001, SUB2 adds 0002, SUB1 adds 0001, and Memory[RESULT] = 0004.",
+    suggestedActions: ["Click Assemble.", "Step both CALL instructions and watch callDepth reach 2.", "Step each RET and confirm return order.", "Open Trace to compare return addresses.", "Run and confirm RESULT is 0004."]
+  },
+  {
     id: "cpp-addition",
     name: "C++: Addition",
     mode: "cpp",

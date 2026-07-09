@@ -110,6 +110,7 @@ export interface TraceEvent {
   callDepthBefore?: number;
   callDepthAfter?: number;
   returnAddress?: number;
+  stackAddress?: number;
   baseAddress?: number;
   indexRegister?: number;
   indexValue?: number;

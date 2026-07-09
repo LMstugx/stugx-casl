@@ -149,6 +149,26 @@ Expected observation:
 Answer hint:
 
 - `RESULT` should become `0006`.
+- The Call Stack card should show `Depth 1` after `CALL SUB`.
+- The stack `RET` should show `MEM[SP] -> PR`.
+- The final top-level `RET` should show no stack access.
+
+### Task 5E. Trace nested return order
+
+Start from `CASL: Nested Call Return` and open Circuit Focus Mode.
+
+Expected observation:
+
+- The first `CALL` should increase `callDepth` to `1`.
+- The second `CALL` should increase `callDepth` to `2`.
+- The `RET` inside `SUB2` should return to the instruction after `CALL SUB2`.
+- The `RET` inside `SUB1` should return to the instruction after `CALL SUB1`.
+- The final top-level `RET` should finish the program.
+
+Answer hint:
+
+- Return order is last-in-first-out.
+- `RESULT` should become `0004`.
 
 ## Level 2: C++ to CASL
 

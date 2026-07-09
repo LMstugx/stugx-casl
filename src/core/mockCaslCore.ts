@@ -276,6 +276,14 @@ function assembleArtifacts(source: string): AssembleArtifacts {
   const program: AssembledInstruction[] = [];
   let address = START_ADDRESS;
 
+  const directiveLine = lines[0]?.line ?? 0;
+  if (!lines.some((line) => line.op === "START")) {
+    diagnostics.push({ line: directiveLine, message: "CASL source must contain START directive", severity: "error" });
+  }
+  if (!lines.some((line) => line.op === "END")) {
+    diagnostics.push({ line: directiveLine, message: "CASL source must contain END directive", severity: "error" });
+  }
+
   for (const line of lines) {
     if (!line.op) {
       diagnostics.push({ line: line.line, message: "Unsupported or missing operation", severity: "error" });

@@ -61,6 +61,9 @@ else()
     AssembleUndefinedLabel
     AssembleUnknownOpcode
     AssembleInvalidNumericLiteral
+    AssembleRequiredDirectivesBoundary
+    AssembleMalformedOperandBoundary
+    AssembleStorageBoundaryDiagnostics
     AssembleLad
     StepLd
     StepAdda

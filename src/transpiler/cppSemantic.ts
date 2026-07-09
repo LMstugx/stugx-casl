@@ -67,6 +67,9 @@ export function checkCppSemantics(program: CppProgram | null, parseDiagnostics: 
   const usedLabels = new Set<string>();
 
   if (!program) {
+    if (diagnostics.length === 0) {
+      diagnostics.push({ line: 0, message: "C++ subset program must define int main().", severity: "error" });
+    }
     return { ok: false, diagnostics, variables: [] };
   }
 

@@ -43,12 +43,14 @@ class Parser {
   parseProgram(): ParseResult {
     const functions: CppFunction[] = [];
     while (!this.is("eof")) {
+      const before = this.index;
       const fn = this.parseFunctionDeclaration();
       if (fn) {
         functions.push(fn);
         continue;
       }
       this.synchronize();
+      if (this.index === before && !this.is("eof")) this.advance();
     }
     const main = functions.find((fn) => fn.name === "main") ?? null;
     return {

@@ -21,6 +21,7 @@ import phase10c from "../../docs/phase10c-cpp-single-argument-function.md?raw";
 import phase10d from "../../docs/phase10d-cpp-multi-register-arguments.md?raw";
 import phase10e from "../../docs/phase10e-focus-text-overflow-cleanup.md?raw";
 import phase10f from "../../docs/phase10f-small-viewport-accessibility.md?raw";
+import phase10h from "../../docs/phase10h-robustness-audit.md?raw";
 import circuitVisualContract from "../../docs/circuit-visual-contract.md?raw";
 import futureCustomCircuit from "../../docs/future-custom-circuit-design.md?raw";
 import manualQaChecklist from "../../docs/manual-qa-checklist.md?raw";
@@ -242,6 +243,23 @@ describe("learning use documentation", () => {
     expect(phase10f).toContain("Details Accessibility Rule");
     expect(phase10f).toContain("Tab Accessibility Rule");
     expect(phase10f).toContain("Visual Review Expectations");
+  });
+
+  it("audit_report_exists", () => {
+    expect(phase10h).toContain("Phase 10H: Robustness, Boundary, and Code Safety Audit");
+    expect(phase10h).toContain("Audit Scope");
+    expect(phase10h).toContain("Boundary Tests Added");
+    expect(phase10h).toContain("Bugs Found");
+    expect(phase10h).toContain("Bugs Fixed");
+    expect(phase10h).toContain("Remaining Risks");
+  });
+
+  it("cplusplus_safety_notes_and_wasm_notes_are_documented", () => {
+    expect(phase10h).toContain("No raw `new`, raw `delete`, `malloc`, or `free`");
+    expect(phase10h).toContain("std::unique_ptr");
+    expect(phase10h).toContain("Shift execution uses widened integer values");
+    expect(phase10h).toContain("WASM Bridge Notes");
+    expect(phase10h).toContain("No critical runtime bug found.");
   });
 
   it("manual_qa_checklist_exists", () => {

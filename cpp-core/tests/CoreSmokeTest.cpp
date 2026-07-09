@@ -145,6 +145,47 @@ void AssembleInvalidNumericLiteral() {
     require(hasError(result, "Invalid numeric literal"), "invalid numeric literal diagnostic");
 }
 
+void AssembleRequiredDirectivesBoundary() {
+    casl::Assembler assembler;
+    const auto empty = assembler.assemble("");
+    require(!empty.ok, "empty source should fail");
+    require(hasError(empty, "START directive"), "empty source START diagnostic");
+    require(hasError(empty, "END directive"), "empty source END diagnostic");
+
+    const auto comments = assembler.assemble("; comment only\n ; another comment");
+    require(!comments.ok, "comments-only source should fail");
+    require(hasError(comments, "START directive"), "comments-only START diagnostic");
+    require(hasError(comments, "END directive"), "comments-only END diagnostic");
+
+    const auto missingStart = assembler.assemble(" RET\n END");
+    require(!missingStart.ok, "missing START should fail");
+    require(hasError(missingStart, "START directive"), "missing START diagnostic");
+
+    const auto missingEnd = assembler.assemble("MAIN START\n RET");
+    require(!missingEnd.ok, "missing END should fail");
+    require(hasError(missingEnd, "END directive"), "missing END diagnostic");
+}
+
+void AssembleMalformedOperandBoundary() {
+    casl::Assembler assembler;
+    require(hasError(assembler.assemble("MAIN START\n LD GR1\n END"), "LD requires register and address operands"), "LD missing operand diagnostic");
+    require(hasError(assembler.assemble("MAIN START\n LD GR1,A,GR2,EXTRA\nA DC 1\n END"), "LD has too many operands"), "LD extra operand diagnostic");
+    require(hasError(assembler.assemble("MAIN START\n ST ,A\nA DC 1\n END"), "ST requires register and address operands"), "ST missing register diagnostic");
+    require(hasError(assembler.assemble("MAIN START\n CALL\n END"), "CALL requires an address operand"), "CALL missing operand diagnostic");
+    require(hasError(assembler.assemble("MAIN START\n POP\n END"), "POP requires a register operand"), "POP missing register diagnostic");
+    require(hasError(assembler.assemble("MAIN START\n POP GR1,GR2\n END"), "POP does not support index operands"), "POP index diagnostic");
+}
+
+void AssembleStorageBoundaryDiagnostics() {
+    casl::Assembler assembler;
+    require(hasError(assembler.assemble("MAIN START\nA DC -1\n END"), "Invalid numeric literal"), "negative numeric diagnostic");
+    require(hasError(assembler.assemble("MAIN START\nA DC 65536\n END"), "DC value out of 16-bit range"), "DC range diagnostic");
+    require(hasError(assembler.assemble("MAIN START\nA DS 65505\n END"), "Program memory exceeds 0xFFFF"), "large DS range diagnostic");
+
+    const auto zero = assembler.assemble("MAIN START\nA DS 0\n RET\n END");
+    require(zero.ok, "DS zero should assemble");
+}
+
 void StepLd() {
     casl::CometVm vm;
     vm.load(assembleSample());
@@ -1062,6 +1103,9 @@ const std::vector<std::pair<std::string_view, TestFunction>>& tests() {
         {"AssembleUndefinedLabel", AssembleUndefinedLabel},
         {"AssembleUnknownOpcode", AssembleUnknownOpcode},
         {"AssembleInvalidNumericLiteral", AssembleInvalidNumericLiteral},
+        {"AssembleRequiredDirectivesBoundary", AssembleRequiredDirectivesBoundary},
+        {"AssembleMalformedOperandBoundary", AssembleMalformedOperandBoundary},
+        {"AssembleStorageBoundaryDiagnostics", AssembleStorageBoundaryDiagnostics},
         {"AssembleLad", AssembleLad},
         {"StepLd", StepLd},
         {"StepAdda", StepAdda},

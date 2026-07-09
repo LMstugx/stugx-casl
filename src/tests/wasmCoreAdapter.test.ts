@@ -9,7 +9,7 @@ import simpleStep3 from "../../tests/golden/simple.step3.json";
 import subaStep1 from "../../tests/golden/suba.step1.json";
 import type { CometStateDto } from "../core/coreDto";
 import { DEFAULT_CASL_SOURCE } from "../core/defaultSource";
-import { WasmCoreAdapter } from "../core/wasmCoreAdapter";
+import { parseWasmJson, WasmCoreAdapter } from "../core/wasmCoreAdapter";
 import { transpileCppToCasl } from "../transpiler/cppTranspiler";
 
 type NodeFsSync = {
@@ -163,6 +163,16 @@ function wasmArtifactsAvailable(): boolean {
 
 const describeWasm = wasmArtifactsAvailable() ? describe : describe.skip;
 
+describe("WASM adapter boundary handling", () => {
+  it("invalid_json_from_bridge_reports_operation_and_last_error", () => {
+    expect(() =>
+      parseWasmJson("{ invalid", "assemble", {
+        getLastError: () => "bridge detail"
+      })
+    ).toThrow(/Failed to parse WASM assemble JSON: .*Raw response: \{ invalid.*bridge detail/);
+  });
+});
+
 function legacyGoldenWindow(state: CometStateDto): CometStateDto {
   return {
     ...state,
@@ -171,6 +181,18 @@ function legacyGoldenWindow(state: CometStateDto): CometStateDto {
 }
 
 describeWasm("WasmCoreAdapter golden parity", () => {
+  it("wasm empty source returns diagnostics_without_crashing", async () => {
+    const adapter = new WasmCoreAdapter();
+    const result = await adapter.assemble("");
+
+    expect(result.ok).toBe(false);
+    expect(result.state.runState).toBe("Error");
+    expect(result.diagnostics.map((diagnostic) => diagnostic.message)).toEqual(
+      expect.arrayContaining(["CASL source must contain START directive", "CASL source must contain END directive"])
+    );
+    await adapter.dispose();
+  });
+
   it("wasm assemble simple ready matches golden", async () => {
     const adapter = new WasmCoreAdapter();
     const result = await adapter.assemble(DEFAULT_CASL_SOURCE);

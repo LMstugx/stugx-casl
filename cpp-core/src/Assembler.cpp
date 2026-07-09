@@ -78,6 +78,19 @@ void addDiagnostic(std::vector<Diagnostic>& diagnostics, int line, std::string m
     diagnostics.push_back({line, Severity::Error, std::move(message)});
 }
 
+bool validateRequiredDirectives(const std::vector<ParsedLine>& lines, std::vector<Diagnostic>& diagnostics) {
+    const auto hasStart = std::any_of(lines.begin(), lines.end(), [](const ParsedLine& line) {
+        return line.opcode.has_value() && *line.opcode == Opcode::START;
+    });
+    const auto hasEnd = std::any_of(lines.begin(), lines.end(), [](const ParsedLine& line) {
+        return line.opcode.has_value() && *line.opcode == Opcode::END;
+    });
+    const auto line = lines.empty() ? 0 : lines.front().line;
+    if (!hasStart) addDiagnostic(diagnostics, line, "CASL source must contain START directive");
+    if (!hasEnd) addDiagnostic(diagnostics, line, "CASL source must contain END directive");
+    return hasStart && hasEnd;
+}
+
 std::string symbolKey(const std::string& label) {
     std::string key(label);
     std::transform(key.begin(), key.end(), key.begin(), [](unsigned char ch) {
@@ -144,10 +157,11 @@ AssembleResult Assembler::assemble(const std::string& source) const {
     result.diagnostics = parsed.diagnostics;
 
     auto lines = std::move(parsed.value);
-    const auto pass1Ok = pass1(lines, result.value, result.diagnostics);
+    const auto requiredDirectivesOk = validateRequiredDirectives(lines, result.diagnostics);
+    const auto pass1Ok = requiredDirectivesOk && pass1(lines, result.value, result.diagnostics);
     const auto pass2Ok = pass1Ok && pass2(lines, result.value, result.diagnostics);
 
-    result.ok = parsed.ok && pass1Ok && pass2Ok && result.diagnostics.empty();
+    result.ok = parsed.ok && requiredDirectivesOk && pass1Ok && pass2Ok && result.diagnostics.empty();
     result.value.state.runState = result.ok ? RunState::Ready : RunState::Error;
     result.value.state.visualPath = result.ok ? VisualPathKind::Ready_PrToMar : VisualPathKind::None;
     result.value.state.pr = kDefaultStartAddress;

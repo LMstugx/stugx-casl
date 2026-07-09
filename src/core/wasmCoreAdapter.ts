@@ -9,27 +9,27 @@ export class WasmCoreAdapter implements CoreAdapter {
 
   async assemble(sourceText: string): Promise<AssembleResultDto> {
     const core = await this.ensureInitialized();
-    return parseJson<AssembleResultDto>(core.assemble(sourceText), "assemble", core);
+    return parseWasmJson<AssembleResultDto>(core.assemble(sourceText), "assemble", core);
   }
 
   async reset(): Promise<CometStateDto> {
     const core = await this.ensureInitialized();
-    return parseJson<CometStateDto>(core.reset(), "reset", core);
+    return parseWasmJson<CometStateDto>(core.reset(), "reset", core);
   }
 
   async step(): Promise<StepResultDto> {
     const core = await this.ensureInitialized();
-    return parseJson<StepResultDto>(core.step(), "step", core);
+    return parseWasmJson<StepResultDto>(core.step(), "step", core);
   }
 
   async run(maxSteps: number): Promise<CometStateDto> {
     const core = await this.ensureInitialized();
-    return parseJson<CometStateDto>(core.run(maxSteps), "run", core);
+    return parseWasmJson<CometStateDto>(core.run(maxSteps), "run", core);
   }
 
   async getState(): Promise<CometStateDto> {
     const core = await this.ensureInitialized();
-    return parseJson<CometStateDto>(core.getState(), "getState", core);
+    return parseWasmJson<CometStateDto>(core.getState(), "getState", core);
   }
 
   async dispose(): Promise<void> {
@@ -48,14 +48,14 @@ export class WasmCoreAdapter implements CoreAdapter {
     this.corePromise ??= loadWasmModule();
     const core = await this.corePromise;
     if (!this.initialized) {
-      parseJson<CometStateDto>(core.create(), "create", core);
+      parseWasmJson<CometStateDto>(core.create(), "create", core);
       this.initialized = true;
     }
     return core;
   }
 }
 
-function parseJson<T>(json: string, operation: string, core: LoadedWasmCore): T {
+export function parseWasmJson<T>(json: string, operation: string, core: Pick<LoadedWasmCore, "getLastError">): T {
   try {
     return JSON.parse(json) as T;
   } catch (error) {
@@ -66,7 +66,7 @@ function parseJson<T>(json: string, operation: string, core: LoadedWasmCore): T 
   }
 }
 
-function safeLastError(core: LoadedWasmCore): string {
+function safeLastError(core: Pick<LoadedWasmCore, "getLastError">): string {
   try {
     return core.getLastError();
   } catch {

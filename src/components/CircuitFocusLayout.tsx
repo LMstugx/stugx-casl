@@ -335,6 +335,27 @@ type ProbeRow = {
   active: boolean;
 };
 
+type StackPreviewRow = {
+  address: number;
+  value: number;
+  isSp: boolean;
+};
+
+function wrapAddress(address: number): number {
+  return address & 0xffff;
+}
+
+function stackPreviewRows(state: CometState): StackPreviewRow[] {
+  return Array.from({ length: 7 }, (_, index) => {
+    const address = wrapAddress(state.sp - 2 + index);
+    return {
+      address,
+      value: state.memory[address] ?? 0,
+      isSp: address === state.sp
+    };
+  });
+}
+
 function signalProbeRows(state: CometState, focus: FocusInstructionContext): ProbeRow[] {
   const visualPath = activeVisualPath(state);
   const latest = state.trace[0];
@@ -384,6 +405,12 @@ function signalProbeRows(state: CometState, focus: FocusInstructionContext): Pro
       value: memoryValue,
       note: "target memory",
       active: memoryAddress !== undefined && (state.lastMemoryReadAddress === memoryAddress || state.lastMemoryWriteAddress === memoryAddress || state.changedMemoryAddresses.includes(memoryAddress))
+    },
+    {
+      label: "SP",
+      value: formatWord(state.sp),
+      note: "stack preview only",
+      active: false
     }
   ];
 
@@ -447,6 +474,36 @@ function FocusSignalProbePanel({ state, focus }: { state: CometState; focus: Foc
         <div className="signal-probe-evolution" data-testid="signal-probe-evolution">
           {recent.length === 0 ? <span>No signal changes yet.</span> : recent.map((event) => <span key={`${event.index}-${event.address}`}>{traceChangeText(event)}</span>)}
         </div>
+      </div>
+    </section>
+  );
+}
+
+function FocusStackPreviewPanel({ state }: { state: CometState }) {
+  const rows = stackPreviewRows(state);
+
+  return (
+    <section className="panel focus-stack-preview" data-testid="focus-stack-preview">
+      <header className="panel-header">
+        <div>
+          <h2>Stack Preview</h2>
+          <span>Stack path preview only.</span>
+        </div>
+        <span>SP {formatWord(state.sp)}</span>
+      </header>
+      <div className="stack-preview-body" data-testid="stack-preview-window">
+        <div className="stack-preview-grid stack-preview-head" aria-hidden="true">
+          <span>Addr</span>
+          <span>Value</span>
+          <span>Note</span>
+        </div>
+        {rows.map((row) => (
+          <div key={row.address} className={row.isSp ? "stack-preview-grid stack-preview-row current" : "stack-preview-grid stack-preview-row"} data-testid="stack-preview-row" data-address={formatWord(row.address)} data-sp={row.isSp ? "true" : "false"}>
+            <code>{formatWord(row.address)}</code>
+            <code>{formatWord(row.value)}</code>
+            <span>{row.isSp ? "<- SP" : ""}</span>
+          </div>
+        ))}
       </div>
     </section>
   );
@@ -519,6 +576,7 @@ export default function CircuitFocusLayout({
       <aside className="focus-right-column">
         <FocusInspector state={state} />
         <FocusSignalProbePanel state={state} focus={focus} />
+        <FocusStackPreviewPanel state={state} />
         <FocusTracePanel state={state} />
         <section className="panel focus-source-context" data-testid="focus-source-context">
           <header className="panel-header">

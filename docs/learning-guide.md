@@ -310,6 +310,8 @@ The active data path targets specific rows where possible. For example, `LD GR2,
 
 `SP` is visible as an independent register. Since stack instructions are not implemented yet, it is not part of the default `PR -> MAR` fetch path and should not become active during ordinary arithmetic or memory instructions.
 
+The Stack Preview card is read-only. It shows the current `SP` value and a small memory window around `SP`, with a faint inactive guide for the future `SP -> MAR -> Memory[SP]` path. This is only preparation for later stack instructions; current programs do not push, pop, call, or return through the stack.
+
 Circuit Focus Mode uses a deliberate current/next split. The main teaching target is the last executed instruction: Program, Current Instruction, Current Source Mapping, Source Context, and the latest Trace row should all point to that same instruction. `PR` is the next address and is shown only as a secondary hint together with the next instruction.
 
 Machine state and pipeline stage are also separate. `Machine: Ready` describes the VM state, while the Current Instruction card and Step Timeline show the teaching stage such as `Operand Read`, `Execute`, or `Write Back`.
@@ -327,6 +329,8 @@ Small signal indicators such as `READ`, `WRITE`, `EXEC`, and `FLAG` are visual h
 Focus Mode is layered intentionally. Current Instruction and the active path are the primary teaching objects. Program, Timeline, Registers, Memory, and latest Trace are secondary. Bus labels, inactive wires, older trace rows, Source Context, and Output Log are tertiary context.
 
 The compact Signal Probe card is read-only. It shows current or recent values for the selected GR row, `MDR`, `ALU.Y` when involved, `FR`, target memory, and recent trace changes. It is a study aid, not an automatic grader or custom circuit editor.
+
+When stack preview is relevant, Signal Probe also shows `SP` with the note `stack preview only`. That row is not fake activity; it is a reminder that `SP` is reserved for future stack operations and remains inactive for current ordinary instructions.
 
 Display naming is intentionally narrow:
 

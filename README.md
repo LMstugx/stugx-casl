@@ -73,6 +73,7 @@ For future custom-circuit design notes, see [docs/future-custom-circuit-design.m
 For the latest CASL instruction coverage batch, see [docs/phase9a-casl-instruction-coverage.md](docs/phase9a-casl-instruction-coverage.md).
 For shift instruction coverage and path templates, see [docs/phase9b-shift-instructions-and-path-templates.md](docs/phase9b-shift-instructions-and-path-templates.md).
 For index addressing, see [docs/phase9c-index-addressing.md](docs/phase9c-index-addressing.md).
+For the stack address path preview foundation, see [docs/phase9e-stack-address-path-foundation.md](docs/phase9e-stack-address-path-foundation.md).
 
 ## Key Views
 
@@ -83,7 +84,7 @@ For index addressing, see [docs/phase9c-index-addressing.md](docs/phase9c-index-
 - Control Flow: label and jump target hints for if/else, while, for, break, and continue.
 - Memory Viewer: bounded memory windows with label, PR, MAR, read, write, and range controls.
 - Trace: recent execution history for Step and Run.
-- Circuit Focus Mode: a presentation layout with Program, OUT Display, Current Instruction, large COMET II circuit, compact Signal Probe, Registers, Trace, and Timeline panels. It highlights the last executed instruction as the teaching target, while PR and next instruction remain secondary hints. The circuit uses DATA / ADDR / CTRL bus lanes, row-level anchors, and lightweight signal indicators for a lab-style teaching schematic.
+- Circuit Focus Mode: a presentation layout with Program, OUT Display, Current Instruction, large COMET II circuit, compact Signal Probe, Stack Preview, Registers, Trace, and Timeline panels. It highlights the last executed instruction as the teaching target, while PR and next instruction remain secondary hints. The circuit uses DATA / ADDR / CTRL bus lanes, row-level anchors, and lightweight signal indicators for a lab-style teaching schematic.
 - Circuit: SVG COMET II visualization driven by the current runtime state, with row-level GR/Memory targeting for active data paths.
 
 ## Demo Examples
@@ -269,12 +270,14 @@ The current backend is shown in the status bar as `Mock Core`, `WASM Core`, or `
 - [docs/screenshots-guide.md](docs/screenshots-guide.md): useful screenshots for explaining the tool.
 - [docs/project-overview.md](docs/project-overview.md): concise project overview for learning and teaching use.
 - [docs/phase9d-effective-address-unit.md](docs/phase9d-effective-address-unit.md): Effective Address Unit visualization for indexed operands.
+- [docs/phase9e-stack-address-path-foundation.md](docs/phase9e-stack-address-path-foundation.md): SP, Stack Preview, and inactive stack-address path foundation for future stack instructions.
 
 ## Current Limitations
 
 - This is a learning-oriented C++ subset transpiler, not a complete C++ compiler.
 - The CASL II assembler supports the current teaching subset, not the full instruction set.
 - Index addressing is supported for CASL address operands, but C++ subset code does not generate indexed operands yet.
+- Stack Preview is visual-only. `PUSH`, `POP`, `CALL`, and stack-based `RET` are not implemented yet.
 - The WASM bridge currently uses a single runtime and JSON strings.
 - The control-flow view is text and badge based; there is no full CFG graph yet.
 - New / Open / Save, language switching, and theme controls are placeholders or limited.

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { VisualPathKind } from "../../core/types";
 import { circuitAnchors, circuitLayout } from "../circuitLayout";
-import { pathTemplateForInstruction } from "../instructionPathTemplates";
+import { pathTemplateForInstruction, stackPathTemplates } from "../instructionPathTemplates";
 import { activeWireIdsByKind, buildWirePaths, routeOrthogonal, routeViaLane, type WirePath } from "../wirePaths";
 
 function wireById(id: string) {
@@ -78,8 +78,14 @@ describe("circuit focus layout", () => {
     expect(circuitLayout.mar.y).toBeLessThan(circuitLayout.gr.y);
     expect(circuitLayout.sp.y).toBeLessThan(circuitLayout.alu.y + 20);
     expect(activeWireIdsByKind[VisualPathKind.Ready_PrToMar]).toEqual(["pr-to-mar"]);
-    expect(activeWireIdsByKind[VisualPathKind.Ready_PrToMar]).not.toContain("sp-reference");
+    expect(activeWireIdsByKind[VisualPathKind.Ready_PrToMar]).not.toContain("sp-to-mar-preview");
     expect(wireById("pr-to-mar").d).not.toContain(`${circuitLayout.sp.x}`);
+  });
+
+  it("sp_has_stack_path_anchors", () => {
+    expect(circuitAnchors.sp.outputToMar().y).toBe(circuitLayout.sp.y + circuitLayout.sp.h);
+    expect(circuitAnchors.sp.adjust().x).toBe(circuitLayout.sp.x + circuitLayout.sp.w);
+    expect(circuitAnchors.mar.stackInput().y).toBe(circuitLayout.mar.y + circuitLayout.mar.h);
   });
 
   it("has stable row-level anchors for memory and general registers", () => {
@@ -304,6 +310,57 @@ describe("circuit focus layout", () => {
       lane: "addr",
       semanticType: "address"
     });
+  });
+
+  it("stack_path_guide_is_inactive_by_default", () => {
+    const paths = buildWirePaths({ grIndex: 2, memoryAddress: 0x27 });
+    const spToMar = paths.find((wire) => wire.id === "sp-to-mar-preview");
+    const marToStack = paths.find((wire) => wire.id === "mar-to-stack-memory-preview");
+
+    expect(spToMar).toMatchObject({
+      role: "inactive",
+      lane: "addr",
+      semanticType: "address",
+      fromAnchor: expect.objectContaining({ id: "sp.output" }),
+      toAnchor: expect.objectContaining({ id: "mar.stackInput" }),
+      relatedStage: "Stack preview"
+    });
+    expect(marToStack).toMatchObject({
+      role: "inactive",
+      lane: "addr",
+      semanticType: "address",
+      fromAnchor: expect.objectContaining({ id: "mar.right" }),
+      toAnchor: expect.objectContaining({ id: "memory.spPreview" }),
+      relatedStage: "Stack preview"
+    });
+    for (const wires of Object.values(activeWireIdsByKind)) {
+      expect(wires).not.toContain("sp-to-mar-preview");
+      expect(wires).not.toContain("mar-to-stack-memory-preview");
+    }
+  });
+
+  it("stack_path_template_placeholders_exist", () => {
+    expect(stackPathTemplates["stack-read"]).toMatchObject({
+      kind: "stack-read",
+      source: "SP",
+      target: "GR",
+      routeSegments: ["sp-to-mar-preview", "mar-to-stack-memory-preview"],
+      usesSP: true,
+      usesMAR: true,
+      usesMemory: true,
+      readsMemory: true,
+      writesMemory: false,
+      futureInstructionKinds: ["POP"]
+    });
+    expect(stackPathTemplates["stack-write"]).toMatchObject({
+      kind: "stack-write",
+      source: "GR",
+      target: "Memory[SP]",
+      writesMemory: true,
+      futureInstructionKinds: ["PUSH"]
+    });
+    expect(stackPathTemplates["call-return-address"].futureInstructionKinds).toEqual(["CALL"]);
+    expect(stackPathTemplates["return-pop-address"].futureInstructionKinds).toEqual(["RET_STACK"]);
   });
 
   it("row_anchor_endpoint_is_used_for_memory_read_write", () => {

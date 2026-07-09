@@ -43,6 +43,7 @@ async function enterCircuitFocusMode(page: Page) {
   await expect(page.getByTestId("focus-circuit-panel")).toBeVisible();
   await expect(page.getByTestId("focus-registers-panel")).toBeVisible();
   await expect(page.getByTestId("focus-signal-probe")).toBeVisible();
+  await expect(page.getByTestId("focus-stack-preview")).toBeVisible();
   await expect(page.getByTestId("focus-trace-panel")).toBeVisible();
   await expect(page.getByTestId("focus-step-timeline")).toBeVisible();
 }
@@ -79,6 +80,18 @@ async function captureCaslGr2Flow(page: Page, viewport: Viewport) {
   await expect(page.getByTestId("comet-circuit-svg").locator("[data-testid='module-alu']")).toHaveAttribute("data-active", "false");
   await expect(page.getByTestId("comet-circuit-svg").locator("[data-testid='wire-gr-to-mdr']")).toHaveAttribute("data-lane", "data-bypass");
   await capture(page, viewport, "casl-gr2-st.png");
+}
+
+async function captureStackPreviewFocus(page: Page, viewport: Viewport) {
+  await openStudio(page, "Mock Core");
+  await selectDemoProgram(page, "casl-gr2-addition");
+  await enterCircuitFocusMode(page);
+  await assemble(page);
+  await expect(page.getByTestId("focus-stack-preview")).toContainText("Stack path preview only.");
+  await expect(page.getByTestId("focus-stack-preview")).toContainText("SP FFFE");
+  await expect(page.getByTestId("comet-circuit-svg").locator("[data-testid='module-sp']")).toHaveAttribute("data-active", "false");
+  await expect(page.getByTestId("comet-circuit-svg").locator("[data-testid='wire-guide-sp-to-mar-preview']")).toHaveAttribute("data-active", "false");
+  await capture(page, viewport, "stack-preview-focus.png");
 }
 
 async function captureCppAdditionGeneratedCasl(page: Page, viewport: Viewport) {
@@ -208,6 +221,7 @@ test.describe("visual review screenshot gallery", () => {
 
       await captureProjectOverview(page, viewport);
       await captureCaslGr2Flow(page, viewport);
+      await captureStackPreviewFocus(page, viewport);
       await captureCppAdditionGeneratedCasl(page, viewport);
       await captureMachineCodeExplanation(page, viewport);
       await captureForSumControlFlow(page, viewport);

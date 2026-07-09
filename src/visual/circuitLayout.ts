@@ -83,11 +83,14 @@ export const circuitAnchors = {
   },
   sp: {
     left: () => rectPoint(circuitLayout.sp, "left"),
-    right: () => rectPoint(circuitLayout.sp, "right")
+    right: () => rectPoint(circuitLayout.sp, "right"),
+    outputToMar: () => rectPoint(circuitLayout.sp, "bottom"),
+    adjust: () => rectPoint(circuitLayout.sp, "right", 0.72)
   },
   mar: {
     left: () => rectPoint(circuitLayout.mar, "left"),
     right: () => rectPoint(circuitLayout.mar, "right"),
+    stackInput: () => rectPoint(circuitLayout.mar, "bottom"),
     outputToMemory: () => rectPoint(circuitLayout.mar, "right", 0.5)
   },
   eau: {

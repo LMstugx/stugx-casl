@@ -118,6 +118,18 @@ Expected observation:
 - `GR1` should become `0014`.
 - After `ST`, Memory[RESULT] should become `0014`.
 
+### Task 5C. Observe the stack preview foundation
+
+Start from `CASL: GR2 Addition` and open Circuit Focus Mode.
+
+Expected observation:
+
+- `SP` should be visible in the top address/control layer.
+- Stack Preview should show the current `SP` and a small nearby memory window.
+- The stack path should be marked as preview-only.
+- Stepping `LD`, `ADDA`, and `ST` should not activate `SP`.
+- This does not mean `PUSH`, `POP`, or `CALL` are implemented yet.
+
 ## Level 2: C++ to CASL
 
 ### Task 6. Change addition to subtraction

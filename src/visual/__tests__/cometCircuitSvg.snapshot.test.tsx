@@ -118,8 +118,11 @@ describe("COMET circuit SVG visual regression structure", () => {
     expect(doc.querySelector("[data-testid='module-sp']")?.getAttribute("data-layer")).toBe("control");
     expect(doc.querySelector("[data-testid='module-sp']")?.getAttribute("data-active")).toBe("false");
     expect(activeWireIds(doc)).toEqual(["pr-to-mar"]);
-    expect(doc.querySelector("[data-path-id='sp-reference']")?.getAttribute("data-active")).toBe("false");
+    expect(doc.querySelector("[data-path-id='sp-to-mar-preview']")?.getAttribute("data-active")).toBe("false");
+    expect(doc.querySelector("[data-path-id='mar-to-stack-memory-preview']")?.getAttribute("data-active")).toBe("false");
 
+    expect(doc.querySelector("[data-testid='sp-anchor-output']")).toBeTruthy();
+    expect(doc.querySelector("[data-testid='sp-anchor-adjust']")).toBeTruthy();
     expect(doc.querySelector("[data-testid='gr-row-anchor-left-1']")).toBeTruthy();
     expect(doc.querySelector("[data-testid='gr-row-anchor-right-1']")).toBeTruthy();
     expect(doc.querySelector("[data-testid='memory-row-anchor-left-0020']")).toBeTruthy();

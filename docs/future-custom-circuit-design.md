@@ -97,3 +97,12 @@ Phase 9C adds indexed operands, and Phase 9D visualizes the address computation 
 - EAU.SUM -> MAR / Memory row / PR / target GR depending on instruction category
 - LAD and shift use the effective address as a value, not as a memory data read
 - memory instructions highlight the effective Memory row, not the base operand row
+
+Phase 9E adds stack-address infrastructure without stack execution semantics. Future stack templates should preserve this preview shape:
+
+- SP -> MAR -> Memory[SP] is an address path, not an ALU data path
+- Stack Preview is read-only until `PUSH`, `POP`, or `CALL` exist
+- `SP` has output and adjustment anchors, but ordinary instructions keep it inactive
+- future stack templates should define whether they read memory, write memory, adjust SP, or update PR
+
+The current placeholder names are intentionally future-facing: `stack-read`, `stack-write`, `call-return-address`, and `return-pop-address`.

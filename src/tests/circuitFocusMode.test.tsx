@@ -170,7 +170,49 @@ describe("Circuit Focus Mode layout", () => {
 
     expect(markup).toContain('data-testid="module-sp"');
     expect(markup).toContain('data-testid="module-sp" data-active="false"');
-    expect(activeWireIds(markup)).not.toContain("sp-reference");
+    expect(markup).toContain('data-testid="sp-anchor-output"');
+    expect(markup).toContain('data-testid="sp-anchor-adjust"');
+    expect(activeWireIds(markup)).not.toContain("sp-to-mar-preview");
+    expect(activeWireIds(markup)).not.toContain("mar-to-stack-memory-preview");
+  });
+
+  it("stack_preview_renders_sp_value", () => {
+    const markup = renderFocus(mockCaslCore.assemble(gr2Source));
+
+    expect(markup).toContain('data-testid="focus-stack-preview"');
+    expect(markup).toContain("Stack Preview");
+    expect(markup).toContain("Stack path preview only.");
+    expect(markup).toContain("SP FFFE");
+    expect(markup).toContain('data-sp="true"');
+  });
+
+  it("stack_preview_renders_nearby_memory_window", () => {
+    const markup = renderFocus(mockCaslCore.assemble(gr2Source));
+
+    expect((markup.match(/data-testid="stack-preview-row"/g) ?? []).length).toBe(7);
+    expect(markup).toContain('data-address="FFFC"');
+    expect(markup).toContain('data-address="FFFD"');
+    expect(markup).toContain('data-address="FFFE" data-sp="true"');
+    expect(markup).toContain('data-address="FFFF"');
+    expect(markup).toContain('data-address="0000"');
+  });
+
+  it("stack_preview_does_not_render_full_memory", () => {
+    const markup = renderFocus(mockCaslCore.assemble(gr2Source));
+
+    expect((markup.match(/data-testid="stack-preview-row"/g) ?? []).length).toBeLessThan(16);
+    expect(markup).not.toContain('data-address="0020" data-sp="true"');
+  });
+
+  it("stack_path_guide_is_inactive_by_default", () => {
+    const markup = renderFocus(stepTimes(1));
+
+    expect(markup).toContain('data-testid="wire-guide-sp-to-mar-preview"');
+    expect(markup).toContain('data-testid="wire-guide-mar-to-stack-memory-preview"');
+    expect(markup).toContain('data-active="false" data-path-id="sp-to-mar-preview"');
+    expect(markup).toContain('data-active="false" data-path-id="mar-to-stack-memory-preview"');
+    expect(activeWireIds(markup)).not.toContain("sp-to-mar-preview");
+    expect(activeWireIds(markup)).not.toContain("mar-to-stack-memory-preview");
   });
 
   it("focus_mode_memory_row_arrow_visible and focus_mode_gr_row_arrow_visible", () => {
@@ -340,6 +382,14 @@ DONE RET
     expect(markup).toContain('data-testid="module-alu" data-active="false"');
   });
 
+  it("sp_is_inactive_for_ld_st_and_adda", () => {
+    for (const markup of [renderFocus(stepTimes(1)), renderFocus(stepTimes(2)), renderFocus(stepTimes(3))]) {
+      expect(markup).toContain('data-testid="module-sp" data-active="false"');
+      expect(activeWireIds(markup)).not.toContain("sp-to-mar-preview");
+      expect(activeWireIds(markup)).not.toContain("mar-to-stack-memory-preview");
+    }
+  });
+
   it("focus_mode_alu_path_visible_for_adda", () => {
     const markup = renderFocus(stepTimes(2));
 
@@ -437,6 +487,26 @@ DONE RET
     expect(addaMarkup).toContain('data-testid="signal-probe-row" data-active="true"');
     expect(stMarkup).toContain("MEM[0029]");
     expect(stMarkup).toContain("0007");
+  });
+
+  it("signal_probe_shows_sp_preview_without_fake_activity", () => {
+    const markup = renderFocus(stepTimes(1));
+
+    expect(markup).toContain("SP");
+    expect(markup).toContain("FFFE");
+    expect(markup).toContain("stack preview only");
+    expect(markup).toContain('data-testid="signal-probe-row" data-active="false"');
+  });
+
+  it("ret_semantics_unchanged", () => {
+    const state = stepTimes(4);
+    const markup = renderFocus(state);
+
+    expect(state.runState).toBe("Finished");
+    expect(state.sp).toBe(0xfffe);
+    expect(markup).toContain("SP FFFE");
+    expect(activeWireIds(markup)).not.toContain("sp-to-mar-preview");
+    expect(activeWireIds(markup)).not.toContain("mar-to-stack-memory-preview");
   });
 
   it("signal_probe_shows_shift_result", () => {

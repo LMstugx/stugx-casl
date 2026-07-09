@@ -107,6 +107,8 @@ Use the gallery to inspect:
 - ST writeback lands at the Memory row edge instead of crossing value or label text.
 - READ / WRITE / EXEC / FLAG indicators match the visible active path.
 - Signal Probe is compact and derived from the current instruction / recent trace.
+- Stack Preview is compact, read-only, and clearly marked as preview-only.
+- The SP -> MAR -> Memory guide is faint and inactive during ordinary execution.
 - Older Trace rows are lower emphasis than the latest row.
 - Output Log remains available but compact in Focus Mode.
 - SP is visible but inactive for ordinary execution.
@@ -127,6 +129,7 @@ Use the gallery to inspect:
 - `casl-gr2-st.png` (Circuit Focus Mode)
 - `index-addressing-circuit.png` (Circuit Focus Mode)
 - `index-addressing-machine-code.png` (Machine Code explanation)
+- `stack-preview-focus.png` (Circuit Focus Mode)
 - `cpp-addition-generated-casl.png`
 - `machine-code-explanation.png`
 - `for-sum-control-flow.png`

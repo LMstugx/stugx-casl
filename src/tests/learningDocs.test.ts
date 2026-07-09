@@ -11,6 +11,7 @@ import phase8m from "../../docs/phase8m-lightweight-signal-flow-animation.md?raw
 import phase9a from "../../docs/phase9a-casl-instruction-coverage.md?raw";
 import phase9b from "../../docs/phase9b-shift-instructions-and-path-templates.md?raw";
 import phase9d from "../../docs/phase9d-effective-address-unit.md?raw";
+import phase9e from "../../docs/phase9e-stack-address-path-foundation.md?raw";
 import futureCustomCircuit from "../../docs/future-custom-circuit-design.md?raw";
 import practiceTasks from "../../docs/practice-tasks.md?raw";
 import projectOverview from "../../docs/project-overview.md?raw";
@@ -111,6 +112,14 @@ describe("learning use documentation", () => {
     expect(phase9d).toContain("Signal Probe");
   });
 
+  it("phase9e_stack_address_path_doc_exists", () => {
+    expect(phase9e).toContain("Phase 9E: SP / Stack Address Path Foundation");
+    expect(phase9e).toContain("SP -> MAR -> Memory[SP]");
+    expect(phase9e).toContain("Stack Preview");
+    expect(phase9e).toContain("does not implement `PUSH`, `POP`, `CALL`");
+    expect(phase9e).toContain("Current `RET` semantics are unchanged");
+  });
+
   it("phase8e_circuit_focus_doc_exists", () => {
     expect(phase8e).toContain("Phase 8E: Circuit Focus Final Layout");
     expect(phase8e).toContain("SP Semantic Rule");
@@ -163,6 +172,8 @@ describe("learning use documentation", () => {
     expect(futureCustomCircuit).toContain("current phase does not implement");
     expect(futureCustomCircuit).toContain("InstructionPathTemplate");
     expect(futureCustomCircuit).toContain("shift template");
+    expect(futureCustomCircuit).toContain("stack-read");
+    expect(futureCustomCircuit).toContain("SP -> MAR -> Memory[SP]");
   });
 
   it("practice_tasks_do_not_use_unsupported_syntax", () => {
@@ -193,6 +204,7 @@ describe("learning use documentation", () => {
     expect(readme).toContain("docs/phase8l-circuit-arrow-routing.md");
     expect(readme).toContain("docs/phase9b-shift-instructions-and-path-templates.md");
     expect(readme).toContain("docs/phase9d-effective-address-unit.md");
+    expect(readme).toContain("docs/phase9e-stack-address-path-foundation.md");
     expect(readme).toContain("docs/future-custom-circuit-design.md");
     expect(normalized).not.toContain("hackathon");
     expect(normalized).not.toContain("contest submission");

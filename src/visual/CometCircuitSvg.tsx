@@ -437,6 +437,7 @@ function CometCircuitSvg({ state, sourceMapFocus }: { state: CometState; sourceM
             <path
               key={path.id}
               d={path.d}
+              data-testid={`wire-guide-${path.id}`}
               data-active="false"
               data-path-id={path.id}
               data-lane={path.lane}
@@ -517,7 +518,10 @@ function CometCircuitSvg({ state, sourceMapFocus }: { state: CometState; sourceM
       </Module>
       <Module layout={circuitLayout.pr} title="PR" value={formatWord(state.pr)} accent={state.changedRegisters.includes("PR")} testId="module-pr" layer="control" />
       <Module layout={circuitLayout.addressResult} title="+2" value={formatWord((state.pr + 2) & 0xffff)} testId="module-address-result" layer="control" />
-      <Module layout={circuitLayout.sp} title="SP" value={formatWord(state.sp)} testId="module-sp" layer="control" />
+      <Module layout={circuitLayout.sp} title="SP" value={formatWord(state.sp)} testId="module-sp" layer="control">
+        <AnchorPoint id="sp-anchor-output" x={circuitAnchors.sp.outputToMar().x} y={circuitAnchors.sp.outputToMar().y} />
+        <AnchorPoint id="sp-anchor-adjust" x={circuitAnchors.sp.adjust().x} y={circuitAnchors.sp.adjust().y} />
+      </Module>
       <Module layout={circuitLayout.mar} title="MAR" value={formatWord(state.mar)} accent={state.changedRegisters.includes("MAR")} testId="module-mar" layer="control" />
       <EffectiveAddressUnitModule state={state} active={hasIndexAddressing} />
       <GeneralRegisters state={state} />

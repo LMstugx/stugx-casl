@@ -30,6 +30,24 @@ export type InstructionPathTemplate = {
   usesControlPath: boolean;
 };
 
+export type StackPathKind = "stack-read" | "stack-write" | "call-return-address" | "return-pop-address";
+export type FutureStackInstructionKind = "PUSH" | "POP" | "CALL" | "RET_STACK";
+
+export type StackPathTemplate = {
+  kind: StackPathKind;
+  source: "SP" | "PR" | "GR" | "Memory";
+  target: "MAR" | "Memory[SP]" | "PR" | "GR";
+  routeSegments: string[];
+  usesSP: boolean;
+  usesMAR: boolean;
+  usesMemory: boolean;
+  writesSP: boolean;
+  writesMemory: boolean;
+  readsMemory: boolean;
+  updatesPR: boolean;
+  futureInstructionKinds: FutureStackInstructionKind[];
+};
+
 const loadTemplate: InstructionPathTemplate = {
   instructionKind: "LD",
   category: "load",
@@ -166,6 +184,65 @@ export const instructionPathTemplates: Partial<Record<InstructionKind, Instructi
   JMI: { ...jumpTemplate, instructionKind: "JMI", visualPath: VisualPathKind.ConditionalJump_AddressToPr },
   JOV: { ...jumpTemplate, instructionKind: "JOV", visualPath: VisualPathKind.ConditionalJump_AddressToPr },
   RET: { ...noOpTemplate, instructionKind: "RET", visualPath: VisualPathKind.Finished_None }
+};
+
+export const stackPathTemplates: Record<StackPathKind, StackPathTemplate> = {
+  "stack-read": {
+    kind: "stack-read",
+    source: "SP",
+    target: "GR",
+    routeSegments: ["sp-to-mar-preview", "mar-to-stack-memory-preview"],
+    usesSP: true,
+    usesMAR: true,
+    usesMemory: true,
+    writesSP: true,
+    writesMemory: false,
+    readsMemory: true,
+    updatesPR: false,
+    futureInstructionKinds: ["POP"]
+  },
+  "stack-write": {
+    kind: "stack-write",
+    source: "GR",
+    target: "Memory[SP]",
+    routeSegments: ["sp-to-mar-preview", "mar-to-stack-memory-preview"],
+    usesSP: true,
+    usesMAR: true,
+    usesMemory: true,
+    writesSP: true,
+    writesMemory: true,
+    readsMemory: false,
+    updatesPR: false,
+    futureInstructionKinds: ["PUSH"]
+  },
+  "call-return-address": {
+    kind: "call-return-address",
+    source: "PR",
+    target: "Memory[SP]",
+    routeSegments: ["sp-to-mar-preview", "mar-to-stack-memory-preview"],
+    usesSP: true,
+    usesMAR: true,
+    usesMemory: true,
+    writesSP: true,
+    writesMemory: true,
+    readsMemory: false,
+    updatesPR: true,
+    futureInstructionKinds: ["CALL"]
+  },
+  "return-pop-address": {
+    kind: "return-pop-address",
+    source: "Memory",
+    target: "PR",
+    routeSegments: ["sp-to-mar-preview", "mar-to-stack-memory-preview"],
+    usesSP: true,
+    usesMAR: true,
+    usesMemory: true,
+    writesSP: true,
+    writesMemory: false,
+    readsMemory: true,
+    updatesPR: true,
+    futureInstructionKinds: ["RET_STACK"]
+  }
 };
 
 export function pathTemplateForInstruction(instructionKind: InstructionKind | undefined): InstructionPathTemplate | undefined {

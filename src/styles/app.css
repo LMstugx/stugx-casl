@@ -299,7 +299,7 @@ button {
 }
 
 .focus-right-column {
-  grid-template-rows: minmax(0, 1fr) 146px 150px 54px;
+  grid-template-rows: minmax(0, 1fr) 136px 132px 134px 48px;
 }
 
 .focus-program-panel,
@@ -490,7 +490,8 @@ button {
   background: #f8fafc;
 }
 
-.focus-signal-probe {
+.focus-signal-probe,
+.focus-stack-preview {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
 }
@@ -568,6 +569,62 @@ button {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.stack-preview-body {
+  min-height: 0;
+  overflow: hidden;
+  display: grid;
+  grid-auto-rows: minmax(0, auto);
+  gap: 3px;
+  padding: 6px 8px;
+  background: #f8fafc;
+}
+
+.stack-preview-grid {
+  display: grid;
+  grid-template-columns: 54px 54px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+}
+
+.stack-preview-head {
+  color: var(--color-muted);
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.stack-preview-row {
+  min-height: 18px;
+  padding: 1px 5px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--color-muted);
+  font-size: 10px;
+}
+
+.stack-preview-row.current {
+  color: #10233d;
+  background: #eef6ff;
+  border-color: #bfdbfe;
+  box-shadow: inset 2px 0 0 var(--color-primary);
+}
+
+.stack-preview-row code {
+  color: var(--color-code-green);
+  font-family: "Cascadia Mono", Consolas, monospace;
+  font-size: 10.5px;
+}
+
+.stack-preview-row span {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--color-primary);
+  font-size: 10px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .focus-trace-list {
@@ -1354,6 +1411,13 @@ button {
 .wire-inactive {
   stroke: var(--color-wire-inactive);
   stroke-dasharray: 4 5;
+}
+
+[data-path-id="sp-to-mar-preview"],
+[data-path-id="mar-to-stack-memory-preview"] {
+  opacity: 0.2;
+  stroke: #728198;
+  stroke-dasharray: 3 7;
 }
 
 .wire-active {

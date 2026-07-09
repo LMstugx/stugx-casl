@@ -167,6 +167,9 @@ export function buildWirePaths({ grIndex = 1, indexRegister, memoryAddress = 0x2
   const prLeft = circuitAnchors.pr.left();
   const marLeft = circuitAnchors.mar.left();
   const marRight = circuitAnchors.mar.right();
+  const marStackInput = circuitAnchors.mar.stackInput();
+  const spToMar = circuitAnchors.sp.outputToMar();
+  const spAdjust = circuitAnchors.sp.adjust();
   const eauBaseInput = circuitAnchors.eau.baseInput();
   const eauIndexInput = circuitAnchors.eau.indexInput();
   const eauSumOutput = circuitAnchors.eau.sumOutput();
@@ -183,6 +186,7 @@ export function buildWirePaths({ grIndex = 1, indexRegister, memoryAddress = 0x2
   const controllerTop = { x: circuitLayout.controller.x + circuitLayout.controller.w / 2, y: circuitLayout.controller.y };
   const controllerRight = { x: circuitLayout.controller.x + circuitLayout.controller.w, y: circuitLayout.controller.y + circuitLayout.controller.h / 2 };
   const operandBaseSource = { x: circuitLayout.eau.x - 30, y: eauBaseInput.y };
+  const stackMemoryPreview = { x: circuitLayout.memory.x + 12, y: circuitLayout.memory.y + 35 };
   const portClearance = circuitRouting.portClearance;
   const controlClearance = circuitRouting.controlClearance;
   const stackReferenceDrop = circuitRouting.stackReferenceDrop;
@@ -190,10 +194,13 @@ export function buildWirePaths({ grIndex = 1, indexRegister, memoryAddress = 0x2
     prLeft: anchor("pr.left", prLeft, "control"),
     prRight: anchor("pr.right", prRight, "control"),
     plus2Left: anchor("plus2.left", { x: circuitLayout.addressResult.x, y: prRight.y }, "control"),
-    spBottom: anchor("sp.bottom", { x: circuitLayout.sp.x + circuitLayout.sp.w / 2, y: circuitLayout.sp.y + circuitLayout.sp.h }, "address"),
+    spOutput: anchor("sp.output", spToMar, "output"),
+    spAdjust: anchor("sp.adjust", spAdjust, "address"),
     marLeft: anchor("mar.left", marLeft, "address"),
     marShiftCount: anchor("mar.shiftCount", marLeft, "address"),
     marRight: anchor("mar.right", marRight, "address"),
+    marStackInput: anchor("mar.stackInput", marStackInput, "input"),
+    stackMemoryPreview: anchor("memory.spPreview", stackMemoryPreview, "address"),
     operandBase: anchor("operand.base", operandBaseSource, "address"),
     eauBaseInput: anchor("eau.base", eauBaseInput, "input"),
     eauIndexInput: anchor("eau.index", eauIndexInput, "input"),
@@ -228,20 +235,21 @@ export function buildWirePaths({ grIndex = 1, indexRegister, memoryAddress = 0x2
     wire("index-to-effective", "address", "addr", "address", anchors.indexGrRight, anchors.marLeft, [indexGrRight, { x: indexGrRight.x + portClearance, y: indexGrRight.y }, { x: indexGrRight.x + portClearance, y: addressBusY }, { x: marLeft.x - portClearance, y: addressBusY }, { x: marLeft.x - portClearance, y: marLeft.y }, marLeft], { relatedRegister: indexGr, relatedStage: "Effective Address", junctions: [{ x: indexGrRight.x + portClearance, y: addressBusY }] }),
     wire("pr-to-plus2", "control", "ctrl", "control", anchors.prRight, anchors.plus2Left, [prRight, { x: circuitLayout.addressResult.x, y: prRight.y }], { relatedStage: "Next" }),
     wire(
-      "sp-reference",
+      "sp-to-mar-preview",
       "inactive",
       "addr",
       "address",
-      anchors.spBottom,
-      anchor("mar.stackReference", { x: circuitLayout.mar.x + circuitLayout.mar.w / 2, y: circuitLayout.mar.y + circuitLayout.mar.h }, "address"),
+      anchors.spOutput,
+      anchors.marStackInput,
       [
-        { x: circuitLayout.sp.x + circuitLayout.sp.w / 2, y: circuitLayout.sp.y + circuitLayout.sp.h },
-        { x: circuitLayout.sp.x + circuitLayout.sp.w / 2, y: circuitLayout.sp.y + circuitLayout.sp.h + stackReferenceDrop },
-        { x: circuitLayout.mar.x + circuitLayout.mar.w / 2, y: circuitLayout.sp.y + circuitLayout.sp.h + stackReferenceDrop },
-        { x: circuitLayout.mar.x + circuitLayout.mar.w / 2, y: circuitLayout.mar.y + circuitLayout.mar.h }
+        spToMar,
+        { x: spToMar.x, y: spToMar.y + stackReferenceDrop },
+        { x: marStackInput.x, y: spToMar.y + stackReferenceDrop },
+        marStackInput
       ],
-      { relatedStage: "Stack reference" }
+      { relatedStage: "Stack preview" }
     ),
+    wire("mar-to-stack-memory-preview", "inactive", "addr", "address", anchors.marRight, anchors.stackMemoryPreview, routeViaLane(marRight, stackMemoryPreview, { x: memoryBusX }), { relatedStage: "Stack preview", junctions: [{ x: memoryBusX, y: stackMemoryPreview.y }] }),
     wire("mar-to-memory", "address", "addr", "address", anchors.marRight, anchors.memoryLeft, routeViaLane(marRight, memoryLeft, { x: memoryBusX }), { relatedMemoryAddress: memoryAddress, relatedStage: "Operand Read", junctions: [{ x: memoryBusX, y: memoryLeft.y }] }),
     wire("memory-to-mdr", "data", "data-bypass", "data", anchors.memoryLeft, anchors.mdrRight, routeViaLane(memoryLeft, mdrRight, { x: memoryBusX }), { avoidsAlu: true, relatedMemoryAddress: memoryAddress, relatedStage: "Operand Read", junctions: [{ x: memoryBusX, y: memoryLeft.y }] }),
     wire("mdr-to-gr", "data", "data-bypass", "data", anchors.mdrBottom, anchors.grRight, routeAvoidRect(mdrBottom, grRight, [circuitLayout.alu], { y: dataBypassY }), { avoidsAlu: true, relatedRegister: gr, relatedStage: "Write Back", junctions: [{ x: mdrBottom.x, y: dataBypassY }] }),

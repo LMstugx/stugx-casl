@@ -87,6 +87,10 @@ struct CometState {
     std::optional<std::uint16_t> lastMemoryReadAddress;
     std::optional<std::uint16_t> lastMemoryWriteAddress;
     std::optional<std::uint8_t> lastRegisterWriteIndex;
+    std::optional<std::uint16_t> lastBaseAddress;
+    std::optional<std::uint8_t> lastIndexRegister;
+    std::optional<std::uint16_t> lastIndexValue;
+    std::optional<std::uint16_t> lastEffectiveAddress;
 };
 
 struct SourceRow {

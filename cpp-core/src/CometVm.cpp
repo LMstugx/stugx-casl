@@ -145,6 +145,25 @@ bool isJumpTaken(Opcode opcode, const Flags& flags) {
     }
 }
 
+struct EffectiveAddressInfo {
+    std::uint16_t baseAddress = 0;
+    std::optional<std::uint8_t> indexRegister;
+    std::optional<std::uint16_t> indexValue;
+    std::uint16_t effectiveAddress = 0;
+};
+
+EffectiveAddressInfo effectiveAddressFor(const CometState& state, const Instruction& instruction) {
+    const auto baseAddress = instruction.operandAddress.value_or(instruction.address);
+    const auto indexRegister = instruction.indexRegister == 0 ? std::optional<std::uint8_t>{} : std::optional<std::uint8_t>{instruction.indexRegister};
+    const auto indexValue = indexRegister.has_value() ? std::optional<std::uint16_t>{state.gr[*indexRegister]} : std::optional<std::uint16_t>{};
+    return {
+        baseAddress,
+        indexRegister,
+        indexValue,
+        static_cast<std::uint16_t>((static_cast<std::uint32_t>(baseAddress) + indexValue.value_or(0)) & 0xffffU)
+    };
+}
+
 }  // namespace
 
 void CometVm::load(const AssembleOutput& program) {
@@ -186,11 +205,22 @@ StepResult CometVm::step() {
     result.executedInstruction = instruction->source;
     result.instructionKind = instruction->opcode;
     state_.ir = state_.memory[instruction->address];
-    state_.mar = instruction->operandAddress.value_or(instruction->address);
+    const auto effective = effectiveAddressFor(state_, *instruction);
+    state_.mar = effective.effectiveAddress;
     state_.lastInstructionKind = instruction->opcode;
     state_.lastMemoryReadAddress.reset();
     state_.lastMemoryWriteAddress.reset();
     state_.lastRegisterWriteIndex.reset();
+    state_.lastBaseAddress.reset();
+    state_.lastIndexRegister.reset();
+    state_.lastIndexValue.reset();
+    state_.lastEffectiveAddress.reset();
+    if (instruction->operandAddress.has_value()) {
+        state_.lastBaseAddress = effective.baseAddress;
+        state_.lastIndexRegister = effective.indexRegister;
+        state_.lastIndexValue = effective.indexValue;
+        state_.lastEffectiveAddress = effective.effectiveAddress;
+    }
 
     switch (instruction->opcode) {
         case Opcode::NOP:
@@ -206,8 +236,8 @@ StepResult CometVm::step() {
                 fail(result, "Invalid LD operands");
                 return result;
             }
-            state_.lastMemoryReadAddress = *instruction->operandAddress;
-            state_.mdr = state_.memory[*instruction->operandAddress];
+            state_.lastMemoryReadAddress = effective.effectiveAddress;
+            state_.mdr = state_.memory[effective.effectiveAddress];
             state_.gr[gr] = state_.mdr;
             state_.lastRegisterWriteIndex = gr;
             state_.pr = static_cast<std::uint16_t>(state_.pr + 2);
@@ -223,7 +253,7 @@ StepResult CometVm::step() {
                 fail(result, "Invalid LAD operands");
                 return result;
             }
-            state_.gr[gr] = *instruction->operandAddress;
+            state_.gr[gr] = effective.effectiveAddress;
             state_.lastRegisterWriteIndex = gr;
             state_.pr = static_cast<std::uint16_t>(state_.pr + 2);
             state_.visualPath = VisualPathKind::LAD_AddressToGr;
@@ -239,8 +269,8 @@ StepResult CometVm::step() {
                 return result;
             }
             const auto lhs = state_.gr[gr];
-            state_.lastMemoryReadAddress = *instruction->operandAddress;
-            state_.mdr = state_.memory[*instruction->operandAddress];
+            state_.lastMemoryReadAddress = effective.effectiveAddress;
+            state_.mdr = state_.memory[effective.effectiveAddress];
             const auto sum = static_cast<std::uint32_t>(lhs) + state_.mdr;
             state_.gr[gr] = static_cast<std::uint16_t>(sum & 0xffff);
             state_.lastRegisterWriteIndex = gr;
@@ -259,8 +289,8 @@ StepResult CometVm::step() {
                 return result;
             }
             const auto lhs = state_.gr[gr];
-            state_.lastMemoryReadAddress = *instruction->operandAddress;
-            state_.mdr = state_.memory[*instruction->operandAddress];
+            state_.lastMemoryReadAddress = effective.effectiveAddress;
+            state_.mdr = state_.memory[effective.effectiveAddress];
             const auto diff = static_cast<std::int32_t>(lhs) - static_cast<std::int32_t>(state_.mdr);
             state_.gr[gr] = static_cast<std::uint16_t>(diff & 0xffff);
             state_.lastRegisterWriteIndex = gr;
@@ -279,8 +309,8 @@ StepResult CometVm::step() {
                 return result;
             }
             const auto lhs = state_.gr[gr];
-            state_.lastMemoryReadAddress = *instruction->operandAddress;
-            state_.mdr = state_.memory[*instruction->operandAddress];
+            state_.lastMemoryReadAddress = effective.effectiveAddress;
+            state_.mdr = state_.memory[effective.effectiveAddress];
             const auto sum = static_cast<std::uint32_t>(lhs) + state_.mdr;
             state_.gr[gr] = static_cast<std::uint16_t>(sum & 0xffff);
             state_.lastRegisterWriteIndex = gr;
@@ -299,8 +329,8 @@ StepResult CometVm::step() {
                 return result;
             }
             const auto lhs = state_.gr[gr];
-            state_.lastMemoryReadAddress = *instruction->operandAddress;
-            state_.mdr = state_.memory[*instruction->operandAddress];
+            state_.lastMemoryReadAddress = effective.effectiveAddress;
+            state_.mdr = state_.memory[effective.effectiveAddress];
             state_.gr[gr] = static_cast<std::uint16_t>((static_cast<std::uint32_t>(lhs) - state_.mdr) & 0xffff);
             state_.lastRegisterWriteIndex = gr;
             state_.fr = flagsForLogicalSub(lhs, state_.mdr);
@@ -320,8 +350,8 @@ StepResult CometVm::step() {
                 return result;
             }
             const auto lhs = state_.gr[gr];
-            state_.lastMemoryReadAddress = *instruction->operandAddress;
-            state_.mdr = state_.memory[*instruction->operandAddress];
+            state_.lastMemoryReadAddress = effective.effectiveAddress;
+            state_.mdr = state_.memory[effective.effectiveAddress];
             std::uint16_t value = 0;
             if (instruction->opcode == Opcode::AND) value = static_cast<std::uint16_t>(lhs & state_.mdr);
             if (instruction->opcode == Opcode::OR) value = static_cast<std::uint16_t>(lhs | state_.mdr);
@@ -342,8 +372,8 @@ StepResult CometVm::step() {
                 fail(result, "Invalid CPA operands");
                 return result;
             }
-            state_.lastMemoryReadAddress = *instruction->operandAddress;
-            state_.mdr = state_.memory[*instruction->operandAddress];
+            state_.lastMemoryReadAddress = effective.effectiveAddress;
+            state_.mdr = state_.memory[effective.effectiveAddress];
             state_.fr = flagsForCompare(state_.gr[gr], state_.mdr);
             state_.pr = static_cast<std::uint16_t>(state_.pr + 2);
             state_.visualPath = VisualPathKind::CPA_GrMdrToAluToFr;
@@ -358,8 +388,8 @@ StepResult CometVm::step() {
                 fail(result, "Invalid CPL operands");
                 return result;
             }
-            state_.lastMemoryReadAddress = *instruction->operandAddress;
-            state_.mdr = state_.memory[*instruction->operandAddress];
+            state_.lastMemoryReadAddress = effective.effectiveAddress;
+            state_.mdr = state_.memory[effective.effectiveAddress];
             state_.fr = flagsForLogicalCompare(state_.gr[gr], state_.mdr);
             state_.pr = static_cast<std::uint16_t>(state_.pr + 2);
             state_.visualPath = VisualPathKind::CPA_GrMdrToAluToFr;
@@ -377,7 +407,7 @@ StepResult CometVm::step() {
                 fail(result, "Invalid shift operands");
                 return result;
             }
-            const auto shifted = shiftValue(instruction->opcode, state_.gr[gr], *instruction->operandAddress);
+            const auto shifted = shiftValue(instruction->opcode, state_.gr[gr], effective.effectiveAddress);
             state_.gr[gr] = shifted.value;
             state_.lastRegisterWriteIndex = gr;
             state_.fr = flagsForShift(shifted.value, shifted.shiftedOut);
@@ -395,8 +425,8 @@ StepResult CometVm::step() {
                 return result;
             }
             state_.mdr = state_.gr[gr];
-            state_.memory[*instruction->operandAddress] = state_.mdr;
-            state_.lastMemoryWriteAddress = *instruction->operandAddress;
+            state_.memory[effective.effectiveAddress] = state_.mdr;
+            state_.lastMemoryWriteAddress = effective.effectiveAddress;
             state_.pr = static_cast<std::uint16_t>(state_.pr + 2);
             state_.visualPath = VisualPathKind::ST_GrToMdrToMemory;
             result.visualPath = state_.visualPath;
@@ -415,7 +445,7 @@ StepResult CometVm::step() {
                 return result;
             }
             const auto taken = isJumpTaken(instruction->opcode, state_.fr);
-            state_.pr = taken ? *instruction->operandAddress : static_cast<std::uint16_t>(state_.pr + 2);
+            state_.pr = taken ? effective.effectiveAddress : static_cast<std::uint16_t>(state_.pr + 2);
             state_.visualPath = instruction->opcode == Opcode::JUMP
                 ? VisualPathKind::Jump_AddressToPr
                 : taken

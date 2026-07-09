@@ -120,7 +120,8 @@
       "label": null,
       "instruction": "LD",
       "operandAddress": 39,
-      "isCurrent": false
+      "isCurrent": false,
+      "indexRegister": null
     },
     {
       "line": 3,
@@ -133,7 +134,8 @@
       "label": null,
       "instruction": "ADDA",
       "operandAddress": 40,
-      "isCurrent": false
+      "isCurrent": false,
+      "indexRegister": null
     },
     {
       "line": 4,
@@ -146,7 +148,8 @@
       "label": null,
       "instruction": "ST",
       "operandAddress": 41,
-      "isCurrent": true
+      "isCurrent": true,
+      "indexRegister": null
     },
     {
       "line": 5,
@@ -158,7 +161,8 @@
       "label": null,
       "instruction": "RET",
       "operandAddress": null,
-      "isCurrent": false
+      "isCurrent": false,
+      "indexRegister": null
     },
     {
       "line": 6,
@@ -170,7 +174,8 @@
       "label": "A",
       "instruction": "DC",
       "operandAddress": null,
-      "isCurrent": false
+      "isCurrent": false,
+      "indexRegister": null
     },
     {
       "line": 7,
@@ -182,7 +187,8 @@
       "label": "B",
       "instruction": "DC",
       "operandAddress": null,
-      "isCurrent": false
+      "isCurrent": false,
+      "indexRegister": null
     },
     {
       "line": 8,
@@ -194,8 +200,12 @@
       "label": "C",
       "instruction": "DS",
       "operandAddress": null,
-      "isCurrent": false
+      "isCurrent": false,
+      "indexRegister": null
     }
   ],
-  "diagnostics": []
+  "diagnostics": [],
+  "baseAddress": 40,
+  "indexRegister": null,
+  "indexValue": null
 }

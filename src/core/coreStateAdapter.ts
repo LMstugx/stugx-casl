@@ -89,7 +89,8 @@ function programFromDto(sourceRows: SourceRowDto[]): AssembledInstruction[] {
         size: row.machineWords.length || (op === "RET" ? 1 : 2),
         gr,
         operandLabel: operandLabelForAddress(sourceRows, row.operandAddress),
-        operandAddress: row.operandAddress ?? undefined
+        operandAddress: row.operandAddress ?? undefined,
+        indexRegister: row.indexRegister ?? undefined
       };
     });
 }
@@ -186,31 +187,34 @@ function findLastInstructionRow(dto: CometStateDto): SourceRowDto | undefined {
     if (row.instruction !== kind) return false;
     if ((row.machineWords[0] ?? 0) !== dto.ir0) return false;
     if (kind === "RET") return true;
-    return row.operandAddress === dto.effectiveAddress;
+    return row.operandAddress === (dto.baseAddress ?? dto.effectiveAddress);
   });
 }
 
 function traceDetail(dto: CometStateDto): string {
   const register = dto.lastRegisterWriteIndex ?? ((dto.ir0 >> 4) & 0x0f);
   const address = dto.effectiveAddress ?? 0;
-  if (dto.lastInstructionKind === "LD") return `Memory[${formatWord(address)}] -> MDR -> GR${register}`;
-  if (dto.lastInstructionKind === "LAD") return `Address ${formatWord(address)} -> GR${register}`;
-  if (dto.lastInstructionKind === "ADDA") return `GR${register} + MDR -> ALU -> GR${register}`;
-  if (dto.lastInstructionKind === "SUBA") return `GR${register} - MDR -> ALU -> GR${register}`;
-  if (dto.lastInstructionKind === "ADDL") return `GR${register} + MDR (unsigned) -> ALU -> GR${register}`;
-  if (dto.lastInstructionKind === "SUBL") return `GR${register} - MDR (unsigned) -> ALU -> GR${register}`;
+  const indexDetail = dto.baseAddress !== null && dto.indexRegister !== null && dto.indexValue !== null && dto.effectiveAddress !== null
+    ? `base: ${formatWord(dto.baseAddress)} index: GR${dto.indexRegister}=${formatWord(dto.indexValue)} effective: ${formatWord(dto.effectiveAddress)}; `
+    : "";
+  if (dto.lastInstructionKind === "LD") return `${indexDetail}Memory[${formatWord(address)}] -> MDR -> GR${register}`;
+  if (dto.lastInstructionKind === "LAD") return `${indexDetail}Effective address ${formatWord(address)} -> GR${register}`;
+  if (dto.lastInstructionKind === "ADDA") return `${indexDetail}GR${register} + MDR -> ALU -> GR${register}`;
+  if (dto.lastInstructionKind === "SUBA") return `${indexDetail}GR${register} - MDR -> ALU -> GR${register}`;
+  if (dto.lastInstructionKind === "ADDL") return `${indexDetail}GR${register} + MDR (unsigned) -> ALU -> GR${register}`;
+  if (dto.lastInstructionKind === "SUBL") return `${indexDetail}GR${register} - MDR (unsigned) -> ALU -> GR${register}`;
   if (dto.lastInstructionKind === "AND" || dto.lastInstructionKind === "OR" || dto.lastInstructionKind === "XOR") {
-    return `GR${register} ${dto.lastInstructionKind} MDR -> ALU -> GR${register}`;
+    return `${indexDetail}GR${register} ${dto.lastInstructionKind} MDR -> ALU -> GR${register}`;
   }
-  if (dto.lastInstructionKind === "CPA") return `GR${register} - MDR -> ALU -> FR`;
-  if (dto.lastInstructionKind === "CPL") return `GR${register} compared with MDR (unsigned) -> FR`;
+  if (dto.lastInstructionKind === "CPA") return `${indexDetail}GR${register} - MDR -> ALU -> FR`;
+  if (dto.lastInstructionKind === "CPL") return `${indexDetail}GR${register} compared with MDR (unsigned) -> FR`;
   if (dto.lastInstructionKind === "SLA" || dto.lastInstructionKind === "SRA" || dto.lastInstructionKind === "SLL" || dto.lastInstructionKind === "SRL") {
-    return `GR${register} shifted by ${formatWord(address)} -> Shifter -> GR${register} / FR`;
+    return `${indexDetail}GR${register} shifted by ${formatWord(address)} -> Shifter -> GR${register} / FR`;
   }
-  if (dto.lastInstructionKind === "ST") return `GR${register} -> MDR -> Memory[${formatWord(address)}]`;
-  if (dto.lastInstructionKind === "JUMP") return `PR <- ${formatWord(address)}`;
+  if (dto.lastInstructionKind === "ST") return `${indexDetail}GR${register} -> MDR -> Memory[${formatWord(address)}]`;
+  if (dto.lastInstructionKind === "JUMP") return `${indexDetail}PR <- ${formatWord(address)}`;
   if (dto.lastInstructionKind === "JZE" || dto.lastInstructionKind === "JNZ" || dto.lastInstructionKind === "JPL" || dto.lastInstructionKind === "JMI" || dto.lastInstructionKind === "JOV") {
-    return dto.currentInstructionAddress === dto.effectiveAddress ? `PR <- ${formatWord(address)}` : "Condition not met; PR advanced";
+    return dto.currentInstructionAddress === dto.effectiveAddress ? `${indexDetail}PR <- ${formatWord(address)}` : `${indexDetail}Condition not met; PR advanced`;
   }
   if (dto.lastInstructionKind === "NOP") return "No operation; PR advanced to the next word.";
   if (dto.lastInstructionKind === "RET") return "Program finished without jumping to an invalid address.";
@@ -240,6 +244,10 @@ function traceFromDto(dto: CometStateDto, previous?: CometState): TraceEvent[] {
     changedMemoryAddress,
     changedMemoryValueBefore: changedMemoryAddress !== undefined ? previous?.memory[changedMemoryAddress] ?? 0 : undefined,
     changedMemoryValueAfter: changedMemoryAddress !== undefined ? dto.mdr : undefined,
+    baseAddress: dto.baseAddress ?? undefined,
+    indexRegister: dto.indexRegister ?? undefined,
+    indexValue: dto.indexValue ?? undefined,
+    effectiveAddress: dto.effectiveAddress ?? undefined,
     runState: dto.runState
   };
   return [event, ...previousTrace].slice(0, MAX_TRACE_EVENTS).map((traceEvent) => ({ ...traceEvent }));
@@ -316,6 +324,10 @@ export function createCometStateFromDto(dto: CometStateDto, options: StateFromDt
     lastStep: lastStepFromDto(dto),
     lastMemoryReadAddress: dto.lastMemoryReadAddress ?? undefined,
     lastMemoryWriteAddress: dto.lastMemoryWriteAddress ?? undefined,
+    lastBaseAddress: dto.baseAddress ?? undefined,
+    lastIndexRegister: dto.indexRegister ?? undefined,
+    lastIndexValue: dto.indexValue ?? undefined,
+    lastEffectiveAddress: dto.effectiveAddress ?? undefined,
     program: programFromDto(dto.sourceRows),
     changedRegisters,
     changedMemoryAddresses
@@ -344,6 +356,9 @@ export function createEmptyUiCometState(runState: CometState["runState"] = "Idle
     lastMemoryReadAddress: null,
     lastMemoryWriteAddress: null,
     lastRegisterWriteIndex: null,
+    baseAddress: null,
+    indexRegister: null,
+    indexValue: null,
     effectiveAddress: null,
     memoryWindow: [],
     sourceRows: [],

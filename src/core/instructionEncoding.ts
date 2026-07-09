@@ -154,7 +154,7 @@ export const instructionEncodings: Partial<Record<InstructionKind, InstructionEn
     format: "JUMP_ADR",
     wordLength: 2,
     description: "Jump when the sign flag is set.",
-    fields: ["opcode", "address"]
+    fields: ["opcode", "x", "address"]
   },
   JNZ: {
     mnemonic: "JNZ",
@@ -162,7 +162,7 @@ export const instructionEncodings: Partial<Record<InstructionKind, InstructionEn
     format: "JUMP_ADR",
     wordLength: 2,
     description: "Jump when the zero flag is not set.",
-    fields: ["opcode", "address"]
+    fields: ["opcode", "x", "address"]
   },
   JZE: {
     mnemonic: "JZE",
@@ -170,7 +170,7 @@ export const instructionEncodings: Partial<Record<InstructionKind, InstructionEn
     format: "JUMP_ADR",
     wordLength: 2,
     description: "Jump when the zero flag is set.",
-    fields: ["opcode", "address"]
+    fields: ["opcode", "x", "address"]
   },
   JUMP: {
     mnemonic: "JUMP",
@@ -178,7 +178,7 @@ export const instructionEncodings: Partial<Record<InstructionKind, InstructionEn
     format: "JUMP_ADR",
     wordLength: 2,
     description: "Jump unconditionally to the operand address.",
-    fields: ["opcode", "address"]
+    fields: ["opcode", "x", "address"]
   },
   JPL: {
     mnemonic: "JPL",
@@ -186,7 +186,7 @@ export const instructionEncodings: Partial<Record<InstructionKind, InstructionEn
     format: "JUMP_ADR",
     wordLength: 2,
     description: "Jump when the result is positive.",
-    fields: ["opcode", "address"]
+    fields: ["opcode", "x", "address"]
   },
   JOV: {
     mnemonic: "JOV",
@@ -194,7 +194,7 @@ export const instructionEncodings: Partial<Record<InstructionKind, InstructionEn
     format: "JUMP_ADR",
     wordLength: 2,
     description: "Jump when the overflow flag is set.",
-    fields: ["opcode", "address"]
+    fields: ["opcode", "x", "address"]
   },
   RET: {
     mnemonic: "RET",

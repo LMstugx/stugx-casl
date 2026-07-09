@@ -349,7 +349,7 @@ function signalProbeRows(state: CometState, focus: FocusInstructionContext): Pro
         ? formatWord(state.memory[memoryAddress] ?? 0)
         : "inactive";
 
-  return [
+  const rows: ProbeRow[] = [
     {
       label: registerLabel,
       value: registerValue,
@@ -381,6 +381,17 @@ function signalProbeRows(state: CometState, focus: FocusInstructionContext): Pro
       active: memoryAddress !== undefined && (state.lastMemoryReadAddress === memoryAddress || state.lastMemoryWriteAddress === memoryAddress || state.changedMemoryAddresses.includes(memoryAddress))
     }
   ];
+
+  if (state.lastIndexRegister !== undefined && state.lastEffectiveAddress !== undefined) {
+    rows.splice(1, 0, {
+      label: "EA",
+      value: `${formatWord(state.lastBaseAddress ?? 0)} + GR${state.lastIndexRegister}=${formatWord(state.lastEffectiveAddress)}`,
+      note: "effective address",
+      active: true
+    });
+  }
+
+  return rows;
 }
 
 function FocusSignalProbePanel({ state, focus }: { state: CometState; focus: FocusInstructionContext }) {

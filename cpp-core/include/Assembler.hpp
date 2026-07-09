@@ -20,6 +20,7 @@ struct Instruction {
     std::uint8_t gr = 0;
     std::optional<std::uint16_t> operandAddress;
     std::string operandLabel;
+    std::uint8_t indexRegister = 0;
     std::uint8_t size = 1;
 };
 

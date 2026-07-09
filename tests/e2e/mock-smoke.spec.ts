@@ -99,6 +99,36 @@ test("Mock backend runs CASL shift operations and shows shifter path", async ({ 
   await expect(page.getByTestId("focus-registers-panel").getByTestId("register-gr1")).toContainText("0006");
 });
 
+test("Mock backend runs CASL index addressing and explains effective address", async ({ page }) => {
+  await openStudio(page, "Mock Core");
+  await selectDemoProgram(page, "casl-index-addressing");
+  await page.getByTestId("circuit-focus-toggle").click();
+
+  await assemble(page);
+  await step(page);
+  await step(page);
+
+  const circuit = page.getByTestId("comet-circuit-svg");
+  await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("LD");
+  await expect(circuit.locator("[data-testid='register-gr2']")).toHaveAttribute("data-index", "true");
+  await expect(circuit.locator("[data-testid='effective-address-chip']")).toContainText("EA = base + GR2");
+  await expect(circuit.locator("[data-testid='memory-row-0028']")).toHaveAttribute("data-read", "true");
+  await expect(circuit.locator("[data-testid='wire-index-to-effective']")).toBeVisible();
+  const focusInspector = page.getByTestId("focus-registers-panel");
+  await expect(focusInspector.getByTestId("register-gr1")).toContainText("0014");
+
+  await page.getByRole("tab", { name: "Machine Code" }).click();
+  await page.getByTestId("machine-code-row-0022").click();
+  await expect(page.getByTestId("machine-code-explanation")).toContainText("GR2");
+  await expect(page.getByTestId("machine-code-explanation")).toContainText("0028");
+
+  await run(page);
+  await expect(page.getByTestId("run-state")).toHaveText("Finished");
+  await focusInspector.getByRole("tab", { name: "Memory" }).click();
+  await expect(focusInspector.getByTestId("memory-view-row-0029")).toContainText("RESULT");
+  await expect(focusInspector.getByTestId("memory-view-row-0029")).toContainText("0014");
+});
+
 test("Mock backend keeps circuit focus paths anchored to rows", async ({ page }) => {
   await openStudio(page, "Mock Core");
   await selectDemoProgram(page, "casl-gr2-addition");

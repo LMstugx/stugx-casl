@@ -175,54 +175,62 @@ function registerNumber(token: string): number {
   return Number(match[1]);
 }
 
-function encodeInstruction(op: AssembledInstruction["op"], gr = 0): number {
+function indexRegisterNumber(token: string): number {
+  const register = registerNumber(token);
+  if (register === 0) throw new Error("GR0 cannot be used as an index register");
+  return register;
+}
+
+function encodeInstruction(op: AssembledInstruction["op"], gr = 0, indexRegister = 0): number {
+  const registerBits = (gr & 0x0f) << 4;
+  const indexBits = indexRegister & 0x0f;
   switch (op) {
     case "NOP":
       return 0x0000;
     case "LD":
-      return 0x1000 | (gr << 4);
+      return 0x1000 | registerBits | indexBits;
     case "LAD":
-      return 0x1200 | (gr << 4);
+      return 0x1200 | registerBits | indexBits;
     case "ADDA":
-      return 0x2000 | (gr << 4);
+      return 0x2000 | registerBits | indexBits;
     case "SUBA":
-      return 0x2100 | (gr << 4);
+      return 0x2100 | registerBits | indexBits;
     case "ADDL":
-      return 0x2200 | (gr << 4);
+      return 0x2200 | registerBits | indexBits;
     case "SUBL":
-      return 0x2300 | (gr << 4);
+      return 0x2300 | registerBits | indexBits;
     case "AND":
-      return 0x3000 | (gr << 4);
+      return 0x3000 | registerBits | indexBits;
     case "OR":
-      return 0x3100 | (gr << 4);
+      return 0x3100 | registerBits | indexBits;
     case "XOR":
-      return 0x3200 | (gr << 4);
+      return 0x3200 | registerBits | indexBits;
     case "CPA":
-      return 0x4000 | (gr << 4);
+      return 0x4000 | registerBits | indexBits;
     case "CPL":
-      return 0x4100 | (gr << 4);
+      return 0x4100 | registerBits | indexBits;
     case "SLA":
-      return 0x5000 | (gr << 4);
+      return 0x5000 | registerBits | indexBits;
     case "SRA":
-      return 0x5100 | (gr << 4);
+      return 0x5100 | registerBits | indexBits;
     case "SLL":
-      return 0x5200 | (gr << 4);
+      return 0x5200 | registerBits | indexBits;
     case "SRL":
-      return 0x5300 | (gr << 4);
+      return 0x5300 | registerBits | indexBits;
     case "ST":
-      return 0x1100 | (gr << 4);
+      return 0x1100 | registerBits | indexBits;
     case "JMI":
-      return 0x6100;
+      return 0x6100 | indexBits;
     case "JNZ":
-      return 0x6200;
+      return 0x6200 | indexBits;
     case "JZE":
-      return 0x6300;
+      return 0x6300 | indexBits;
     case "JUMP":
-      return 0x6400;
+      return 0x6400 | indexBits;
     case "JPL":
-      return 0x6500;
+      return 0x6500 | indexBits;
     case "JOV":
-      return 0x6600;
+      return 0x6600 | indexBits;
     case "RET":
       return 0x8100;
   }
@@ -237,6 +245,11 @@ function resolveAddressOperand(token: string | undefined, symbols: Record<string
     if (address === undefined) throw new Error(`Undefined symbol: ${token}`);
     return address;
   }
+}
+
+function parseOptionalIndexOperand(operand: string | undefined): number | undefined {
+  if (operand === undefined) return undefined;
+  return indexRegisterNumber(operand);
 }
 
 function parseProgram(source: string): ParsedLine[] {
@@ -294,11 +307,13 @@ function assembleArtifacts(source: string): AssembleArtifacts {
     if (line.op && REGISTER_ADDRESS_OPS.has(line.op)) {
       try {
         const op = line.op as AssembledInstruction["op"];
-        if (line.operands.length !== 2) throw new Error(`${line.op} requires register and address operands`);
+        if (line.operands.length < 2) throw new Error(`${line.op} requires register and address operands`);
+        if (line.operands.length > 3) throw new Error(`${line.op} has too many operands`);
         const gr = registerNumber(line.operands[0] ?? "");
         const operand = line.operands[1];
+        const indexRegister = parseOptionalIndexOperand(line.operands[2]);
         const operandAddress = resolveAddressOperand(operand, symbols);
-        const machine = encodeInstruction(op, gr);
+        const machine = encodeInstruction(op, gr, indexRegister ?? 0);
         memory[address] = machine;
         memory[address + 1] = operandAddress;
         sourceMap.push({
@@ -317,7 +332,8 @@ function assembleArtifacts(source: string): AssembleArtifacts {
           size: 2,
           gr,
           operandLabel: symbols[symbolKey(operand)] === operandAddress ? operand : undefined,
-          operandAddress
+          operandAddress,
+          indexRegister
         });
         address += 2;
       } catch (error) {
@@ -329,10 +345,12 @@ function assembleArtifacts(source: string): AssembleArtifacts {
     if (line.op && JUMP_OPS.has(line.op)) {
       try {
         const op = line.op as AssembledInstruction["op"];
-        if (line.operands.length !== 1) throw new Error(`${line.op} requires an address operand`);
+        if (line.operands.length < 1) throw new Error(`${line.op} requires an address operand`);
+        if (line.operands.length > 2) throw new Error(`${line.op} has too many operands`);
         const operand = line.operands[0];
+        const indexRegister = parseOptionalIndexOperand(line.operands[1]);
         const operandAddress = resolveAddressOperand(operand, symbols);
-        const machine = encodeInstruction(op);
+        const machine = encodeInstruction(op, 0, indexRegister ?? 0);
         memory[address] = machine;
         memory[address + 1] = operandAddress;
         sourceMap.push({
@@ -350,7 +368,8 @@ function assembleArtifacts(source: string): AssembleArtifacts {
           source: sourceText,
           size: 2,
           operandLabel: symbols[symbolKey(operand)] === operandAddress ? operand : undefined,
-          operandAddress
+          operandAddress,
+          indexRegister
         });
         address += 2;
       } catch (error) {
@@ -400,6 +419,7 @@ function assembleArtifacts(source: string): AssembleArtifacts {
 
     if (line.op === "DS") {
       try {
+        if (line.operands.length > 1) throw new Error("DS does not support index operands");
         const count = parseNumber(line.operands[0] ?? "0");
         if (address + count > 0x10000) {
           diagnostics.push({ line: line.line, message: "DS address out of range", severity: "error" });
@@ -629,6 +649,30 @@ function currentInstructionText(instruction?: AssembledInstruction): string | un
   return instruction.source.replace(/\s+/g, " ");
 }
 
+type EffectiveAddressInfo = {
+  baseAddress: number;
+  indexRegister?: number;
+  indexValue?: number;
+  effectiveAddress: number;
+};
+
+function effectiveAddressFor(state: CometState, instruction: AssembledInstruction): EffectiveAddressInfo {
+  const baseAddress = instruction.operandAddress ?? instruction.address;
+  const indexRegister = instruction.indexRegister;
+  const indexValue = indexRegister === undefined ? undefined : state.gr[indexRegister];
+  return {
+    baseAddress,
+    indexRegister,
+    indexValue,
+    effectiveAddress: word(baseAddress + (indexValue ?? 0))
+  };
+}
+
+function formatIndexDetail(info: EffectiveAddressInfo): string {
+  if (info.indexRegister === undefined || info.indexValue === undefined) return "";
+  return `base: ${formatWord(info.baseAddress)} index: GR${info.indexRegister}=${formatWord(info.indexValue)} effective: ${formatWord(info.effectiveAddress)}; `;
+}
+
 function refreshDerivedState(state: CometState): CometState {
   const current = instructionAt(state, state.pr);
   const next: CometState = {
@@ -714,6 +758,10 @@ function traceEvent(state: CometState, address: number, instruction: string, det
     visualPath: state.visualPath,
     changedRegister: state.changedRegisters.find((register) => register.startsWith("GR")),
     changedMemoryAddress: state.changedMemoryAddresses[0],
+    baseAddress: state.lastBaseAddress,
+    indexRegister: state.lastIndexRegister,
+    indexValue: state.lastIndexValue,
+    effectiveAddress: state.lastEffectiveAddress,
     runState: state.runState
   };
 }
@@ -755,8 +803,20 @@ export const mockCaslCore: CaslCore = {
     next.changedMemoryAddresses = [];
     next.lastMemoryReadAddress = undefined;
     next.lastMemoryWriteAddress = undefined;
+    next.lastBaseAddress = undefined;
+    next.lastIndexRegister = undefined;
+    next.lastIndexValue = undefined;
+    next.lastEffectiveAddress = undefined;
     next.ir = getMemory(next.memory, instruction.address);
-    next.mar = instruction.operandAddress ?? instruction.address;
+    const effective = effectiveAddressFor(next, instruction);
+    const indexDetail = formatIndexDetail(effective);
+    next.mar = effective.effectiveAddress;
+    if (instruction.operandAddress !== undefined) {
+      next.lastBaseAddress = effective.baseAddress;
+      next.lastIndexRegister = effective.indexRegister;
+      next.lastIndexValue = effective.indexValue;
+      next.lastEffectiveAddress = effective.effectiveAddress;
+    }
     next.lastStep = {
       executedAddress: instruction.address,
       executedLine: instruction.line,
@@ -772,32 +832,32 @@ export const mockCaslCore: CaslCore = {
     }
 
     if (instruction.op === "LD") {
-      const value = getMemory(next.memory, instruction.operandAddress!);
-      next.lastMemoryReadAddress = instruction.operandAddress!;
+      const value = getMemory(next.memory, effective.effectiveAddress);
+      next.lastMemoryReadAddress = effective.effectiveAddress;
       next.mdr = value;
       next.gr[instruction.gr!] = value;
       next.pr = word(next.pr + 2);
       next.visualPath = VisualPathKind.LD_MemoryToMdrToGr;
       next.lastStep.visualPath = next.visualPath;
       next.changedRegisters.push(`GR${instruction.gr}`, "MAR", "MDR");
-      prependTrace(next, traceEvent(next, instruction.address, "LD", `Memory[${formatWord(instruction.operandAddress!)}] -> MDR -> GR${instruction.gr}`));
+      prependTrace(next, traceEvent(next, instruction.address, "LD", `${indexDetail}Memory[${formatWord(effective.effectiveAddress)}] -> MDR -> GR${instruction.gr}`));
     }
 
     if (instruction.op === "LAD") {
-      const value = instruction.operandAddress!;
+      const value = effective.effectiveAddress;
       next.gr[instruction.gr!] = value;
       next.pr = word(next.pr + 2);
       next.visualPath = VisualPathKind.LAD_AddressToGr;
       next.lastStep.visualPath = next.visualPath;
       next.changedRegisters.push(`GR${instruction.gr}`, "MAR");
-      prependTrace(next, traceEvent(next, instruction.address, "LAD", `Address ${formatWord(value)} -> GR${instruction.gr}`));
+      prependTrace(next, traceEvent(next, instruction.address, "LAD", `${indexDetail}Effective address ${formatWord(value)} -> GR${instruction.gr}`));
     }
 
     if (instruction.op === "ADDA") {
-      const value = getMemory(next.memory, instruction.operandAddress!);
+      const value = getMemory(next.memory, effective.effectiveAddress);
       const lhs = next.gr[instruction.gr!];
       const result = lhs + value;
-      next.lastMemoryReadAddress = instruction.operandAddress!;
+      next.lastMemoryReadAddress = effective.effectiveAddress;
       next.mdr = value;
       next.gr[instruction.gr!] = word(result);
       next.fr = setFlagsForArithmeticResult(result, signedAddOverflow(lhs, value, result));
@@ -805,14 +865,14 @@ export const mockCaslCore: CaslCore = {
       next.visualPath = VisualPathKind.ADDA_GrMdrToAluToGr;
       next.lastStep.visualPath = next.visualPath;
       next.changedRegisters.push(`GR${instruction.gr}`, "MAR", "MDR", "FR");
-      prependTrace(next, traceEvent(next, instruction.address, "ADDA", `GR${instruction.gr} + MDR -> ALU -> GR${instruction.gr}`));
+      prependTrace(next, traceEvent(next, instruction.address, "ADDA", `${indexDetail}GR${instruction.gr} + MDR -> ALU -> GR${instruction.gr}`));
     }
 
     if (instruction.op === "SUBA") {
-      const value = getMemory(next.memory, instruction.operandAddress!);
+      const value = getMemory(next.memory, effective.effectiveAddress);
       const lhs = next.gr[instruction.gr!];
       const result = lhs - value;
-      next.lastMemoryReadAddress = instruction.operandAddress!;
+      next.lastMemoryReadAddress = effective.effectiveAddress;
       next.mdr = value;
       next.gr[instruction.gr!] = word(result);
       next.fr = setFlagsForArithmeticResult(result, signedSubOverflow(lhs, value, result));
@@ -820,14 +880,14 @@ export const mockCaslCore: CaslCore = {
       next.visualPath = VisualPathKind.SUBA_GrMdrToAluToGr;
       next.lastStep.visualPath = next.visualPath;
       next.changedRegisters.push(`GR${instruction.gr}`, "MAR", "MDR", "FR");
-      prependTrace(next, traceEvent(next, instruction.address, "SUBA", `GR${instruction.gr} - MDR -> ALU -> GR${instruction.gr}`));
+      prependTrace(next, traceEvent(next, instruction.address, "SUBA", `${indexDetail}GR${instruction.gr} - MDR -> ALU -> GR${instruction.gr}`));
     }
 
     if (instruction.op === "ADDL") {
-      const value = getMemory(next.memory, instruction.operandAddress!);
+      const value = getMemory(next.memory, effective.effectiveAddress);
       const lhs = next.gr[instruction.gr!];
       const result = lhs + value;
-      next.lastMemoryReadAddress = instruction.operandAddress!;
+      next.lastMemoryReadAddress = effective.effectiveAddress;
       next.mdr = value;
       next.gr[instruction.gr!] = word(result);
       next.fr = setFlagsForLogicalAdd(lhs, value);
@@ -835,13 +895,13 @@ export const mockCaslCore: CaslCore = {
       next.visualPath = VisualPathKind.ADDA_GrMdrToAluToGr;
       next.lastStep.visualPath = next.visualPath;
       next.changedRegisters.push(`GR${instruction.gr}`, "MAR", "MDR", "FR");
-      prependTrace(next, traceEvent(next, instruction.address, "ADDL", `GR${instruction.gr} + MDR (unsigned) -> ALU -> GR${instruction.gr}`));
+      prependTrace(next, traceEvent(next, instruction.address, "ADDL", `${indexDetail}GR${instruction.gr} + MDR (unsigned) -> ALU -> GR${instruction.gr}`));
     }
 
     if (instruction.op === "SUBL") {
-      const value = getMemory(next.memory, instruction.operandAddress!);
+      const value = getMemory(next.memory, effective.effectiveAddress);
       const lhs = next.gr[instruction.gr!];
-      next.lastMemoryReadAddress = instruction.operandAddress!;
+      next.lastMemoryReadAddress = effective.effectiveAddress;
       next.mdr = value;
       next.gr[instruction.gr!] = word(lhs - value);
       next.fr = setFlagsForLogicalSub(lhs, value);
@@ -849,14 +909,14 @@ export const mockCaslCore: CaslCore = {
       next.visualPath = VisualPathKind.SUBA_GrMdrToAluToGr;
       next.lastStep.visualPath = next.visualPath;
       next.changedRegisters.push(`GR${instruction.gr}`, "MAR", "MDR", "FR");
-      prependTrace(next, traceEvent(next, instruction.address, "SUBL", `GR${instruction.gr} - MDR (unsigned) -> ALU -> GR${instruction.gr}`));
+      prependTrace(next, traceEvent(next, instruction.address, "SUBL", `${indexDetail}GR${instruction.gr} - MDR (unsigned) -> ALU -> GR${instruction.gr}`));
     }
 
     if (instruction.op === "AND" || instruction.op === "OR" || instruction.op === "XOR") {
-      const value = getMemory(next.memory, instruction.operandAddress!);
+      const value = getMemory(next.memory, effective.effectiveAddress);
       const lhs = next.gr[instruction.gr!];
       const result = instruction.op === "AND" ? lhs & value : instruction.op === "OR" ? lhs | value : lhs ^ value;
-      next.lastMemoryReadAddress = instruction.operandAddress!;
+      next.lastMemoryReadAddress = effective.effectiveAddress;
       next.mdr = value;
       next.gr[instruction.gr!] = word(result);
       next.fr = setFlagsForLogicalResult(result);
@@ -864,36 +924,36 @@ export const mockCaslCore: CaslCore = {
       next.visualPath = VisualPathKind.ADDA_GrMdrToAluToGr;
       next.lastStep.visualPath = next.visualPath;
       next.changedRegisters.push(`GR${instruction.gr}`, "MAR", "MDR", "FR");
-      prependTrace(next, traceEvent(next, instruction.address, instruction.op, `GR${instruction.gr} ${instruction.op} MDR -> ALU -> GR${instruction.gr}`));
+      prependTrace(next, traceEvent(next, instruction.address, instruction.op, `${indexDetail}GR${instruction.gr} ${instruction.op} MDR -> ALU -> GR${instruction.gr}`));
     }
 
     if (instruction.op === "CPA") {
-      const value = getMemory(next.memory, instruction.operandAddress!);
-      next.lastMemoryReadAddress = instruction.operandAddress!;
+      const value = getMemory(next.memory, effective.effectiveAddress);
+      next.lastMemoryReadAddress = effective.effectiveAddress;
       next.mdr = value;
       next.fr = flagsForCompare(next.gr[instruction.gr!], value);
       next.pr = word(next.pr + 2);
       next.visualPath = VisualPathKind.CPA_GrMdrToAluToFr;
       next.lastStep.visualPath = next.visualPath;
       next.changedRegisters.push("MAR", "MDR", "FR");
-      prependTrace(next, traceEvent(next, instruction.address, "CPA", `GR${instruction.gr} - MDR -> ALU -> FR`));
+      prependTrace(next, traceEvent(next, instruction.address, "CPA", `${indexDetail}GR${instruction.gr} - MDR -> ALU -> FR`));
     }
 
     if (instruction.op === "CPL") {
-      const value = getMemory(next.memory, instruction.operandAddress!);
-      next.lastMemoryReadAddress = instruction.operandAddress!;
+      const value = getMemory(next.memory, effective.effectiveAddress);
+      next.lastMemoryReadAddress = effective.effectiveAddress;
       next.mdr = value;
       next.fr = flagsForLogicalCompare(next.gr[instruction.gr!], value);
       next.pr = word(next.pr + 2);
       next.visualPath = VisualPathKind.CPA_GrMdrToAluToFr;
       next.lastStep.visualPath = next.visualPath;
       next.changedRegisters.push("MAR", "MDR", "FR");
-      prependTrace(next, traceEvent(next, instruction.address, "CPL", `GR${instruction.gr} compared with MDR (unsigned) -> FR`));
+      prependTrace(next, traceEvent(next, instruction.address, "CPL", `${indexDetail}GR${instruction.gr} compared with MDR (unsigned) -> FR`));
     }
 
     if (SHIFT_OPS.has(instruction.op)) {
       const lhs = next.gr[instruction.gr!];
-      const count = instruction.operandAddress!;
+      const count = effective.effectiveAddress;
       const shifted = shiftValue(instruction.op, lhs, count);
       next.gr[instruction.gr!] = shifted.value;
       next.fr = flagsForShiftResult(shifted.value, shifted.shiftedOut);
@@ -901,25 +961,25 @@ export const mockCaslCore: CaslCore = {
       next.visualPath = VisualPathKind.Shift_AddressToAluToGr;
       next.lastStep.visualPath = next.visualPath;
       next.changedRegisters.push(`GR${instruction.gr}`, "MAR", "FR");
-      prependTrace(next, traceEvent(next, instruction.address, instruction.op, `GR${instruction.gr} shifted by ${formatWord(count)} -> Shifter -> GR${instruction.gr} / FR`));
+      prependTrace(next, traceEvent(next, instruction.address, instruction.op, `${indexDetail}GR${instruction.gr} shifted by ${formatWord(count)} -> Shifter -> GR${instruction.gr} / FR`));
     }
 
     if (instruction.op === "ST") {
       const value = next.gr[instruction.gr!];
       next.mdr = value;
-      next.memory[instruction.operandAddress!] = value;
-      next.lastMemoryWriteAddress = instruction.operandAddress!;
+      next.memory[effective.effectiveAddress] = value;
+      next.lastMemoryWriteAddress = effective.effectiveAddress;
       next.pr = word(next.pr + 2);
       next.visualPath = VisualPathKind.ST_GrToMdrToMemory;
       next.lastStep.visualPath = next.visualPath;
       next.changedRegisters.push("MAR", "MDR");
-      next.changedMemoryAddresses = [instruction.operandAddress!];
-      prependTrace(next, traceEvent(next, instruction.address, "ST", `GR${instruction.gr} -> MDR -> Memory[${formatWord(instruction.operandAddress!)}]`));
+      next.changedMemoryAddresses = [effective.effectiveAddress];
+      prependTrace(next, traceEvent(next, instruction.address, "ST", `${indexDetail}GR${instruction.gr} -> MDR -> Memory[${formatWord(effective.effectiveAddress)}]`));
     }
 
     if (JUMP_OPS.has(instruction.op)) {
       const taken = isJumpTaken(instruction.op, next.fr);
-      next.pr = taken ? instruction.operandAddress! : word(next.pr + 2);
+      next.pr = taken ? effective.effectiveAddress : word(next.pr + 2);
       next.visualPath = instruction.op === "JUMP"
         ? VisualPathKind.Jump_AddressToPr
         : taken
@@ -927,7 +987,7 @@ export const mockCaslCore: CaslCore = {
           : VisualPathKind.ConditionalJump_NotTaken;
       next.lastStep.visualPath = next.visualPath;
       next.changedRegisters.push("MAR");
-      prependTrace(next, traceEvent(next, instruction.address, instruction.op, taken ? `PR <- ${formatWord(instruction.operandAddress!)}` : "Condition not met; PR advanced"));
+      prependTrace(next, traceEvent(next, instruction.address, instruction.op, taken ? `${indexDetail}PR <- ${formatWord(effective.effectiveAddress)}` : `${indexDetail}Condition not met; PR advanced`));
     }
 
     if (instruction.op === "RET") {
@@ -959,7 +1019,13 @@ export const mockCaslCore: CaslCore = {
       stepIndex: 0,
       lastStep: undefined,
       changedRegisters: [],
-      changedMemoryAddresses: []
+      changedMemoryAddresses: [],
+      lastMemoryReadAddress: undefined,
+      lastMemoryWriteAddress: undefined,
+      lastBaseAddress: undefined,
+      lastIndexRegister: undefined,
+      lastIndexValue: undefined,
+      lastEffectiveAddress: undefined
     };
 
     resetState.memory = state.initialMemory ? { ...state.initialMemory } : { ...state.memory };

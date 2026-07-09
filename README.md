@@ -44,19 +44,22 @@ Each built-in example includes a collapsible `Guided Lesson` in the Demo Guide. 
 4. `CASL: Shift Operations`
    Learn `SLL`, `SRL`, `SLA`, `SRA`, shift counts, GR updates, and FR / OF behavior.
 
-5. `C++: Addition`
+5. `CASL: Index Addressing`
+   Learn `adr,x`, x-field encoding, base address, index register, and effective address.
+
+6. `C++: Addition`
    Learn how assignment and arithmetic become `LD`, `ADDA`, `ST`, and return through `GR0`.
 
-6. `C++: If Else`
+7. `C++: If Else`
    Learn `CPA`, conditional jumps, labels, and branch targets.
 
-7. `C++: While Sum`
+8. `C++: While Sum`
    Learn loop labels, loop-back jumps, Trace, and Memory Viewer.
 
-8. `C++: For Sum Sugar`
+9. `C++: For Sum Sugar`
    Learn for-loop initializer, condition, increment, `i++`, and `+=` lowering.
 
-9. `C++: Break Continue`
+10. `C++: Break Continue`
    Learn why `continue` jumps to the increment block and `break` jumps to the loop end.
 
 For detailed study guidance, see [docs/learning-guide.md](docs/learning-guide.md).
@@ -69,13 +72,14 @@ For the circuit arrow routing pass, see [docs/phase8l-circuit-arrow-routing.md](
 For future custom-circuit design notes, see [docs/future-custom-circuit-design.md](docs/future-custom-circuit-design.md).
 For the latest CASL instruction coverage batch, see [docs/phase9a-casl-instruction-coverage.md](docs/phase9a-casl-instruction-coverage.md).
 For shift instruction coverage and path templates, see [docs/phase9b-shift-instructions-and-path-templates.md](docs/phase9b-shift-instructions-and-path-templates.md).
+For index addressing, see [docs/phase9c-index-addressing.md](docs/phase9c-index-addressing.md).
 
 ## Key Views
 
 - Source Editor: CASL or C++ subset source.
 - Generated CASL: structured CASL II generated from C++ subset source.
 - Machine Code: COMET II address/word rows with source, labels, and meaning.
-- Machine Code Explanation: opcode, register, index, operand, resolved label, and readable meaning.
+- Machine Code Explanation: opcode, register, index, base operand, effective address, resolved label, and readable meaning.
 - Control Flow: label and jump target hints for if/else, while, for, break, and continue.
 - Memory Viewer: bounded memory windows with label, PR, MAR, read, write, and range controls.
 - Trace: recent execution history for Step and Run.
@@ -88,6 +92,7 @@ For shift instruction coverage and path templates, see [docs/phase9b-shift-instr
 - `CASL: Logic Operations`
 - `CASL: Logical Add Compare`
 - `CASL: Shift Operations`
+- `CASL: Index Addressing`
 - `C++: Addition`
 - `C++: If Else`
 - `C++: While Sum`
@@ -132,6 +137,13 @@ Instructions:
 - `JMI`
 - `JOV`
 - `RET`
+
+Index addressing:
+
+- `adr,x` is supported for the register/address and jump instruction forms listed above.
+- x may be `GR1` through `GR7`.
+- `GR0` is rejected as an index register.
+- Effective address is `(base address + GRx) & 0xFFFF`.
 
 ## Supported C++ Subset
 

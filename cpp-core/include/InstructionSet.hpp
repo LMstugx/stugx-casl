@@ -44,6 +44,6 @@ std::optional<Opcode> parseOpcode(std::string_view text);
 std::string opcodeName(Opcode opcode);
 bool isExecutableOpcode(Opcode opcode);
 bool hasAddressOperand(Opcode opcode);
-std::uint16_t encodeInstruction(Opcode opcode, std::uint8_t gr);
+std::uint16_t encodeInstruction(Opcode opcode, std::uint8_t gr, std::uint8_t indexRegister = 0);
 
 }  // namespace casl

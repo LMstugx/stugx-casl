@@ -298,6 +298,74 @@ export const learningLessons: LearningLesson[] = [
     ]
   },
   {
+    exampleId: "casl-index-addressing",
+    title: "Index addressing with effective address",
+    level: "Machine code",
+    concepts: ["base address", "index register", "effective address", "Memory[base + index]", "x field in machine code"],
+    learningGoals: [
+      "Understand how adr,x encodes an index register in the machine word.",
+      "Observe that runtime memory access uses the effective address, while the operand word still stores the base address."
+    ],
+    observe: ["Machine Code x field for LD GR1,A,GR2", "Effective address chip in Circuit Focus Mode", "Memory[B] read and Memory[RESULT] write"],
+    suggestedSteps: [
+      {
+        id: "assemble",
+        label: "Assemble index program",
+        action: "Click Assemble.",
+        expectedObservation: "Machine Code shows LD GR1,A,GR2 with x = GR2.",
+        recommendedTab: "Machine Code"
+      },
+      {
+        id: "step-lad",
+        label: "Prepare index register",
+        action: "Step LAD GR2,1.",
+        expectedObservation: "GR2 becomes 0001.",
+        recommendedTab: "Trace"
+      },
+      {
+        id: "step-ld-indexed",
+        label: "Step indexed LD",
+        action: "Step LD GR1,A,GR2 in Circuit Focus Mode.",
+        expectedObservation: "The circuit shows base A plus GR2, and the Memory[B] row is read.",
+        recommendedTab: "Trace"
+      },
+      {
+        id: "check-result",
+        label: "Check RESULT",
+        action: "Run or Step through ST and open Memory.",
+        expectedObservation: "RESULT contains 0014.",
+        recommendedTab: "Memory"
+      }
+    ],
+    checkpoints: [
+      {
+        id: "x-field",
+        label: "Machine word x field",
+        expected: "The LD instruction word should show x = GR2.",
+        whereToLook: "Machine Code explanation",
+        note: "GR0 is not a valid index register; GR1-GR7 can appear in the x field."
+      },
+      {
+        id: "effective-address",
+        label: "Effective address",
+        expected: "A + GR2 should resolve to B.",
+        whereToLook: "Circuit Focus Mode / Machine Code explanation",
+        note: "The operand word stores A, and runtime adds GR2 to reach B."
+      },
+      {
+        id: "final-result",
+        label: "Final result",
+        expected: "GR1 and Memory[RESULT] should be 0014.",
+        whereToLook: "Registers and Memory tabs",
+        note: "0014 is decimal 20, the value stored at B."
+      }
+    ],
+    commonQuestions: [
+      "Why does the operand word still point to A?",
+      "Why does the Memory row highlight B instead of A?"
+    ]
+  },
+  {
     exampleId: "cpp-addition",
     title: "C++ addition lowered to CASL",
     level: "C++ to CASL",

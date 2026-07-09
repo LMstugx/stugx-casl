@@ -110,12 +110,13 @@ function StatusIndicators({ activeWireIds, state }: { activeWireIds: Set<string>
 function DecoderModule({ state }: { state: CometState }) {
   const op = (state.ir >> 12) & 0xf;
   const gr = (state.ir >> 4) & 0xf;
+  const xr = state.ir & 0xf;
   return (
     <Module layout={circuitLayout.decoder} title="Decoder" testId="module-decoder" layer="control">
       {[
         ["OP", op.toString(16).toUpperCase()],
         ["GR", gr.toString(16).toUpperCase()],
-        ["XR", "0"],
+        ["XR", xr.toString(16).toUpperCase()],
         ["adr", formatWord(state.mar)]
       ].map(([name, value], index) => (
         <g key={name}>
@@ -154,16 +155,18 @@ function ControllerModule({ state }: { state: CometState }) {
 function GeneralRegisters({ state }: { state: CometState }) {
   const activeInstruction = state.lastStep?.executedInstruction ?? state.currentInstruction ?? "";
   const activeRegister = /GR([0-7])/i.exec(activeInstruction)?.[0]?.toUpperCase();
+  const indexRegister = state.lastIndexRegister;
 
   return (
     <Module layout={circuitLayout.gr} title="General Registers" testId="module-gr" layer="execution">
       {state.gr.map((value, index) => {
         const changed = state.changedRegisters.includes(`GR${index}`);
-        const active = changed || activeRegister === `GR${index}`;
+        const isIndex = indexRegister === index;
+        const active = changed || activeRegister === `GR${index}` || isIndex;
         const left = circuitAnchors.gr.rowLeft(index);
         const right = circuitAnchors.gr.rowRight(index);
         return (
-          <g key={index} className={changed ? "register-row changed write" : active ? "register-row read" : "register-row"} data-testid={`register-gr${index}`} data-active={active ? "true" : "false"} data-read={!changed && active ? "true" : "false"} data-write={changed ? "true" : "false"}>
+          <g key={index} className={changed ? "register-row changed write" : active ? "register-row read" : "register-row"} data-testid={`register-gr${index}`} data-active={active ? "true" : "false"} data-read={!changed && active ? "true" : "false"} data-write={changed ? "true" : "false"} data-index={isIndex ? "true" : "false"}>
             <rect x={circuitLayout.gr.x + 16} y={circuitLayout.gr.y + 38 + index * 27} width="158" height="25" rx="3" />
             <text className="module-small" x={circuitLayout.gr.x + 34} y={circuitLayout.gr.y + 55 + index * 27}>
               GR{index}
@@ -171,6 +174,11 @@ function GeneralRegisters({ state }: { state: CometState }) {
             <text className="module-small module-green" x={circuitLayout.gr.x + 126} y={circuitLayout.gr.y + 55 + index * 27} textAnchor="middle">
               {formatWord(value)}
             </text>
+            {isIndex ? (
+              <text className="module-small module-blue index-register-badge" x={circuitLayout.gr.x + 160} y={circuitLayout.gr.y + 55 + index * 27} textAnchor="middle">
+                IDX
+              </text>
+            ) : null}
             <AnchorPoint id={`gr-row-anchor-left-${index}`} x={left.x} y={left.y} />
             <AnchorPoint id={`gr-row-anchor-right-${index}`} x={right.x} y={right.y} />
           </g>
@@ -313,9 +321,12 @@ function CometCircuitSvg({ state, sourceMapFocus }: { state: CometState; sourceM
   const registerIndex = activeRegisterIndex(state);
   const memoryAddress = activeMemoryAddress(state);
   const memoryWindowStart = circuitMemoryWindowStart(state, memoryAddress);
-  const wirePaths = buildWirePaths({ grIndex: registerIndex, memoryAddress, memoryWindowStart });
+  const hasIndexAddressing = state.lastIndexRegister !== undefined && state.lastEffectiveAddress !== undefined;
+  const wirePaths = buildWirePaths({ grIndex: registerIndex, indexRegister: state.lastIndexRegister, memoryAddress, memoryWindowStart });
   const visualPath = resolveVisualPath(state);
   const activeWireIds = resolveActiveWireIds(visualPath);
+  const effectiveActiveWireIds = new Set(activeWireIds);
+  if (hasIndexAddressing) effectiveActiveWireIds.add("index-to-effective");
   const mdrLeft = circuitAnchors.mdr.left();
   const mdrRight = circuitAnchors.mdr.right();
   const mdrBottom = circuitAnchors.mdr.bottom();
@@ -375,7 +386,7 @@ function CometCircuitSvg({ state, sourceMapFocus }: { state: CometState; sourceM
 
       <g className="active-wire-layer">
         {wirePaths
-          .filter((path) => activeWireIds.has(path.id))
+          .filter((path) => effectiveActiveWireIds.has(path.id))
           .map((path) => {
             const marker = path.role === "data" ? "url(#arrow-red)" : "url(#arrow-blue)";
             return (
@@ -403,7 +414,7 @@ function CometCircuitSvg({ state, sourceMapFocus }: { state: CometState; sourceM
 
       <g className="active-junction-layer" aria-hidden="true">
         {wirePaths
-          .filter((path) => activeWireIds.has(path.id))
+          .filter((path) => effectiveActiveWireIds.has(path.id))
           .flatMap((path) =>
             path.junctions.map((junction, index) => (
               <circle
@@ -432,6 +443,17 @@ function CometCircuitSvg({ state, sourceMapFocus }: { state: CometState; sourceM
       <Module layout={circuitLayout.addressResult} title="+2" value={formatWord((state.pr + 2) & 0xffff)} testId="module-address-result" layer="control" />
       <Module layout={circuitLayout.sp} title="SP" value={formatWord(state.sp)} testId="module-sp" layer="control" />
       <Module layout={circuitLayout.mar} title="MAR" value={formatWord(state.mar)} accent={state.changedRegisters.includes("MAR")} testId="module-mar" layer="control" />
+      {hasIndexAddressing ? (
+        <g className="effective-address-chip" data-testid="effective-address-chip">
+          <rect x={circuitLayout.mar.x - 12} y={circuitLayout.mar.y + circuitLayout.mar.h + 12} width="150" height="36" rx="4" />
+          <text className="module-small" x={circuitLayout.mar.x + 4} y={circuitLayout.mar.y + circuitLayout.mar.h + 27}>
+            EA = base + GR{state.lastIndexRegister}
+          </text>
+          <text className="module-small module-green" x={circuitLayout.mar.x + 4} y={circuitLayout.mar.y + circuitLayout.mar.h + 41}>
+            {formatWord(state.lastBaseAddress ?? 0)} + {formatWord(state.lastIndexValue ?? 0)} = {formatWord(state.lastEffectiveAddress ?? state.mar)}
+          </text>
+        </g>
+      ) : null}
       <GeneralRegisters state={state} />
       <AluModule state={state} registerIndex={registerIndex} visualPath={visualPath} />
       <Module layout={circuitLayout.mdr} title="MDR" value={formatWord(state.mdr)} accent={state.changedRegisters.includes("MDR")} testId="module-mdr" layer="execution">

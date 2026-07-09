@@ -25,7 +25,7 @@ The purpose is not to replace a full compiler. The purpose is to make each trans
 
 Example: `CASL: GR2 Addition`
 
-Follow-up examples: `CASL: Logic Operations`, `CASL: Logical Add Compare`, `CASL: Shift Operations`
+Follow-up examples: `CASL: Logic Operations`, `CASL: Logical Add Compare`, `CASL: Shift Operations`, `CASL: Index Addressing`
 
 Learn:
 
@@ -33,8 +33,10 @@ Learn:
 - `AND`, `OR`, `XOR` for bitwise ALU operations
 - `ADDL`, `CPL`, `JOV` for unsigned arithmetic, unsigned compare, and overflow-flag jump
 - `SLL`, `SRL`, `SLA`, `SRA` for shift operations
+- `adr,x` for base plus index-register effective addressing
 - how GR registers change
 - how shift instructions update GR and FR without reading memory as shift data
+- how indexed instructions keep a base operand word but access the effective memory row
 - how a memory write appears in the Memory Viewer
 - how PR advances through instruction words
 
@@ -47,6 +49,7 @@ Suggested actions:
 5. Load `CASL: Logic Operations` and inspect the `AND` / `OR` / `XOR` opcodes.
 6. Load `CASL: Logical Add Compare` and observe how `JOV` falls through when OF is not set.
 7. Load `CASL: Shift Operations` and confirm the shift count operand is not shown as a memory data read.
+8. Load `CASL: Index Addressing` and compare the base address `A` with the effective address `B`.
 
 ### Step 2: C++ to CASL
 
@@ -212,12 +215,13 @@ Use the examples in this order:
 2. `CASL: Logic Operations`: learn bitwise ALU operations and memory write.
 3. `CASL: Logical Add Compare`: learn unsigned ADDL / CPL and JOV fallthrough.
 4. `CASL: Shift Operations`: learn logical and arithmetic shifts, shift counts, and FR / OF updates.
-5. `C++: Addition`: learn C++ to CASL and machine-code rows.
-6. `C++: If Else`: learn compare, flags, conditional jump, and target labels.
-7. `C++: While Sum`: learn repeated execution with Trace.
-8. `C++: For Sum`: learn initializer, condition, increment, and loop exit.
-9. `C++: For Sum Sugar`: learn `i++` and `+=` lowering.
-10. `C++: Break Continue`: learn jump targets for loop control.
+5. `CASL: Index Addressing`: learn x-field encoding, index registers, and effective address calculation.
+6. `C++: Addition`: learn C++ to CASL and machine-code rows.
+7. `C++: If Else`: learn compare, flags, conditional jump, and target labels.
+8. `C++: While Sum`: learn repeated execution with Trace.
+9. `C++: For Sum`: learn initializer, condition, increment, and loop exit.
+10. `C++: For Sum Sugar`: learn `i++` and `+=` lowering.
+11. `C++: Break Continue`: learn jump targets for loop control.
 
 ## 8. How To Verify Your Understanding
 
@@ -259,12 +263,15 @@ Common row roles:
 - data word: value created by `DC`
 - reserved word: space created by `DS`
 
+With `adr,x`, the operand word still stores the base address. The instruction word carries the x field, and runtime calculates `effective address = base + GRx`.
+
 Click a row to see:
 
 - opcode
 - register field
 - index field
 - operand address
+- effective address when an index register is used
 - resolved label
 - binary text
 - human-readable meaning
@@ -310,6 +317,8 @@ Machine state and pipeline stage are also separate. `Machine: Ready` describes t
 The schematic separates `DATA BUS`, `ADDR BUS`, and `CTRL` lanes. `LD` and `ST` use a data-bypass lane between Memory, `MDR`, and the selected GR row without activating the ALU. Arithmetic, logic, compare, and shift instructions are the paths that enter the ALU / Shifter lane.
 
 Shift instructions use the ALU/Shifter path. The operand word is a shift count / effective address value, so Circuit Focus Mode routes the count into the ALU/Shifter input and does not show `Memory[addr] -> MDR` as shift data.
+
+Indexed instructions show an `IDX` badge on the index register row and an Effective Address chip. The Memory row highlight follows the effective address. For example, `LD GR1,A,GR2` with `GR2 = 0001` keeps `A` as the base operand word, but the active Memory row is `B`.
 
 Active wires have a lightweight signal-flow animation in the live app. The animation is only a direction cue for the current active path; it does not represent extra VM micro-cycles, and it is disabled when the operating system asks for reduced motion.
 

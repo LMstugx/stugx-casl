@@ -7,7 +7,16 @@
   "ir1": 35,
   "mar": 35,
   "mdr": 0,
-  "gr": [0, 35, 0, 0, 0, 0, 0, 0],
+  "gr": [
+    0,
+    35,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+  ],
   "frOF": false,
   "frSF": false,
   "frZF": false,
@@ -21,115 +30,128 @@
   "lastRegisterWriteIndex": 1,
   "effectiveAddress": 35,
   "memoryWindow": [
-      {
-        "address": 32,
-        "value": 4624,
-        "label": "MAIN",
-        "isCurrent": false,
-        "isChanged": false
-      },
-      {
-        "address": 33,
-        "value": 35,
-        "label": null,
-        "isCurrent": false,
-        "isChanged": false
-      },
-      {
-        "address": 34,
-        "value": 33024,
-        "label": null,
-        "isCurrent": true,
-        "isChanged": false
-      },
-      {
-        "address": 35,
-        "value": 10,
-        "label": "VALUE",
-        "isCurrent": false,
-        "isChanged": false
-      },
-      {
-        "address": 36,
-        "value": 0,
-        "label": null,
-        "isCurrent": false,
-        "isChanged": false
-      },
-      {
-        "address": 37,
-        "value": 0,
-        "label": null,
-        "isCurrent": false,
-        "isChanged": false
-      },
-      {
-        "address": 38,
-        "value": 0,
-        "label": null,
-        "isCurrent": false,
-        "isChanged": false
-      },
-      {
-        "address": 39,
-        "value": 0,
-        "label": null,
-        "isCurrent": false,
-        "isChanged": false
-      },
-      {
-        "address": 40,
-        "value": 0,
-        "label": null,
-        "isCurrent": false,
-        "isChanged": false
-      },
-      {
-        "address": 41,
-        "value": 0,
-        "label": null,
-        "isCurrent": false,
-        "isChanged": false
-      },
-      {
-        "address": 42,
-        "value": 0,
-        "label": null,
-        "isCurrent": false,
-        "isChanged": false
-      }
-    ],
+    {
+      "address": 32,
+      "value": 4624,
+      "label": "MAIN",
+      "isCurrent": false,
+      "isChanged": false
+    },
+    {
+      "address": 33,
+      "value": 35,
+      "label": null,
+      "isCurrent": false,
+      "isChanged": false
+    },
+    {
+      "address": 34,
+      "value": 33024,
+      "label": null,
+      "isCurrent": true,
+      "isChanged": false
+    },
+    {
+      "address": 35,
+      "value": 10,
+      "label": "VALUE",
+      "isCurrent": false,
+      "isChanged": false
+    },
+    {
+      "address": 36,
+      "value": 0,
+      "label": null,
+      "isCurrent": false,
+      "isChanged": false
+    },
+    {
+      "address": 37,
+      "value": 0,
+      "label": null,
+      "isCurrent": false,
+      "isChanged": false
+    },
+    {
+      "address": 38,
+      "value": 0,
+      "label": null,
+      "isCurrent": false,
+      "isChanged": false
+    },
+    {
+      "address": 39,
+      "value": 0,
+      "label": null,
+      "isCurrent": false,
+      "isChanged": false
+    },
+    {
+      "address": 40,
+      "value": 0,
+      "label": null,
+      "isCurrent": false,
+      "isChanged": false
+    },
+    {
+      "address": 41,
+      "value": 0,
+      "label": null,
+      "isCurrent": false,
+      "isChanged": false
+    },
+    {
+      "address": 42,
+      "value": 0,
+      "label": null,
+      "isCurrent": false,
+      "isChanged": false
+    }
+  ],
   "sourceRows": [
-      {
-        "line": 2,
-        "address": 32,
-        "machineWords": [4624, 35],
-        "source": "LAD   GR1,VALUE",
-        "label": null,
-        "instruction": "LAD",
-        "operandAddress": 35,
-        "isCurrent": false
-      },
-      {
-        "line": 3,
-        "address": 34,
-        "machineWords": [33024],
-        "source": "RET",
-        "label": null,
-        "instruction": "RET",
-        "operandAddress": null,
-        "isCurrent": true
-      },
-      {
-        "line": 4,
-        "address": 35,
-        "machineWords": [10],
-        "source": "VALUE DC   10",
-        "label": "VALUE",
-        "instruction": "DC",
-        "operandAddress": null,
-        "isCurrent": false
-      }
-    ],
-  "diagnostics": []
+    {
+      "line": 2,
+      "address": 32,
+      "machineWords": [
+        4624,
+        35
+      ],
+      "source": "LAD   GR1,VALUE",
+      "label": null,
+      "instruction": "LAD",
+      "operandAddress": 35,
+      "isCurrent": false,
+      "indexRegister": null
+    },
+    {
+      "line": 3,
+      "address": 34,
+      "machineWords": [
+        33024
+      ],
+      "source": "RET",
+      "label": null,
+      "instruction": "RET",
+      "operandAddress": null,
+      "isCurrent": true,
+      "indexRegister": null
+    },
+    {
+      "line": 4,
+      "address": 35,
+      "machineWords": [
+        10
+      ],
+      "source": "VALUE DC   10",
+      "label": "VALUE",
+      "instruction": "DC",
+      "operandAddress": null,
+      "isCurrent": false,
+      "indexRegister": null
+    }
+  ],
+  "diagnostics": [],
+  "baseAddress": 35,
+  "indexRegister": null,
+  "indexValue": null
 }

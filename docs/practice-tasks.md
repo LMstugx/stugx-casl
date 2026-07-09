@@ -100,6 +100,24 @@ Expected observation:
 - FR may update from the shifted result and shifted-out bit.
 - The final Memory[RESULT] should be `0003`.
 
+### Task 5B. Observe index addressing
+
+Start from `CASL: Index Addressing`.
+
+Step through:
+
+- `LAD GR2,1`
+- `LD GR1,A,GR2`
+
+Expected observation:
+
+- Machine Code should show the `LD` instruction word with x = `GR2`.
+- The operand word still points to `A`.
+- The effective address should point to `B`.
+- Circuit Focus Mode should mark `GR2` as the index register and highlight the Memory row for `B`.
+- `GR1` should become `0014`.
+- After `ST`, Memory[RESULT] should become `0014`.
+
 ## Level 2: C++ to CASL
 
 ### Task 6. Change addition to subtraction

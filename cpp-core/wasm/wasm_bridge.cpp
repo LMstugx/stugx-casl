@@ -128,14 +128,12 @@ std::optional<casl::Instruction> findLastInstruction(
     }
     if (!state.lastInstructionKind.has_value()) return std::nullopt;
 
-    const auto effectiveAddress = state.lastMemoryReadAddress.has_value()
-        ? state.lastMemoryReadAddress
-        : state.lastMemoryWriteAddress;
+    const auto baseAddress = state.lastBaseAddress;
 
     const auto found = std::find_if(output.instructions.begin(), output.instructions.end(), [&](const casl::Instruction& instruction) {
         if (instruction.opcode != *state.lastInstructionKind) return false;
         if (state.memory[instruction.address] != state.ir) return false;
-        if (effectiveAddress.has_value() && instruction.operandAddress != effectiveAddress) return false;
+        if (baseAddress.has_value() && instruction.operandAddress != baseAddress) return false;
         return true;
     });
     if (found == output.instructions.end()) return std::nullopt;
@@ -215,6 +213,7 @@ void writeSourceRows(std::ostream& output, const casl::AssembleOutput& assembled
         output << "        \"label\": " << (entry.label.empty() ? "null" : "\"" + jsonEscape(entry.label) + "\"") << ",\n";
         output << "        \"instruction\": \"" << casl::opcodeName(entry.instruction) << "\",\n";
         output << "        \"operandAddress\": " << nullableNumber(instruction && instruction->operandAddress ? std::optional<std::uint32_t>(*instruction->operandAddress) : std::nullopt) << ",\n";
+        output << "        \"indexRegister\": " << nullableNumber(instruction && instruction->indexRegister != 0 ? std::optional<std::uint32_t>(instruction->indexRegister) : std::nullopt) << ",\n";
         output << "        \"isCurrent\": " << boolText(currentAddress.has_value() && *currentAddress == entry.address) << "\n";
         output << "      }";
         if (index + 1 < entries.size()) output << ",";
@@ -243,7 +242,10 @@ std::string dumpStateJson(
         ? std::optional<std::string>(normalizeInstructionText(currentInstruction->source))
         : std::nullopt;
     const auto lastKind = state.lastInstructionKind.has_value() ? std::optional<std::string>(casl::opcodeName(*state.lastInstructionKind)) : std::nullopt;
-    const auto effectiveAddress = lastInstruction && lastInstruction->operandAddress ? std::optional<std::uint32_t>(*lastInstruction->operandAddress) : std::nullopt;
+    const auto baseAddress = state.lastBaseAddress ? std::optional<std::uint32_t>(*state.lastBaseAddress) : (lastInstruction && lastInstruction->operandAddress ? std::optional<std::uint32_t>(*lastInstruction->operandAddress) : std::nullopt);
+    const auto indexRegister = state.lastIndexRegister ? std::optional<std::uint32_t>(*state.lastIndexRegister) : (lastInstruction && lastInstruction->indexRegister != 0 ? std::optional<std::uint32_t>(lastInstruction->indexRegister) : std::nullopt);
+    const auto indexValue = state.lastIndexValue ? std::optional<std::uint32_t>(*state.lastIndexValue) : (indexRegister ? std::optional<std::uint32_t>(state.gr[*indexRegister]) : std::nullopt);
+    const auto effectiveAddress = state.lastEffectiveAddress ? std::optional<std::uint32_t>(*state.lastEffectiveAddress) : (baseAddress ? std::optional<std::uint32_t>((*baseAddress + indexValue.value_or(0)) & 0xffffU) : std::nullopt);
     const auto lastMemoryRead = state.lastMemoryReadAddress ? std::optional<std::uint32_t>(*state.lastMemoryReadAddress) : std::nullopt;
     const auto lastMemoryWrite = state.lastMemoryWriteAddress ? std::optional<std::uint32_t>(*state.lastMemoryWriteAddress) : std::nullopt;
     const auto lastRegisterWrite = state.lastRegisterWriteIndex ? std::optional<std::uint32_t>(*state.lastRegisterWriteIndex) : std::nullopt;
@@ -275,6 +277,9 @@ std::string dumpStateJson(
     output << "  \"lastMemoryReadAddress\": " << nullableNumber(lastMemoryRead) << ",\n";
     output << "  \"lastMemoryWriteAddress\": " << nullableNumber(lastMemoryWrite) << ",\n";
     output << "  \"lastRegisterWriteIndex\": " << nullableNumber(lastRegisterWrite) << ",\n";
+    output << "  \"baseAddress\": " << nullableNumber(baseAddress) << ",\n";
+    output << "  \"indexRegister\": " << nullableNumber(indexRegister) << ",\n";
+    output << "  \"indexValue\": " << nullableNumber(indexValue) << ",\n";
     output << "  \"effectiveAddress\": " << nullableNumber(effectiveAddress) << ",\n";
     output << "  \"memoryWindow\": ";
     writeMemoryWindow(output, state, assembled, currentAddress);
@@ -325,6 +330,9 @@ std::string emptyStateJson(casl::RunState runState, const std::vector<casl::Diag
     output << "  \"lastMemoryReadAddress\": null,\n";
     output << "  \"lastMemoryWriteAddress\": null,\n";
     output << "  \"lastRegisterWriteIndex\": null,\n";
+    output << "  \"baseAddress\": null,\n";
+    output << "  \"indexRegister\": null,\n";
+    output << "  \"indexValue\": null,\n";
     output << "  \"effectiveAddress\": null,\n";
     output << "  \"memoryWindow\": [],\n";
     output << "  \"sourceRows\": [],\n";

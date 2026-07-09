@@ -96,6 +96,24 @@ RESULT DS  1
     suggestedActions: ["Click Assemble.", "Open Machine Code and inspect SLA / SRA / SLL / SRL opcodes.", "Step through each shift in Circuit Focus Mode.", "Confirm RESULT is 0003 in Memory."]
   },
   {
+    id: "casl-index-addressing",
+    name: "CASL: Index Addressing",
+    mode: "casl",
+    source: `MAIN START
+     LAD   GR2,1
+     LD    GR1,A,GR2
+     ST    GR1,RESULT
+     RET
+A    DC    10
+B    DC    20
+RESULT DS  1
+     END`,
+    description: "Base address plus index register addressing with effective memory row highlighting.",
+    whatThisShows: "CASL adr,x operands encode an x field in machine code and calculate Memory[base + GRx] at runtime.",
+    expectedResult: "GR2 = 0001, LD reads B through A+GR2, GR1 = 0014, and Memory[RESULT] = 0014.",
+    suggestedActions: ["Click Assemble.", "Open Machine Code and inspect x = GR2.", "Step LD in Circuit Focus Mode and watch the effective address chip.", "Open Memory and confirm RESULT is 0014."]
+  },
+  {
     id: "cpp-addition",
     name: "C++: Addition",
     mode: "cpp",

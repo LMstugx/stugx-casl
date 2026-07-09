@@ -51,12 +51,27 @@ std::optional<std::uint32_t> instructionSize(const ParsedLine& line, std::vector
     return 0;
 }
 
+void addDiagnostic(std::vector<Diagnostic>& diagnostics, int line, std::string message);
+
 std::optional<std::uint8_t> parseRegister(const std::string& token) {
     if (token.size() != 3) return std::nullopt;
     if (token[0] != 'G' && token[0] != 'g') return std::nullopt;
     if (token[1] != 'R' && token[1] != 'r') return std::nullopt;
     if (token[2] < '0' || token[2] > '7') return std::nullopt;
     return static_cast<std::uint8_t>(token[2] - '0');
+}
+
+std::optional<std::uint8_t> parseIndexRegister(const std::string& token, std::vector<Diagnostic>& diagnostics, int line) {
+    const auto reg = parseRegister(token);
+    if (!reg.has_value()) {
+        addDiagnostic(diagnostics, line, "Invalid index register: " + token);
+        return std::nullopt;
+    }
+    if (*reg == 0) {
+        addDiagnostic(diagnostics, line, "GR0 cannot be used as an index register");
+        return std::nullopt;
+    }
+    return reg;
 }
 
 void addDiagnostic(std::vector<Diagnostic>& diagnostics, int line, std::string message) {
@@ -198,8 +213,13 @@ bool Assembler::pass2(const std::vector<ParsedLine>& lines, AssembleOutput& outp
         if (opcode == Opcode::START || opcode == Opcode::END) continue;
 
         if (isRegisterAddressOpcode(opcode)) {
-            if (line.operands.size() != 2) {
+            if (line.operands.size() < 2) {
                 addDiagnostic(diagnostics, line.line, opcodeName(opcode) + " requires register and address operands");
+                ok = false;
+                continue;
+            }
+            if (line.operands.size() > 3) {
+                addDiagnostic(diagnostics, line.line, opcodeName(opcode) + " has too many operands");
                 ok = false;
                 continue;
             }
@@ -210,6 +230,15 @@ bool Assembler::pass2(const std::vector<ParsedLine>& lines, AssembleOutput& outp
                 ok = false;
                 continue;
             }
+            std::uint8_t indexRegister = 0;
+            if (line.operands.size() == 3) {
+                const auto parsedIndex = parseIndexRegister(line.operands[2], diagnostics, line.line);
+                if (!parsedIndex.has_value()) {
+                    ok = false;
+                    continue;
+                }
+                indexRegister = *parsedIndex;
+            }
 
             const auto operandAddress = resolveAddressOperand(line.operands[1], output.symbols, diagnostics, line.line);
             if (!operandAddress.has_value()) {
@@ -217,19 +246,33 @@ bool Assembler::pass2(const std::vector<ParsedLine>& lines, AssembleOutput& outp
                 continue;
             }
 
-            const auto machine = encodeInstruction(opcode, *gr);
+            const auto machine = encodeInstruction(opcode, *gr, indexRegister);
             output.state.memory[line.address] = machine;
             output.state.memory[static_cast<std::uint16_t>(line.address + 1)] = *operandAddress;
             output.sourceMap.add({line.line, line.address, {machine, *operandAddress}, line.source, line.label, opcode});
-            output.instructions.push_back({line.address, line.line, opcode, line.source, *gr, *operandAddress, line.operands[1], 2});
+            output.instructions.push_back({line.address, line.line, opcode, line.source, *gr, *operandAddress, line.operands[1], indexRegister, 2});
             continue;
         }
 
         if (isJumpOpcode(opcode)) {
-            if (line.operands.size() != 1) {
+            if (line.operands.empty()) {
                 addDiagnostic(diagnostics, line.line, opcodeName(opcode) + " requires an address operand");
                 ok = false;
                 continue;
+            }
+            if (line.operands.size() > 2) {
+                addDiagnostic(diagnostics, line.line, opcodeName(opcode) + " has too many operands");
+                ok = false;
+                continue;
+            }
+            std::uint8_t indexRegister = 0;
+            if (line.operands.size() == 2) {
+                const auto parsedIndex = parseIndexRegister(line.operands[1], diagnostics, line.line);
+                if (!parsedIndex.has_value()) {
+                    ok = false;
+                    continue;
+                }
+                indexRegister = *parsedIndex;
             }
 
             const auto operandAddress = resolveAddressOperand(line.operands[0], output.symbols, diagnostics, line.line);
@@ -238,11 +281,11 @@ bool Assembler::pass2(const std::vector<ParsedLine>& lines, AssembleOutput& outp
                 continue;
             }
 
-            const auto machine = encodeInstruction(opcode, 0);
+            const auto machine = encodeInstruction(opcode, 0, indexRegister);
             output.state.memory[line.address] = machine;
             output.state.memory[static_cast<std::uint16_t>(line.address + 1)] = *operandAddress;
             output.sourceMap.add({line.line, line.address, {machine, *operandAddress}, line.source, line.label, opcode});
-            output.instructions.push_back({line.address, line.line, opcode, line.source, 0, *operandAddress, line.operands[0], 2});
+            output.instructions.push_back({line.address, line.line, opcode, line.source, 0, *operandAddress, line.operands[0], indexRegister, 2});
             continue;
         }
 
@@ -250,11 +293,19 @@ bool Assembler::pass2(const std::vector<ParsedLine>& lines, AssembleOutput& outp
             const auto machine = encodeInstruction(opcode, 0);
             output.state.memory[line.address] = machine;
             output.sourceMap.add({line.line, line.address, {machine}, line.source, line.label, opcode});
-            output.instructions.push_back({line.address, line.line, opcode, line.source, 0, std::nullopt, {}, 1});
+            output.instructions.push_back({line.address, line.line, opcode, line.source, 0, std::nullopt, {}, 0, 1});
             continue;
         }
 
         if (opcode == Opcode::DC) {
+            const auto hasIndexLikeOperand = std::any_of(line.operands.begin() + std::min<std::size_t>(1, line.operands.size()), line.operands.end(), [](const std::string& operand) {
+                return parseRegister(operand).has_value();
+            });
+            if (hasIndexLikeOperand) {
+                addDiagnostic(diagnostics, line.line, "DC does not support index operands");
+                ok = false;
+                continue;
+            }
             const auto count = std::max<std::size_t>(1, line.operands.size());
             std::vector<std::uint16_t> words;
             words.reserve(count);
@@ -285,6 +336,11 @@ bool Assembler::pass2(const std::vector<ParsedLine>& lines, AssembleOutput& outp
         }
 
         if (opcode == Opcode::DS) {
+            if (line.operands.size() > 1) {
+                addDiagnostic(diagnostics, line.line, "DS does not support index operands");
+                ok = false;
+                continue;
+            }
             const auto count = parseNumber(line.operands.empty() ? "0" : line.operands[0]);
             if (!count.has_value()) {
                 addDiagnostic(diagnostics, line.line, "Invalid numeric literal for DS: " + (line.operands.empty() ? std::string{} : line.operands[0]));

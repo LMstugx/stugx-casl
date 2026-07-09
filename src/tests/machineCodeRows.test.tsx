@@ -99,7 +99,7 @@ describe("machine code rows", () => {
     expect(explanation.wordRole).toBe("instruction");
     expect(explanation.opcode).toBe(0x10);
     expect(explanation.register).toBe(1);
-    expect(explanation.indexRegister).toBe(0);
+    expect(explanation.indexRegister).toBeUndefined();
     expect(explanation.operandAddress).toBe(0x27);
     expect(explanation.resolvedLabel).toBe("A");
     expect(explanation.meaning).toContain("GR1");
@@ -268,6 +268,50 @@ describe("machine code rows", () => {
     expect(explanation.mnemonic).toBe("ADDA");
     expect(explanation.register).toBe(1);
     expect(explanation.meaning).toContain("GR1");
+  });
+
+  it("machine_code_word_encodes_index_register", () => {
+    let raw = mockCaslCore.assemble(getDemoProgram("casl-index-addressing")!.source);
+    raw = mockCaslCore.step(raw);
+    raw = mockCaslCore.step(raw);
+    const state = stateFromRaw(raw);
+    const rows = selectMachineCodeRows(state);
+    const ldRow = rows.find((row) => row.sourceText.includes("LD GR1,A,GR2") && row.kind === "instruction");
+
+    expect(ldRow).toEqual(expect.objectContaining({
+      word: 0x1012,
+      indexRegister: 2,
+      indexValue: 1,
+      baseAddress: 0x27,
+      effectiveAddress: 0x28,
+      effectiveLabel: "B"
+    }));
+  });
+
+  it("machine_code_explanation_shows_index_register_and_effective_address", async () => {
+    let raw = mockCaslCore.assemble(getDemoProgram("casl-index-addressing")!.source);
+    raw = mockCaslCore.step(raw);
+    raw = mockCaslCore.step(raw);
+    const state = stateFromRaw(raw);
+    const rows = selectMachineCodeRows(state);
+    const ldRow = rows.find((row) => row.sourceText.includes("LD GR1,A,GR2") && row.kind === "instruction")!;
+    const explanation = explainMachineCodeRow(ldRow);
+
+    expect(explanation.indexRegister).toBe(2);
+    expect(explanation.indexValue).toBe(1);
+    expect(explanation.baseAddress).toBe(0x27);
+    expect(explanation.effectiveAddress).toBe(0x28);
+    expect(explanation.meaning).toContain("GR2(0001)");
+    expect(explanation.meaning).toContain("B (0028)");
+
+    await renderOutputPanel(<OutputPanel lines={[]} state={state} initialTab="machine" onClear={() => undefined} />);
+    await act(async () => {
+      (container?.querySelector('[data-testid="machine-code-row-0022"]') as HTMLDivElement).click();
+    });
+    const panelText = container?.querySelector('[data-testid="machine-code-explanation"]')?.textContent ?? "";
+    expect(panelText).toContain("GR2");
+    expect(panelText).toContain("0028");
+    expect(panelText).toContain("B");
   });
 
   it("machine_code_rows_break_continue_jump", () => {

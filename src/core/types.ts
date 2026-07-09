@@ -98,6 +98,10 @@ export interface TraceEvent {
   changedMemoryAddress?: number;
   changedMemoryValueBefore?: number;
   changedMemoryValueAfter?: number;
+  baseAddress?: number;
+  indexRegister?: number;
+  indexValue?: number;
+  effectiveAddress?: number;
   runState?: RunState;
 }
 
@@ -116,6 +120,7 @@ export interface AssembledInstruction {
   gr?: number;
   operandLabel?: string;
   operandAddress?: number;
+  indexRegister?: number;
 }
 
 export interface StepResult {
@@ -152,6 +157,10 @@ export interface CometState {
   lastStep?: StepResult;
   lastMemoryReadAddress?: number;
   lastMemoryWriteAddress?: number;
+  lastBaseAddress?: number;
+  lastIndexRegister?: number;
+  lastIndexValue?: number;
+  lastEffectiveAddress?: number;
   program?: AssembledInstruction[];
   changedRegisters: string[];
   changedMemoryAddresses: number[];

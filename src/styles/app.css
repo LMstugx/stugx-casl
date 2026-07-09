@@ -314,6 +314,10 @@ button {
   box-shadow: none;
 }
 
+.focus-inspector-panel {
+  grid-template-rows: auto auto minmax(0, 1fr);
+}
+
 .focus-program-lines {
   min-height: 0;
   overflow: auto;
@@ -1170,6 +1174,26 @@ button {
 
 .module-blue {
   fill: var(--color-primary);
+}
+
+.index-register-badge {
+  font-size: 8px;
+  letter-spacing: 0;
+}
+
+.register-row[data-index="true"] rect {
+  stroke: color-mix(in srgb, var(--color-primary) 72%, var(--color-border));
+  stroke-width: 1.2;
+}
+
+.effective-address-chip rect {
+  fill: color-mix(in srgb, var(--color-primary-soft) 58%, var(--color-surface));
+  stroke: color-mix(in srgb, var(--color-primary) 48%, var(--color-border));
+  stroke-width: 1;
+}
+
+.effective-address-chip text {
+  font-size: 9px;
 }
 
 .module-red {

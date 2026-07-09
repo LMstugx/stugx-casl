@@ -273,10 +273,22 @@ export default function OutputPanel({
                               <dd>{machineExplanation.indexRegister ? `GR${machineExplanation.indexRegister}` : "none"}</dd>
                             </div>
                             <div>
+                              <dt>Index Value</dt>
+                              <dd>{machineExplanation.indexValue !== undefined ? formatWord(machineExplanation.indexValue) : "-"}</dd>
+                            </div>
+                            <div>
                               <dt>Operand</dt>
                               <dd>
                                 {machineExplanation.operandAddress !== undefined
                                   ? `${formatWord(machineExplanation.operandAddress)}${machineExplanation.resolvedLabel ? ` = address of ${machineExplanation.resolvedLabel}` : ""}`
+                                  : "-"}
+                              </dd>
+                            </div>
+                            <div>
+                              <dt>Effective</dt>
+                              <dd>
+                                {machineExplanation.effectiveAddress !== undefined
+                                  ? `${formatWord(machineExplanation.effectiveAddress)}${machineExplanation.effectiveLabel ? ` = ${machineExplanation.effectiveLabel}` : ""}`
                                   : "-"}
                               </dd>
                             </div>

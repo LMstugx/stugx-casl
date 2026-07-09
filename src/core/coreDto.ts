@@ -15,6 +15,7 @@ export interface SourceRowDto {
   label: string | null;
   instruction: InstructionKind | null;
   operandAddress: number | null;
+  indexRegister: number | null;
   isCurrent: boolean;
 }
 
@@ -47,6 +48,9 @@ export interface CometStateDto {
   lastMemoryReadAddress: number | null;
   lastMemoryWriteAddress: number | null;
   lastRegisterWriteIndex: number | null;
+  baseAddress: number | null;
+  indexRegister: number | null;
+  indexValue: number | null;
   effectiveAddress: number | null;
   memoryWindow: MemoryRowDto[];
   sourceRows: SourceRowDto[];
@@ -106,6 +110,7 @@ function sourceRowsToDto(state: CometState): SourceRowDto[] {
       label: entry.label ?? null,
       instruction: entry.instruction ?? null,
       operandAddress: programInstruction?.operandAddress ?? null,
+      indexRegister: programInstruction?.indexRegister ?? null,
       isCurrent: entry.address === state.currentAddress
     };
   });
@@ -133,12 +138,16 @@ export function toCometStateDto(state: CometState, memoryStart = 0x20, memoryEnd
   const lastInstruction = instructionAtLastStep(state);
   const currentInstruction = instructionAtCurrentAddress(state);
   const lastInstructionKind = lastInstruction?.op ?? null;
-  const effectiveAddress = lastInstruction?.operandAddress ?? null;
-  const lastMemoryReadAddress = lastInstructionKind === "LD" || lastInstructionKind === "ADDA" || lastInstructionKind === "SUBA" ||
+  const baseAddress = state.lastBaseAddress ?? lastInstruction?.operandAddress ?? null;
+  const indexRegister = state.lastIndexRegister ?? lastInstruction?.indexRegister ?? null;
+  const indexValue = state.lastIndexValue ?? (indexRegister !== null ? state.gr[indexRegister] : null);
+  const effectiveAddress = state.lastEffectiveAddress ?? (baseAddress !== null ? (baseAddress + (indexValue ?? 0)) & 0xffff : null);
+  const derivedLastMemoryReadAddress = lastInstructionKind === "LD" || lastInstructionKind === "ADDA" || lastInstructionKind === "SUBA" ||
     lastInstructionKind === "ADDL" || lastInstructionKind === "SUBL" || lastInstructionKind === "AND" ||
     lastInstructionKind === "OR" || lastInstructionKind === "XOR" || lastInstructionKind === "CPA" ||
     lastInstructionKind === "CPL" ? effectiveAddress : null;
-  const lastMemoryWriteAddress = lastInstructionKind === "ST" ? effectiveAddress : null;
+  const lastMemoryReadAddress = state.lastMemoryReadAddress ?? derivedLastMemoryReadAddress;
+  const lastMemoryWriteAddress = state.lastMemoryWriteAddress ?? (lastInstructionKind === "ST" ? effectiveAddress : null);
   const lastRegisterWriteIndex = lastInstructionKind === "LD" || lastInstructionKind === "LAD" || lastInstructionKind === "ADDA" ||
     lastInstructionKind === "SUBA" || lastInstructionKind === "ADDL" || lastInstructionKind === "SUBL" ||
     lastInstructionKind === "AND" || lastInstructionKind === "OR" || lastInstructionKind === "XOR" ||
@@ -166,6 +175,9 @@ export function toCometStateDto(state: CometState, memoryStart = 0x20, memoryEnd
     lastMemoryReadAddress,
     lastMemoryWriteAddress,
     lastRegisterWriteIndex,
+    baseAddress,
+    indexRegister,
+    indexValue,
     effectiveAddress,
     memoryWindow: memoryWindowToDto(state, memoryStart, memoryEnd),
     sourceRows: sourceRowsToDto(state),

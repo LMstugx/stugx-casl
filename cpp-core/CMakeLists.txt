@@ -94,6 +94,10 @@ else()
     ShiftCountZeroNoChange
     ShiftCountLargeLogicalStableBehavior
     ShiftCountLargeArithmeticStableBehavior
+    AssembleIndexAddressing
+    RejectGr0AsIndexRegister
+    ExecuteLdStWithIndex
+    ExecuteLadJumpShiftWithIndex
     StepStore
     StepRetFinished
     ExecuteGr2Program

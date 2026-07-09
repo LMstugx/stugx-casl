@@ -89,3 +89,11 @@ The shift template is the current example for a non-memory operand path:
 - flag output -> FR
 
 This distinction matters for future templates such as index addressing and stack paths, where the visual route must explain the addressing source without pretending that every operand word is a Memory data read.
+
+Phase 9C adds the first index-addressing route. It is not a custom circuit editor, but it introduces the address-computation shape future templates should preserve:
+
+- base operand word -> effective address
+- index GR row -> effective address
+- effective address -> MAR / Memory row
+- LAD and shift use the effective address as a value, not as a memory data read
+- memory instructions highlight the effective Memory row, not the base operand row

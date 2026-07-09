@@ -241,6 +241,23 @@ describe("Circuit Focus Mode layout", () => {
     expect(markup).toContain('data-testid="status-indicator-write" data-active="false"');
   });
 
+  it("circuit_index_path_highlights_index_register_and_effective_memory_row", () => {
+    const source = getDemoProgram("casl-index-addressing")!.source;
+    const state = stepSource(source, 2);
+    const markup = renderFocus(state, source);
+
+    expect(markup).toContain('data-testid="register-gr2" data-active="true"');
+    expect(markup).toContain('data-index="true"');
+    expect(markup).toContain("IDX");
+    expect(markup).toContain('data-testid="effective-address-chip"');
+    expect(markup).toContain("EA = base + GR2");
+    expect(markup).toContain('data-testid="memory-row-0028"');
+    expect(markup).toContain('data-read="true"');
+    expect(activeWireIds(markup)).toContain("index-to-effective");
+    expect(markup).toContain('data-testid="signal-probe-row"');
+    expect(markup).toContain("effective address");
+  });
+
   it("circuit_ld_data_bus_does_not_cross_alu_active_region", () => {
     const markup = renderFocus(stepTimes(1));
 

@@ -1,5 +1,5 @@
 import type { CometState, InstructionKind } from "./types";
-import { formatWord } from "./types";
+import { formatWord, word as toWord } from "./types";
 import type { CppToCaslMap } from "../transpiler/cppAst";
 import { cppLineForCaslLine } from "../transpiler/cppMapping";
 import { decodeIndexRegisterField, decodeOpcode, decodeRegisterField, encodingForMnemonic } from "./instructionEncoding";
@@ -15,8 +15,13 @@ export type MachineCodeRow = {
   kind: MachineCodeRowKind;
   instruction?: InstructionKind;
   wordOffset: number;
+  baseAddress?: number;
   operandAddress?: number;
+  indexRegister?: number;
+  indexValue?: number;
+  effectiveAddress?: number;
   resolvedLabel?: string;
+  effectiveLabel?: string;
   meaning: string;
   relatedCaslLine?: number;
   relatedCppLine?: number;
@@ -35,8 +40,12 @@ export type MachineCodeExplanation = {
   opcode?: number;
   register?: number;
   indexRegister?: number;
+  indexValue?: number;
+  baseAddress?: number;
   operandAddress?: number;
+  effectiveAddress?: number;
   resolvedLabel?: string;
+  effectiveLabel?: string;
   meaning: string;
   binaryText: string;
 };
@@ -80,9 +89,18 @@ export function selectMachineCodeRows(state: CometState, mapping: CppToCaslMap[]
     for (let offset = 0; offset < size; offset += 1) irAddresses.add((state.currentAddress + offset) & 0xffff);
   }
 
-  return state.sourceMap.flatMap((entry) =>
-    entry.machineWords.map((word, offset) => {
+  return state.sourceMap.flatMap((entry) => {
+    const instruction = state.program?.find((programInstruction) => programInstruction.address === entry.address);
+    const rawIndexRegister = instruction?.indexRegister ?? (entry.instruction && EXECUTABLE_INSTRUCTIONS.has(entry.instruction) ? decodeIndexRegisterField(entry.machineWords[0] ?? 0) : 0);
+    const indexRegister = rawIndexRegister > 0 ? rawIndexRegister : undefined;
+    const indexValue = indexRegister !== undefined ? state.gr[indexRegister] : undefined;
+    const baseOperand = entry.machineWords[1];
+    const effectiveAddress = baseOperand === undefined ? undefined : toWord(baseOperand + (indexValue ?? 0));
+
+    return entry.machineWords.map((word, offset) => {
       const address = (entry.address + offset) & 0xffff;
+      const rowBaseAddress = offset > 0 ? word : baseOperand;
+      const rowEffectiveAddress = rowBaseAddress === undefined ? undefined : toWord(rowBaseAddress + (indexValue ?? 0));
       return {
         address,
         word,
@@ -91,10 +109,15 @@ export function selectMachineCodeRows(state: CometState, mapping: CppToCaslMap[]
         label: offset === 0 ? entry.label : undefined,
         instruction: entry.instruction,
         wordOffset: offset,
-        operandAddress: offset > 0 ? word : entry.machineWords[1],
-        resolvedLabel: offset > 0 ? labels.get(word) : labels.get(entry.machineWords[1]),
+        baseAddress: rowBaseAddress,
+        operandAddress: rowBaseAddress,
+        indexRegister,
+        indexValue,
+        effectiveAddress: rowEffectiveAddress,
+        resolvedLabel: rowBaseAddress === undefined ? undefined : labels.get(rowBaseAddress),
+        effectiveLabel: rowEffectiveAddress === undefined ? undefined : labels.get(rowEffectiveAddress),
         kind: machineRowKind(entry.instruction, offset),
-        meaning: machineRowMeaning(entry.instruction, offset, entry.label, labels.get(offset > 0 ? word : entry.machineWords[1])),
+        meaning: machineRowMeaning(entry.instruction, offset, entry.label, rowBaseAddress === undefined ? undefined : labels.get(rowBaseAddress), indexRegister, rowEffectiveAddress),
         relatedCaslLine: entry.line,
         relatedCppLine: cppLineForCaslLine(mapping, entry.line),
         isCurrentPr: address === state.pr,
@@ -102,8 +125,8 @@ export function selectMachineCodeRows(state: CometState, mapping: CppToCaslMap[]
         isRead: state.lastMemoryReadAddress === address,
         isWritten: state.lastMemoryWriteAddress === address
       };
-    })
-  );
+    });
+  });
 }
 
 export function selectDefaultMachineCodeRow(rows: MachineCodeRow[]): MachineCodeRow | undefined {
@@ -115,7 +138,7 @@ export function explainMachineCodeRow(row: MachineCodeRow): MachineCodeExplanati
     const opcode = decodeOpcode(row.word);
     const encoding = encodingForMnemonic(row.instruction);
     const register = encoding?.format === "R_ADR" ? decodeRegisterField(row.word) : undefined;
-    const indexRegister = encoding?.format === "R_ADR" ? decodeIndexRegisterField(row.word) : undefined;
+    const indexRegister = encoding?.format === "R_ADR" || encoding?.format === "JUMP_ADR" ? decodeIndexRegisterField(row.word) : undefined;
     return {
       address: row.address,
       word: row.word,
@@ -124,9 +147,13 @@ export function explainMachineCodeRow(row: MachineCodeRow): MachineCodeExplanati
       wordRole: row.kind,
       opcode,
       register,
-      indexRegister,
+      indexRegister: indexRegister === 0 ? undefined : indexRegister,
+      indexValue: row.indexValue,
+      baseAddress: row.baseAddress,
       operandAddress: row.operandAddress,
+      effectiveAddress: row.effectiveAddress,
       resolvedLabel: row.resolvedLabel,
+      effectiveLabel: row.effectiveLabel,
       meaning: instructionMeaning(row, register),
       binaryText: row.word.toString(2).padStart(16, "0")
     };
@@ -139,11 +166,16 @@ export function explainMachineCodeRow(row: MachineCodeRow): MachineCodeExplanati
       sourceText: row.sourceText,
       mnemonic: row.instruction,
       wordRole: row.kind,
+      baseAddress: row.baseAddress,
+      indexRegister: row.indexRegister,
+      indexValue: row.indexValue,
       operandAddress: row.word,
+      effectiveAddress: row.effectiveAddress,
       resolvedLabel: row.resolvedLabel,
+      effectiveLabel: row.effectiveLabel,
       meaning: isShiftInstruction(row.instruction)
-        ? `Shift count / effective address for ${row.sourceText}${row.resolvedLabel ? `; address of ${row.resolvedLabel}.` : "."} This word is not a memory data read.`
-        : `Operand address for ${row.sourceText}${row.resolvedLabel ? `; address of ${row.resolvedLabel}.` : "."}`,
+        ? `Shift count / effective address for ${row.sourceText}${operandIndexExplanation(row)}. This word is not a memory data read.`
+        : `Operand address for ${row.sourceText}${operandIndexExplanation(row)}`,
       binaryText: row.word.toString(2).padStart(16, "0")
     };
   }
@@ -167,14 +199,18 @@ function machineRowKind(instruction: InstructionKind | undefined, offset: number
   return offset === 0 ? "instruction" : "operand";
 }
 
-function machineRowMeaning(instruction: InstructionKind | undefined, offset: number, label?: string, resolvedLabel?: string): string {
+function machineRowMeaning(instruction: InstructionKind | undefined, offset: number, label?: string, resolvedLabel?: string, indexRegister?: number, effectiveAddress?: number): string {
   if (instruction === "DC") return label ? `data for ${label}` : "data";
   if (instruction === "DS") return label ? `reserved data for ${label}` : "reserved data";
   if (instruction === "NOP") return "no-operation instruction word";
   if (instruction === "RET") return "instruction word";
   if (offset === 0) return "opcode/register word";
-  if (isShiftInstruction(instruction)) return "shift count / effective address";
-  return "operand address";
+  if (indexRegister === undefined || effectiveAddress === undefined) {
+    return isShiftInstruction(instruction) ? "shift count / effective address" : "operand address";
+  }
+  const indexSuffix = ` + GR${indexRegister} => ${formatWord(effectiveAddress)}`;
+  if (isShiftInstruction(instruction)) return `shift count / effective address${indexSuffix}`;
+  return `operand address${indexSuffix}${resolvedLabel ? ` (${resolvedLabel})` : ""}`;
 }
 
 function normalizeSourceText(source: string): string {
@@ -190,7 +226,7 @@ function labelByAddress(state: CometState): Map<number, string> {
 }
 
 function instructionMeaning(row: MachineCodeRow, register?: number): string {
-  const operand = row.operandAddress === undefined ? "next operand word" : row.resolvedLabel ? `${row.resolvedLabel} (${formatWord(row.operandAddress)})` : formatWord(row.operandAddress);
+  const operand = operandDisplay(row);
   const gr = register === undefined ? "register" : `GR${register}`;
   switch (row.instruction) {
     case "NOP":
@@ -248,4 +284,21 @@ function instructionMeaning(row: MachineCodeRow, register?: number): string {
 
 function isShiftInstruction(instruction: InstructionKind | undefined): boolean {
   return instruction === "SLA" || instruction === "SRA" || instruction === "SLL" || instruction === "SRL";
+}
+
+function operandDisplay(row: MachineCodeRow): string {
+  if (row.operandAddress === undefined) return "next operand word";
+  const base = row.resolvedLabel ? `${row.resolvedLabel} (${formatWord(row.operandAddress)})` : formatWord(row.operandAddress);
+  if (row.indexRegister === undefined || row.indexValue === undefined || row.effectiveAddress === undefined) return base;
+  const effective = row.effectiveLabel ? `${row.effectiveLabel} (${formatWord(row.effectiveAddress)})` : formatWord(row.effectiveAddress);
+  return `${base} + GR${row.indexRegister}(${formatWord(row.indexValue)}) => ${effective}`;
+}
+
+function operandIndexExplanation(row: MachineCodeRow): string {
+  const labelText = row.resolvedLabel ? `; base address of ${row.resolvedLabel}` : "";
+  if (row.indexRegister === undefined || row.indexValue === undefined || row.effectiveAddress === undefined) {
+    return `${labelText}.`;
+  }
+  const effectiveLabel = row.effectiveLabel ? ` (${row.effectiveLabel})` : "";
+  return `${labelText}; GR${row.indexRegister}=${formatWord(row.indexValue)}; effective address ${formatWord(row.effectiveAddress)}${effectiveLabel}.`;
 }

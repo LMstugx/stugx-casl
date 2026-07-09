@@ -708,6 +708,83 @@ A    DC    #8000
     require(arithmeticVm.state().gr[1] == 0xffff, "SRA count 16 should preserve sign");
 }
 
+void AssembleIndexAddressing() {
+    const auto output = assembleOrExit(R"(MAIN START
+     LD    GR1,A,GR2
+     ST    GR1,A,GR3
+     JUMP  MAIN,GR4
+     SLL   GR1,1,GR2
+A    DC    10
+     END)");
+
+    require(output.state.memory[0x20] == 0x1012, "LD indexed machine word");
+    require(output.state.memory[0x22] == 0x1113, "ST indexed machine word");
+    require(output.state.memory[0x24] == 0x6404, "JUMP indexed machine word");
+    require(output.state.memory[0x26] == 0x5212, "SLL indexed machine word");
+    require(output.instructions[0].indexRegister == 2, "LD index register");
+}
+
+void RejectGr0AsIndexRegister() {
+    casl::Assembler assembler;
+    auto result = assembler.assemble(R"(MAIN START
+     LD    GR1,A,GR0
+A    DC    10
+     END)");
+    require(!result.ok, "GR0 index should fail");
+    require(!result.diagnostics.empty(), "GR0 index diagnostic");
+}
+
+void ExecuteLdStWithIndex() {
+    const auto output = assembleOrExit(R"(MAIN START
+     LAD   GR2,1
+     LD    GR1,A,GR2
+     ST    GR1,RESULT,GR2
+     RET
+A    DC    10
+B    DC    20
+RESULT DS  2
+     END)");
+    casl::CometVm vm;
+    vm.load(output);
+    (void)vm.step();
+    (void)vm.step();
+    require(vm.state().gr[1] == 20, "LD should read effective address B");
+    require(vm.state().lastBaseAddress.has_value() && *vm.state().lastBaseAddress == symbolAddress(output, "A"), "LD base address");
+    require(vm.state().lastIndexRegister.has_value() && *vm.state().lastIndexRegister == 2, "LD index register");
+    require(vm.state().lastIndexValue.has_value() && *vm.state().lastIndexValue == 1, "LD index value");
+    require(vm.state().lastEffectiveAddress.has_value() && *vm.state().lastEffectiveAddress == symbolAddress(output, "B"), "LD effective address");
+    require(vm.state().lastMemoryReadAddress.has_value() && *vm.state().lastMemoryReadAddress == symbolAddress(output, "B"), "LD effective read address");
+
+    (void)vm.step();
+    require(vm.state().lastMemoryWriteAddress.has_value() && *vm.state().lastMemoryWriteAddress == static_cast<std::uint16_t>(symbolAddress(output, "RESULT") + 1), "ST effective write address");
+    require(vm.state().memory[static_cast<std::uint16_t>(symbolAddress(output, "RESULT") + 1)] == 20, "ST indexed write value");
+}
+
+void ExecuteLadJumpShiftWithIndex() {
+    const auto output = assembleOrExit(R"(MAIN START
+     LAD   GR2,1
+     LAD   GR1,A,GR2
+     SLL   GR1,0,GR2
+     JUMP  DONE,GR2
+SKIP RET
+DONE RET
+A    DC    10
+     END)");
+    casl::CometVm vm;
+    vm.load(output);
+    (void)vm.step();
+    (void)vm.step();
+    require(vm.state().gr[1] == static_cast<std::uint16_t>(symbolAddress(output, "A") + 1), "LAD should load effective address");
+    require(!vm.state().lastMemoryReadAddress.has_value(), "LAD indexed should not read memory");
+
+    (void)vm.step();
+    require(vm.state().gr[1] == static_cast<std::uint16_t>((symbolAddress(output, "A") + 1) << 1), "SLL indexed effective count");
+    require(!vm.state().lastMemoryReadAddress.has_value(), "SLL indexed should not read memory");
+
+    (void)vm.step();
+    require(vm.state().pr == static_cast<std::uint16_t>(symbolAddress(output, "DONE") + 1), "JUMP indexed effective target");
+}
+
 void StepStore() {
     casl::CometVm vm;
     vm.load(assembleSample());
@@ -828,6 +905,10 @@ const std::vector<std::pair<std::string_view, TestFunction>>& tests() {
         {"ShiftCountZeroNoChange", ShiftCountZeroNoChange},
         {"ShiftCountLargeLogicalStableBehavior", ShiftCountLargeLogicalStableBehavior},
         {"ShiftCountLargeArithmeticStableBehavior", ShiftCountLargeArithmeticStableBehavior},
+        {"AssembleIndexAddressing", AssembleIndexAddressing},
+        {"RejectGr0AsIndexRegister", RejectGr0AsIndexRegister},
+        {"ExecuteLdStWithIndex", ExecuteLdStWithIndex},
+        {"ExecuteLadJumpShiftWithIndex", ExecuteLadJumpShiftWithIndex},
         {"StepStore", StepStore},
         {"StepRetFinished", StepRetFinished},
         {"ExecuteGr2Program", ExecuteGr2Program},

@@ -112,6 +112,7 @@ Use the gallery to inspect:
 - SP is visible but inactive for ordinary execution.
 - LD and ST do not make the ALU look active; ADDA and related ALU instructions do.
 - Shift screenshots show the ALU/Shifter path and do not mark Memory as the shift-count data source.
+- Index addressing screenshots show the `IDX` register badge, Effective Address chip, and effective Memory row highlight.
 - Machine Code explanation is readable.
 - Control Flow target text is readable.
 - Source Editor is not squeezed.
@@ -124,6 +125,8 @@ Use the gallery to inspect:
 - `casl-gr2-ld.png` (Circuit Focus Mode)
 - `casl-gr2-adda.png` (Circuit Focus Mode)
 - `casl-gr2-st.png` (Circuit Focus Mode)
+- `index-addressing-circuit.png` (Circuit Focus Mode)
+- `index-addressing-machine-code.png` (Machine Code explanation)
 - `cpp-addition-generated-casl.png`
 - `machine-code-explanation.png`
 - `for-sum-control-flow.png`

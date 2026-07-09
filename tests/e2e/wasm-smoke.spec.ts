@@ -132,3 +132,19 @@ test("WASM backend runs CASL shift operations in the browser UI", async ({ page 
   await expect(page.getByTestId("run-state")).toHaveText("Finished");
   await expectRegister(page, "register-gr1", "0003");
 });
+
+test("WASM backend runs CASL index addressing in the browser UI", async ({ page }) => {
+  await openStudio(page, "WASM Core");
+  await selectDemoProgram(page, "casl-index-addressing");
+
+  await assemble(page);
+  await page.getByRole("tab", { name: "Machine Code" }).click();
+  await expect(page.getByTestId("machine-code-output")).toContainText("LD GR1,A,GR2");
+  await run(page);
+
+  await expect(page.getByTestId("run-state")).toHaveText("Finished");
+  await expectRegister(page, "register-gr1", "0014");
+  await page.getByRole("tab", { name: "Memory" }).click();
+  await expect(page.getByTestId("memory-view-row-0029")).toContainText("RESULT");
+  await expect(page.getByTestId("memory-view-row-0029")).toContainText("0014");
+});

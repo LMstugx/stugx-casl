@@ -172,6 +172,32 @@ async function captureShiftOperationsMachineCode(page: Page, viewport: Viewport)
   await capture(page, viewport, "shift-operations-machine-code.png");
 }
 
+async function captureIndexAddressingCircuit(page: Page, viewport: Viewport) {
+  await openStudio(page, "Mock Core");
+  await selectDemoProgram(page, "casl-index-addressing");
+  await enterCircuitFocusMode(page);
+  await assemble(page);
+  await step(page);
+  await step(page);
+  await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("LD");
+  await expect(page.getByTestId("comet-circuit-svg").locator("[data-testid='effective-address-chip']")).toContainText("EA = base + GR2");
+  await expect(page.getByTestId("comet-circuit-svg").locator("[data-testid='memory-row-0028']")).toHaveAttribute("data-read", "true");
+  await capture(page, viewport, "index-addressing-circuit.png");
+}
+
+async function captureIndexAddressingMachineCode(page: Page, viewport: Viewport) {
+  await openStudio(page, "Mock Core");
+  await selectDemoProgram(page, "casl-index-addressing");
+  await assemble(page);
+  await step(page);
+  await step(page);
+  await openOutputTab(page, "Machine Code");
+  await page.getByTestId("machine-code-row-0022").click();
+  await expect(page.getByTestId("machine-code-explanation")).toContainText("GR2");
+  await expect(page.getByTestId("machine-code-explanation")).toContainText("0028");
+  await capture(page, viewport, "index-addressing-machine-code.png");
+}
+
 test.describe("visual review screenshot gallery", () => {
   for (const viewport of viewports) {
     test(`captures visual review gallery at ${viewport.name}`, async ({ page }) => {
@@ -188,6 +214,8 @@ test.describe("visual review screenshot gallery", () => {
       await captureLogicalAddCompareJov(page, viewport);
       await captureShiftOperationsCircuit(page, viewport);
       await captureShiftOperationsMachineCode(page, viewport);
+      await captureIndexAddressingCircuit(page, viewport);
+      await captureIndexAddressingMachineCode(page, viewport);
     });
   }
 });

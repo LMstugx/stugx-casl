@@ -45,6 +45,9 @@ type LoopContext = {
   kind: "while" | "for";
 };
 
+const ARGUMENT_REGISTERS = ["GR1", "GR2", "GR3"] as const;
+type ArgumentRegister = (typeof ARGUMENT_REGISTERS)[number];
+
 type GeneratorContext = {
   labels: Map<string, string>;
   constants: Map<number, ConstantEntry>;
@@ -124,10 +127,12 @@ function emitStatements(context: GeneratorContext, statements: CppStatement[], b
 
 function emitFunctionBody(context: GeneratorContext, fn: CppProgram["main"]): void {
   context.currentFunction = fn.name;
-  if (fn.parameters[0]) {
-    emit(context, `     ST    GR1,${labelForVariable(context, fn.parameters[0].name)}`, {
-      cppLine: fn.parameters[0].line,
-      reason: `save ${fn.parameters[0].name} parameter from GR1`,
+  for (const [index, parameter] of fn.parameters.entries()) {
+    const register = ARGUMENT_REGISTERS[index];
+    if (!register) continue;
+    emit(context, `     ST    ${register},${labelForVariable(context, parameter.name)}`, {
+      cppLine: parameter.line,
+      reason: `save ${parameter.name} parameter from ${register}`,
       kind: "function-declaration"
     });
   }
@@ -373,8 +378,10 @@ function operandForExpression(context: GeneratorContext, expression: CppExpressi
 
 function emitCall(context: GeneratorContext, expression: Extract<CppExpression, { kind: "CallExpression" }>, cppLine: number, kind: CppToCaslMapKind): void {
   const callee = expression.callee;
-  if (expression.arguments[0]) {
-    emitArgumentToGr1(context, expression.arguments[0], callee, cppLine, kind);
+  for (const [index, argument] of expression.arguments.entries()) {
+    const register = ARGUMENT_REGISTERS[index];
+    if (!register) throw new Error("only up to three function parameters are supported yet");
+    emitArgumentToRegister(context, argument, register, index, callee, cppLine, kind);
   }
   emit(context, `     CALL  ${functionLabel(callee)}`, {
     cppLine,
@@ -383,20 +390,29 @@ function emitCall(context: GeneratorContext, expression: Extract<CppExpression, 
   });
 }
 
-function emitArgumentToGr1(context: GeneratorContext, argument: CppExpression, callee: string, cppLine: number, kind: CppToCaslMapKind): void {
+function emitArgumentToRegister(
+  context: GeneratorContext,
+  argument: CppExpression,
+  register: ArgumentRegister,
+  argumentIndex: number,
+  callee: string,
+  cppLine: number,
+  kind: CppToCaslMapKind
+): void {
+  const reason = `load argument ${argumentIndex + 1} for ${callee}`;
   if (argument.kind === "IntegerLiteral") {
-    emit(context, `     LAD   GR1,${formatCaslLiteral(argument.value)}`, {
+    emit(context, `     LAD   ${register},${formatCaslLiteral(argument.value)}`, {
       cppLine,
-      reason: `load first argument for ${callee}`,
+      reason,
       kind
     });
     return;
   }
 
   if (argument.kind === "Identifier") {
-    emit(context, `     LD    GR1,${labelForVariable(context, argument.name)}`, {
+    emit(context, `     LD    ${register},${labelForVariable(context, argument.name)}`, {
       cppLine,
-      reason: `load first argument for ${callee}`,
+      reason,
       kind
     });
     return;

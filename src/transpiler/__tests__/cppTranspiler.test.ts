@@ -224,9 +224,22 @@ int main() {
     expect(result.diagnostics.map((diagnostic) => diagnostic.message).join("\n")).toContain("function call argument count mismatch");
   });
 
-  it("semantic_rejects_two_parameters", () => {
+  it("semantic_rejects_four_parameters", () => {
+    const result = transpileCppToCasl(`int sum4(int a, int b, int c, int d) {
+    return a + b + c + d;
+}
+
+int main() {
+    return sum4(1, 2, 3, 4);
+}`);
+
+    expect(result.ok).toBe(false);
+    expect(result.diagnostics.map((diagnostic) => diagnostic.message).join("\n")).toContain("only up to three function parameters are supported yet");
+  });
+
+  it("semantic_rejects_argument_count_mismatch_multi", () => {
     const result = transpileCppToCasl(`int add(int a, int b) {
-    return a;
+    return a + b;
 }
 
 int main() {
@@ -234,7 +247,20 @@ int main() {
 }`);
 
     expect(result.ok).toBe(false);
-    expect(result.diagnostics.map((diagnostic) => diagnostic.message).join("\n")).toContain("only one function parameter is supported yet");
+    expect(result.diagnostics.map((diagnostic) => diagnostic.message).join("\n")).toContain("function call argument count mismatch");
+  });
+
+  it("semantic_rejects_duplicate_parameter_name", () => {
+    const result = transpileCppToCasl(`int add(int a, int a) {
+    return a;
+}
+
+int main() {
+    return add(1, 2);
+}`);
+
+    expect(result.ok).toBe(false);
+    expect(result.diagnostics.map((diagnostic) => diagnostic.message).join("\n")).toContain("duplicate parameter name");
   });
 
   it("semantic_rejects_unknown_argument_identifier", () => {
@@ -246,6 +272,20 @@ int main() {
     int y;
     y = addOne(missing);
     return y;
+}`);
+
+    expect(result.ok).toBe(false);
+    expect(result.diagnostics.map((diagnostic) => diagnostic.message).join("\n")).toContain("Variable 'missing' is used before declaration");
+  });
+
+  it("semantic_rejects_unknown_identifier_argument_multi", () => {
+    const result = transpileCppToCasl(`int add(int a, int b) {
+    return a + b;
+}
+
+int main() {
+    int known = 2;
+    return add(known, missing);
 }`);
 
     expect(result.ok).toBe(false);
@@ -274,6 +314,21 @@ int main() {
 int main() {
     int a = 5;
     return addOne(a + 1);
+}`);
+
+    expect(result.ok).toBe(false);
+    expect(result.diagnostics.map((diagnostic) => diagnostic.message).join("\n")).toContain("complex function call arguments are not supported yet");
+  });
+
+  it("semantic_rejects_complex_argument_expression", () => {
+    const result = transpileCppToCasl(`int add(int a, int b) {
+    return a + b;
+}
+
+int main() {
+    int a = 1;
+    int b = 2;
+    return add(a + b, 3);
 }`);
 
     expect(result.ok).toBe(false);
@@ -309,6 +364,19 @@ int helper() {
 
 int main() {
     return addOne();
+}`);
+
+    expect(result.ok).toBe(true);
+    expect(result.diagnostics).toEqual([]);
+  });
+
+  it("existing_single_argument_function_still_works", () => {
+    const result = transpileCppToCasl(`int addOne(int x) {
+    return x + 1;
+}
+
+int main() {
+    return addOne(5);
 }`);
 
     expect(result.ok).toBe(true);

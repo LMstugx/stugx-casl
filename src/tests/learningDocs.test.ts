@@ -18,6 +18,7 @@ import phase9h from "../../docs/phase9h-subroutine-teaching-polish.md?raw";
 import phase10a from "../../docs/phase10a-cpp-function-call-lowering.md?raw";
 import phase10b from "../../docs/phase10b-calling-convention-design.md?raw";
 import phase10c from "../../docs/phase10c-cpp-single-argument-function.md?raw";
+import phase10d from "../../docs/phase10d-cpp-multi-register-arguments.md?raw";
 import futureCustomCircuit from "../../docs/future-custom-circuit-design.md?raw";
 import practiceTasks from "../../docs/practice-tasks.md?raw";
 import projectOverview from "../../docs/project-overview.md?raw";
@@ -39,6 +40,7 @@ describe("learning use documentation", () => {
     expect(learningGuide).toContain("CASL: Call Return");
     expect(learningGuide).toContain("CASL: Nested Call Return");
     expect(learningGuide).toContain("C++: Function Call");
+    expect(learningGuide).toContain("C++: Function Arguments");
     expect(learningGuide).toContain("Step 2: C++ to CASL");
     expect(learningGuide).toContain("Step 6: break / continue");
   });
@@ -96,8 +98,9 @@ describe("learning use documentation", () => {
     expect(practiceTasks).toContain("Observe CALL / stack-aware RET");
     expect(practiceTasks).toContain("Trace nested return order");
     expect(practiceTasks).toContain("Observe C++ function-call lowering");
-    expect(practiceTasks).toContain("Read the future calling convention design");
+    expect(practiceTasks).toContain("Read the calling convention design");
     expect(practiceTasks).toContain("Observe single-argument function lowering");
+    expect(practiceTasks).toContain("Observe multi-register argument lowering");
     expect(practiceTasks).toContain("Level 5: break / continue");
   });
 
@@ -181,8 +184,9 @@ describe("learning use documentation", () => {
     expect(phase10b).toContain("GR0");
     expect(phase10b).toContain("GR1");
     expect(phase10b).toContain("GR2");
+    expect(phase10b).toContain("GR3");
     expect(phase10b).toContain("register arguments");
-    expect(phase10b).toContain("only `GR1` is implemented today");
+    expect(phase10b).toContain("Phase 10D extends");
     expect(phase10b).toContain("stack arguments");
     expect(phase10b).toContain("stack-frame locals");
     expect(phase10b).toContain("Current Limitations");
@@ -196,8 +200,22 @@ describe("learning use documentation", () => {
     expect(phase10c).toContain("LAD   GR1,5");
     expect(phase10c).toContain("ST    GR1,FUNC_ADDONE_X");
     expect(phase10c).toContain("static parameter label");
-    expect(phase10c).toContain("multiple parameters");
+    expect(phase10c).toContain("more than three parameters");
     expect(phase10c).toContain("complex function call arguments are not supported yet");
+  });
+
+  it("phase10d_multi_register_argument_doc_exists", () => {
+    expect(phase10d).toContain("Phase 10D: C++ Multi-Register Argument Lowering");
+    expect(phase10d).toContain("GR1");
+    expect(phase10d).toContain("GR2");
+    expect(phase10d).toContain("GR3");
+    expect(phase10d).toContain("GR0");
+    expect(phase10d).toContain("LAD   GR1,2");
+    expect(phase10d).toContain("LAD   GR2,3");
+    expect(phase10d).toContain("ST    GR1,FUNC_ADD_A");
+    expect(phase10d).toContain("ST    GR2,FUNC_ADD_B");
+    expect(phase10d).toContain("only up to three function parameters are supported yet");
+    expect(phase10d).toContain("stack arguments");
   });
 
   it("phase8e_circuit_focus_doc_exists", () => {
@@ -259,7 +277,9 @@ describe("learning use documentation", () => {
     expect(futureCustomCircuit).toContain("Phase 10A connects no-argument C++ function-call lowering");
     expect(futureCustomCircuit).toContain("Phase 10B documents the future C++ calling convention");
     expect(futureCustomCircuit).toContain("Phase 10C implements the first concrete argument path");
+    expect(futureCustomCircuit).toContain("Phase 10D extends that path");
     expect(futureCustomCircuit).toContain("GR1");
+    expect(futureCustomCircuit).toContain("GR3");
     expect(futureCustomCircuit).toContain("stack-frame locals");
   });
 
@@ -298,6 +318,7 @@ describe("learning use documentation", () => {
     expect(readme).toContain("docs/phase10a-cpp-function-call-lowering.md");
     expect(readme).toContain("docs/phase10b-calling-convention-design.md");
     expect(readme).toContain("docs/phase10c-cpp-single-argument-function.md");
+    expect(readme).toContain("docs/phase10d-cpp-multi-register-arguments.md");
     expect(readme).toContain("docs/future-custom-circuit-design.md");
     expect(normalized).not.toContain("hackathon");
     expect(normalized).not.toContain("contest submission");

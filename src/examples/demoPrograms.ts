@@ -211,6 +211,24 @@ int main() {
     suggestedActions: ["Click Assemble.", "Open Generated CASL and find LAD GR1,5 / CALL FUNC_ADDONE / ST GR1,FUNC_ADDONE_X.", "Open Trace and watch GR1 before CALL.", "Open Machine Code and inspect CALL opcode 80.", "Run and confirm GR0 = 0006."]
   },
   {
+    id: "cpp-function-arguments",
+    name: "C++: Function Arguments",
+    mode: "cpp",
+    source: `int add(int a, int b) {
+    return a + b;
+}
+
+int main() {
+    int result;
+    result = add(2, 3);
+    return result;
+}`,
+    description: "Two-argument C++ function lowered with GR1 / GR2 as argument registers and GR0 as the return-value register.",
+    whatThisShows: "The call site loads arguments into GR1 and GR2, CALL jumps to FUNC_ADD, the callee saves both registers into static parameter labels, and RET returns through GR0.",
+    expectedResult: "GR1 = 0002 and GR2 = 0003 before CALL; GR0 becomes 0005, RESULT stores 0005, and the final top-level RET finishes.",
+    suggestedActions: ["Click Assemble.", "Open Generated CASL and find LAD GR1,2 / LAD GR2,3 / CALL FUNC_ADD.", "Find ST GR1,FUNC_ADD_A and ST GR2,FUNC_ADD_B at function entry.", "Open Trace and watch GR1 / GR2 before CALL.", "Run and confirm GR0 = 0005."]
+  },
+  {
     id: "cpp-addition",
     name: "C++: Addition",
     mode: "cpp",

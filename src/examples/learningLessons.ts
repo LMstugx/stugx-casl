@@ -708,6 +708,68 @@ export const learningLessons: LearningLesson[] = [
     ]
   },
   {
+    exampleId: "cpp-function-arguments",
+    title: "C++ multi-register arguments lowered through GR1 / GR2",
+    level: "C++ to CASL",
+    concepts: ["GR1 / GR2 argument registers", "GR0 return value", "parameter save at function entry", "CALL / RET", "static namespaced parameter labels", "no stack arguments yet"],
+    learningGoals: [
+      "See how the first two C++ arguments are loaded into GR1 and GR2 before CALL.",
+      "Confirm that the callee saves GR1 and GR2 into generated static parameter labels.",
+      "Understand that Phase 10D uses register arguments only; stack arguments are still future work."
+    ],
+    observe: ["LAD GR1,2 and LAD GR2,3 before CALL", "ST GR1,FUNC_ADD_A and ST GR2,FUNC_ADD_B at function entry", "CALL FUNC_ADD", "GR0 = 0005 after return"],
+    suggestedSteps: [
+      {
+        id: "open-generated",
+        label: "Find argument register loads",
+        action: "Click Assemble and open Generated CASL.",
+        expectedObservation: "The call site contains LAD GR1,2 and LAD GR2,3 before CALL FUNC_ADD.",
+        recommendedTab: "Generated CASL"
+      },
+      {
+        id: "inspect-function-entry",
+        label: "Inspect parameter saves",
+        action: "Find FUNC_ADD in Generated CASL.",
+        expectedObservation: "The first instructions store GR1 into FUNC_ADD_A and GR2 into FUNC_ADD_B.",
+        recommendedTab: "Generated CASL"
+      },
+      {
+        id: "run-trace",
+        label: "Run and read Trace",
+        action: "Open Trace and click Run.",
+        expectedObservation: "Trace shows GR1 / GR2 loaded before CALL, CALL / RET flow, and final GR0 = 0005.",
+        recommendedTab: "Trace"
+      }
+    ],
+    checkpoints: [
+      {
+        id: "gr1-gr2-arguments",
+        label: "GR1 / GR2 arguments",
+        expected: "Generated CASL should contain LAD GR1,2 and LAD GR2,3 before CALL FUNC_ADD.",
+        whereToLook: "Generated CASL",
+        note: "Phase 10D uses GR1, GR2, and GR3 as the first three argument registers."
+      },
+      {
+        id: "parameter-saves",
+        label: "Parameter saves",
+        expected: "Function body should contain ST GR1,FUNC_ADD_A and ST GR2,FUNC_ADD_B.",
+        whereToLook: "Generated CASL",
+        note: "These are static parameter labels, not stack-frame locals."
+      },
+      {
+        id: "gr0-result",
+        label: "Return value",
+        expected: "GR0 should be 0005 when the program finishes.",
+        whereToLook: "Registers tab / Trace",
+        note: "GR0 remains the return-value register."
+      }
+    ],
+    commonQuestions: [
+      "Why are the arguments in GR1 and GR2 instead of the stack?",
+      "What happens when a function needs more than three arguments?"
+    ]
+  },
+  {
     exampleId: "cpp-addition",
     title: "C++ addition lowered to CASL",
     level: "C++ to CASL",

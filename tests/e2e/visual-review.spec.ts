@@ -384,6 +384,43 @@ async function captureCppFunctionArgumentMachineCode(page: Page, viewport: Viewp
   await capture(page, viewport, "cpp-function-argument-machine-code.png");
 }
 
+async function captureCppFunctionArgumentsGeneratedCasl(page: Page, viewport: Viewport) {
+  await openStudio(page, "Mock Core");
+  await selectDemoProgram(page, "cpp-function-arguments");
+  await assemble(page);
+  await openOutputTab(page, "Generated CASL");
+  await expect(page.getByTestId("generated-casl-output")).toContainText("GR1,2");
+  await expect(page.getByTestId("generated-casl-output")).toContainText("GR2,3");
+  await expect(page.getByTestId("generated-casl-output")).toContainText("GR1,FUNC_ADD_A");
+  await expect(page.getByTestId("generated-casl-output")).toContainText("GR2,FUNC_ADD_B");
+  await capture(page, viewport, "cpp-function-arguments-generated-casl.png");
+}
+
+async function captureCppFunctionArgumentsTrace(page: Page, viewport: Viewport) {
+  await openStudio(page, "Mock Core");
+  await selectDemoProgram(page, "cpp-function-arguments");
+  await assemble(page);
+  await run(page);
+  await expect(page.getByTestId("run-state")).toHaveText("Finished");
+  await openOutputTab(page, "Trace");
+  await expect(page.getByTestId("trace-list")).toContainText("CALL");
+  await expect(page.getByTestId("trace-list")).toContainText("RET");
+  await capture(page, viewport, "cpp-function-arguments-trace.png");
+}
+
+async function captureCppFunctionArgumentsMachineCode(page: Page, viewport: Viewport) {
+  await openStudio(page, "Mock Core");
+  await selectDemoProgram(page, "cpp-function-arguments");
+  await assemble(page);
+  await step(page);
+  await step(page);
+  await openOutputTab(page, "Machine Code");
+  await page.getByTestId("machine-code-output").locator('[data-testid^="machine-code-row-"]').filter({ hasText: "CALL FUNC_ADD" }).first().click();
+  await expect(page.getByTestId("machine-code-explanation")).toContainText("CALL");
+  await expect(page.getByTestId("machine-code-explanation")).toContainText("Return Addr");
+  await capture(page, viewport, "cpp-function-arguments-machine-code.png");
+}
+
 test.describe("visual review screenshot gallery", () => {
   for (const viewport of viewports) {
     test(`captures visual review gallery at ${viewport.name}`, async ({ page }) => {
@@ -416,6 +453,9 @@ test.describe("visual review screenshot gallery", () => {
       await captureCppFunctionArgumentGeneratedCasl(page, viewport);
       await captureCppFunctionArgumentTrace(page, viewport);
       await captureCppFunctionArgumentMachineCode(page, viewport);
+      await captureCppFunctionArgumentsGeneratedCasl(page, viewport);
+      await captureCppFunctionArgumentsTrace(page, viewport);
+      await captureCppFunctionArgumentsMachineCode(page, viewport);
     });
   }
 });

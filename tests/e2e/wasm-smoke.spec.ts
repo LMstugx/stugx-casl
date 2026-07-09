@@ -93,6 +93,21 @@ test("WASM backend runs C++ subset single argument function in the browser UI", 
   await expectRegister(page, "register-gr0", "0006");
 });
 
+test("WASM backend runs C++ subset multi-register argument function in the browser UI", async ({ page }) => {
+  await openStudio(page, "WASM Core");
+  await selectDemoProgram(page, "cpp-function-arguments");
+
+  await assemble(page);
+  await expect(page.getByTestId("generated-casl-output")).toContainText("GR1,2");
+  await expect(page.getByTestId("generated-casl-output")).toContainText("GR2,3");
+  await expect(page.getByTestId("generated-casl-output")).toContainText("GR1,FUNC_ADD_A");
+  await expect(page.getByTestId("generated-casl-output")).toContainText("GR2,FUNC_ADD_B");
+  await run(page);
+
+  await expect(page.getByTestId("run-state")).toHaveText("Finished");
+  await expectRegister(page, "register-gr0", "0005");
+});
+
 test("WASM backend runs C++ subset for sum in the browser UI", async ({ page }) => {
   await openStudio(page, "WASM Core");
   await selectDemoProgram(page, "cpp-for-sum");

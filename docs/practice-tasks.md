@@ -234,22 +234,22 @@ Expected observation:
 Answer hint:
 
 - Final `GR0` should be `0001`.
-- The MVP does not support multiple parameters, recursion, or calls inside larger expressions such as `foo() + 1`.
+- The MVP does not support recursion or calls inside larger expressions such as `foo() + 1`.
 
-### Task 8C. Read the future calling convention design
+### Task 8C. Read the calling convention design
 
 Start from `C++: Function Call`, then read `docs/phase10b-calling-convention-design.md`.
 
 Expected observation:
 
 - `GR0` is already the return-value register.
-- Future small arguments are planned for register slots such as `GR1` and `GR2`.
+- The first three small arguments use register slots `GR1`, `GR2`, and `GR3`.
 - Stack arguments are a later design topic, not current syntax.
 - Static namespaced labels such as `MAIN_X` are not stack-frame locals.
 
 Answer hint:
 
-- Write only one simple `int` parameter if you try the implemented path; multiple parameters and complex arguments should still be rejected.
+- Try simple literal or identifier arguments only; complex arguments such as `a + b` should still be rejected.
 - The useful study question is: which values would be easiest to observe in Registers, and which values would need Stack Preview?
 
 ### Task 8D. Observe single-argument function lowering
@@ -267,7 +267,24 @@ Answer hint:
 
 - `GR1` carries the first argument.
 - `GR0` carries the return value.
-- Multiple parameters and stack arguments are still unsupported.
+- Stack arguments are still unsupported.
+
+### Task 8E. Observe multi-register argument lowering
+
+Start from `C++: Function Arguments`.
+
+Expected observation:
+
+- The call site should contain `LAD GR1,2` and `LAD GR2,3` before `CALL FUNC_ADD`.
+- The function entry should contain `ST GR1,FUNC_ADD_A` and `ST GR2,FUNC_ADD_B`.
+- `FUNC_ADD_A` and `FUNC_ADD_B` should be static parameter labels, not stack-frame locals.
+- After the callee returns, `GR0` should contain `0005`.
+
+Answer hint:
+
+- `GR1`, `GR2`, and `GR3` carry the first three arguments.
+- `GR0` carries the return value.
+- A fourth argument should still be rejected because stack arguments are not implemented yet.
 
 ## Level 3: If / Else
 

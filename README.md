@@ -176,7 +176,7 @@ Stack subset:
 Supported:
 
 - `int main() { ... }`
-- no-argument and single-argument `int` functions
+- no-argument and up to three-argument `int` functions
 - `int` variables
 - integer literals
 - assignment
@@ -195,7 +195,7 @@ Not supported:
 - full C++ parsing
 - classes, structs, templates
 - arrays, pointers, references
-- multiple function parameters, recursion, overloads, and function pointers
+- more than three function parameters, recursion, overloads, and function pointers
 - stack-frame locals / arguments
 - strings, characters, floats, doubles
 - `std::cout`, iostreams, vectors
@@ -305,13 +305,14 @@ The current backend is shown in the status bar as `Mock Core`, `WASM Core`, or `
 - [docs/phase10a-cpp-function-call-lowering.md](docs/phase10a-cpp-function-call-lowering.md): no-argument C++ function-call lowering to CASL `CALL` / `RET` with `GR0` return values.
 - [docs/phase10b-calling-convention-design.md](docs/phase10b-calling-convention-design.md): future C++ calling convention design for `GR0` returns, `GR1` / `GR2` register arguments, and stack-frame locals.
 - [docs/phase10c-cpp-single-argument-function.md](docs/phase10c-cpp-single-argument-function.md): single-argument C++ function-call lowering with `GR1` as the first argument register.
+- [docs/phase10d-cpp-multi-register-arguments.md](docs/phase10d-cpp-multi-register-arguments.md): C++ function-call lowering for up to three register arguments in `GR1` / `GR2` / `GR3`.
 
 ## Current Limitations
 
 - This is a learning-oriented C++ subset transpiler, not a complete C++ compiler.
 - The CASL II assembler supports the current teaching subset, not the full instruction set.
 - Index addressing is supported for CASL address operands, but C++ subset code does not generate indexed operands yet.
-- C++ subset can lower no-argument and single-argument `int` function calls, but it does not support multiple parameters, recursion, stack-frame locals, or C++ function-call expressions inside larger expressions.
+- C++ subset can lower no-argument and up to three-argument `int` function calls, but it does not support stack arguments, recursion, stack-frame locals, or C++ function-call expressions inside larger expressions.
 - The WASM bridge currently uses a single runtime and JSON strings.
 - The control-flow view is text and badge based; there is no full CFG graph yet.
 - New / Open / Save, language switching, and theme controls are placeholders or limited.

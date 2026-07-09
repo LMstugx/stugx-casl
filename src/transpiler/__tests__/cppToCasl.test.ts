@@ -1050,6 +1050,145 @@ int main() {
     expect(mappedLines.some((line) => line.includes("CALL  FUNC_ADDONE"))).toBe(true);
   });
 
+  it("transpile_two_args_to_gr1_gr2", () => {
+    const result = expectOk(`int add(int a, int b) {
+    return a + b;
+}
+
+int main() {
+    int result;
+    result = add(2, 3);
+    return result;
+}`);
+
+    const lines = result.caslSource.split("\n");
+    const gr1Index = lines.findIndex((line) => line.includes("LAD   GR1,2"));
+    const gr2Index = lines.findIndex((line) => line.includes("LAD   GR2,3"));
+    const callIndex = lines.findIndex((line) => line.includes("CALL  FUNC_ADD"));
+    expect(gr1Index).toBeGreaterThan(0);
+    expect(gr2Index).toBeGreaterThan(gr1Index);
+    expect(callIndex).toBeGreaterThan(gr2Index);
+  });
+
+  it("transpile_three_args_to_gr1_gr2_gr3", () => {
+    const result = expectOk(`int sum3(int a, int b, int c) {
+    return a + b + c;
+}
+
+int main() {
+    return sum3(1, 2, 3);
+}`);
+
+    const lines = result.caslSource.split("\n");
+    const gr1Index = lines.findIndex((line) => line.includes("LAD   GR1,1"));
+    const gr2Index = lines.findIndex((line) => line.includes("LAD   GR2,2"));
+    const gr3Index = lines.findIndex((line) => line.includes("LAD   GR3,3"));
+    const callIndex = lines.findIndex((line) => line.includes("CALL  FUNC_SUM3"));
+    expect(gr1Index).toBeGreaterThan(0);
+    expect(gr2Index).toBeGreaterThan(gr1Index);
+    expect(gr3Index).toBeGreaterThan(gr2Index);
+    expect(callIndex).toBeGreaterThan(gr3Index);
+  });
+
+  it("transpile_identifier_args_to_ld_gr1_gr2", () => {
+    const result = expectOk(`int add(int a, int b) {
+    return a + b;
+}
+
+int main() {
+    int x = 2;
+    int y = 3;
+    return add(x, y);
+}`);
+
+    const lines = result.caslSource.split("\n");
+    const gr1Index = lines.findIndex((line) => line.includes("LD    GR1,MAIN_X"));
+    const gr2Index = lines.findIndex((line) => line.includes("LD    GR2,MAIN_Y"));
+    const callIndex = lines.findIndex((line) => line.includes("CALL  FUNC_ADD"));
+    expect(gr1Index).toBeGreaterThan(0);
+    expect(gr2Index).toBeGreaterThan(gr1Index);
+    expect(callIndex).toBeGreaterThan(gr2Index);
+  });
+
+  it("transpile_parameter_saves_for_multiple_args", () => {
+    const result = expectOk(`int add(int a, int b) {
+    return a + b;
+}
+
+int main() {
+    return add(2, 3);
+}`);
+
+    expect(result.caslSource).toContain("FUNC_ADD ST    GR1,FUNC_ADD_A");
+    expect(result.caslSource).toContain("     ST    GR2,FUNC_ADD_B");
+    expect(result.caslSource).toContain("FUNC_ADD_A DS    1");
+    expect(result.caslSource).toContain("FUNC_ADD_B DS    1");
+  });
+
+  it("transpile_assignment_from_two_argument_call", () => {
+    const result = expectOk(`int add(int a, int b) {
+    return a + b;
+}
+
+int main() {
+    int result;
+    result = add(2, 3);
+    return result;
+}`);
+
+    expect(result.caslSource).toContain("     CALL  FUNC_ADD");
+    expect(result.caslSource).toContain("     ST    GR0,MAIN_RESULT");
+  });
+
+  it("transpile_return_from_two_argument_call", () => {
+    const result = expectOk(`int add(int a, int b) {
+    return a + b;
+}
+
+int main() {
+    return add(2, 3);
+}`);
+
+    const lines = result.caslSource.split("\n");
+    const callIndex = lines.findIndex((line) => line.includes("CALL  FUNC_ADD"));
+    expect(lines[callIndex - 2]).toContain("LAD   GR1,2");
+    expect(lines[callIndex - 1]).toContain("LAD   GR2,3");
+    expect(lines[callIndex + 1]).toContain("RET");
+  });
+
+  it("parameter_labels_are_namespaced_multi", () => {
+    const result = expectOk(`int add(int a, int b, int c) {
+    return a + b + c;
+}
+
+int main() {
+    return add(1, 2, 3);
+}`);
+
+    expect(result.caslSource).toContain("FUNC_ADD_A DS    1");
+    expect(result.caslSource).toContain("FUNC_ADD_B DS    1");
+    expect(result.caslSource).toContain("FUNC_ADD_C DS    1");
+  });
+
+  it("function_call_mapping_multi_args", () => {
+    const result = expectOk(`int add(int a, int b) {
+    return a + b;
+}
+
+int main() {
+    int result;
+    result = add(2, 3);
+    return result;
+}`);
+
+    const rows = result.mapping.filter((entry) => entry.kind === "function-call" && entry.cppLine === 7).flatMap((entry) => entry.caslLines);
+    const mappedLines = rows.map((line) => result.caslSource.split("\n")[line - 1]);
+    expect(mappedLines.some((line) => line.includes("LAD   GR1,2"))).toBe(true);
+    expect(mappedLines.some((line) => line.includes("LAD   GR2,3"))).toBe(true);
+    expect(mappedLines.some((line) => line.includes("CALL  FUNC_ADD"))).toBe(true);
+    expect(mappedLines.some((line) => line.includes("ST    GR0,MAIN_RESULT"))).toBe(true);
+  });
+
   it("cpp_function_call_returns_value", () => {
     const result = expectOk(`int addOne() {
     return 1;
@@ -1129,6 +1268,69 @@ int main() {
 
     expect(state.memory[state.symbols.MAIN_Y]).toBe(0x0006);
     expect(state.memory[state.symbols.FUNC_ADDONE_X]).toBe(0x0005);
+  });
+
+  it("cpp_two_argument_function_returns_value", () => {
+    const result = expectOk(`int add(int a, int b) {
+    return a + b;
+}
+
+int main() {
+    int result;
+    result = add(2, 3);
+    return result;
+}`);
+    const state = runToEnd(result.caslSource);
+
+    expect(state.runState).toBe("Finished");
+    expect(state.gr[0]).toBe(0x0005);
+  });
+
+  it("cpp_three_argument_function_returns_value", () => {
+    const result = expectOk(`int sum3(int a, int b, int c) {
+    return a + b + c;
+}
+
+int main() {
+    return sum3(1, 2, 3);
+}`);
+    const state = runToEnd(result.caslSource);
+
+    expect(state.runState).toBe("Finished");
+    expect(state.gr[0]).toBe(0x0006);
+  });
+
+  it("cpp_identifier_arguments_function_call", () => {
+    const result = expectOk(`int add(int a, int b) {
+    return a + b;
+}
+
+int main() {
+    int x = 2;
+    int y = 3;
+    int result;
+    result = add(x, y);
+    return result;
+}`);
+    const state = runToEnd(result.caslSource);
+
+    expect(state.runState).toBe("Finished");
+    expect(state.gr[0]).toBe(0x0005);
+    expect(state.memory[state.symbols.MAIN_RESULT]).toBe(0x0005);
+  });
+
+  it("cpp_single_argument_function_regression", () => {
+    const result = expectOk(`int addOne(int x) {
+    return x + 1;
+}
+
+int main() {
+    return addOne(5);
+}`);
+    const state = runToEnd(result.caslSource);
+
+    expect(state.runState).toBe("Finished");
+    expect(state.gr[0]).toBe(0x0006);
   });
 
   it("cpp_no_argument_function_regression", () => {

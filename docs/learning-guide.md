@@ -98,7 +98,7 @@ Suggested actions:
 Calling convention design note:
 
 - Current C++ calls use `GR0` as the return-value register.
-- Future parameter support is planned around small register arguments such as `GR1` and `GR2`.
+- Current parameter support uses `GR1`, `GR2`, and `GR3` for the first three integer arguments.
 - Stack arguments and stack-frame locals are design topics only; they are not implemented in the current C++ subset.
 - Read [phase10b-calling-convention-design.md](phase10b-calling-convention-design.md) before trying to design parameter or recursion lessons.
 
@@ -118,6 +118,23 @@ Suggested actions:
 2. Open `Generated CASL` and find `LAD GR1,5` before `CALL FUNC_ADDONE`.
 3. Find `FUNC_ADDONE ST GR1,FUNC_ADDONE_X`.
 4. Run and confirm `GR0 = 0006`.
+
+Multi-register argument follow-up: `C++: Function Arguments`
+
+Learn:
+
+- `GR1`, `GR2`, and `GR3` are the first three argument registers.
+- `GR0` remains the return-value register.
+- `result = add(2, 3);` lowers into `LAD GR1,2`, `LAD GR2,3`, `CALL FUNC_ADD`, and `ST GR0,MAIN_RESULT`.
+- The callee saves `GR1` and `GR2` into `FUNC_ADD_A` and `FUNC_ADD_B` before reading parameters.
+- These parameter labels are still static generated labels, not stack-frame locals.
+
+Suggested actions:
+
+1. Assemble `C++: Function Arguments`.
+2. Open `Generated CASL` and find `LAD GR1,2` and `LAD GR2,3` before `CALL FUNC_ADD`.
+3. Find `FUNC_ADD ST GR1,FUNC_ADD_A` and `ST GR2,FUNC_ADD_B`.
+4. Run and confirm `GR0 = 0005`.
 
 ### Step 3: if / else
 
@@ -432,8 +449,8 @@ For `break` / `continue`, pay attention to:
 - C++ support is a learning subset, not a complete compiler.
 - CASL II support is a teaching subset, not the full instruction set.
 - Index addressing is supported for CASL address operands, but C++ subset code does not generate indexed operands yet.
-- No-argument and single-argument `int` functions are supported, but multiple parameters, recursion, overloads, stack-frame locals, and calls inside larger expressions are not supported.
-- Phase 10C implements the first `GR1` argument path. Stack arguments and real stack-frame locals remain future design work.
+- No-argument and up to three-argument `int` functions are supported, but stack arguments, recursion, overloads, stack-frame locals, and calls inside larger expressions are not supported.
+- Phase 10D implements `GR1` / `GR2` / `GR3` register argument paths. Stack arguments and real stack-frame locals remain future design work.
 - Arrays, pointers, references, classes, templates, strings, and floating-point types are not supported.
 - Complex boolean expressions such as `&&`, `||`, and `!` are not supported.
 - Control Flow is currently text and badge based, not a graph layout.

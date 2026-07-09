@@ -120,13 +120,13 @@ function validateFunctionParameters(fn: CppFunction, context: ValidationContext)
     context.diagnostics.push({ line: fn.parameters[0].line, message: "main parameters are not supported yet", severity: "error" });
   }
 
-  if (fn.parameters.length > 1) {
-    context.diagnostics.push({ line: fn.parameters[1].line, message: "only one function parameter is supported yet", severity: "error" });
+  if (fn.parameters.length > 3) {
+    context.diagnostics.push({ line: fn.parameters[3].line, message: "only up to three function parameters are supported yet", severity: "error" });
   }
 
   for (const parameter of fn.parameters) {
     if (context.variables.has(parameter.name)) {
-      context.diagnostics.push({ line: parameter.line, message: `Duplicate parameter declaration: ${parameter.name}`, severity: "error" });
+      context.diagnostics.push({ line: parameter.line, message: "duplicate parameter name", severity: "error" });
       continue;
     }
 

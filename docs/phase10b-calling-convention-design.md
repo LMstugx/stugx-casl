@@ -2,7 +2,8 @@
 
 Phase 10B is a design and teaching-preparation phase. It did not add C++ syntax, parameters, recursion, stack-frame locals, or new VM behavior when it was introduced.
 
-Phase 10C implements the first part of this design: a single `int` parameter passed through `GR1`.
+Phase 10C implemented the first part of this design: a single `int` parameter passed through `GR1`.
+Phase 10D extends the register-argument path to at most three `int` parameters passed through `GR1`, `GR2`, and `GR3`.
 
 The Phase 10A implementation started as:
 
@@ -18,6 +19,12 @@ Phase 10C extends that with:
 - one `int` parameter per helper function
 - `GR1` as the first argument register
 - static parameter labels such as `FUNC_ADDONE_X`
+
+Phase 10D extends that with:
+
+- up to three `int` parameters per helper function
+- `GR1`, `GR2`, and `GR3` as register argument slots
+- static parameter labels such as `FUNC_ADD_A`, `FUNC_ADD_B`, and `FUNC_ADD_C`
 
 ## Design Goals
 
@@ -59,11 +66,11 @@ At the call site, the caller treats `GR0` as the returned value:
 
 This convention is already implemented in Phase 10A and should remain stable.
 
-## Future Parameter Convention
+## Current Register Parameter Convention
 
-Phase 10C implements the first register-argument slot. The broader proposed convention remains a hybrid design:
+Phase 10D implements the register-argument portion of the broader hybrid design:
 
-- `GR1`, `GR2`, and `GR3` are the first register argument slots; only `GR1` is implemented today.
+- `GR1`, `GR2`, and `GR3` are the first three register argument slots.
 - Additional arguments, when supported later, are passed on the stack.
 - `GR0` remains reserved for the return value.
 - `SP` owns stack argument and return-address storage.
@@ -86,7 +93,7 @@ Possible lowering direction:
      ST    GR0,MAIN_X
 ```
 
-Inside `FUNC_ADD`, `GR1` and `GR2` would be read as parameters. Today only the single-argument `GR1` version is implemented; `GR2` remains future work.
+Inside `FUNC_ADD`, the callee immediately saves `GR1` and `GR2` into static parameter labels before reading them.
 
 ## Register Arguments vs Stack Arguments
 
@@ -151,7 +158,7 @@ The exact layout should be chosen only when parameters and local stack variables
 
 Future parameter support should reuse existing teaching surfaces:
 
-- Register panel: show `GR1` / `GR2` argument values.
+- Register panel: show `GR1` / `GR2` / `GR3` argument values.
 - Machine Code: show `CALL` and return-address write as today.
 - Stack Preview: show stack arguments only when they are actually implemented.
 - Call Stack view: show call depth and return address, not fake locals.
@@ -164,23 +171,21 @@ No UI should imply stack-frame locals before the transpiler actually lowers loca
 
 Still not implemented:
 
-- multiple function parameters
-- `GR2` / `GR3` argument lowering
+- more than three function parameters
 - stack arguments
 - stack-frame locals
 - recursion
 - caller-saved / callee-saved register rules
 - function calls inside larger expressions
-- argument evaluation order
+- complex argument evaluation order
 - local lifetime per call
 
 ## Future Work
 
 Recommended next steps:
 
-1. Add one- and two-argument functions using `GR1` and `GR2`.
-2. Document caller-owned argument setup in Generated CASL.
-3. Add Circuit Focus hints for `GR1` / `GR2` argument values.
-4. Add stack arguments only after the Call Stack view can display them clearly.
-5. Add stack-frame locals after parameters are stable.
-6. Consider recursion only after stack-frame locals exist.
+1. Add clearer Circuit Focus hints for `GR1` / `GR2` / `GR3` argument values if the UI needs them.
+2. Add stack arguments only after the Call Stack view can display them clearly.
+3. Add stack-frame locals after register parameters are stable.
+4. Define caller-saved / callee-saved register rules.
+5. Consider recursion only after stack-frame locals exist.

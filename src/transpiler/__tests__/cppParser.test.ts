@@ -278,6 +278,47 @@ int main() {
     });
   });
 
+  it("parse_two_parameter_function", () => {
+    const result = parseCpp(`int add(int a, int b) {
+    return a + b;
+}
+
+int main() {
+    return add(2, 3);
+}`);
+
+    expect(result.diagnostics).toEqual([]);
+    expect(result.program?.functions[0]).toMatchObject({
+      kind: "Function",
+      name: "add",
+      parameters: [
+        { name: "a", type: "int" },
+        { name: "b", type: "int" }
+      ]
+    });
+  });
+
+  it("parse_three_parameter_function", () => {
+    const result = parseCpp(`int sum3(int a, int b, int c) {
+    return a + b + c;
+}
+
+int main() {
+    return sum3(1, 2, 3);
+}`);
+
+    expect(result.diagnostics).toEqual([]);
+    expect(result.program?.functions[0]).toMatchObject({
+      kind: "Function",
+      name: "sum3",
+      parameters: [
+        { name: "a", type: "int" },
+        { name: "b", type: "int" },
+        { name: "c", type: "int" }
+      ]
+    });
+  });
+
   it("parse_single_argument_call_literal", () => {
     const result = parseCpp(`int addOne(int x) {
     return x;
@@ -312,6 +353,58 @@ int main() {
     expect(result.program?.main.body[2]).toMatchObject({
       kind: "Assignment",
       expression: { kind: "CallExpression", callee: "addOne", arguments: [{ kind: "Identifier", name: "a" }] }
+    });
+  });
+
+  it("parse_two_argument_call", () => {
+    const result = parseCpp(`int add(int a, int b) {
+    return a + b;
+}
+
+int main() {
+    int y;
+    y = add(2, 3);
+    return y;
+}`);
+
+    expect(result.diagnostics).toEqual([]);
+    expect(result.program?.main.body[1]).toMatchObject({
+      kind: "Assignment",
+      expression: {
+        kind: "CallExpression",
+        callee: "add",
+        arguments: [
+          { kind: "IntegerLiteral", value: 2 },
+          { kind: "IntegerLiteral", value: 3 }
+        ]
+      }
+    });
+  });
+
+  it("parse_three_argument_call", () => {
+    const result = parseCpp(`int sum3(int a, int b, int c) {
+    return a + b + c;
+}
+
+int main() {
+    int x = 1;
+    int y = 2;
+    int z = 3;
+    return sum3(x, y, z);
+}`);
+
+    expect(result.diagnostics).toEqual([]);
+    expect(result.program?.main.body[3]).toMatchObject({
+      kind: "Return",
+      expression: {
+        kind: "CallExpression",
+        callee: "sum3",
+        arguments: [
+          { kind: "Identifier", name: "x" },
+          { kind: "Identifier", name: "y" },
+          { kind: "Identifier", name: "z" }
+        ]
+      }
     });
   });
 

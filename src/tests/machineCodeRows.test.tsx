@@ -703,4 +703,42 @@ describe("machine code rows", () => {
     expect(callRow).toBeDefined();
     expect(explainMachineCodeRow(callRow!).mnemonic).toBe("CALL");
   });
+
+  it("generated_casl_shows_gr1_gr2_argument_load", () => {
+    const program = getDemoProgram("cpp-function-arguments");
+    expect(program).toBeDefined();
+    const prepared = prepareSourceForCoreAssembly(program!.source, "cpp");
+    expect(prepared.ok).toBe(true);
+
+    expect(prepared.generatedCaslSource).toContain("LAD   GR1,2");
+    expect(prepared.generatedCaslSource).toContain("LAD   GR2,3");
+    expect(prepared.mapping.some((entry) => entry.kind === "function-call" && entry.cppLine === 7)).toBe(true);
+  });
+
+  it("generated_casl_shows_multi_parameter_saves", () => {
+    const program = getDemoProgram("cpp-function-arguments");
+    expect(program).toBeDefined();
+    const prepared = prepareSourceForCoreAssembly(program!.source, "cpp");
+    expect(prepared.ok).toBe(true);
+
+    expect(prepared.generatedCaslSource).toContain("FUNC_ADD ST    GR1,FUNC_ADD_A");
+    expect(prepared.generatedCaslSource).toContain("     ST    GR2,FUNC_ADD_B");
+    expect(prepared.generatedCaslSource).toContain("FUNC_ADD_A DS    1");
+    expect(prepared.generatedCaslSource).toContain("FUNC_ADD_B DS    1");
+  });
+
+  it("machine_code_shows_call_for_multi_argument_function", () => {
+    const program = getDemoProgram("cpp-function-arguments");
+    expect(program).toBeDefined();
+    const prepared = prepareSourceForCoreAssembly(program!.source, "cpp");
+    expect(prepared.ok).toBe(true);
+    const state = stateFromRaw(mockCaslCore.assemble(prepared.coreSourceText));
+    const rows = selectMachineCodeRows(state, prepared.mapping);
+
+    expect(rows.find((row) => row.sourceText === "LAD GR1,2")).toBeDefined();
+    expect(rows.find((row) => row.sourceText === "LAD GR2,3")).toBeDefined();
+    const callRow = rows.find((row) => row.sourceText === "CALL FUNC_ADD" && row.kind === "instruction");
+    expect(callRow).toBeDefined();
+    expect(explainMachineCodeRow(callRow!).mnemonic).toBe("CALL");
+  });
 });

@@ -462,6 +462,27 @@ test("Mock backend executes C++ single argument function lowering", async ({ pag
   await expect(page.getByTestId("trace-list")).toContainText("RET");
 });
 
+test("Mock backend executes C++ multi-register argument function lowering", async ({ page }) => {
+  await openStudio(page, "Mock Core");
+  await selectDemoProgram(page, "cpp-function-arguments");
+
+  await assemble(page);
+  await page.getByRole("tab", { name: "Generated CASL" }).click();
+  await expect(page.getByTestId("generated-casl-output")).toContainText("GR1,2");
+  await expect(page.getByTestId("generated-casl-output")).toContainText("GR2,3");
+  await expect(page.getByTestId("generated-casl-output")).toContainText("CALL");
+  await expect(page.getByTestId("generated-casl-output")).toContainText("FUNC_ADD");
+  await expect(page.getByTestId("generated-casl-output")).toContainText("GR1,FUNC_ADD_A");
+  await expect(page.getByTestId("generated-casl-output")).toContainText("GR2,FUNC_ADD_B");
+
+  await run(page);
+  await expect(page.getByTestId("run-state")).toHaveText("Finished");
+  await expectRegister(page, "register-gr0", "0005");
+  await page.getByRole("tab", { name: "Trace" }).click();
+  await expect(page.getByTestId("trace-list")).toContainText("CALL");
+  await expect(page.getByTestId("trace-list")).toContainText("RET");
+});
+
 test("Mock backend executes C++ subset while sum in the browser UI", async ({ page }) => {
   await openStudio(page, "Mock Core");
   await selectDemoProgram(page, "cpp-while-sum");

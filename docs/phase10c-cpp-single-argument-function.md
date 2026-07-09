@@ -9,6 +9,8 @@ Phase 10C adds the first implemented C++ argument-passing path. It keeps the Pha
 
 No COMET II VM, WASM bridge, `CALL`, `RET`, `PUSH`, or `POP` semantics are changed.
 
+Phase 10D builds on this by adding `GR2` and `GR3` for the second and third register arguments. This document remains the focused reference for the original one-argument path.
+
 ## Supported Subset
 
 Supported:
@@ -21,7 +23,7 @@ Supported:
 
 Still unsupported:
 
-- multiple parameters
+- more than three parameters
 - stack arguments
 - stack-frame locals
 - recursion
@@ -121,7 +123,7 @@ Use `C++: Function Argument` to observe:
 
 The transpiler reports:
 
-- `only one function parameter is supported yet`
+- `only up to three function parameters are supported yet`
 - `function call argument count mismatch`
 - `complex function call arguments are not supported yet`
 - `parameter name conflicts with local variable`
@@ -129,7 +131,6 @@ The transpiler reports:
 
 ## Future Work
 
-- `GR2` / `GR3` for more register arguments
 - stack arguments
 - stack-frame locals
 - caller-saved / callee-saved register rules

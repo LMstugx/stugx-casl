@@ -110,10 +110,10 @@ The current stack template names are intentionally split by behavior: `stack-rea
 
 Phase 10A connects no-argument C++ function-call lowering to the same `CALL` / stack-aware `RET` route. At that phase, the C++ side still used static namespaced data labels such as `MAIN_X` and `ADDONE_X`; it did not create stack-frame locals, arguments, or recursive frames. Future custom-circuit work should treat Phase 10A as a teaching bridge, not as a complete function-frame model.
 
-Phase 10B documents the future C++ calling convention, and Phase 10C implements the first concrete argument path. The current stable convention is `GR0` for return values and `GR1` for the first argument. Additional register arguments such as `GR2`, plus stack arguments and stack-frame locals, are reserved for later phases. Future custom-circuit templates should therefore keep three concepts visually separate:
+Phase 10B documents the future C++ calling convention, Phase 10C implements the first concrete argument path, and Phase 10D extends that path to register arguments in `GR1`, `GR2`, and `GR3`. The current stable convention is `GR0` for return values and `GR1`-`GR3` for the first three arguments. Stack arguments and stack-frame locals are reserved for later phases. Future custom-circuit templates should therefore keep three concepts visually separate:
 
 - `GR0` return value path
-- `GR1` current register argument path, with `GR2` reserved for a future second argument
+- `GR1` / `GR2` / `GR3` current register argument paths
 - later stack-frame slots for arguments and locals
 
-Do not show stack-frame locals or stack arguments in a circuit template until the transpiler and teaching UI actually lower C++ parameters to those locations. The current single-argument lowering stores `GR1` into a static parameter label such as `FUNC_ADDONE_X`; that label is not a real stack-frame local.
+Do not show stack-frame locals or stack arguments in a circuit template until the transpiler and teaching UI actually lower C++ parameters to those locations. The current register-argument lowering stores `GR1` / `GR2` / `GR3` into static parameter labels such as `FUNC_ADD_A` and `FUNC_ADD_B`; those labels are not real stack-frame locals.

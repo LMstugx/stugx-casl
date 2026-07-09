@@ -22,7 +22,7 @@ Phase 10A did not support:
 - function pointers
 - calls inside larger expressions such as `foo() + 1`
 
-Phase 10C later adds the first single-argument path using `GR1`. Multiple parameters, recursion, and stack-frame locals are still unsupported.
+Phase 10C later adds the first single-argument path using `GR1`; Phase 10D extends that to `GR1` / `GR2` / `GR3` register arguments. Stack arguments, recursion, and stack-frame locals are still unsupported.
 
 ## GR0 Return Value Convention
 

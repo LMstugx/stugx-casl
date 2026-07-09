@@ -132,6 +132,16 @@ int main() {
     return y;
 }`;
 
+const functionArgumentsCppSource = `int add(int a, int b) {
+    return a + b;
+}
+
+int main() {
+    int result;
+    result = add(2, 3);
+    return result;
+}`;
+
 function wasmArtifactsAvailable(): boolean {
   const processLike = (globalThis as { process?: { cwd?: () => string; getBuiltinModule?: (name: string) => NodeFsSync } }).process;
   const cwd = processLike?.cwd?.();
@@ -276,6 +286,20 @@ describeWasm("WasmCoreAdapter golden parity", () => {
 
     expect(result.runState).toBe("Finished");
     expect(result.gr[0]).toBe(0x0006);
+    expect(result.callDepth).toBe(0);
+    await adapter.dispose();
+  });
+
+  it("wasm run C++ multi-register argument function reaches Finished", async () => {
+    const adapter = new WasmCoreAdapter();
+    const transpiled = transpileCppToCasl(functionArgumentsCppSource);
+
+    expect(transpiled.ok).toBe(true);
+    await adapter.assemble(transpiled.caslSource);
+    const result = await adapter.run(140);
+
+    expect(result.runState).toBe("Finished");
+    expect(result.gr[0]).toBe(0x0005);
     expect(result.callDepth).toBe(0);
     await adapter.dispose();
   });

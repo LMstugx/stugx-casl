@@ -47,6 +47,7 @@ describe("demo recording experience", () => {
       "CASL: Nested Call Return",
       "C++: Function Call",
       "C++: Function Argument",
+      "C++: Function Arguments",
       "C++: Addition",
       "C++: If Else",
       "C++: While Sum",
@@ -203,6 +204,27 @@ describe("demo recording experience", () => {
     expect(state.memory[state.symbols.MAIN_Y]).toBe(0x0006);
   });
 
+  it("demo_cpp_function_arguments_run_finishes", () => {
+    const program = getDemoProgram("cpp-function-arguments");
+    expect(program).toBeDefined();
+    const prepared = prepareSourceForCoreAssembly(program!.source, "cpp");
+    expect(prepared.ok).toBe(true);
+    expect(prepared.generatedCaslSource).toContain("LAD   GR1,2");
+    expect(prepared.generatedCaslSource).toContain("LAD   GR2,3");
+    expect(prepared.generatedCaslSource).toContain("CALL  FUNC_ADD");
+    expect(prepared.generatedCaslSource).toContain("ST    GR1,FUNC_ADD_A");
+    expect(prepared.generatedCaslSource).toContain("ST    GR2,FUNC_ADD_B");
+
+    let state = mockCaslCore.assemble(prepared.coreSourceText);
+    for (let step = 0; step < 140 && state.runState !== "Finished"; step += 1) {
+      state = mockCaslCore.step(state);
+    }
+
+    expect(state.runState).toBe("Finished");
+    expect(state.gr[0]).toBe(0x0005);
+    expect(state.memory[state.symbols.MAIN_RESULT]).toBe(0x0005);
+  });
+
   it("demo_guide_displays_expected_result", () => {
     const program = getDemoProgram("cpp-while-sum");
     expect(program).toBeDefined();
@@ -353,7 +375,7 @@ describe("demo recording experience", () => {
     const markup = renderToStaticMarkup(<DemoGuidePanel program={getDemoProgram("cpp-break-continue")!} />);
 
     expect(markup).toContain("Not a full C++ compiler");
-    expect(markup).toContain("multiple parameters, recursion, stack-frame locals");
+    expect(markup).toContain("more than three parameters, recursion, stack-frame locals");
     expect(markup).toContain("arrays, pointers, classes, templates");
   });
 
@@ -378,6 +400,7 @@ describe("demo recording experience", () => {
       "casl-nested-call-return",
       "cpp-function-call",
       "cpp-function-argument",
+      "cpp-function-arguments",
       "cpp-addition",
       "cpp-if-else",
       "cpp-while-sum",

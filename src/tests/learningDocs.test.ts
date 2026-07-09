@@ -19,6 +19,7 @@ import phase10a from "../../docs/phase10a-cpp-function-call-lowering.md?raw";
 import phase10b from "../../docs/phase10b-calling-convention-design.md?raw";
 import phase10c from "../../docs/phase10c-cpp-single-argument-function.md?raw";
 import phase10d from "../../docs/phase10d-cpp-multi-register-arguments.md?raw";
+import circuitVisualContract from "../../docs/circuit-visual-contract.md?raw";
 import futureCustomCircuit from "../../docs/future-custom-circuit-design.md?raw";
 import practiceTasks from "../../docs/practice-tasks.md?raw";
 import projectOverview from "../../docs/project-overview.md?raw";
@@ -281,6 +282,32 @@ describe("learning use documentation", () => {
     expect(futureCustomCircuit).toContain("GR1");
     expect(futureCustomCircuit).toContain("GR3");
     expect(futureCustomCircuit).toContain("stack-frame locals");
+  });
+
+  it("circuit_visual_contract_doc_exists", () => {
+    expect(circuitVisualContract).toContain("Circuit Visual Contract");
+    expect(circuitVisualContract).toContain("Routing Philosophy");
+    expect(circuitVisualContract).toContain("Visual Hierarchy");
+    expect(circuitVisualContract).toContain("Lane Definitions");
+    expect(circuitVisualContract).toContain("Anchor Definitions");
+    expect(circuitVisualContract).toContain("Instruction Category Rules");
+    expect(circuitVisualContract).toContain("Text Overflow Rules");
+    expect(circuitVisualContract).toContain("Active / Inactive Module Rules");
+    expect(circuitVisualContract).toContain("Arrow Marker Rules");
+    expect(circuitVisualContract).toContain("Small Viewport Rules");
+    expect(circuitVisualContract).toContain("Visual Review Checklist");
+    expect(circuitVisualContract).toContain("Future Custom Circuit Rules");
+    expect(circuitVisualContract).toContain("data-bypass lane");
+    expect(circuitVisualContract).toContain("data-compute lane");
+    expect(circuitVisualContract).toContain("stack lane");
+    expect(circuitVisualContract).toContain("ALU inactive for LD");
+    expect(circuitVisualContract).toContain("ALU inactive for ST");
+    expect(circuitVisualContract).toContain("ALU inactive for PUSH");
+    expect(circuitVisualContract).toContain("ALU inactive for POP");
+    expect(circuitVisualContract).toContain("Use EAU for index addressing");
+    expect(circuitVisualContract).toContain("Text must never break the circuit layout");
+    expect(circuitVisualContract).toContain("GR1-GR3 are argument registers");
+    expect(circuitVisualContract).toContain("stack arguments are not supported yet");
   });
 
   it("practice_tasks_do_not_use_unsupported_syntax", () => {

@@ -60,6 +60,11 @@ bool hasError(const casl::AssembleResult& result, std::string_view fragment) {
     return false;
 }
 
+bool assembleHasError(const casl::Assembler& assembler, std::string_view source, std::string_view fragment) {
+    const auto result = assembler.assemble(std::string(source));
+    return hasError(result, fragment);
+}
+
 void AssembleSimpleProgram() {
     const auto output = assembleSample();
     require(output.state.pr == 0x20, "PR should be 0020 after assemble");
@@ -168,12 +173,13 @@ void AssembleRequiredDirectivesBoundary() {
 
 void AssembleMalformedOperandBoundary() {
     casl::Assembler assembler;
-    require(hasError(assembler.assemble("MAIN START\n LD GR1\n END"), "LD requires register and address operands"), "LD missing operand diagnostic");
-    require(hasError(assembler.assemble("MAIN START\n LD GR1,A,GR2,EXTRA\nA DC 1\n END"), "LD has too many operands"), "LD extra operand diagnostic");
-    require(hasError(assembler.assemble("MAIN START\n ST ,A\nA DC 1\n END"), "ST requires register and address operands"), "ST missing register diagnostic");
-    require(hasError(assembler.assemble("MAIN START\n CALL\n END"), "CALL requires an address operand"), "CALL missing operand diagnostic");
-    require(hasError(assembler.assemble("MAIN START\n POP\n END"), "POP requires a register operand"), "POP missing register diagnostic");
-    require(hasError(assembler.assemble("MAIN START\n POP GR1,GR2\n END"), "POP does not support index operands"), "POP index diagnostic");
+    require(assembleHasError(assembler, "MAIN START\n LD GR1\n END", "LD requires register and address operands"), "LD missing operand diagnostic");
+    require(assembleHasError(assembler, "MAIN START\n LD GR1,A,GR2,EXTRA\nA DC 1\n END", "LD has too many operands"), "LD extra operand diagnostic");
+    require(assembleHasError(assembler, "MAIN START\n ST ,A\nA DC 1\n END", "ST requires register and address operands"), "ST missing register diagnostic");
+    require(assembleHasError(assembler, "MAIN START\n CALL\n END", "CALL requires an address operand"), "CALL missing operand diagnostic");
+    require(assembleHasError(assembler, "MAIN START\n POP\n END", "POP requires a register operand"), "POP missing register diagnostic");
+    require(assembleHasError(assembler, "MAIN START\n POP GR1,GR2\n END", "POP does not support index operands"), "POP index diagnostic");
+    require(assembleHasError(assembler, "MAIN START\n LD GR1,A,\nA DC 1\n END", "Malformed operand list near comma"), "trailing comma diagnostic");
 }
 
 void AssembleStorageBoundaryDiagnostics() {

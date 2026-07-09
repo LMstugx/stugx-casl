@@ -63,7 +63,15 @@ For every viewport:
 - Bottom Output dock remains compact in Focus Mode.
 - Generated CASL and Machine Code tables handle long labels with ellipsis and title text.
 
-## 6. Known Limitations
+## 6. Release Hardening Check
+
+- Run `powershell -ExecutionPolicy Bypass -File scripts/validate-all.ps1`.
+- Run `powershell -ExecutionPolicy Bypass -File scripts/stress-check.ps1` before a release-candidate handoff.
+- Confirm malformed-input tests report diagnostics instead of hanging.
+- Confirm WASM lifecycle stress completes without stale register, stack, or call-depth state.
+- Confirm no visual-review artifacts or screenshots are staged for commit.
+
+## 7. Known Limitations
 
 - stugx.CASL is not a full C++ compiler.
 - C++ subset does not support arrays, pointers, references, classes, overloads, recursion, or function calls inside larger expressions.
@@ -71,5 +79,6 @@ For every viewport:
 - Register arguments are supported up to `GR1` / `GR2` / `GR3`; stack arguments are not implemented.
 - CASL support is a teaching subset, not a full macro assembler.
 - No full screen-reader audit has been completed.
+- No sanitizer pass is part of the normal local validation path yet.
 - Ellipsis detail currently uses native `title` tooltips instead of a custom tooltip system.
 - Visual review screenshots are local artifacts and should not be committed.

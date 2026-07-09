@@ -312,6 +312,7 @@ The current backend is shown in the status bar as `Mock Core`, `WASM Core`, or `
 - [docs/manual-qa-checklist.md](docs/manual-qa-checklist.md): manual smoke, visual, learning-flow, keyboard, and viewport QA checklist.
 - [docs/release-candidate-notes.md](docs/release-candidate-notes.md): current stable capabilities, demos, supported subsets, testing status, limitations, and next phases.
 - [docs/phase10h-robustness-audit.md](docs/phase10h-robustness-audit.md): boundary tests, code safety checks, fixes, and remaining risks.
+- [docs/phase10i-release-hardening-stress-audit.md](docs/phase10i-release-hardening-stress-audit.md): deterministic malformed-input corpus, stress checks, WASM lifecycle checks, and sanitizer/toolchain notes.
 
 ## Current Limitations
 

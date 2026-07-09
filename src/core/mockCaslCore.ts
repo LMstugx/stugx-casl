@@ -64,6 +64,7 @@ type ParsedLine = {
   label?: string;
   op?: InstructionKind;
   operands: string[];
+  parserDiagnostics?: Diagnostic[];
   address?: number;
 };
 
@@ -112,10 +113,15 @@ function stripComment(line: string): string {
 
 function parseLine(raw: string, index: number): ParsedLine {
   const source = stripComment(raw);
+  const trimmedSource = source.trim();
+  const parserDiagnostics: Diagnostic[] = [];
+  if (/,\s*$/.test(trimmedSource) || /,\s*,/.test(trimmedSource)) {
+    parserDiagnostics.push({ line: index + 1, message: "Malformed operand list near comma", severity: "error" });
+  }
   const tokens = source.replace(/,/g, " ").trim().split(/\s+/).filter(Boolean);
 
   if (tokens.length === 0) {
-    return { line: index + 1, raw, source: raw.trim(), operands: [] };
+    return { line: index + 1, raw, source: raw.trim(), operands: [], parserDiagnostics };
   }
 
   const first = tokens[0].toUpperCase();
@@ -125,7 +131,8 @@ function parseLine(raw: string, index: number): ParsedLine {
       raw,
       source: source.trim(),
       op: first as InstructionKind,
-      operands: tokens.slice(1)
+      operands: tokens.slice(1),
+      parserDiagnostics
     };
   }
 
@@ -136,7 +143,8 @@ function parseLine(raw: string, index: number): ParsedLine {
     source: source.trim(),
     label: tokens[0],
     op: SUPPORTED_OPS.has(op) ? (op as InstructionKind) : undefined,
-    operands: tokens.slice(2)
+    operands: tokens.slice(2),
+    parserDiagnostics
   };
 }
 
@@ -277,6 +285,9 @@ function assembleArtifacts(source: string): AssembleArtifacts {
   let address = START_ADDRESS;
 
   const directiveLine = lines[0]?.line ?? 0;
+  for (const line of lines) {
+    diagnostics.push(...(line.parserDiagnostics ?? []));
+  }
   if (!lines.some((line) => line.op === "START")) {
     diagnostics.push({ line: directiveLine, message: "CASL source must contain START directive", severity: "error" });
   }

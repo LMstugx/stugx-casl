@@ -1,6 +1,6 @@
 # Release Candidate Notes
 
-These notes describe the current stable learning build after Phase 10F. They are meant for local review, teacher or senior-student demos, and future release-candidate checks.
+These notes describe the current stable learning build after Phase 10I. They are meant for local review, teacher or senior-student demos, and future release-candidate checks.
 
 ## 1. Current Stable Capabilities
 
@@ -142,9 +142,10 @@ pnpm test:e2e:wasm
 cmake --build cpp-core/build
 ctest --test-dir cpp-core/build -C Debug --output-on-failure
 powershell -ExecutionPolicy Bypass -File scripts/validate-all.ps1
+powershell -ExecutionPolicy Bypass -File scripts/stress-check.ps1
 ```
 
-Phase 10F completed with all automated tests passing. Visual review screenshots are generated locally under `artifacts/visual-review/` and are intentionally ignored by Git.
+Phase 10I completed with all automated tests passing, plus deterministic malformed-input corpus tests, bounded large-source stress tests, and repeated WASM lifecycle checks. Visual review screenshots are generated locally under `artifacts/visual-review/` and are intentionally ignored by Git.
 
 Manual QA should also follow `docs/manual-qa-checklist.md`, especially the keyboard walkthrough and the Focus Mode path checks for LD, ADDA, ST, index addressing, PUSH / POP, CALL / RET, and C++ function arguments.
 
@@ -157,6 +158,7 @@ Manual QA should also follow `docs/manual-qa-checklist.md`, especially the keybo
 - Circuit Focus Mode is a fixed teaching schematic, not a custom circuit editor.
 - Accessibility has basic keyboard and focus support, but no full screen-reader audit.
 - Native `title` is used for ellipsis details; there is no custom tooltip system.
+- No sanitizer pass is part of the normal Windows validation path yet; see `docs/phase10i-release-hardening-stress-audit.md`.
 
 ## 7. Next Recommended Phases
 
@@ -166,3 +168,4 @@ Manual QA should also follow `docs/manual-qa-checklist.md`, especially the keybo
 - Future function-call expressions inside larger expressions.
 - Future custom circuit display controls or schematic/lab style toggle.
 - Optional full accessibility audit after the learning UI stabilizes.
+- Optional sanitizer or CI hardening pass in a known-good Visual Studio developer shell or CI image.

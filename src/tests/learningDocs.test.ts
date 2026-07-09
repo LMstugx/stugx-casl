@@ -22,6 +22,7 @@ import phase10d from "../../docs/phase10d-cpp-multi-register-arguments.md?raw";
 import phase10e from "../../docs/phase10e-focus-text-overflow-cleanup.md?raw";
 import phase10f from "../../docs/phase10f-small-viewport-accessibility.md?raw";
 import phase10h from "../../docs/phase10h-robustness-audit.md?raw";
+import phase10i from "../../docs/phase10i-release-hardening-stress-audit.md?raw";
 import circuitVisualContract from "../../docs/circuit-visual-contract.md?raw";
 import futureCustomCircuit from "../../docs/future-custom-circuit-design.md?raw";
 import manualQaChecklist from "../../docs/manual-qa-checklist.md?raw";
@@ -260,6 +261,25 @@ describe("learning use documentation", () => {
     expect(phase10h).toContain("Shift execution uses widened integer values");
     expect(phase10h).toContain("WASM Bridge Notes");
     expect(phase10h).toContain("No critical runtime bug found.");
+  });
+
+  it("release_hardening_stress_audit_exists", () => {
+    expect(phase10i).toContain("Phase 10I: Release Hardening and Stress Audit");
+    expect(phase10i).toContain("Parser Malformed Corpus");
+    expect(phase10i).toContain("CASL Malformed Corpus");
+    expect(phase10i).toContain("Large-Source Stress Coverage");
+    expect(phase10i).toContain("WASM Lifecycle Stress");
+    expect(phase10i).toContain("Run / Stop / Reset Stress");
+    expect(phase10i).toContain("Sanitizer / Toolchain Check");
+  });
+
+  it("release_hardening_docs_mention_stress_check_and_remaining_risks", () => {
+    const combined = `${phase10i}\n${releaseCandidateNotes}\n${manualQaChecklist}`;
+
+    expect(combined).toContain("scripts/stress-check.ps1");
+    expect(combined).toContain("No sanitizer pass");
+    expect(combined).toContain("deterministic malformed-input corpus");
+    expect(combined).toContain("WASM lifecycle");
   });
 
   it("manual_qa_checklist_exists", () => {

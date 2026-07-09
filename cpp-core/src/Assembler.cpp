@@ -78,6 +78,58 @@ void addDiagnostic(std::vector<Diagnostic>& diagnostics, int line, std::string m
     diagnostics.push_back({line, Severity::Error, std::move(message)});
 }
 
+std::string stripCommentCopy(const std::string& line) {
+    const auto comment = line.find(';');
+    return comment == std::string::npos ? line : line.substr(0, comment);
+}
+
+void trimRight(std::string& text) {
+    while (!text.empty() && std::isspace(static_cast<unsigned char>(text.back())) != 0) {
+        text.pop_back();
+    }
+}
+
+bool hasMalformedComma(const std::string& rawLine) {
+    auto text = stripCommentCopy(rawLine);
+    trimRight(text);
+    if (!text.empty() && text.back() == ',') {
+        return true;
+    }
+
+    for (std::size_t index = 0; index < text.size(); index += 1) {
+        if (text[index] != ',') continue;
+        std::size_t next = index + 1;
+        while (next < text.size() && std::isspace(static_cast<unsigned char>(text[next])) != 0) {
+            next += 1;
+        }
+        if (next < text.size() && text[next] == ',') {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+std::vector<Diagnostic> collectMalformedCommaDiagnostics(const std::string& source) {
+    std::vector<Diagnostic> diagnostics;
+    std::size_t lineStart = 0;
+    int lineNumber = 1;
+
+    while (lineStart <= source.size()) {
+        const auto lineEnd = source.find('\n', lineStart);
+        const auto count = lineEnd == std::string::npos ? source.size() - lineStart : lineEnd - lineStart;
+        const auto rawLine = source.substr(lineStart, count);
+        if (hasMalformedComma(rawLine)) {
+            diagnostics.push_back({lineNumber, Severity::Error, "Malformed operand list near comma"});
+        }
+        if (lineEnd == std::string::npos) break;
+        lineStart = lineEnd + 1;
+        lineNumber += 1;
+    }
+
+    return diagnostics;
+}
+
 bool validateRequiredDirectives(const std::vector<ParsedLine>& lines, std::vector<Diagnostic>& diagnostics) {
     const auto hasStart = std::any_of(lines.begin(), lines.end(), [](const ParsedLine& line) {
         return line.opcode.has_value() && *line.opcode == Opcode::START;
@@ -155,13 +207,19 @@ AssembleResult Assembler::assemble(const std::string& source) const {
     CaslParser parser;
     auto parsed = parser.parse(source);
     result.diagnostics = parsed.diagnostics;
+    auto commaDiagnostics = collectMalformedCommaDiagnostics(source);
+    if (!commaDiagnostics.empty()) {
+        parsed.ok = false;
+        result.diagnostics.insert(result.diagnostics.end(), commaDiagnostics.begin(), commaDiagnostics.end());
+    }
 
     auto lines = std::move(parsed.value);
     const auto requiredDirectivesOk = validateRequiredDirectives(lines, result.diagnostics);
-    const auto pass1Ok = requiredDirectivesOk && pass1(lines, result.value, result.diagnostics);
+    const auto parseOk = parsed.ok && requiredDirectivesOk;
+    const auto pass1Ok = parseOk && pass1(lines, result.value, result.diagnostics);
     const auto pass2Ok = pass1Ok && pass2(lines, result.value, result.diagnostics);
 
-    result.ok = parsed.ok && requiredDirectivesOk && pass1Ok && pass2Ok && result.diagnostics.empty();
+    result.ok = parseOk && pass1Ok && pass2Ok && result.diagnostics.empty();
     result.value.state.runState = result.ok ? RunState::Ready : RunState::Error;
     result.value.state.visualPath = result.ok ? VisualPathKind::Ready_PrToMar : VisualPathKind::None;
     result.value.state.pr = kDefaultStartAddress;

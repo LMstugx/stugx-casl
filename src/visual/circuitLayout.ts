@@ -27,6 +27,17 @@ export const circuitLayout = {
 
 const alu = circuitLayout.alu;
 
+export const circuitBusLanes = {
+  addressY: 24,
+  controlY: 124,
+  dataBypassY: circuitLayout.alu.y + circuitLayout.alu.h + 18,
+  dataComputeY: circuitLayout.alu.y + 106,
+  grBusX: circuitLayout.gr.x + circuitLayout.gr.w + 6,
+  aluLeftBusX: circuitLayout.alu.x - 14,
+  aluRightBusX: circuitLayout.alu.x + circuitLayout.alu.w + 16,
+  memoryBusX: circuitLayout.memory.x - 18
+} as const;
+
 export type CircuitPoint = {
   x: number;
   y: number;
@@ -86,6 +97,7 @@ export const circuitAnchors = {
     left: () => rectPoint(circuitLayout.mdr, "left"),
     right: () => rectPoint(circuitLayout.mdr, "right"),
     top: () => rectPoint(circuitLayout.mdr, "top"),
+    bottom: () => rectPoint(circuitLayout.mdr, "bottom"),
     outputToAlu: () => rectPoint(circuitLayout.mdr, "left", 0.58),
     inputFromMemory: () => rectPoint(circuitLayout.mdr, "right", 0.45)
   },

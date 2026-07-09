@@ -115,6 +115,9 @@ test("Mock backend presents Circuit Focus Mode as a teaching layout", async ({ p
 
   await step(page);
   await expect(circuit.locator("[data-testid='module-sp']")).toHaveAttribute("data-active", "false");
+  await expect(circuit).toContainText("DATA BUS");
+  await expect(circuit).toContainText("ADDR BUS");
+  await expect(circuit).toContainText("CTRL");
   await expect(page.getByTestId("focus-program-current-line")).toContainText(/LD\s+GR2,A/);
   await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("LD");
   await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("Current 0020");
@@ -127,6 +130,10 @@ test("Mock backend presents Circuit Focus Mode as a teaching layout", async ({ p
   await expect(circuit.locator("[data-testid='register-gr2']")).toHaveAttribute("data-active", "true");
   await expect(circuit.locator("[data-testid='memory-row-0027']")).toHaveAttribute("data-read", "true");
   await expect(circuit.locator("[data-testid='wire-memory-to-mdr']")).toBeVisible();
+  await expect(circuit.locator("[data-testid='wire-mdr-to-gr']")).toHaveAttribute("data-lane", "data-bypass");
+  await expect(circuit.locator("[data-testid='wire-mdr-to-gr']")).toHaveAttribute("data-avoids-alu", "true");
+  await expect(circuit.locator("[data-testid='status-indicator-read']")).toHaveAttribute("data-active", "true");
+  await expect(circuit.locator("[data-testid='status-indicator-exec']")).toHaveAttribute("data-active", "false");
 
   await step(page);
   await expect(page.getByTestId("focus-program-current-line")).toContainText(/ADDA\s+GR2,B/);
@@ -137,8 +144,11 @@ test("Mock backend presents Circuit Focus Mode as a teaching layout", async ({ p
   await expect(page.getByTestId("focus-source-context-text")).toContainText(/ADDA\s+GR2,B/);
   await expect(page.getByTestId("focus-trace-latest")).toContainText(/ADDA/);
   await expect(circuit.locator("[data-testid='module-alu']")).toHaveAttribute("data-active", "true");
+  await expect(circuit.locator("[data-testid='wire-gr-to-alu']")).toHaveAttribute("data-lane", "data-compute");
   await expect(circuit.locator("[data-testid='wire-gr-to-alu']")).toBeVisible();
   await expect(circuit.locator("[data-testid='wire-alu-to-fr']")).toBeVisible();
+  await expect(circuit.locator("[data-testid='status-indicator-exec']")).toHaveAttribute("data-active", "true");
+  await expect(circuit.locator("[data-testid='status-indicator-flag']")).toHaveAttribute("data-active", "true");
 
   await step(page);
   await expect(page.getByTestId("focus-program-current-line")).toContainText(/ST\s+GR2,C/);
@@ -151,8 +161,12 @@ test("Mock backend presents Circuit Focus Mode as a teaching layout", async ({ p
   await expect(page.getByTestId("focus-trace-latest")).toContainText(/ST/);
   await expect(circuit.locator("[data-testid='memory-row-0029']")).toHaveAttribute("data-write", "true");
   await expect(circuit.locator("[data-testid='wire-mdr-to-memory']")).toBeVisible();
+  await expect(circuit.locator("[data-testid='wire-gr-to-mdr']")).toHaveAttribute("data-lane", "data-bypass");
+  await expect(circuit.locator("[data-testid='wire-gr-to-mdr']")).toHaveAttribute("data-avoids-alu", "true");
   await expect(circuit.locator("[data-testid='module-alu']")).toHaveAttribute("data-active", "false");
   await expect(circuit.locator("[data-testid='module-fr']")).toHaveAttribute("data-active", "false");
+  await expect(circuit.locator("[data-testid='status-indicator-write']")).toHaveAttribute("data-active", "true");
+  await expect(circuit.locator("[data-testid='status-indicator-exec']")).toHaveAttribute("data-active", "false");
 });
 
 test("Mock backend executes C++ subset if else lowering in the browser UI", async ({ page }) => {

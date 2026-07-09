@@ -34,6 +34,8 @@ describe("visual review screenshot gallery setup", () => {
     expect(visualReviewDoc).toContain("pnpm visual:capture");
     expect(visualReviewDoc).toContain("phone");
     expect(visualReviewDoc).toContain("Memory arrow points to the active memory row");
+    expect(visualReviewDoc).toContain("DATA BUS");
+    expect(visualReviewDoc).toContain("LD / ST data-bypass paths avoid the ALU body");
     expect(visualReviewDoc).toContain("Circuit Focus screenshots include Program, Display, Current Instruction");
   });
 

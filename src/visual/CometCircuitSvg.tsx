@@ -1,7 +1,7 @@
 import { memo } from "react";
 import { selectMemoryWindow, selectProgramStartAddress } from "../core/selectors";
 import { CometState, VisualPathKind, formatFlags, formatWord } from "../core/types";
-import { CIRCUIT_MEMORY_ROW_COUNT, CIRCUIT_VIEWBOX, circuitAnchors, circuitLayout, aluPolygonPoints, RectLayout } from "./circuitLayout";
+import { CIRCUIT_MEMORY_ROW_COUNT, CIRCUIT_VIEWBOX, circuitAnchors, circuitBusLanes, circuitLayout, aluPolygonPoints, RectLayout } from "./circuitLayout";
 import { resolveActiveWireIds, resolveVisualPath } from "./visualPathResolver";
 import { buildWirePaths } from "./wirePaths";
 import type { ReactNode } from "react";
@@ -39,6 +39,61 @@ function Module({ layout, title, value, accent, testId, layer, children }: Modul
 
 function AnchorPoint({ id, x, y }: { id: string; x: number; y: number }) {
   return <circle className="anchor-point" data-testid={id} cx={x} cy={y} r="2" aria-hidden="true" />;
+}
+
+function BusGuides() {
+  return (
+    <g className="bus-guide-layer" aria-hidden="true">
+      <path
+        className="bus-guide bus-guide-address"
+        data-testid="bus-guide-addr"
+        d={`M 246 ${circuitBusLanes.addressY} L ${circuitBusLanes.memoryBusX} ${circuitBusLanes.addressY}`}
+      />
+      <path
+        className="bus-guide bus-guide-data"
+        data-testid="bus-guide-data"
+        d={`M ${circuitBusLanes.grBusX} ${circuitBusLanes.dataBypassY} L ${circuitBusLanes.memoryBusX} ${circuitBusLanes.dataBypassY}`}
+      />
+      <path
+        className="bus-guide bus-guide-control"
+        data-testid="bus-guide-ctrl"
+        d={`M 108 ${circuitBusLanes.controlY} L 238 ${circuitBusLanes.controlY}`}
+      />
+      {[{ id: "junction-data-left", x: circuitBusLanes.grBusX, y: circuitBusLanes.dataBypassY }, { id: "junction-data-right", x: circuitBusLanes.memoryBusX, y: circuitBusLanes.dataBypassY }, { id: "junction-addr", x: circuitBusLanes.memoryBusX, y: circuitBusLanes.addressY }].map((node) => (
+        <circle key={node.id} className="junction-dot" data-testid={node.id} cx={node.x} cy={node.y} r="2.8" />
+      ))}
+    </g>
+  );
+}
+
+function StatusIndicators({ activeWireIds, state }: { activeWireIds: Set<string>; state: CometState }) {
+  const indicators = [
+    { label: "FETCH", active: activeWireIds.has("pr-to-mar") || activeWireIds.has("pr-to-plus2") },
+    { label: "READ", active: state.lastMemoryReadAddress !== undefined || activeWireIds.has("memory-to-mdr") },
+    { label: "WRITE", active: state.lastMemoryWriteAddress !== undefined || activeWireIds.has("mdr-to-memory") },
+    { label: "EXEC", active: activeWireIds.has("gr-to-alu") || activeWireIds.has("mdr-to-alu") },
+    { label: "FLAG", active: activeWireIds.has("alu-to-fr") }
+  ];
+
+  return (
+    <g className="status-indicators" data-testid="circuit-status-indicators">
+      <text className="status-indicator-title" x="36" y="452">
+        SIGNALS
+      </text>
+      {indicators.map((indicator, index) => {
+        const x = 38 + (index % 2) * 82;
+        const y = 464 + Math.floor(index / 2) * 22;
+        return (
+          <g key={indicator.label} className={indicator.active ? "status-light active" : "status-light"} data-testid={`status-indicator-${indicator.label.toLowerCase()}`} data-active={indicator.active ? "true" : "false"}>
+            <circle cx={x} cy={y} r="4" />
+            <text x={x + 10} y={y + 4}>
+              {indicator.label}
+            </text>
+          </g>
+        );
+      })}
+    </g>
+  );
 }
 
 function DecoderModule({ state }: { state: CometState }) {
@@ -97,7 +152,7 @@ function GeneralRegisters({ state }: { state: CometState }) {
         const left = circuitAnchors.gr.rowLeft(index);
         const right = circuitAnchors.gr.rowRight(index);
         return (
-          <g key={index} className={changed ? "register-row changed" : "register-row"} data-testid={`register-gr${index}`} data-active={active ? "true" : "false"}>
+          <g key={index} className={changed ? "register-row changed write" : active ? "register-row read" : "register-row"} data-testid={`register-gr${index}`} data-active={active ? "true" : "false"} data-read={!changed && active ? "true" : "false"} data-write={changed ? "true" : "false"}>
             <rect x={circuitLayout.gr.x + 16} y={circuitLayout.gr.y + 38 + index * 27} width="158" height="25" rx="3" />
             <text className="module-small" x={circuitLayout.gr.x + 34} y={circuitLayout.gr.y + 55 + index * 27}>
               GR{index}
@@ -237,6 +292,7 @@ function CometCircuitSvg({ state, sourceMapFocus }: { state: CometState; sourceM
   const activeWireIds = resolveActiveWireIds(visualPath);
   const mdrLeft = circuitAnchors.mdr.left();
   const mdrRight = circuitAnchors.mdr.right();
+  const mdrBottom = circuitAnchors.mdr.bottom();
   const mdrAlu = circuitAnchors.mdr.outputToAlu();
   const frInput = circuitAnchors.fr.input();
   const sourceMapLine = sourceMapFocus?.line ?? state.currentLine;
@@ -249,6 +305,9 @@ function CometCircuitSvg({ state, sourceMapFocus }: { state: CometState; sourceM
         <marker id="arrow-blue" markerUnits="userSpaceOnUse" markerWidth="6" markerHeight="6" refX="5.5" refY="3" orient="auto" viewBox="0 0 6 6">
           <path d="M 0 0 L 6 3 L 0 6 z" className="marker-blue" />
         </marker>
+        <marker id="arrow-blue-mid" markerUnits="userSpaceOnUse" markerWidth="5" markerHeight="5" refX="2.5" refY="2.5" orient="auto" viewBox="0 0 5 5">
+          <path d="M 0 0 L 5 2.5 L 0 5 z" className="marker-blue" />
+        </marker>
         <marker id="arrow-red" markerUnits="userSpaceOnUse" markerWidth="6" markerHeight="6" refX="5.5" refY="3" orient="auto" viewBox="0 0 6 6">
           <path d="M 0 0 L 6 3 L 0 6 z" className="marker-red" />
         </marker>
@@ -256,6 +315,8 @@ function CometCircuitSvg({ state, sourceMapFocus }: { state: CometState; sourceM
           <path d="M 0 0 L 5 2.5 L 0 5 z" className="marker-red" />
         </marker>
       </defs>
+
+      <BusGuides />
 
       <g className="wire-layer">
         {wirePaths.map((path) => {
@@ -265,6 +326,8 @@ function CometCircuitSvg({ state, sourceMapFocus }: { state: CometState; sourceM
               d={path.d}
               data-active="false"
               data-path-id={path.id}
+              data-lane={path.lane}
+              data-avoids-alu={path.avoidsAlu ? "true" : "false"}
               className={`wire wire-${path.role}`}
               markerEnd={path.role === "address" || path.role === "control" ? "url(#arrow-blue)" : undefined}
             />
@@ -281,18 +344,24 @@ function CometCircuitSvg({ state, sourceMapFocus }: { state: CometState; sourceM
       <g className="active-wire-layer">
         {wirePaths
           .filter((path) => activeWireIds.has(path.id))
-          .map((path) => (
+          .map((path) => {
+            const marker = path.role === "data" ? "url(#arrow-red)" : "url(#arrow-blue)";
+            const markerMid = path.role === "data" ? "url(#arrow-red-mid)" : "url(#arrow-blue-mid)";
+            return (
             <path
               key={`active-${path.id}`}
               d={path.d}
               data-testid={`wire-${path.id}`}
               data-active="true"
               data-path-id={path.id}
+              data-lane={path.lane}
+              data-avoids-alu={path.avoidsAlu ? "true" : "false"}
               className={`wire wire-${path.role} wire-active`}
-              markerMid="url(#arrow-red-mid)"
-              markerEnd="url(#arrow-red)"
+              markerMid={markerMid}
+              markerEnd={marker}
             />
-          ))}
+            );
+          })}
       </g>
 
       <Module layout={circuitLayout.ir} title="IR" value={formatWord(state.ir)} accent={state.changedRegisters.includes("IR")} testId="module-ir" layer="control" />
@@ -312,12 +381,14 @@ function CometCircuitSvg({ state, sourceMapFocus }: { state: CometState; sourceM
       <Module layout={circuitLayout.mdr} title="MDR" value={formatWord(state.mdr)} accent={state.changedRegisters.includes("MDR")} testId="module-mdr" layer="execution">
         <AnchorPoint id="mdr-anchor-left" x={mdrLeft.x} y={mdrLeft.y} />
         <AnchorPoint id="mdr-anchor-right" x={mdrRight.x} y={mdrRight.y} />
+        <AnchorPoint id="mdr-anchor-bottom" x={mdrBottom.x} y={mdrBottom.y} />
         <AnchorPoint id="mdr-anchor-output-to-alu" x={mdrAlu.x} y={mdrAlu.y} />
       </Module>
       <Module layout={circuitLayout.fr} title="FR" value={formatWord((state.fr.z ? 4 : 0) | (state.fr.c ? 2 : 0) | (state.fr.n ? 1 : 0))} accent={activeWireIds.has("alu-to-fr")} testId="module-fr" layer="flags">
         <AnchorPoint id="fr-anchor-input" x={frInput.x} y={frInput.y} />
       </Module>
       <MemoryModule state={state} focusAddress={memoryAddress} windowStart={memoryWindowStart} visualPath={visualPath} />
+      <StatusIndicators activeWireIds={activeWireIds} state={state} />
       <Module layout={circuitLayout.sourceMap} title="Current Source Mapping" testId="module-source-map" layer="status">
         <g data-testid="source-map-highlight" data-current-line={sourceMapLine ?? ""}>
           <rect x={circuitLayout.sourceMap.x + 12} y={circuitLayout.sourceMap.y + 32} width={circuitLayout.sourceMap.w - 24} height="34" rx="3" />

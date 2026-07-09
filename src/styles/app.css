@@ -411,10 +411,12 @@ button {
 
 .focus-circuit-panel .comet-circuit {
   background:
-    linear-gradient(rgba(196, 208, 224, 0.28) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(196, 208, 224, 0.28) 1px, transparent 1px),
+    linear-gradient(rgba(196, 208, 224, 0.18) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(196, 208, 224, 0.18) 1px, transparent 1px),
+    linear-gradient(90deg, transparent 0, transparent 279px, rgba(121, 143, 172, 0.18) 280px, transparent 281px),
+    linear-gradient(transparent 0, transparent 132px, rgba(121, 143, 172, 0.18) 133px, transparent 134px),
     #f5f8fc;
-  background-size: 40px 40px;
+  background-size: 40px 40px, 40px 40px, 100% 100%, 100% 100%;
 }
 
 .focus-stage-timeline {
@@ -975,8 +977,8 @@ button {
 
 .circuit-module rect,
 .alu-module polygon {
-  fill: #ffffff;
-  stroke: #aeb9ca;
+  fill: #fbfdff;
+  stroke: #94a5bc;
   stroke-width: 1.25;
   filter: none;
   transition:
@@ -1000,17 +1002,18 @@ button {
 }
 
 .circuit-module[data-layer="control"] > rect {
-  fill: #f9fbff;
+  fill: #f3f7fc;
 }
 
 .circuit-module[data-layer="execution"] > rect,
 .circuit-module[data-layer="memory"] > rect {
-  fill: #ffffff;
+  fill: #fbfdff;
   stroke: #9fb3cc;
 }
 
 .circuit-module[data-layer="flags"] > rect {
-  fill: #fffdf5;
+  fill: #fffaf0;
+  stroke: #c7b27a;
 }
 
 .memory-svg-row.read rect {
@@ -1024,7 +1027,7 @@ button {
 }
 
 .alu-module polygon {
-  fill: #fbfcfe;
+  fill: #f7f9fc;
   stroke: #8fa3bd;
   stroke-width: 1.5;
   filter: none;
@@ -1036,8 +1039,8 @@ button {
 }
 
 .alu-row-shell {
-  fill: #ffffff;
-  stroke: #d8dee8;
+  fill: #eef3f8;
+  stroke: #c2cfdd;
   stroke-width: 1;
   filter: none;
 }
@@ -1087,10 +1090,26 @@ button {
 }
 
 .memory-target-shell {
-  fill: #f4f7fb;
-  stroke: #b9c6d8;
+  fill: #eaf0f7;
+  stroke: #9fb1c7;
   stroke-width: 1;
   filter: none;
+}
+
+.register-row rect,
+.memory-svg-row rect {
+  fill: #f6f9fc;
+  stroke: #ccd6e3;
+}
+
+.register-row.read rect {
+  fill: #eef6ff;
+  stroke: #93c5fd;
+}
+
+.register-row.write rect {
+  fill: #fff1f2;
+  stroke: #fca5a5;
 }
 
 .bus-labels text {
@@ -1100,6 +1119,32 @@ button {
   font-weight: 800;
   letter-spacing: 0.6px;
   opacity: 0.72;
+}
+
+.bus-guide {
+  fill: none;
+  stroke-width: 1;
+  stroke-dasharray: 5 6;
+  opacity: 0.38;
+}
+
+.bus-guide-data {
+  stroke: #9c5f5f;
+}
+
+.bus-guide-address {
+  stroke: #587fb9;
+}
+
+.bus-guide-control {
+  stroke: #6f819c;
+}
+
+.junction-dot {
+  fill: #f8fafc;
+  stroke: #7f93ad;
+  stroke-width: 1.2;
+  opacity: 0.86;
 }
 
 .anchor-point {
@@ -1152,10 +1197,55 @@ button {
 }
 
 .wire-active {
-  stroke: var(--color-active-red);
   stroke-width: 2.55;
   opacity: 0.88;
   filter: none;
+}
+
+.wire-active.wire-data {
+  stroke: var(--color-active-red);
+}
+
+.wire-active.wire-address {
+  stroke: #2f6bc6;
+}
+
+.wire-active.wire-control {
+  stroke: #4f6f9d;
+}
+
+.status-indicators {
+  pointer-events: none;
+}
+
+.status-indicator-title {
+  fill: #53667f;
+  font-family: "Cascadia Mono", Consolas, monospace;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+
+.status-light circle {
+  fill: #cbd5e1;
+  stroke: #94a3b8;
+  stroke-width: 1;
+}
+
+.status-light text {
+  fill: #64748b;
+  font-family: "Cascadia Mono", Consolas, monospace;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.status-light.active circle {
+  fill: #dc5b5b;
+  stroke: #a72f2f;
+}
+
+.status-light.active text {
+  fill: #a72f2f;
 }
 
 .learning-flow {

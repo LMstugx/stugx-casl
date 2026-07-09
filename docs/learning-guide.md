@@ -303,6 +303,10 @@ Circuit Focus Mode uses a deliberate current/next split. The main teaching targe
 
 Machine state and pipeline stage are also separate. `Machine: Ready` describes the VM state, while the Current Instruction card and Step Timeline show the teaching stage such as `Operand Read`, `Execute`, or `Write Back`.
 
+The schematic separates `DATA BUS`, `ADDR BUS`, and `CTRL` lanes. `LD` and `ST` use a data-bypass lane between Memory, `MDR`, and the selected GR row without activating the ALU. Arithmetic, logic, and compare instructions are the paths that enter the ALU lane.
+
+Small signal indicators such as `READ`, `WRITE`, `EXEC`, and `FLAG` are visual hints derived from the current instruction and VM state. They are not separate simulator state.
+
 Display naming is intentionally narrow:
 
 - `OUT Display`: the output device panel. It shows `No output` until an OUT-like instruction exists.

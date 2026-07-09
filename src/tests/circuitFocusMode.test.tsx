@@ -165,6 +165,39 @@ describe("Circuit Focus Mode layout", () => {
     expect(markup).toContain('data-testid="module-alu" data-active="false"');
   });
 
+  it("circuit_bus_labels_render_data_addr_ctrl", () => {
+    const markup = renderFocus(stepTimes(1));
+
+    expect(markup).toContain("DATA BUS");
+    expect(markup).toContain("ADDR BUS");
+    expect(markup).toContain("CTRL");
+    expect(markup).toContain('data-testid="bus-guide-data"');
+    expect(markup).toContain('data-testid="bus-guide-addr"');
+    expect(markup).toContain('data-testid="bus-guide-ctrl"');
+  });
+
+  it("circuit_status_indicators_render_without_fake_state", () => {
+    const ldMarkup = renderFocus(stepTimes(1));
+    const addaMarkup = renderFocus(stepTimes(2));
+    const stMarkup = renderFocus(stepTimes(3));
+
+    expect(ldMarkup).toContain('data-testid="status-indicator-read" data-active="true"');
+    expect(ldMarkup).toContain('data-testid="status-indicator-write" data-active="false"');
+    expect(ldMarkup).toContain('data-testid="status-indicator-exec" data-active="false"');
+    expect(addaMarkup).toContain('data-testid="status-indicator-exec" data-active="true"');
+    expect(addaMarkup).toContain('data-testid="status-indicator-flag" data-active="true"');
+    expect(stMarkup).toContain('data-testid="status-indicator-write" data-active="true"');
+    expect(stMarkup).toContain('data-testid="status-indicator-exec" data-active="false"');
+  });
+
+  it("circuit_ld_data_bus_does_not_cross_alu_active_region", () => {
+    const markup = renderFocus(stepTimes(1));
+
+    expect(markup).toContain('data-testid="wire-mdr-to-gr"');
+    expect(markup).toContain('data-path-id="mdr-to-gr" data-lane="data-bypass" data-avoids-alu="true"');
+    expect(markup).toContain('data-testid="module-alu" data-active="false"');
+  });
+
   it("focus_mode_alu_path_visible_for_adda", () => {
     const markup = renderFocus(stepTimes(2));
 
@@ -174,6 +207,7 @@ describe("Circuit Focus Mode layout", () => {
     expect(activeWireIds(markup)).toContain("mdr-to-alu");
     expect(activeWireIds(markup)).toContain("alu-to-gr");
     expect(activeWireIds(markup)).toContain("alu-to-fr");
+    expect(markup).toContain('data-path-id="gr-to-alu" data-lane="data-compute"');
   });
 
   it("focus_mode_st_path_targets_memory_row", () => {
@@ -185,6 +219,7 @@ describe("Circuit Focus Mode layout", () => {
     expect(markup).toContain('data-testid="module-fr" data-active="false"');
     expect(activeWireIds(markup)).toContain("gr-to-mdr");
     expect(activeWireIds(markup)).toContain("mdr-to-memory");
+    expect(markup).toContain('data-path-id="gr-to-mdr" data-lane="data-bypass" data-avoids-alu="true"');
   });
 
   it("focus_mode_display_does_not_show_pr_as_output", () => {

@@ -97,6 +97,9 @@ Use the gallery to inspect:
 - Machine state and pipeline stage are labeled separately.
 - Memory arrow points to the active memory row.
 - GR arrow points to the active GR row.
+- `DATA BUS`, `ADDR BUS`, and `CTRL` lanes are visible but not visually noisy.
+- LD / ST data-bypass paths avoid the ALU body.
+- READ / WRITE / EXEC / FLAG indicators match the visible active path.
 - SP is visible but inactive for ordinary execution.
 - LD and ST do not make the ALU look active; ADDA and related ALU instructions do.
 - Machine Code explanation is readable.

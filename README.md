@@ -309,6 +309,8 @@ The current backend is shown in the status bar as `Mock Core`, `WASM Core`, or `
 - [docs/circuit-visual-contract.md](docs/circuit-visual-contract.md): long-term Circuit Focus Mode rules for lanes, anchors, active modules, compact cards, and text overflow.
 - [docs/phase10e-focus-text-overflow-cleanup.md](docs/phase10e-focus-text-overflow-cleanup.md): Signal Probe, Call Stack, Trace, Learning Flow, and table overflow cleanup.
 - [docs/phase10f-small-viewport-accessibility.md](docs/phase10f-small-viewport-accessibility.md): small viewport, keyboard focus, details, tab, and title/ARIA polish.
+- [docs/manual-qa-checklist.md](docs/manual-qa-checklist.md): manual smoke, visual, learning-flow, keyboard, and viewport QA checklist.
+- [docs/release-candidate-notes.md](docs/release-candidate-notes.md): current stable capabilities, demos, supported subsets, testing status, limitations, and next phases.
 
 ## Current Limitations
 

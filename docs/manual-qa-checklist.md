@@ -1,0 +1,75 @@
+# Manual QA Checklist
+
+Use this checklist before a study demo, a teacher review, or a release-candidate handoff. It is intentionally manual: automated tests cover behavior, but this pass checks whether the learning flow still feels understandable on screen.
+
+## 1. Smoke Test
+
+- App launches from `pnpm dev` or `pnpm dev:wasm`.
+- Default demo loads in the Source Editor.
+- `Assemble` succeeds and the runtime state becomes ready.
+- `Step` advances one instruction and updates registers, trace, and circuit state.
+- `Run` reaches `Finished` for the default demo.
+- `Reset` returns PR, registers, trace, and UI highlights to the assembled initial state.
+- Changing source text marks the runtime dirty and requires re-assemble.
+
+## 2. Focus Mode Visual Check
+
+Open Circuit Focus Mode and inspect these paths. The current instruction must match Program, Current Instruction, Source Mapping, Source Context, and the latest Trace row.
+
+- `CASL: GR2 Addition`, after `LD GR2,A`: Memory row `A` -> MDR -> `GR2`; ALU stays inactive.
+- `CASL: GR2 Addition`, after `ADDA GR2,B`: `GR2` and Memory row `B` feed the ALU; ALU output returns to `GR2`; FR is involved.
+- `CASL: GR2 Addition`, after `ST GR2,C`: `GR2` -> MDR -> Memory row `C`; ALU stays inactive.
+- `CASL: Index Addressing`: Effective Address Unit shows base + index -> effective address, and the highlighted Memory row is the effective address row.
+- `CASL: Push Pop Stack`: `PUSH` activates SP and stack write; `POP` activates stack read, MDR, target GR, and SP increment.
+- `CASL: Call Return`: `CALL` writes the return address to stack and jumps to the target; stack-aware `RET` reads `MEM[SP] -> PR`; final top-level `RET` finishes without stack activity.
+- `C++: Function Arguments`: Generated CASL loads arguments into `GR1` / `GR2`, calls `FUNC_ADD`, saves parameters in the callee, and returns through `GR0`.
+
+## 3. Learning Flow Check
+
+- Demo Guide opens and the selected example has a Guided Lesson.
+- Study Mode checklist can be manually checked and reset.
+- Generated CASL shows labels, generated rows, and C++ mapping without overflow.
+- Machine Code explanation shows opcode, register, index, operand, effective address, stack, and CALL / RET details where relevant.
+- Trace latest row is easy to read and older rows are de-emphasized.
+- Signal Probe shows compact involved nodes without overlapping text.
+- Call Stack shows depth, RET mode, top return address, and stored stack row.
+- Stack Preview shows SP and nearby memory rows without implying unsupported stack behavior.
+
+## 4. Keyboard-Only Walkthrough
+
+Use `Tab`, `Shift+Tab`, `Enter`, and arrow keys where supported.
+
+- Toolbar buttons receive a visible focus ring.
+- Demo selector is reachable, readable, and exposes the full selected demo name.
+- Output tabs are keyboard reachable and announce the active tab.
+- Inspector tabs are keyboard reachable and announce the selected tab.
+- Signal Probe details can be opened and closed from the keyboard.
+- Call Stack details can be opened and closed from the keyboard.
+- Generated CASL rows and Machine Code rows remain readable when focused or selected.
+- Machine Code explanation can be inspected without mouse-only hidden content.
+
+## 5. Viewport Checklist
+
+Check these sizes with the visual review gallery or browser dev tools:
+
+- `1280x720`: Source Editor, Circuit, Inspector, and Output dock are visible; no key card overlaps.
+- `1440x900`: Focus Mode has comfortable spacing; Signal Probe, Call Stack, Trace, and Stack Preview are readable.
+- `1920x1080`: Circuit remains centered and does not become sparse or poster-like.
+
+For every viewport:
+
+- Circuit panel does not overflow horizontally.
+- Right inspector does not cover the circuit.
+- Bottom Output dock remains compact in Focus Mode.
+- Generated CASL and Machine Code tables handle long labels with ellipsis and title text.
+
+## 6. Known Limitations
+
+- stugx.CASL is not a full C++ compiler.
+- C++ subset does not support arrays, pointers, references, classes, overloads, recursion, or function calls inside larger expressions.
+- C++ function lowering uses static namespaced local and parameter labels; it does not implement stack-frame locals.
+- Register arguments are supported up to `GR1` / `GR2` / `GR3`; stack arguments are not implemented.
+- CASL support is a teaching subset, not a full macro assembler.
+- No full screen-reader audit has been completed.
+- Ellipsis detail currently uses native `title` tooltips instead of a custom tooltip system.
+- Visual review screenshots are local artifacts and should not be committed.

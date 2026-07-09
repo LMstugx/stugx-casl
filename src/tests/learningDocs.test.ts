@@ -23,8 +23,10 @@ import phase10e from "../../docs/phase10e-focus-text-overflow-cleanup.md?raw";
 import phase10f from "../../docs/phase10f-small-viewport-accessibility.md?raw";
 import circuitVisualContract from "../../docs/circuit-visual-contract.md?raw";
 import futureCustomCircuit from "../../docs/future-custom-circuit-design.md?raw";
+import manualQaChecklist from "../../docs/manual-qa-checklist.md?raw";
 import practiceTasks from "../../docs/practice-tasks.md?raw";
 import projectOverview from "../../docs/project-overview.md?raw";
+import releaseCandidateNotes from "../../docs/release-candidate-notes.md?raw";
 import screenshotsGuide from "../../docs/screenshots-guide.md?raw";
 import validateAllScript from "../../scripts/validate-all.ps1?raw";
 
@@ -242,6 +244,37 @@ describe("learning use documentation", () => {
     expect(phase10f).toContain("Visual Review Expectations");
   });
 
+  it("manual_qa_checklist_exists", () => {
+    expect(manualQaChecklist).toContain("Manual QA Checklist");
+    expect(manualQaChecklist).toContain("Smoke Test");
+    expect(manualQaChecklist).toContain("Focus Mode Visual Check");
+    expect(manualQaChecklist).toContain("Learning Flow Check");
+    expect(manualQaChecklist).toContain("Keyboard-Only Walkthrough");
+    expect(manualQaChecklist).toContain("Viewport Checklist");
+    expect(manualQaChecklist).toContain("Known Limitations");
+  });
+
+  it("release_candidate_notes_exists", () => {
+    expect(releaseCandidateNotes).toContain("Release Candidate Notes");
+    expect(releaseCandidateNotes).toContain("Current Stable Capabilities");
+    expect(releaseCandidateNotes).toContain("Current Demos");
+    expect(releaseCandidateNotes).toContain("Supported CASL Subset");
+    expect(releaseCandidateNotes).toContain("Supported C++ Subset");
+    expect(releaseCandidateNotes).toContain("Testing Status");
+    expect(releaseCandidateNotes).toContain("Next Recommended Phases");
+  });
+
+  it("manual_qa_and_release_notes_cover_release_candidate_topics", () => {
+    const combined = `${manualQaChecklist}\n${releaseCandidateNotes}`;
+
+    expect(combined).toContain("Focus Mode");
+    expect(combined).toContain("Machine Code");
+    expect(combined).toContain("CALL / RET");
+    expect(combined).toContain("C++ function arguments");
+    expect(combined).toContain("Keyboard-Only Walkthrough");
+    expect(combined).toContain("keyboard walkthrough");
+  });
+
   it("focus_visible_styles_exist", () => {
     expect(phase10f).toContain("focus ring");
     expect(phase10f).toContain("toolbar buttons");
@@ -388,6 +421,8 @@ describe("learning use documentation", () => {
     expect(readme).toContain("docs/circuit-visual-contract.md");
     expect(readme).toContain("docs/phase10e-focus-text-overflow-cleanup.md");
     expect(readme).toContain("docs/phase10f-small-viewport-accessibility.md");
+    expect(readme).toContain("docs/manual-qa-checklist.md");
+    expect(readme).toContain("docs/release-candidate-notes.md");
     expect(readme).toContain("docs/future-custom-circuit-design.md");
     expect(normalized).not.toContain("hackathon");
     expect(normalized).not.toContain("contest submission");

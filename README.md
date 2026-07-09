@@ -268,12 +268,13 @@ The current backend is shown in the status bar as `Mock Core`, `WASM Core`, or `
 - [docs/demo-script.md](docs/demo-script.md): Japanese-first explanation script for teachers or senior students.
 - [docs/screenshots-guide.md](docs/screenshots-guide.md): useful screenshots for explaining the tool.
 - [docs/project-overview.md](docs/project-overview.md): concise project overview for learning and teaching use.
+- [docs/phase9d-effective-address-unit.md](docs/phase9d-effective-address-unit.md): Effective Address Unit visualization for indexed operands.
 
 ## Current Limitations
 
 - This is a learning-oriented C++ subset transpiler, not a complete C++ compiler.
 - The CASL II assembler supports the current teaching subset, not the full instruction set.
-- Index addressing is not fully implemented.
+- Index addressing is supported for CASL address operands, but C++ subset code does not generate indexed operands yet.
 - The WASM bridge currently uses a single runtime and JSON strings.
 - The control-flow view is text and badge based; there is no full CFG graph yet.
 - New / Open / Save, language switching, and theme controls are placeholders or limited.

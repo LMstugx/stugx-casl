@@ -318,7 +318,7 @@ The schematic separates `DATA BUS`, `ADDR BUS`, and `CTRL` lanes. `LD` and `ST` 
 
 Shift instructions use the ALU/Shifter path. The operand word is a shift count / effective address value, so Circuit Focus Mode routes the count into the ALU/Shifter input and does not show `Memory[addr] -> MDR` as shift data.
 
-Indexed instructions show an `IDX` badge on the index register row and an Effective Address chip. The Memory row highlight follows the effective address. For example, `LD GR1,A,GR2` with `GR2 = 0001` keeps `A` as the base operand word, but the active Memory row is `B`.
+Indexed instructions show an `IDX` badge on the index register row and an Effective Address Unit in the address layer. The EAU displays the compact calculation, such as `BASE 0027 + GR2(0001)` and `EA 0028`. The Memory row highlight follows the effective address. For example, `LD GR1,A,GR2` with `GR2 = 0001` keeps `A` as the base operand word, but the active Memory row is `B`.
 
 Active wires have a lightweight signal-flow animation in the live app. The animation is only a direction cue for the current active path; it does not represent extra VM micro-cycles, and it is disabled when the operating system asks for reduced motion.
 
@@ -371,7 +371,7 @@ For `break` / `continue`, pay attention to:
 
 - C++ support is a learning subset, not a complete compiler.
 - CASL II support is a teaching subset, not the full instruction set.
-- Index addressing is not fully implemented.
+- Index addressing is supported for CASL address operands, but C++ subset code does not generate indexed operands yet.
 - Arrays, pointers, functions, classes, templates, strings, and floating-point types are not supported.
 - Complex boolean expressions such as `&&`, `||`, and `!` are not supported.
 - Control Flow is currently text and badge based, not a graph layout.

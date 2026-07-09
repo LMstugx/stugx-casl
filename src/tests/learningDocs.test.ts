@@ -10,6 +10,7 @@ import phase8l from "../../docs/phase8l-circuit-arrow-routing.md?raw";
 import phase8m from "../../docs/phase8m-lightweight-signal-flow-animation.md?raw";
 import phase9a from "../../docs/phase9a-casl-instruction-coverage.md?raw";
 import phase9b from "../../docs/phase9b-shift-instructions-and-path-templates.md?raw";
+import phase9d from "../../docs/phase9d-effective-address-unit.md?raw";
 import futureCustomCircuit from "../../docs/future-custom-circuit-design.md?raw";
 import practiceTasks from "../../docs/practice-tasks.md?raw";
 import projectOverview from "../../docs/project-overview.md?raw";
@@ -101,6 +102,15 @@ describe("learning use documentation", () => {
     expect(phase9b).toContain("not a memory data read");
   });
 
+  it("phase9d_effective_address_unit_doc_exists", () => {
+    expect(phase9d).toContain("Phase 9D: Effective Address Unit Visualization");
+    expect(phase9d).toContain("base address + index register value = effective address");
+    expect(phase9d).toContain("EAU.BASE");
+    expect(phase9d).toContain("Memory row highlight at the effective address");
+    expect(phase9d).toContain("They do not read memory data for the shift count.");
+    expect(phase9d).toContain("Signal Probe");
+  });
+
   it("phase8e_circuit_focus_doc_exists", () => {
     expect(phase8e).toContain("Phase 8E: Circuit Focus Final Layout");
     expect(phase8e).toContain("SP Semantic Rule");
@@ -182,6 +192,7 @@ describe("learning use documentation", () => {
     expect(readme).toContain("docs/phase8k-layered-study-mode-density-refinement.md");
     expect(readme).toContain("docs/phase8l-circuit-arrow-routing.md");
     expect(readme).toContain("docs/phase9b-shift-instructions-and-path-templates.md");
+    expect(readme).toContain("docs/phase9d-effective-address-unit.md");
     expect(readme).toContain("docs/future-custom-circuit-design.md");
     expect(normalized).not.toContain("hackathon");
     expect(normalized).not.toContain("contest submission");

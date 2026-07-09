@@ -269,8 +269,8 @@ export default function OutputPanel({
                               <dd>{machineExplanation.register !== undefined ? `GR${machineExplanation.register}` : "-"}</dd>
                             </div>
                             <div>
-                              <dt>Index</dt>
-                              <dd>{machineExplanation.indexRegister ? `GR${machineExplanation.indexRegister}` : "none"}</dd>
+                              <dt>Index x</dt>
+                              <dd>{machineExplanation.indexRegister !== undefined ? `x = GR${machineExplanation.indexRegister}` : "x = none"}</dd>
                             </div>
                             <div>
                               <dt>Index Value</dt>

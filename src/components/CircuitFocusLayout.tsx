@@ -53,36 +53,41 @@ function instructionMnemonic(text: string | undefined, fallback: string): string
   return match?.[1]?.toUpperCase() ?? fallback;
 }
 
+function addressOperandLabel(target: string, index?: string): string {
+  return index ? `${target}+${index}` : target;
+}
+
 function instructionMeaning(text: string | undefined, fallback: string): string {
   const compact = (text ?? "").replace(/\s+/g, " ").trim();
   const [mnemonic = "", operand = ""] = compact.split(/\s+/, 2);
-  const [register = "", target = ""] = operand.split(",").map((part) => part.trim());
+  const [register = "", target = "", index = ""] = operand.split(",").map((part) => part.trim());
+  const addressOperand = addressOperandLabel(target, index);
 
   switch (mnemonic.toUpperCase()) {
     case "LD":
-      return `${register} <- memory[${target}]`;
+      return `${register} <- memory[${addressOperand}]`;
     case "LAD":
-      return `${register} <- address ${target}`;
+      return `${register} <- address ${addressOperand}`;
     case "ST":
-      return `memory[${target}] <- ${register}`;
+      return `memory[${addressOperand}] <- ${register}`;
     case "ADDA":
     case "ADDL":
-      return `${register} <- ${register} + ${target}`;
+      return `${register} <- ${register} + ${addressOperand}`;
     case "SUBA":
     case "SUBL":
-      return `${register} <- ${register} - ${target}`;
+      return `${register} <- ${register} - ${addressOperand}`;
     case "AND":
     case "OR":
     case "XOR":
-      return `${register} <- ${register} ${mnemonic.toUpperCase()} ${target}`;
+      return `${register} <- ${register} ${mnemonic.toUpperCase()} ${addressOperand}`;
     case "CPA":
     case "CPL":
-      return `FR <- compare ${register}, ${target}`;
+      return `FR <- compare ${register}, ${addressOperand}`;
     case "SLA":
     case "SRA":
     case "SLL":
     case "SRL":
-      return `${register} <- ${mnemonic.toUpperCase()} ${register} by ${target}`;
+      return `${register} <- ${mnemonic.toUpperCase()} ${register} by ${addressOperand}`;
     case "JUMP":
       return `PR <- ${operand}`;
     case "JZE":
@@ -383,12 +388,34 @@ function signalProbeRows(state: CometState, focus: FocusInstructionContext): Pro
   ];
 
   if (state.lastIndexRegister !== undefined && state.lastEffectiveAddress !== undefined) {
-    rows.splice(1, 0, {
-      label: "EA",
-      value: `${formatWord(state.lastBaseAddress ?? 0)} + GR${state.lastIndexRegister}=${formatWord(state.lastEffectiveAddress)}`,
-      note: "effective address",
-      active: true
-    });
+    rows.splice(
+      1,
+      0,
+      {
+        label: "BASE",
+        value: formatWord(state.lastBaseAddress ?? 0),
+        note: "address operand",
+        active: true
+      },
+      {
+        label: `GR${state.lastIndexRegister}`,
+        value: formatWord(state.lastIndexValue ?? 0),
+        note: "index value",
+        active: true
+      },
+      {
+        label: "EA",
+        value: formatWord(state.lastEffectiveAddress),
+        note: "base + index",
+        active: true
+      },
+      {
+        label: "MAR",
+        value: formatWord(state.mar),
+        note: "address register",
+        active: true
+      }
+    );
   }
 
   return rows;

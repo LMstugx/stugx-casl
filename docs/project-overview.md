@@ -80,7 +80,7 @@ The same workflow works with the TypeScript Mock backend and the experimental WA
 
 - C++ support is a teaching subset, not full C++.
 - CASL II support is a teaching subset, not the full instruction set.
-- Index addressing is not fully implemented.
+- Index addressing is supported for CASL address operands, but C++ subset code does not generate indexed operands yet.
 - Arrays, pointers, functions, classes, templates, strings, and floats are unsupported.
 - Control Flow is shown as labels, badges, and target text rather than a full graph.
 

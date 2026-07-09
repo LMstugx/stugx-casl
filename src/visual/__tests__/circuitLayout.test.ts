@@ -282,6 +282,30 @@ describe("circuit focus layout", () => {
     });
   });
 
+  it("index_route_uses_eau_to_mar", () => {
+    const paths = buildWirePaths({ grIndex: 1, indexRegister: 2, memoryAddress: 0x28 });
+
+    expect(paths.find((wire) => wire.id === "base-to-eau")).toMatchObject({
+      toAnchor: expect.objectContaining({ id: "eau.base" }),
+      lane: "addr",
+      semanticType: "address",
+      relatedStage: "Effective Address"
+    });
+    expect(paths.find((wire) => wire.id === "index-to-eau")).toMatchObject({
+      fromAnchor: expect.objectContaining({ id: "gr2.indexRight" }),
+      toAnchor: expect.objectContaining({ id: "eau.index" }),
+      lane: "addr",
+      semanticType: "address",
+      relatedRegister: 2
+    });
+    expect(paths.find((wire) => wire.id === "eau-to-mar")).toMatchObject({
+      fromAnchor: expect.objectContaining({ id: "eau.sum" }),
+      toAnchor: expect.objectContaining({ id: "mar.left" }),
+      lane: "addr",
+      semanticType: "address"
+    });
+  });
+
   it("row_anchor_endpoint_is_used_for_memory_read_write", () => {
     const readWire = wireById("memory-to-mdr");
     const writeWire = buildWirePaths({ grIndex: 2, memoryAddress: 0x29 }).find((wire) => wire.id === "mdr-to-memory");

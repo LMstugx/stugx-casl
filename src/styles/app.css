@@ -1186,14 +1186,32 @@ button {
   stroke-width: 1.2;
 }
 
-.effective-address-chip rect {
-  fill: color-mix(in srgb, var(--color-primary-soft) 58%, var(--color-surface));
-  stroke: color-mix(in srgb, var(--color-primary) 48%, var(--color-border));
+.eau-module > rect {
+  fill: #f7f9fc;
+  stroke: #b7c5d8;
   stroke-width: 1;
+}
+
+.eau-module[data-active="true"] > rect {
+  fill: color-mix(in srgb, var(--color-primary-soft) 48%, var(--color-surface));
+  stroke: color-mix(in srgb, var(--color-primary) 58%, var(--color-border));
+  stroke-width: 1.2;
+}
+
+.eau-module[data-active="false"] {
+  opacity: 0.64;
 }
 
 .effective-address-chip text {
   font-size: 9px;
+}
+
+.eau-module .module-title {
+  font-size: 10px;
+}
+
+.eau-module .module-small {
+  font-size: 8.6px;
 }
 
 .module-red {

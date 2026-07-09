@@ -73,8 +73,8 @@ Trace and UI state expose base address, index register, index value, and effecti
 Circuit Focus Mode keeps the same layout. For indexed instructions it adds:
 
 - an `IDX` badge on the index GR row
-- an Effective Address chip in the address layer
-- an address guide from the index register to the effective-address / MAR path
+- an Effective Address Unit in the address layer
+- an address route from base operand and index GR to EAU, then from EAU to MAR / Memory row
 - Memory row highlighting at the effective address, not the base address
 
 For `LAD` and shift instructions, the circuit does not show a fake memory data read. For memory instructions, the Memory row corresponds to the effective address.
@@ -104,4 +104,4 @@ Index addressing is the base for later study topics:
 - C++ subset arrays
 - pointer-like addressing lessons
 - stack / `CALL` / `PUSH` / `POP`
-- richer effective-address circuit paths
+- richer EAU animation and stack-related address paths

@@ -107,6 +107,35 @@ function StatusIndicators({ activeWireIds, state }: { activeWireIds: Set<string>
   );
 }
 
+function isJumpVisualPath(visualPath: VisualPathKind): boolean {
+  return visualPath === VisualPathKind.Jump_AddressToPr || visualPath === VisualPathKind.ConditionalJump_AddressToPr;
+}
+
+function addEffectiveAddressUnitWires(activeWireIds: Set<string>, visualPath: VisualPathKind): void {
+  activeWireIds.add("base-to-eau");
+  activeWireIds.add("index-to-eau");
+
+  if (visualPath === VisualPathKind.LAD_AddressToGr) {
+    activeWireIds.delete("pr-to-mar");
+    activeWireIds.delete("address-to-gr");
+    activeWireIds.add("eau-to-gr");
+    return;
+  }
+
+  if (isJumpVisualPath(visualPath)) {
+    activeWireIds.delete("pr-to-mar");
+    activeWireIds.delete("address-to-pr");
+    activeWireIds.add("eau-to-pr");
+    return;
+  }
+
+  if (visualPath === VisualPathKind.ConditionalJump_NotTaken) {
+    return;
+  }
+
+  activeWireIds.add("eau-to-mar");
+}
+
 function DecoderModule({ state }: { state: CometState }) {
   const op = (state.ir >> 12) & 0xf;
   const gr = (state.ir >> 4) & 0xf;
@@ -149,6 +178,53 @@ function ControllerModule({ state }: { state: CometState }) {
         {state.runState}
       </text>
     </Module>
+  );
+}
+
+function EffectiveAddressUnitModule({ state, active }: { state: CometState; active: boolean }) {
+  const base = formatWord(state.lastBaseAddress ?? 0);
+  const indexRegister = state.lastIndexRegister ?? 0;
+  const indexValue = formatWord(state.lastIndexValue ?? 0);
+  const effective = formatWord(state.lastEffectiveAddress ?? state.mar);
+  const baseInput = circuitAnchors.eau.baseInput();
+  const indexInput = circuitAnchors.eau.indexInput();
+  const sumOutput = circuitAnchors.eau.sumOutput();
+
+  return (
+    <g
+      className={active ? "circuit-module circuit-module-active eau-module" : "circuit-module eau-module"}
+      data-testid="effective-address-unit"
+      data-active={active ? "true" : "false"}
+      data-base-address={active ? base : undefined}
+      data-index-register={active ? `GR${indexRegister}` : undefined}
+      data-effective-address={active ? effective : undefined}
+      data-layer="control"
+    >
+      <rect x={circuitLayout.eau.x} y={circuitLayout.eau.y} width={circuitLayout.eau.w} height={circuitLayout.eau.h} rx="5" />
+      <text className="module-title" x={circuitLayout.eau.x + 20} y={circuitLayout.eau.y + 15}>
+        EAU
+      </text>
+      <text className="module-small module-muted" x={circuitLayout.eau.x + 52} y={circuitLayout.eau.y + 15}>
+        Effective Address Unit
+      </text>
+      {active ? (
+        <g data-testid="effective-address-chip">
+          <text className="module-small" x={circuitLayout.eau.x + 12} y={circuitLayout.eau.y + 30}>
+            BASE {base} + GR{indexRegister}({indexValue})
+          </text>
+          <text className="module-small module-green" x={circuitLayout.eau.x + 12} y={circuitLayout.eau.y + 43}>
+            EA {effective}
+          </text>
+        </g>
+      ) : (
+        <text className="module-small module-muted" x={circuitLayout.eau.x + 12} y={circuitLayout.eau.y + 36}>
+          bypass
+        </text>
+      )}
+      <AnchorPoint id="eau-anchor-base-input" x={baseInput.x} y={baseInput.y} />
+      <AnchorPoint id="eau-anchor-index-input" x={indexInput.x} y={indexInput.y} />
+      <AnchorPoint id="eau-anchor-sum-output" x={sumOutput.x} y={sumOutput.y} />
+    </g>
   );
 }
 
@@ -326,7 +402,7 @@ function CometCircuitSvg({ state, sourceMapFocus }: { state: CometState; sourceM
   const visualPath = resolveVisualPath(state);
   const activeWireIds = resolveActiveWireIds(visualPath);
   const effectiveActiveWireIds = new Set(activeWireIds);
-  if (hasIndexAddressing) effectiveActiveWireIds.add("index-to-effective");
+  if (hasIndexAddressing) addEffectiveAddressUnitWires(effectiveActiveWireIds, visualPath);
   const mdrLeft = circuitAnchors.mdr.left();
   const mdrRight = circuitAnchors.mdr.right();
   const mdrBottom = circuitAnchors.mdr.bottom();
@@ -443,17 +519,7 @@ function CometCircuitSvg({ state, sourceMapFocus }: { state: CometState; sourceM
       <Module layout={circuitLayout.addressResult} title="+2" value={formatWord((state.pr + 2) & 0xffff)} testId="module-address-result" layer="control" />
       <Module layout={circuitLayout.sp} title="SP" value={formatWord(state.sp)} testId="module-sp" layer="control" />
       <Module layout={circuitLayout.mar} title="MAR" value={formatWord(state.mar)} accent={state.changedRegisters.includes("MAR")} testId="module-mar" layer="control" />
-      {hasIndexAddressing ? (
-        <g className="effective-address-chip" data-testid="effective-address-chip">
-          <rect x={circuitLayout.mar.x - 12} y={circuitLayout.mar.y + circuitLayout.mar.h + 12} width="150" height="36" rx="4" />
-          <text className="module-small" x={circuitLayout.mar.x + 4} y={circuitLayout.mar.y + circuitLayout.mar.h + 27}>
-            EA = base + GR{state.lastIndexRegister}
-          </text>
-          <text className="module-small module-green" x={circuitLayout.mar.x + 4} y={circuitLayout.mar.y + circuitLayout.mar.h + 41}>
-            {formatWord(state.lastBaseAddress ?? 0)} + {formatWord(state.lastIndexValue ?? 0)} = {formatWord(state.lastEffectiveAddress ?? state.mar)}
-          </text>
-        </g>
-      ) : null}
+      <EffectiveAddressUnitModule state={state} active={hasIndexAddressing} />
       <GeneralRegisters state={state} />
       <AluModule state={state} registerIndex={registerIndex} visualPath={visualPath} />
       <Module layout={circuitLayout.mdr} title="MDR" value={formatWord(state.mdr)} accent={state.changedRegisters.includes("MDR")} testId="module-mdr" layer="execution">

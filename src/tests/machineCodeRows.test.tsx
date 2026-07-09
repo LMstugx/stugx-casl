@@ -309,7 +309,7 @@ describe("machine code rows", () => {
       (container?.querySelector('[data-testid="machine-code-row-0022"]') as HTMLDivElement).click();
     });
     const panelText = container?.querySelector('[data-testid="machine-code-explanation"]')?.textContent ?? "";
-    expect(panelText).toContain("GR2");
+    expect(panelText).toContain("x = GR2");
     expect(panelText).toContain("0028");
     expect(panelText).toContain("B");
   });

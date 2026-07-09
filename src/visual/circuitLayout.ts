@@ -16,6 +16,7 @@ export const circuitLayout = {
   pr: { x: 260, y: 36, w: 116, h: 60 },
   addressResult: { x: 404, y: 43, w: 90, h: 46 },
   sp: { x: 528, y: 36, w: 110, h: 60 },
+  eau: { x: 512, y: 102, w: 144, h: 48 },
   mar: { x: 668, y: 36, w: 126, h: 60 },
   gr: { x: 232, y: 144, w: 190, h: 266 },
   alu: { x: 452, y: 154, w: 236, h: 210 },
@@ -88,6 +89,11 @@ export const circuitAnchors = {
     left: () => rectPoint(circuitLayout.mar, "left"),
     right: () => rectPoint(circuitLayout.mar, "right"),
     outputToMemory: () => rectPoint(circuitLayout.mar, "right", 0.5)
+  },
+  eau: {
+    baseInput: () => rectPoint(circuitLayout.eau, "left", 0.34),
+    indexInput: () => rectPoint(circuitLayout.eau, "left", 0.68),
+    sumOutput: () => rectPoint(circuitLayout.eau, "right", 0.5)
   },
   gr: {
     rowLeft: (index: number) => ({ x: circuitLayout.gr.x + 16, y: registerRowY(index) }),

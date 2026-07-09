@@ -111,15 +111,23 @@ test("Mock backend runs CASL index addressing and explains effective address", a
   const circuit = page.getByTestId("comet-circuit-svg");
   await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("LD");
   await expect(circuit.locator("[data-testid='register-gr2']")).toHaveAttribute("data-index", "true");
-  await expect(circuit.locator("[data-testid='effective-address-chip']")).toContainText("EA = base + GR2");
+  await expect(circuit.locator("[data-testid='effective-address-unit']")).toHaveAttribute("data-active", "true");
+  await expect(circuit.locator("[data-testid='effective-address-unit']")).toContainText("Effective Address Unit");
+  await expect(circuit.locator("[data-testid='effective-address-chip']")).toContainText("BASE 0027 + GR2(0001)");
+  await expect(circuit.locator("[data-testid='effective-address-chip']")).toContainText("EA 0028");
   await expect(circuit.locator("[data-testid='memory-row-0028']")).toHaveAttribute("data-read", "true");
-  await expect(circuit.locator("[data-testid='wire-index-to-effective']")).toBeVisible();
+  await expect(circuit.locator("[data-testid='wire-base-to-eau']")).toHaveAttribute("data-active", "true");
+  await expect(circuit.locator("[data-testid='wire-index-to-eau']")).toHaveAttribute("data-active", "true");
+  await expect(circuit.locator("[data-testid='wire-eau-to-mar']")).toHaveAttribute("data-active", "true");
+  await expect(page.getByTestId("focus-signal-probe")).toContainText("BASE");
+  await expect(page.getByTestId("focus-signal-probe")).toContainText("EA");
   const focusInspector = page.getByTestId("focus-registers-panel");
   await expect(focusInspector.getByTestId("register-gr1")).toContainText("0014");
 
   await page.getByRole("tab", { name: "Machine Code" }).click();
   await page.getByTestId("machine-code-row-0022").click();
-  await expect(page.getByTestId("machine-code-explanation")).toContainText("GR2");
+  await expect(page.getByTestId("machine-code-explanation")).toContainText("x = GR2");
+  await expect(page.getByTestId("machine-code-explanation")).toContainText("0001");
   await expect(page.getByTestId("machine-code-explanation")).toContainText("0028");
 
   await run(page);

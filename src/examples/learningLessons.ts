@@ -301,12 +301,12 @@ export const learningLessons: LearningLesson[] = [
     exampleId: "casl-index-addressing",
     title: "Index addressing with effective address",
     level: "Machine code",
-    concepts: ["base address", "index register", "effective address", "Memory[base + index]", "x field in machine code"],
+    concepts: ["base address", "index register", "effective address unit", "address computation", "Memory[base + index]", "x field in machine code"],
     learningGoals: [
       "Understand how adr,x encodes an index register in the machine word.",
       "Observe that runtime memory access uses the effective address, while the operand word still stores the base address."
     ],
-    observe: ["Machine Code x field for LD GR1,A,GR2", "Effective address chip in Circuit Focus Mode", "Memory[B] read and Memory[RESULT] write"],
+    observe: ["Machine Code x field for LD GR1,A,GR2", "Effective Address Unit in Circuit Focus Mode", "Memory[B] read and Memory[RESULT] write"],
     suggestedSteps: [
       {
         id: "assemble",
@@ -326,7 +326,7 @@ export const learningLessons: LearningLesson[] = [
         id: "step-ld-indexed",
         label: "Step indexed LD",
         action: "Step LD GR1,A,GR2 in Circuit Focus Mode.",
-        expectedObservation: "The circuit shows base A plus GR2, and the Memory[B] row is read.",
+        expectedObservation: "The Effective Address Unit shows base A plus GR2, and the Memory[B] row is read.",
         recommendedTab: "Trace"
       },
       {
@@ -348,9 +348,9 @@ export const learningLessons: LearningLesson[] = [
       {
         id: "effective-address",
         label: "Effective address",
-        expected: "A + GR2 should resolve to B.",
+        expected: "The EAU should show A + GR2 = B.",
         whereToLook: "Circuit Focus Mode / Machine Code explanation",
-        note: "The operand word stores A, and runtime adds GR2 to reach B."
+        note: "The operand word stores A, and runtime adds GR2 in the Effective Address Unit to reach B."
       },
       {
         id: "final-result",

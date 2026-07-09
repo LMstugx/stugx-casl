@@ -113,7 +113,7 @@ Expected observation:
 
 - Machine Code should show the `LD` instruction word with x = `GR2`.
 - The operand word still points to `A`.
-- The effective address should point to `B`.
+- The Effective Address Unit should show base `A` plus `GR2` resolving to `B`.
 - Circuit Focus Mode should mark `GR2` as the index register and highlight the Memory row for `B`.
 - `GR1` should become `0014`.
 - After `ST`, Memory[RESULT] should become `0014`.

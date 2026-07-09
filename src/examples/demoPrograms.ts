@@ -108,10 +108,10 @@ A    DC    10
 B    DC    20
 RESULT DS  1
      END`,
-    description: "Base address plus index register addressing with effective memory row highlighting.",
+    description: "Base address plus index register addressing with an Effective Address Unit and effective memory row highlighting.",
     whatThisShows: "CASL adr,x operands encode an x field in machine code and calculate Memory[base + GRx] at runtime.",
     expectedResult: "GR2 = 0001, LD reads B through A+GR2, GR1 = 0014, and Memory[RESULT] = 0014.",
-    suggestedActions: ["Click Assemble.", "Open Machine Code and inspect x = GR2.", "Step LD in Circuit Focus Mode and watch the effective address chip.", "Open Memory and confirm RESULT is 0014."]
+    suggestedActions: ["Click Assemble.", "Open Machine Code and inspect x = GR2.", "Step LD in Circuit Focus Mode and watch the Effective Address Unit.", "Open Memory and confirm RESULT is 0014."]
   },
   {
     id: "cpp-addition",

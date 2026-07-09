@@ -167,6 +167,9 @@ export function buildWirePaths({ grIndex = 1, indexRegister, memoryAddress = 0x2
   const prLeft = circuitAnchors.pr.left();
   const marLeft = circuitAnchors.mar.left();
   const marRight = circuitAnchors.mar.right();
+  const eauBaseInput = circuitAnchors.eau.baseInput();
+  const eauIndexInput = circuitAnchors.eau.indexInput();
+  const eauSumOutput = circuitAnchors.eau.sumOutput();
   const addressBusY = circuitBusLanes.addressY;
   const controlBusY = circuitBusLanes.controlY;
   const dataBypassY = circuitBusLanes.dataBypassY;
@@ -179,6 +182,7 @@ export function buildWirePaths({ grIndex = 1, indexRegister, memoryAddress = 0x2
   const decoderBottom = { x: circuitLayout.decoder.x + circuitLayout.decoder.w / 2, y: circuitLayout.decoder.y + circuitLayout.decoder.h };
   const controllerTop = { x: circuitLayout.controller.x + circuitLayout.controller.w / 2, y: circuitLayout.controller.y };
   const controllerRight = { x: circuitLayout.controller.x + circuitLayout.controller.w, y: circuitLayout.controller.y + circuitLayout.controller.h / 2 };
+  const operandBaseSource = { x: circuitLayout.eau.x - 30, y: eauBaseInput.y };
   const portClearance = circuitRouting.portClearance;
   const controlClearance = circuitRouting.controlClearance;
   const stackReferenceDrop = circuitRouting.stackReferenceDrop;
@@ -190,6 +194,10 @@ export function buildWirePaths({ grIndex = 1, indexRegister, memoryAddress = 0x2
     marLeft: anchor("mar.left", marLeft, "address"),
     marShiftCount: anchor("mar.shiftCount", marLeft, "address"),
     marRight: anchor("mar.right", marRight, "address"),
+    operandBase: anchor("operand.base", operandBaseSource, "address"),
+    eauBaseInput: anchor("eau.base", eauBaseInput, "input"),
+    eauIndexInput: anchor("eau.index", eauIndexInput, "input"),
+    eauSumOutput: anchor("eau.sum", eauSumOutput, "output"),
     memoryLeft: anchor(`memory.${memoryAddress.toString(16).padStart(4, "0")}.left`, memoryLeft, "bidirectional"),
     memoryRight: anchor(`memory.${memoryAddress.toString(16).padStart(4, "0")}.right`, memoryRight, "bidirectional"),
     grLeft: anchor(`gr${gr}.left`, grLeft, "bidirectional"),
@@ -212,6 +220,11 @@ export function buildWirePaths({ grIndex = 1, indexRegister, memoryAddress = 0x2
 
   return Object.freeze([
     wire("pr-to-mar", "address", "addr", "address", anchors.prRight, anchors.marLeft, [prRight, { x: prRight.x + portClearance, y: prRight.y }, { x: prRight.x + portClearance, y: addressBusY }, { x: marLeft.x - portClearance, y: addressBusY }, { x: marLeft.x - portClearance, y: marLeft.y }, marLeft], { relatedStage: "Fetch", junctions: [{ x: prRight.x + portClearance, y: addressBusY }] }),
+    wire("base-to-eau", "address", "addr", "address", anchors.operandBase, anchors.eauBaseInput, [operandBaseSource, eauBaseInput], { relatedStage: "Effective Address" }),
+    wire("index-to-eau", "address", "addr", "address", anchors.indexGrRight, anchors.eauIndexInput, [indexGrRight, { x: indexGrRight.x + portClearance, y: indexGrRight.y }, { x: indexGrRight.x + portClearance, y: addressBusY }, { x: eauIndexInput.x - portClearance, y: addressBusY }, { x: eauIndexInput.x - portClearance, y: eauIndexInput.y }, eauIndexInput], { relatedRegister: indexGr, relatedStage: "Effective Address", junctions: [{ x: indexGrRight.x + portClearance, y: addressBusY }] }),
+    wire("eau-to-mar", "address", "addr", "address", anchors.eauSumOutput, anchors.marLeft, [eauSumOutput, { x: marLeft.x - 8, y: eauSumOutput.y }, { x: marLeft.x - 8, y: marLeft.y }, marLeft], { relatedStage: "Effective Address", junctions: [{ x: marLeft.x - 8, y: eauSumOutput.y }] }),
+    wire("eau-to-gr", "address", "addr", "address", anchors.eauSumOutput, anchors.grLeft, routeViaLane(eauSumOutput, grLeft, { y: addressBusY }), { relatedRegister: gr, relatedStage: "Write Back", junctions: [{ x: grLeft.x, y: addressBusY }] }),
+    wire("eau-to-pr", "address", "ctrl", "control", anchors.eauSumOutput, anchors.prLeft, [eauSumOutput, { x: eauSumOutput.x + portClearance, y: eauSumOutput.y }, { x: eauSumOutput.x + portClearance, y: addressBusY }, { x: prLeft.x - portClearance, y: addressBusY }, { x: prLeft.x - portClearance, y: prLeft.y }, prLeft], { relatedStage: "Next", junctions: [{ x: eauSumOutput.x + portClearance, y: addressBusY }] }),
     wire("index-to-effective", "address", "addr", "address", anchors.indexGrRight, anchors.marLeft, [indexGrRight, { x: indexGrRight.x + portClearance, y: indexGrRight.y }, { x: indexGrRight.x + portClearance, y: addressBusY }, { x: marLeft.x - portClearance, y: addressBusY }, { x: marLeft.x - portClearance, y: marLeft.y }, marLeft], { relatedRegister: indexGr, relatedStage: "Effective Address", junctions: [{ x: indexGrRight.x + portClearance, y: addressBusY }] }),
     wire("pr-to-plus2", "control", "ctrl", "control", anchors.prRight, anchors.plus2Left, [prRight, { x: circuitLayout.addressResult.x, y: prRight.y }], { relatedStage: "Next" }),
     wire(

@@ -249,13 +249,85 @@ describe("Circuit Focus Mode layout", () => {
     expect(markup).toContain('data-testid="register-gr2" data-active="true"');
     expect(markup).toContain('data-index="true"');
     expect(markup).toContain("IDX");
-    expect(markup).toContain('data-testid="effective-address-chip"');
-    expect(markup).toContain("EA = base + GR2");
+    expect(markup).toContain('data-testid="effective-address-unit"');
+    expect(markup).toContain('data-active="true" data-base-address="0027" data-index-register="GR2" data-effective-address="0028"');
+    expect(markup).toContain("Effective Address Unit");
+    expect(markup).toContain("BASE 0027 + GR2(0001)");
+    expect(markup).toContain("EA 0028");
+    expect(markup).toContain("GR1 &lt;- memory[A+GR2]");
     expect(markup).toContain('data-testid="memory-row-0028"');
     expect(markup).toContain('data-read="true"');
-    expect(activeWireIds(markup)).toContain("index-to-effective");
+    expect(activeWireIds(markup)).toContain("base-to-eau");
+    expect(activeWireIds(markup)).toContain("index-to-eau");
+    expect(activeWireIds(markup)).toContain("eau-to-mar");
+    expect(activeWireIds(markup)).not.toContain("index-to-effective");
     expect(markup).toContain('data-testid="signal-probe-row"');
-    expect(markup).toContain("effective address");
+    expect(markup).toContain("base + index");
+  });
+
+  it("effective_address_unit_hidden_or_inactive_for_non_index_instruction", () => {
+    const markup = renderFocus(stepTimes(1));
+
+    expect(markup).toContain('data-testid="effective-address-unit"');
+    expect(markup).toContain('data-testid="effective-address-unit" data-active="false"');
+    expect(markup).toContain("bypass");
+    expect(activeWireIds(markup)).not.toContain("base-to-eau");
+    expect(activeWireIds(markup)).not.toContain("index-to-eau");
+    expect(activeWireIds(markup)).not.toContain("eau-to-mar");
+  });
+
+  it("index_lad_uses_eau_without_memory_read", () => {
+    const source = `MAIN START
+     LAD   GR2,1
+     LAD   GR1,A,GR2
+     RET
+A    DC    10
+     END`;
+    const markup = renderFocus(stepSource(source, 2), source);
+
+    expect(markup).toContain('data-testid="effective-address-unit" data-active="true"');
+    expect(activeWireIds(markup)).toContain("base-to-eau");
+    expect(activeWireIds(markup)).toContain("index-to-eau");
+    expect(activeWireIds(markup)).toContain("eau-to-gr");
+    expect(activeWireIds(markup)).not.toContain("eau-to-mar");
+    expect(activeWireIds(markup)).not.toContain("memory-to-mdr");
+    expect(markup).toContain('data-testid="module-memory" data-active="false"');
+  });
+
+  it("index_shift_uses_eau_as_count_without_memory_read", () => {
+    const source = `MAIN START
+     LAD   GR2,1
+     LD    GR1,A
+     SLL   GR1,0,GR2
+     RET
+A    DC    3
+     END`;
+    const markup = renderFocus(stepSource(source, 3), source);
+
+    expect(markup).toContain('data-testid="effective-address-unit" data-active="true"');
+    expect(activeWireIds(markup)).toContain("base-to-eau");
+    expect(activeWireIds(markup)).toContain("index-to-eau");
+    expect(activeWireIds(markup)).toContain("eau-to-mar");
+    expect(activeWireIds(markup)).toContain("shift-count-to-alu");
+    expect(activeWireIds(markup)).not.toContain("memory-to-mdr");
+    expect(markup).toContain('data-testid="module-memory" data-active="false"');
+  });
+
+  it("index_jump_uses_eau_to_pr", () => {
+    const source = `MAIN START
+     LAD   GR2,1
+     JUMP  SKIP,GR2
+SKIP LAD   GR1,0
+DONE RET
+     END`;
+    const markup = renderFocus(stepSource(source, 2), source);
+
+    expect(markup).toContain('data-testid="effective-address-unit" data-active="true"');
+    expect(activeWireIds(markup)).toContain("base-to-eau");
+    expect(activeWireIds(markup)).toContain("index-to-eau");
+    expect(activeWireIds(markup)).toContain("eau-to-pr");
+    expect(activeWireIds(markup)).not.toContain("address-to-pr");
+    expect(activeWireIds(markup)).not.toContain("memory-to-mdr");
   });
 
   it("circuit_ld_data_bus_does_not_cross_alu_active_region", () => {

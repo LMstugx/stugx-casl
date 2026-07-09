@@ -195,6 +195,15 @@ pnpm test:e2e
 pnpm test:e2e:wasm
 ```
 
+Capture a local visual review gallery:
+
+```powershell
+pnpm visual:capture
+pnpm visual:serve
+```
+
+See [docs/visual-review.md](docs/visual-review.md) for phone/LAN review notes.
+
 Run the C++ core tests:
 
 ```powershell

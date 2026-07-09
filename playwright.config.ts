@@ -1,8 +1,9 @@
 import { defineConfig, devices } from "@playwright/test";
 
 const targetBackend = process.env.E2E_BACKEND ?? "all";
-const runMock = targetBackend === "all" || targetBackend === "mock";
-const runWasm = targetBackend === "all" || targetBackend === "wasm";
+const runVisualReview = targetBackend === "visual-review";
+const runMock = !runVisualReview && (targetBackend === "all" || targetBackend === "mock");
+const runWasm = !runVisualReview && (targetBackend === "all" || targetBackend === "wasm");
 
 export default defineConfig({
   testDir: "tests/e2e",
@@ -38,6 +39,16 @@ export default defineConfig({
             timeout: 120_000
           }
         ]
+      : []),
+    ...(runVisualReview
+      ? [
+          {
+            command: "pnpm exec vite --host 127.0.0.1 --port 5175",
+            url: "http://127.0.0.1:5175",
+            reuseExistingServer: !process.env.CI,
+            timeout: 120_000
+          }
+        ]
       : [])
   ],
   projects: [
@@ -56,6 +67,15 @@ export default defineConfig({
             name: "wasm",
             testMatch: /wasm-smoke\.spec\.ts/,
             use: { baseURL: "http://127.0.0.1:5174" }
+          }
+        ]
+      : []),
+    ...(runVisualReview
+      ? [
+          {
+            name: "visual-review",
+            testMatch: /visual-review\.spec\.ts/,
+            use: { baseURL: "http://127.0.0.1:5175" }
           }
         ]
       : [])

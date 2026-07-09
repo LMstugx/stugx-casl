@@ -3,6 +3,8 @@ dist/
 .vite/
 coverage/
 artifacts/
+artifacts/visual-review/
+artifacts/screenshots/
 *.tsbuildinfo
 *.log
 public/wasm/*.js

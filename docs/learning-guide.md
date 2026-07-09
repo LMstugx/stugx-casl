@@ -305,6 +305,8 @@ Machine state and pipeline stage are also separate. `Machine: Ready` describes t
 
 The schematic separates `DATA BUS`, `ADDR BUS`, and `CTRL` lanes. `LD` and `ST` use a data-bypass lane between Memory, `MDR`, and the selected GR row without activating the ALU. Arithmetic, logic, and compare instructions are the paths that enter the ALU lane.
 
+Active wires have a lightweight signal-flow animation in the live app. The animation is only a direction cue for the current active path; it does not represent extra VM micro-cycles, and it is disabled when the operating system asks for reduced motion.
+
 Small signal indicators such as `READ`, `WRITE`, `EXEC`, and `FLAG` are visual hints derived from the current instruction and VM state. They are not separate simulator state.
 
 Focus Mode is layered intentionally. Current Instruction and the active path are the primary teaching objects. Program, Timeline, Registers, Memory, and latest Trace are secondary. Bus labels, inactive wires, older trace rows, Source Context, and Output Log are tertiary context.

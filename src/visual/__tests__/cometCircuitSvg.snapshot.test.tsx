@@ -24,6 +24,14 @@ function activeWireIds(doc: Document): string[] {
   return Array.from(doc.querySelectorAll<SVGPathElement>("[data-path-id][data-active='true']")).map((path) => path.dataset.pathId ?? "");
 }
 
+function wireById(doc: Document, id: string): SVGPathElement | null {
+  return doc.querySelector<SVGPathElement>(`[data-testid='wire-${id}']`) ?? doc.querySelector<SVGPathElement>(`[data-path-id='${id}'][data-active='true']`);
+}
+
+function activeDataWires(doc: Document): SVGPathElement[] {
+  return Array.from(doc.querySelectorAll<SVGPathElement>("[data-active='true'][data-semantic-type='data']"));
+}
+
 function buildFixtures(): CircuitFixture[] {
   const ready = mockCaslCore.assemble(DEFAULT_CASL_SOURCE);
   const afterLd = mockCaslCore.step(ready);
@@ -185,5 +193,91 @@ B    DC    10
 
     expect(doc.querySelector("[data-testid='wire-junction-memory-to-mdr-0']")).toBeTruthy();
     expect(doc.querySelector("[data-testid='wire-junction-mdr-to-gr-0']")).toBeTruthy();
+  });
+
+  it("active_wire_has_flow_class and data_wire_gets_data_flow_class", () => {
+    const afterLd = mockCaslCore.step(mockCaslCore.assemble(DEFAULT_CASL_SOURCE));
+    const doc = renderCircuit(afterLd);
+    const memoryToMdr = wireById(doc, "memory-to-mdr");
+
+    expect(memoryToMdr?.classList.contains("circuit-wire--active")).toBe(true);
+    expect(memoryToMdr?.classList.contains("circuit-wire--flow")).toBe(true);
+    expect(memoryToMdr?.classList.contains("circuit-wire--data-flow")).toBe(true);
+    expect(memoryToMdr?.classList.contains("circuit-wire--addr-flow")).toBe(false);
+  });
+
+  it("inactive_wire_has_no_flow_class", () => {
+    const doc = renderCircuit(mockCaslCore.assemble(DEFAULT_CASL_SOURCE));
+    const inactivePaths = Array.from(doc.querySelectorAll<SVGPathElement>("[data-active='false'][data-path-id]"));
+
+    expect(inactivePaths.length).toBeGreaterThan(0);
+    for (const path of inactivePaths) {
+      expect(path.classList.contains("circuit-wire--flow")).toBe(false);
+      expect(path.classList.contains("circuit-wire--active")).toBe(false);
+    }
+  });
+
+  it("control_wire_gets_ctrl_flow_class", () => {
+    const source = `MAIN START
+     JUMP  TARGET
+     LAD   GR1,0
+TARGET RET
+     END`;
+    const afterJump = mockCaslCore.step(mockCaslCore.assemble(source));
+    const doc = renderCircuit(afterJump);
+    const controlWire = wireById(doc, "address-to-pr");
+
+    expect(controlWire?.dataset.semanticType).toBe("control");
+    expect(controlWire?.classList.contains("circuit-wire--flow")).toBe(true);
+    expect(controlWire?.classList.contains("circuit-wire--ctrl-flow")).toBe(true);
+    expect(controlWire?.classList.contains("circuit-wire--data-flow")).toBe(false);
+  });
+
+  it("flag_wire_gets_flag_flow_class", () => {
+    const ready = mockCaslCore.assemble(DEFAULT_CASL_SOURCE);
+    const afterLd = mockCaslCore.step(ready);
+    const afterAdda = mockCaslCore.step(afterLd);
+    const doc = renderCircuit(afterAdda);
+    const flagWire = wireById(doc, "alu-to-fr");
+
+    expect(flagWire?.dataset.semanticType).toBe("flag");
+    expect(flagWire?.classList.contains("circuit-wire--flow")).toBe(true);
+    expect(flagWire?.classList.contains("circuit-wire--flag-flow")).toBe(true);
+  });
+
+  it("ld_flow_does_not_activate_alu and st_flow_does_not_activate_alu", () => {
+    const ready = mockCaslCore.assemble(DEFAULT_CASL_SOURCE);
+    const afterLd = mockCaslCore.step(ready);
+    const afterAdda = mockCaslCore.step(afterLd);
+    const afterSt = mockCaslCore.step(afterAdda);
+    const ldDoc = renderCircuit(afterLd);
+    const stDoc = renderCircuit(afterSt);
+
+    expect(activeDataWires(ldDoc).length).toBeGreaterThan(0);
+    for (const wire of activeDataWires(ldDoc)) {
+      expect(wire.classList.contains("circuit-wire--data-flow")).toBe(true);
+    }
+    expect(ldDoc.querySelector("[data-testid='module-alu']")?.getAttribute("data-active")).toBe("false");
+    expect(activeWireIds(ldDoc)).not.toContain("gr-to-alu");
+
+    expect(activeDataWires(stDoc).length).toBeGreaterThan(0);
+    for (const wire of activeDataWires(stDoc)) {
+      expect(wire.classList.contains("circuit-wire--data-flow")).toBe(true);
+    }
+    expect(stDoc.querySelector("[data-testid='module-alu']")?.getAttribute("data-active")).toBe("false");
+    expect(activeWireIds(stDoc)).not.toContain("mdr-to-alu");
+  });
+
+  it("adda_flow_enters_alu", () => {
+    const ready = mockCaslCore.assemble(DEFAULT_CASL_SOURCE);
+    const afterLd = mockCaslCore.step(ready);
+    const afterAdda = mockCaslCore.step(afterLd);
+    const doc = renderCircuit(afterAdda);
+
+    expect(doc.querySelector("[data-testid='module-alu']")?.getAttribute("data-active")).toBe("true");
+    expect(wireById(doc, "gr-to-alu")?.classList.contains("circuit-wire--data-flow")).toBe(true);
+    expect(wireById(doc, "mdr-to-alu")?.classList.contains("circuit-wire--data-flow")).toBe(true);
+    expect(wireById(doc, "alu-to-gr")?.classList.contains("circuit-wire--data-flow")).toBe(true);
+    expect(wireById(doc, "alu-to-fr")?.classList.contains("circuit-wire--flag-flow")).toBe(true);
   });
 });

@@ -196,13 +196,13 @@ describe("Circuit Focus Mode layout", () => {
     expect(markup).toContain("CTRL");
     expect(markup).toContain('class="wire wire-data"');
     expect(markup).toContain('data-active="false" data-path-id="memory-to-mdr"');
-    expect(markup).toContain('class="wire wire-data wire-active"');
+    expect(markup).toContain('class="wire wire-data wire-active circuit-wire--active circuit-wire--flow circuit-wire--data-flow"');
   });
 
   it("focus_mode_primary_active_path_is_prominent", () => {
     const markup = renderFocus(stepTimes(2));
 
-    expect(markup).toContain('class="wire wire-data wire-active"');
+    expect(markup).toContain('class="wire wire-data wire-active circuit-wire--active circuit-wire--flow circuit-wire--data-flow"');
     expect(markup).toContain('data-primary="true"');
     expect(markup).toContain('data-semantic-type="data"');
     expect(markup).toContain('marker-end="url(#arrow-red)"');

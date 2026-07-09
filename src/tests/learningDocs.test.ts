@@ -7,6 +7,7 @@ import phase8g from "../../docs/phase8g-circuit-focus-visual-convergence.md?raw"
 import phase8j from "../../docs/phase8j-lab-style-schematic-polish.md?raw";
 import phase8k from "../../docs/phase8k-layered-study-mode-density-refinement.md?raw";
 import phase8l from "../../docs/phase8l-circuit-arrow-routing.md?raw";
+import phase8m from "../../docs/phase8m-lightweight-signal-flow-animation.md?raw";
 import phase9a from "../../docs/phase9a-casl-instruction-coverage.md?raw";
 import futureCustomCircuit from "../../docs/future-custom-circuit-design.md?raw";
 import practiceTasks from "../../docs/practice-tasks.md?raw";
@@ -120,6 +121,14 @@ describe("learning use documentation", () => {
     expect(phase8l).toContain("Anchor-To-Anchor Rule");
     expect(phase8l).toContain("LD / ST Bypass Routing");
     expect(phase8l).toContain("Arrow Marker Rule");
+  });
+
+  it("phase8m_lightweight_signal_flow_doc_exists", () => {
+    expect(phase8m).toContain("Phase 8M: Lightweight Signal Flow Animation");
+    expect(phase8m).toContain("Active Path Only Rule");
+    expect(phase8m).toContain("semanticType");
+    expect(phase8m).toContain("Reduced Motion Support");
+    expect(phase8m).toContain("Visual Review Static Mode");
   });
 
   it("future_custom_circuit_design_doc_exists", () => {

@@ -37,6 +37,8 @@ This will:
 
 The screenshot spec uses the Mock backend for stable visual output.
 
+Circuit Focus Mode normally uses a lightweight signal-flow animation on active wires. The visual review spec adds a `visual-review-static` class before each screenshot so the active path remains highlighted but the animation is frozen for stable review.
+
 ## Open Gallery Locally
 
 After capture, open:
@@ -98,6 +100,7 @@ Use the gallery to inspect:
 - Memory arrow points to the active memory row.
 - GR arrow points to the active GR row.
 - Active wires use a single terminal arrow instead of repeated arrowheads.
+- Active wires may flow in the live app, but visual review screenshots intentionally freeze that animation.
 - Junction dots are visible at route merge points but do not dominate the view.
 - `DATA BUS`, `ADDR BUS`, and `CTRL` lanes are visible but not visually noisy.
 - LD / ST data-bypass paths avoid the ALU body.

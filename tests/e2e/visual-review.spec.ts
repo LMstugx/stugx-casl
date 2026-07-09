@@ -17,6 +17,10 @@ const viewports: Viewport[] = [
 ];
 
 async function capture(page: Page, viewport: Viewport, fileName: string) {
+  await page.evaluate(() => {
+    document.documentElement.classList.add("visual-review-static");
+    document.body.classList.add("visual-review-static");
+  });
   await page.waitForTimeout(220);
   const viewportDir = path.join(screenshotRoot, viewport.name);
   await mkdir(viewportDir, { recursive: true });

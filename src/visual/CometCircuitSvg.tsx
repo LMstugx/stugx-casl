@@ -3,7 +3,7 @@ import { selectMemoryWindow, selectProgramStartAddress } from "../core/selectors
 import { CometState, VisualPathKind, formatFlags, formatWord } from "../core/types";
 import { CIRCUIT_MEMORY_ROW_COUNT, CIRCUIT_VIEWBOX, circuitAnchors, circuitBusLanes, circuitLayout, aluPolygonPoints, RectLayout } from "./circuitLayout";
 import { resolveActiveWireIds, resolveVisualPath } from "./visualPathResolver";
-import { buildWirePaths } from "./wirePaths";
+import { buildWirePaths, type WirePath } from "./wirePaths";
 import type { ReactNode } from "react";
 
 type ModuleProps = {
@@ -18,6 +18,17 @@ type ModuleProps = {
 
 function compactInstructionText(text?: string): string | undefined {
   return text?.replace(/\s+/g, " ").trim();
+}
+
+function signalFlowClass(path: WirePath): string {
+  const flowBySemanticType: Record<WirePath["semanticType"], string> = {
+    address: "circuit-wire--addr-flow",
+    control: "circuit-wire--ctrl-flow",
+    data: "circuit-wire--data-flow",
+    flag: "circuit-wire--flag-flow"
+  };
+
+  return `circuit-wire--active circuit-wire--flow ${flowBySemanticType[path.semanticType]}`;
 }
 
 function Module({ layout, title, value, accent, testId, layer, children }: ModuleProps) {
@@ -368,7 +379,7 @@ function CometCircuitSvg({ state, sourceMapFocus }: { state: CometState; sourceM
               data-related-memory-address={path.relatedMemoryAddress !== undefined ? formatWord(path.relatedMemoryAddress) : undefined}
               data-related-stage={path.relatedStage}
               data-avoids-alu={path.avoidsAlu ? "true" : "false"}
-              className={`wire wire-${path.role} wire-active`}
+              className={`wire wire-${path.role} wire-active ${signalFlowClass(path)}`}
               markerEnd={marker}
             />
             );

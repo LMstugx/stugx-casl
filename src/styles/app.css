@@ -1326,6 +1326,27 @@ button {
   stroke: #4f6f9d;
 }
 
+.circuit-wire--flow {
+  stroke-dasharray: 10 8;
+  stroke-dashoffset: 0;
+  animation: circuitSignalFlow 1.55s linear infinite;
+}
+
+.circuit-wire--addr-flow,
+.circuit-wire--ctrl-flow {
+  stroke-dasharray: 9 8;
+}
+
+.circuit-wire--flag-flow {
+  stroke-dasharray: 7 7;
+  animation-duration: 1.8s;
+}
+
+.visual-review-static .circuit-wire--flow {
+  animation: none;
+  stroke-dashoffset: 0;
+}
+
 .status-indicators {
   pointer-events: none;
 }
@@ -2098,6 +2119,22 @@ button {
   }
   100% {
     filter: brightness(1);
+  }
+}
+
+@keyframes circuitSignalFlow {
+  from {
+    stroke-dashoffset: 0;
+  }
+  to {
+    stroke-dashoffset: -36;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .circuit-wire--flow {
+    animation: none;
+    stroke-dashoffset: 0;
   }
 }
 

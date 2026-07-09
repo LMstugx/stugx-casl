@@ -35,6 +35,26 @@ describe("guided learning lessons", () => {
     expect(text).toContain("LD / ADDA / ST");
   });
 
+  it("lesson_for_logic_operations_mentions_logic_and_memory", () => {
+    const lesson = getLearningLesson("casl-logic-operations");
+    const text = JSON.stringify(lesson);
+
+    expect(text).toContain("AND");
+    expect(text).toContain("OR");
+    expect(text).toContain("XOR");
+    expect(text).toContain("Memory[RESULT]");
+  });
+
+  it("lesson_for_logical_add_compare_mentions_addl_cpl_jov", () => {
+    const lesson = getLearningLesson("casl-logical-add-compare");
+    const text = JSON.stringify(lesson);
+
+    expect(text).toContain("ADDL");
+    expect(text).toContain("CPL");
+    expect(text).toContain("JOV");
+    expect(text).toContain("OF");
+  });
+
   it("lesson_for_break_continue_mentions_for_continue_and_for_end", () => {
     const lesson = getLearningLesson("cpp-break-continue");
     const text = JSON.stringify(lesson);

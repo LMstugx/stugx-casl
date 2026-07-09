@@ -98,6 +98,48 @@ A    DC    5
 B    DC    10
      END)";
 
+const std::string kLogicOperationsSource = R"(MAIN START
+     LD    GR1,A
+     AND   GR1,MASK
+     OR    GR1,B
+     XOR   GR1,C
+     ST    GR1,RESULT
+     RET
+A    DC    #00F0
+MASK DC    #0F0F
+B    DC    #0003
+C    DC    #0001
+RESULT DS  1
+     END)";
+
+const std::string kLogicalAddCompareSource = R"(MAIN START
+     LD    GR1,A
+     ADDL  GR1,B
+     CPL   GR1,C
+     JOV   OVER
+     ST    GR1,RESULT
+     RET
+OVER LAD   GR1,999
+     ST    GR1,RESULT
+     RET
+A    DC    1
+B    DC    2
+C    DC    3
+RESULT DS  1
+     END)";
+
+const std::string kJovTakenSource = R"(MAIN START
+     LD    GR1,A
+     ADDL  GR1,B
+     JOV   OVER
+     LAD   GR2,0
+     RET
+OVER LAD   GR2,1
+     RET
+A    DC    #FFFF
+B    DC    1
+     END)";
+
 std::string jsonEscape(const std::string& text) {
     std::string escaped;
     escaped.reserve(text.size() + 8);
@@ -332,6 +374,9 @@ std::string dumpScenario(const std::string& scenario) {
         {"jze-taken", kJzeTakenSource},
         {"jze-not-taken", kJzeNotTakenSource},
         {"jmi-taken", kJmiTakenSource},
+        {"logic-and", kLogicOperationsSource},
+        {"logical-add-compare-jov", kLogicalAddCompareSource},
+        {"jov-taken", kJovTakenSource},
     };
     const auto sourceEntry = sources.find(scenario);
     if (sourceEntry == sources.end()) {
@@ -355,6 +400,12 @@ std::string dumpScenario(const std::string& scenario) {
     } else if (scenario == "simple-step2" || scenario == "suba-step1" || scenario == "cpa-equal") {
         steps = 2;
     } else if (scenario == "simple-step3" || scenario == "jze-taken" || scenario == "jze-not-taken" || scenario == "jmi-taken") {
+        steps = 3;
+    } else if (scenario == "logic-and") {
+        steps = 2;
+    } else if (scenario == "logical-add-compare-jov") {
+        steps = 4;
+    } else if (scenario == "jov-taken") {
         steps = 3;
     } else if (scenario == "simple-finished") {
         steps = 4;
@@ -385,7 +436,7 @@ int main(int argc, char** argv) {
             index += 1;
             continue;
         }
-        std::cerr << "Usage: core_dump --scenario <simple-ready|simple-step1|simple-step2|simple-step3|simple-finished|gr2-step1|lada-step1|suba-step1|cpa-equal|jump-taken|jze-taken|jze-not-taken|jmi-taken>\n";
+        std::cerr << "Usage: core_dump --scenario <simple-ready|simple-step1|simple-step2|simple-step3|simple-finished|gr2-step1|lada-step1|suba-step1|cpa-equal|jump-taken|jze-taken|jze-not-taken|jmi-taken|logic-and|logical-add-compare-jov|jov-taken>\n";
         return 2;
     }
 

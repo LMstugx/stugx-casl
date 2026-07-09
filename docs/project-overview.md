@@ -43,19 +43,25 @@ The same workflow works with the TypeScript Mock backend and the experimental WA
 1. `CASL: GR2 Addition`
    Direct CASL execution and memory write.
 
-2. `C++: Addition`
+2. `CASL: Logic Operations`
+   Bitwise `AND` / `OR` / `XOR`, ALU path, and result memory write.
+
+3. `CASL: Logical Add Compare`
+   Unsigned `ADDL`, `CPL`, and `JOV` fallthrough based on OF.
+
+4. `C++: Addition`
    C++ assignment and addition lowered to CASL and machine code.
 
-3. `C++: If Else`
+5. `C++: If Else`
    Compare instruction, conditional jump, and branch target.
 
-4. `C++: While Sum`
+6. `C++: While Sum`
    Loop labels, loop-back jump, Trace, and Memory Viewer.
 
-5. `C++: For Sum Sugar`
+7. `C++: For Sum Sugar`
    Natural loop syntax lowered into labels, jumps, and increment code.
 
-6. `C++: Break Continue`
+8. `C++: Break Continue`
    `break` and `continue` lowered to ordinary CASL `JUMP` instructions.
 
 ## Technical Notes

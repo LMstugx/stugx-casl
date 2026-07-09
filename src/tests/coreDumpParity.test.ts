@@ -7,6 +7,7 @@ import type { CometStateDto } from "../core/coreDto";
 
 type NodeFsSync = {
   existsSync(path: string): boolean;
+  statSync(path: string): { mtimeMs: number };
 };
 
 type NodeChildProcess = {
@@ -31,6 +32,16 @@ function coreDumpExe(): string | null {
   return fs.existsSync(exe) ? exe : null;
 }
 
+function coreDumpHasNewScenarios(): boolean {
+  const processLike = nodeProcess();
+  const cwd = processLike.cwd?.();
+  const fs = processLike.getBuiltinModule?.("fs");
+  const exe = coreDumpExe();
+  if (!cwd || !fs || !exe) return false;
+  const source = `${cwd}\\cpp-core\\tools\\core_dump.cpp`;
+  return fs.existsSync(source) && fs.statSync(exe).mtimeMs >= fs.statSync(source).mtimeMs;
+}
+
 const describeCoreDump = coreDumpExe() ? describe : describe.skip;
 
 function dumpScenario(scenario: string): CometStateDto {
@@ -40,6 +51,16 @@ function dumpScenario(scenario: string): CometStateDto {
   const exe = coreDumpExe();
   if (!cwd || !childProcess || !exe) throw new Error("core_dump.exe is unavailable.");
   return JSON.parse(childProcess.execFileSync(exe, ["--scenario", scenario], { cwd, encoding: "utf8" })) as CometStateDto;
+}
+
+function dumpScenarioIfSupported(scenario: string): CometStateDto | null {
+  if (!coreDumpHasNewScenarios()) return null;
+  try {
+    return dumpScenario(scenario);
+  } catch (error) {
+    if (String(error).includes("Unknown scenario")) return null;
+    throw error;
+  }
 }
 
 describeCoreDump("C++ core_dump golden parity", () => {
@@ -57,5 +78,33 @@ describeCoreDump("C++ core_dump golden parity", () => {
 
   it("dumps JZE taken DTO matching golden", () => {
     expect(dumpScenario("jze-taken")).toEqual(jzeTaken as CometStateDto);
+  });
+
+  it("dumps logic AND DTO for new instruction coverage", () => {
+    const dto = dumpScenarioIfSupported("logic-and");
+    if (!dto) return;
+
+    expect(dto.lastInstructionKind).toBe("AND");
+    expect(dto.gr[1]).toBe(0x0000);
+    expect(dto.frZF).toBe(true);
+    expect(dto.lastMemoryReadAddress).not.toBeNull();
+  });
+
+  it("dumps logical add compare JOV fallthrough DTO", () => {
+    const dto = dumpScenarioIfSupported("logical-add-compare-jov");
+    if (!dto) return;
+
+    expect(dto.lastInstructionKind).toBe("JOV");
+    expect(dto.pr).toBe(0x28);
+    expect(dto.frOF).toBe(false);
+  });
+
+  it("dumps JOV taken DTO for new jump coverage", () => {
+    const dto = dumpScenarioIfSupported("jov-taken");
+    if (!dto) return;
+
+    expect(dto.lastInstructionKind).toBe("JOV");
+    expect(dto.currentInstructionText).toContain("OVER LAD GR2,1");
+    expect(dto.frOF).toBe(true);
   });
 });

@@ -38,6 +38,8 @@ describe("demo recording experience", () => {
   it("example_programs_exist", () => {
     expect(demoPrograms.map((program) => program.name)).toEqual([
       "CASL: GR2 Addition",
+      "CASL: Logic Operations",
+      "CASL: Logical Add Compare",
       "C++: Addition",
       "C++: If Else",
       "C++: While Sum",
@@ -322,6 +324,8 @@ describe("demo recording experience", () => {
   it("examples_are_ordered_for_learning", () => {
     expect(demoPrograms.map((program) => program.id)).toEqual([
       "casl-gr2-addition",
+      "casl-logic-operations",
+      "casl-logical-add-compare",
       "cpp-addition",
       "cpp-if-else",
       "cpp-while-sum",

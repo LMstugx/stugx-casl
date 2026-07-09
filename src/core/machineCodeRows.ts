@@ -42,17 +42,25 @@ export type MachineCodeExplanation = {
 };
 
 const EXECUTABLE_INSTRUCTIONS = new Set<InstructionKind>([
+  "NOP",
   "LD",
   "LAD",
   "ADDA",
   "SUBA",
+  "ADDL",
+  "SUBL",
+  "AND",
+  "OR",
+  "XOR",
   "CPA",
+  "CPL",
   "ST",
   "JUMP",
   "JZE",
   "JNZ",
   "JPL",
   "JMI",
+  "JOV",
   "RET"
 ]);
 
@@ -156,6 +164,7 @@ function machineRowKind(instruction: InstructionKind | undefined, offset: number
 function machineRowMeaning(instruction: InstructionKind | undefined, offset: number, label?: string, resolvedLabel?: string): string {
   if (instruction === "DC") return label ? `data for ${label}` : "data";
   if (instruction === "DS") return label ? `reserved data for ${label}` : "reserved data";
+  if (instruction === "NOP") return "no-operation instruction word";
   if (instruction === "RET") return "instruction word";
   if (offset === 0) return "opcode/register word";
   return "operand address";
@@ -177,6 +186,8 @@ function instructionMeaning(row: MachineCodeRow, register?: number): string {
   const operand = row.operandAddress === undefined ? "next operand word" : row.resolvedLabel ? `${row.resolvedLabel} (${formatWord(row.operandAddress)})` : formatWord(row.operandAddress);
   const gr = register === undefined ? "register" : `GR${register}`;
   switch (row.instruction) {
+    case "NOP":
+      return "No operation; PR advances to the next word.";
     case "LD":
       return `Load memory[${operand}] into ${gr}.`;
     case "LAD":
@@ -187,8 +198,20 @@ function instructionMeaning(row: MachineCodeRow, register?: number): string {
       return `Add memory[${operand}] to ${gr}.`;
     case "SUBA":
       return `Subtract memory[${operand}] from ${gr}.`;
+    case "ADDL":
+      return `Unsigned add memory[${operand}] to ${gr}.`;
+    case "SUBL":
+      return `Unsigned subtract memory[${operand}] from ${gr}.`;
+    case "AND":
+      return `Bitwise AND ${gr} with memory[${operand}].`;
+    case "OR":
+      return `Bitwise OR ${gr} with memory[${operand}].`;
+    case "XOR":
+      return `Bitwise XOR ${gr} with memory[${operand}].`;
     case "CPA":
       return `Compare ${gr} with memory[${operand}].`;
+    case "CPL":
+      return `Compare ${gr} with memory[${operand}] as unsigned 16-bit values.`;
     case "JUMP":
       return `Jump to ${operand}.`;
     case "JZE":
@@ -199,6 +222,8 @@ function instructionMeaning(row: MachineCodeRow, register?: number): string {
       return `Jump to ${operand} when the result is positive.`;
     case "JMI":
       return `Jump to ${operand} when the sign flag is set.`;
+    case "JOV":
+      return `Jump to ${operand} when the overflow flag is set.`;
     case "RET":
       return "Return and finish execution in this learning VM.";
     default:

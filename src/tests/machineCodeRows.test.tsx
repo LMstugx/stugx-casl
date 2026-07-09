@@ -298,6 +298,50 @@ describe("machine code rows", () => {
     expect(explainMachineCodeRow(breakJump!).meaning).toContain("FOR_END_0");
   });
 
+  it("machine_code_rows_new_instructions", () => {
+    const program = getDemoProgram("casl-logic-operations");
+    expect(program).toBeDefined();
+    const state = stateFromRaw(mockCaslCore.assemble(program!.source));
+    const rows = selectMachineCodeRows(state);
+
+    expect(rows).toEqual(expect.arrayContaining([
+      expect.objectContaining({ sourceText: "AND GR1,MASK", word: 0x3010, kind: "instruction" }),
+      expect.objectContaining({ sourceText: "OR GR1,B", word: 0x3110, kind: "instruction" }),
+      expect.objectContaining({ sourceText: "XOR GR1,C", word: 0x3210, kind: "instruction" })
+    ]));
+  });
+
+  it("machine_code_explanation_addl", () => {
+    const program = getDemoProgram("casl-logical-add-compare");
+    expect(program).toBeDefined();
+    const state = stateFromRaw(mockCaslCore.assemble(program!.source));
+    const rows = selectMachineCodeRows(state);
+    const addlRow = rows.find((row) => row.sourceText === "ADDL GR1,B" && row.kind === "instruction");
+
+    expect(addlRow).toBeDefined();
+    const explanation = explainMachineCodeRow(addlRow!);
+
+    expect(explanation.mnemonic).toBe("ADDL");
+    expect(explanation.opcode).toBe(0x22);
+    expect(explanation.register).toBe(1);
+    expect(explanation.meaning).toContain("Unsigned add");
+  });
+
+  it("machine_code_explanation_logic_ops", () => {
+    const program = getDemoProgram("casl-logic-operations");
+    expect(program).toBeDefined();
+    const state = stateFromRaw(mockCaslCore.assemble(program!.source));
+    const rows = selectMachineCodeRows(state);
+
+    const andExplanation = explainMachineCodeRow(rows.find((row) => row.sourceText === "AND GR1,MASK" && row.kind === "instruction")!);
+    const orExplanation = explainMachineCodeRow(rows.find((row) => row.sourceText === "OR GR1,B" && row.kind === "instruction")!);
+    const xorExplanation = explainMachineCodeRow(rows.find((row) => row.sourceText === "XOR GR1,C" && row.kind === "instruction")!);
+
+    expect(andExplanation.meaning).toContain("Bitwise AND");
+    expect(orExplanation.meaning).toContain("Bitwise OR");
+    expect(xorExplanation.meaning).toContain("Bitwise XOR");
+  });
+
   it("machine_code_jump_explanation_shows_target", async () => {
     const program = getDemoProgram("cpp-break-continue");
     expect(program).toBeDefined();

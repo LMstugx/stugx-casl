@@ -72,6 +72,19 @@ else()
     StepJzeTaken
     StepJzeNotTaken
     StepJmiTaken
+    AssembleNop
+    ExecuteNopAdvancesPr
+    AssembleAddlSubl
+    ExecuteAddlUnsigned
+    ExecuteSublUnsigned
+    ExecuteAnd
+    ExecuteOr
+    ExecuteXor
+    ExecuteCplEqual
+    ExecuteCplLess
+    ExecuteCplGreater
+    ExecuteJovTaken
+    ExecuteJovNotTaken
     StepStore
     StepRetFinished
     ExecuteGr2Program

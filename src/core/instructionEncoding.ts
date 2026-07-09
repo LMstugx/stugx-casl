@@ -1,6 +1,6 @@
 import type { InstructionKind } from "./types";
 
-export type InstructionFormat = "R_ADR" | "JUMP_ADR" | "RET" | "DATA";
+export type InstructionFormat = "NO_OPERAND" | "R_ADR" | "JUMP_ADR" | "RET" | "DATA";
 
 export type InstructionEncoding = {
   mnemonic: InstructionKind;
@@ -12,6 +12,14 @@ export type InstructionEncoding = {
 };
 
 export const instructionEncodings: Partial<Record<InstructionKind, InstructionEncoding>> = {
+  NOP: {
+    mnemonic: "NOP",
+    opcode: 0x00,
+    format: "NO_OPERAND",
+    wordLength: 1,
+    description: "No operation. PR advances to the next word.",
+    fields: ["opcode"]
+  },
   LD: {
     mnemonic: "LD",
     opcode: 0x10,
@@ -52,12 +60,60 @@ export const instructionEncodings: Partial<Record<InstructionKind, InstructionEn
     description: "Subtract memory at operand address from a general register.",
     fields: ["opcode", "r", "x", "address"]
   },
+  ADDL: {
+    mnemonic: "ADDL",
+    opcode: 0x22,
+    format: "R_ADR",
+    wordLength: 2,
+    description: "Unsigned add memory at operand address to a general register.",
+    fields: ["opcode", "r", "x", "address"]
+  },
+  SUBL: {
+    mnemonic: "SUBL",
+    opcode: 0x23,
+    format: "R_ADR",
+    wordLength: 2,
+    description: "Unsigned subtract memory at operand address from a general register.",
+    fields: ["opcode", "r", "x", "address"]
+  },
+  AND: {
+    mnemonic: "AND",
+    opcode: 0x30,
+    format: "R_ADR",
+    wordLength: 2,
+    description: "Bitwise AND between a general register and memory at operand address.",
+    fields: ["opcode", "r", "x", "address"]
+  },
+  OR: {
+    mnemonic: "OR",
+    opcode: 0x31,
+    format: "R_ADR",
+    wordLength: 2,
+    description: "Bitwise OR between a general register and memory at operand address.",
+    fields: ["opcode", "r", "x", "address"]
+  },
+  XOR: {
+    mnemonic: "XOR",
+    opcode: 0x32,
+    format: "R_ADR",
+    wordLength: 2,
+    description: "Bitwise XOR between a general register and memory at operand address.",
+    fields: ["opcode", "r", "x", "address"]
+  },
   CPA: {
     mnemonic: "CPA",
     opcode: 0x40,
     format: "R_ADR",
     wordLength: 2,
     description: "Compare a general register with memory at operand address.",
+    fields: ["opcode", "r", "x", "address"]
+  },
+  CPL: {
+    mnemonic: "CPL",
+    opcode: 0x41,
+    format: "R_ADR",
+    wordLength: 2,
+    description: "Unsigned compare a general register with memory at operand address.",
     fields: ["opcode", "r", "x", "address"]
   },
   JMI: {
@@ -98,6 +154,14 @@ export const instructionEncodings: Partial<Record<InstructionKind, InstructionEn
     format: "JUMP_ADR",
     wordLength: 2,
     description: "Jump when the result is positive.",
+    fields: ["opcode", "address"]
+  },
+  JOV: {
+    mnemonic: "JOV",
+    opcode: 0x66,
+    format: "JUMP_ADR",
+    wordLength: 2,
+    description: "Jump when the overflow flag is set.",
     fields: ["opcode", "address"]
   },
   RET: {

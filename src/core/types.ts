@@ -23,17 +23,25 @@ export type InstructionKind =
   | "END"
   | "DC"
   | "DS"
+  | "NOP"
   | "LD"
   | "LAD"
   | "ADDA"
   | "SUBA"
+  | "ADDL"
+  | "SUBL"
+  | "AND"
+  | "OR"
+  | "XOR"
   | "CPA"
+  | "CPL"
   | "ST"
   | "JUMP"
   | "JZE"
   | "JNZ"
   | "JPL"
   | "JMI"
+  | "JOV"
   | "RET";
 
 export interface FlagsState {
@@ -97,7 +105,7 @@ export interface Diagnostic {
 export interface AssembledInstruction {
   address: number;
   line: number;
-  op: "LD" | "LAD" | "ADDA" | "SUBA" | "CPA" | "ST" | "JUMP" | "JZE" | "JNZ" | "JPL" | "JMI" | "RET";
+  op: "NOP" | "LD" | "LAD" | "ADDA" | "SUBA" | "ADDL" | "SUBL" | "AND" | "OR" | "XOR" | "CPA" | "CPL" | "ST" | "JUMP" | "JZE" | "JNZ" | "JPL" | "JMI" | "JOV" | "RET";
   source: string;
   size: number;
   gr?: number;

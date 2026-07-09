@@ -122,4 +122,20 @@ describe("control flow graph selector", () => {
       })
     ]);
   });
+
+  it("control_flow_recognizes_jov", () => {
+    const rawState = mockCaslCore.assemble(`MAIN START
+     JOV   OVER
+     RET
+OVER RET
+     END`);
+    const state = createCometStateFromDto(toAssembleResultDto(rawState).state);
+    const machineRows = selectMachineCodeRows(state);
+    const graph = selectControlFlowGraph("MAIN START\n     JOV   OVER\n     RET\nOVER RET\n     END", [], machineRows, state);
+
+    expect(graph.edges).toEqual(expect.arrayContaining([
+      expect.objectContaining({ kind: "conditional-true", targetLabel: "OVER", fromAddress: 0x20 }),
+      expect.objectContaining({ kind: "conditional-false", fromAddress: 0x20, toAddress: 0x22 })
+    ]));
+  });
 });

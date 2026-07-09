@@ -101,6 +101,135 @@ export const learningLessons: LearningLesson[] = [
     ]
   },
   {
+    exampleId: "casl-logic-operations",
+    title: "Bitwise logic on the ALU path",
+    level: "CASL basics",
+    concepts: ["AND", "OR", "XOR", "bitwise logic", "ALU path", "memory write"],
+    learningGoals: [
+      "Understand how bitwise CASL instructions read an operand from memory and write the result back to a GR register.",
+      "Compare logical ALU operations with arithmetic ALU operations in Machine Code and Trace."
+    ],
+    observe: ["Machine Code opcodes for AND / OR / XOR", "GR1 after each logic Step", "Memory[RESULT] after ST"],
+    suggestedSteps: [
+      {
+        id: "assemble",
+        label: "Assemble logic program",
+        action: "Click Assemble.",
+        expectedObservation: "Machine Code shows AND, OR, XOR, ST, and RET rows.",
+        recommendedTab: "Machine Code"
+      },
+      {
+        id: "step-logic",
+        label: "Step through logic operations",
+        action: "Click Step through AND, OR, and XOR.",
+        expectedObservation: "GR1 changes through the logical operations and Trace records each instruction.",
+        recommendedTab: "Trace"
+      },
+      {
+        id: "check-result",
+        label: "Check RESULT",
+        action: "Open Memory after ST.",
+        expectedObservation: "RESULT contains 0002.",
+        recommendedTab: "Memory"
+      }
+    ],
+    checkpoints: [
+      {
+        id: "logic-opcodes",
+        label: "Logic opcodes",
+        expected: "Machine Code should contain AND, OR, and XOR instruction words.",
+        whereToLook: "Machine Code tab",
+        note: "These are register/address-format instructions, so each has an instruction word and operand word."
+      },
+      {
+        id: "logic-result",
+        label: "Final logic result",
+        expected: "GR1 and Memory[RESULT] should be 0002.",
+        whereToLook: "Registers and Memory tabs",
+        note: "#00F0 AND #0F0F gives 0000; OR #0003 gives 0003; XOR #0001 gives 0002."
+      }
+    ],
+    commonQuestions: [
+      "Why do logic instructions still use the ALU path?",
+      "Which flags change after AND / OR / XOR?"
+    ]
+  },
+  {
+    exampleId: "casl-logical-add-compare",
+    title: "Unsigned add, compare, and overflow jump",
+    level: "CASL basics",
+    concepts: ["ADDL", "CPL", "JOV", "unsigned comparison", "overflow jump"],
+    learningGoals: [
+      "See the difference between signed arithmetic compare and unsigned logical compare.",
+      "Understand that JOV follows the overflow flag and falls through when OF is not set."
+    ],
+    observe: ["ADDL and CPL machine words", "FR after CPL", "JOV control-flow target and fallthrough"],
+    suggestedSteps: [
+      {
+        id: "assemble",
+        label: "Assemble arithmetic program",
+        action: "Click Assemble.",
+        expectedObservation: "Generated rows include ADDL, CPL, JOV, and the OVER label.",
+        recommendedTab: "Machine Code"
+      },
+      {
+        id: "step-cpl",
+        label: "Step to CPL",
+        action: "Step through LD, ADDL, and CPL.",
+        expectedObservation: "GR1 becomes 0003 and CPL sets the zero flag for the unsigned compare.",
+        recommendedTab: "Trace"
+      },
+      {
+        id: "step-jov",
+        label: "Observe JOV",
+        action: "Step JOV.",
+        expectedObservation: "JOV falls through because OF is not set.",
+        recommendedTab: "Trace"
+      },
+      {
+        id: "check-result",
+        label: "Check RESULT",
+        action: "Run or Step through ST and open Memory.",
+        expectedObservation: "RESULT is 0003.",
+        recommendedTab: "Memory"
+      }
+    ],
+    checkpoints: [
+      {
+        id: "addl-result",
+        label: "ADDL result",
+        expected: "ADDL should update GR1 to 0003.",
+        whereToLook: "Registers tab",
+        note: "ADDL uses unsigned 16-bit addition."
+      },
+      {
+        id: "cpl-flags",
+        label: "CPL flags",
+        expected: "CPL should set ZF when GR1 equals C.",
+        whereToLook: "Registers tab / FR row",
+        note: "CPL compares as unsigned values and does not modify GR1."
+      },
+      {
+        id: "jov-fallthrough",
+        label: "JOV fallthrough",
+        expected: "JOV should not jump to OVER when OF is not set.",
+        whereToLook: "Trace or Control Flow text",
+        note: "The next executed instruction is ST GR1,RESULT."
+      },
+      {
+        id: "result",
+        label: "Final result",
+        expected: "Memory[RESULT] should be 0003.",
+        whereToLook: "Memory tab",
+        note: "The OVER path is only used when OF is set."
+      }
+    ],
+    commonQuestions: [
+      "What makes ADDL different from ADDA?",
+      "When would JOV jump to OVER?"
+    ]
+  },
+  {
     exampleId: "cpp-addition",
     title: "C++ addition lowered to CASL",
     level: "C++ to CASL",

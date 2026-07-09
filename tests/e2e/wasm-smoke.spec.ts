@@ -103,3 +103,18 @@ test("WASM backend runs C++ subset break and continue in the browser UI", async 
   await expect(page.getByTestId("run-state")).toHaveText("Finished");
   await expectRegister(page, "register-gr0", "0004");
 });
+
+test("WASM backend runs CASL logical add compare in the browser UI", async ({ page }) => {
+  await openStudio(page, "WASM Core");
+  await selectDemoProgram(page, "casl-logical-add-compare");
+
+  await assemble(page);
+  await page.getByRole("tab", { name: "Machine Code" }).click();
+  await expect(page.getByTestId("machine-code-output")).toContainText("ADDL GR1,B");
+  await expect(page.getByTestId("machine-code-output")).toContainText("CPL GR1,C");
+  await expect(page.getByTestId("machine-code-output")).toContainText("JOV OVER");
+  await run(page);
+
+  await expect(page.getByTestId("run-state")).toHaveText("Finished");
+  await expectRegister(page, "register-gr1", "0003");
+});

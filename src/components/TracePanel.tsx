@@ -16,7 +16,7 @@ function traceChanges(event: CometState["trace"][number]): string {
 }
 
 function traceControlFlow(event: CometState["trace"][number], state: CometState): string {
-  if (!/^J(UMP|ZE|NZ|PL|MI)$/.test(event.instruction)) return "";
+  if (!/^J(UMP|ZE|NZ|PL|MI|OV)$/.test(event.instruction)) return "";
   const row = state.sourceMap.find((entry) => entry.address === event.address);
   const source = row?.source ?? event.source ?? "";
   const targetLabel = jumpTargetFromSource(source);
@@ -32,7 +32,7 @@ function traceControlFlow(event: CometState["trace"][number], state: CometState)
 
 function jumpTargetFromSource(source: string): string | undefined {
   const parts = source.trim().split(/\s+/);
-  const jumpIndex = parts.findIndex((part) => /^J(UMP|ZE|NZ|PL|MI)$/i.test(part));
+  const jumpIndex = parts.findIndex((part) => /^J(UMP|ZE|NZ|PL|MI|OV)$/i.test(part));
   if (jumpIndex < 0) return undefined;
   return parts[jumpIndex + 1]?.split(",")[0];
 }

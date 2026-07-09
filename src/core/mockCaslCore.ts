@@ -18,9 +18,34 @@ export { DEFAULT_CASL_SOURCE };
 
 const START_ADDRESS = 0x20;
 const MAX_TRACE_EVENTS = 1000;
-const SUPPORTED_OPS = new Set(["START", "END", "DC", "DS", "LD", "LAD", "ADDA", "SUBA", "CPA", "ST", "JUMP", "JZE", "JNZ", "JPL", "JMI", "RET"]);
-const REGISTER_ADDRESS_OPS = new Set<InstructionKind>(["LD", "LAD", "ADDA", "SUBA", "CPA", "ST"]);
-const JUMP_OPS = new Set<InstructionKind>(["JUMP", "JZE", "JNZ", "JPL", "JMI"]);
+const SUPPORTED_OPS = new Set([
+  "START",
+  "END",
+  "DC",
+  "DS",
+  "NOP",
+  "LD",
+  "LAD",
+  "ADDA",
+  "SUBA",
+  "ADDL",
+  "SUBL",
+  "AND",
+  "OR",
+  "XOR",
+  "CPA",
+  "CPL",
+  "ST",
+  "JUMP",
+  "JZE",
+  "JNZ",
+  "JPL",
+  "JMI",
+  "JOV",
+  "RET"
+]);
+const REGISTER_ADDRESS_OPS = new Set<InstructionKind>(["LD", "LAD", "ADDA", "SUBA", "ADDL", "SUBL", "AND", "OR", "XOR", "CPA", "CPL", "ST"]);
+const JUMP_OPS = new Set<InstructionKind>(["JUMP", "JZE", "JNZ", "JPL", "JMI", "JOV"]);
 
 type ParsedLine = {
   line: number;
@@ -133,7 +158,7 @@ function symbolKey(label: string): string {
 
 function instructionSize(line: ParsedLine): number {
   if (line.op && (REGISTER_ADDRESS_OPS.has(line.op) || JUMP_OPS.has(line.op))) return 2;
-  if (line.op === "RET") return 1;
+  if (line.op === "NOP" || line.op === "RET") return 1;
   if (line.op === "DC") return Math.max(1, line.operands.length);
   if (line.op === "DS") return Math.max(0, parseNumber(line.operands[0] ?? "0"));
   return 0;
@@ -145,8 +170,10 @@ function registerNumber(token: string): number {
   return Number(match[1]);
 }
 
-function encodeInstruction(op: Exclude<AssembledInstruction["op"], "RET"> | "RET", gr = 0): number {
+function encodeInstruction(op: AssembledInstruction["op"], gr = 0): number {
   switch (op) {
+    case "NOP":
+      return 0x0000;
     case "LD":
       return 0x1000 | (gr << 4);
     case "LAD":
@@ -155,8 +182,20 @@ function encodeInstruction(op: Exclude<AssembledInstruction["op"], "RET"> | "RET
       return 0x2000 | (gr << 4);
     case "SUBA":
       return 0x2100 | (gr << 4);
+    case "ADDL":
+      return 0x2200 | (gr << 4);
+    case "SUBL":
+      return 0x2300 | (gr << 4);
+    case "AND":
+      return 0x3000 | (gr << 4);
+    case "OR":
+      return 0x3100 | (gr << 4);
+    case "XOR":
+      return 0x3200 | (gr << 4);
     case "CPA":
       return 0x4000 | (gr << 4);
+    case "CPL":
+      return 0x4100 | (gr << 4);
     case "ST":
       return 0x1100 | (gr << 4);
     case "JMI":
@@ -169,6 +208,8 @@ function encodeInstruction(op: Exclude<AssembledInstruction["op"], "RET"> | "RET
       return 0x6400;
     case "JPL":
       return 0x6500;
+    case "JOV":
+      return 0x6600;
     case "RET":
       return 0x8100;
   }
@@ -305,8 +346,9 @@ function assembleArtifacts(source: string): AssembleArtifacts {
       continue;
     }
 
-    if (line.op === "RET") {
-      const machine = encodeInstruction("RET");
+    if (line.op === "NOP" || line.op === "RET") {
+      const op = line.op;
+      const machine = encodeInstruction(op);
       memory[address] = machine;
       sourceMap.push({
         line: line.line,
@@ -314,9 +356,9 @@ function assembleArtifacts(source: string): AssembleArtifacts {
         machineWords: [machine],
         source: sourceText,
         label: line.label,
-        instruction: "RET"
+        instruction: op
       });
-      program.push({ address, line: line.line, op: "RET", source: sourceText, size: 1 });
+      program.push({ address, line: line.line, op, source: sourceText, size: 1 });
       address += 1;
       continue;
     }
@@ -390,6 +432,38 @@ function setFlagsForArithmeticResult(value: number, overflow = false): FlagsStat
   };
 }
 
+function setFlagsForLogicalResult(value: number): FlagsState {
+  const result = word(value);
+  return {
+    z: result === 0,
+    c: false,
+    n: (result & 0x8000) !== 0,
+    o: false
+  };
+}
+
+function setFlagsForLogicalAdd(lhs: number, rhs: number): FlagsState {
+  const result = lhs + rhs;
+  const carry = result > 0xffff;
+  return {
+    z: word(result) === 0,
+    c: carry,
+    n: (word(result) & 0x8000) !== 0,
+    o: carry
+  };
+}
+
+function setFlagsForLogicalSub(lhs: number, rhs: number): FlagsState {
+  const borrow = lhs < rhs;
+  const result = word(lhs - rhs);
+  return {
+    z: result === 0,
+    c: borrow,
+    n: (result & 0x8000) !== 0,
+    o: borrow
+  };
+}
+
 function signedAddOverflow(lhs: number, rhs: number, result: number): boolean {
   const left = toSigned16(lhs);
   const right = toSigned16(rhs);
@@ -410,6 +484,15 @@ function flagsForCompare(lhs: number, rhs: number): FlagsState {
     z: diff === 0,
     c: false,
     n: diff < 0,
+    o: false
+  };
+}
+
+function flagsForLogicalCompare(lhs: number, rhs: number): FlagsState {
+  return {
+    z: word(lhs) === word(rhs),
+    c: false,
+    n: word(lhs) < word(rhs),
     o: false
   };
 }
@@ -582,6 +665,7 @@ function isJumpTaken(op: AssembledInstruction["op"], flags: FlagsState): boolean
   if (op === "JNZ") return !flags.z;
   if (op === "JPL") return !flags.n && !flags.z;
   if (op === "JMI") return flags.n;
+  if (op === "JOV") return flags.o;
   return false;
 }
 
@@ -603,6 +687,8 @@ export const mockCaslCore: CaslCore = {
 
     next.changedRegisters = ["PR", "IR"];
     next.changedMemoryAddresses = [];
+    next.lastMemoryReadAddress = undefined;
+    next.lastMemoryWriteAddress = undefined;
     next.ir = getMemory(next.memory, instruction.address);
     next.mar = instruction.operandAddress ?? instruction.address;
     next.lastStep = {
@@ -612,8 +698,16 @@ export const mockCaslCore: CaslCore = {
       visualPath: VisualPathKind.None
     };
 
+    if (instruction.op === "NOP") {
+      next.pr = word(next.pr + 1);
+      next.visualPath = VisualPathKind.None;
+      next.lastStep.visualPath = next.visualPath;
+      prependTrace(next, traceEvent(next, instruction.address, "NOP", "No operation; PR advanced to the next word."));
+    }
+
     if (instruction.op === "LD") {
       const value = getMemory(next.memory, instruction.operandAddress!);
+      next.lastMemoryReadAddress = instruction.operandAddress!;
       next.mdr = value;
       next.gr[instruction.gr!] = value;
       next.pr = word(next.pr + 2);
@@ -637,6 +731,7 @@ export const mockCaslCore: CaslCore = {
       const value = getMemory(next.memory, instruction.operandAddress!);
       const lhs = next.gr[instruction.gr!];
       const result = lhs + value;
+      next.lastMemoryReadAddress = instruction.operandAddress!;
       next.mdr = value;
       next.gr[instruction.gr!] = word(result);
       next.fr = setFlagsForArithmeticResult(result, signedAddOverflow(lhs, value, result));
@@ -651,6 +746,7 @@ export const mockCaslCore: CaslCore = {
       const value = getMemory(next.memory, instruction.operandAddress!);
       const lhs = next.gr[instruction.gr!];
       const result = lhs - value;
+      next.lastMemoryReadAddress = instruction.operandAddress!;
       next.mdr = value;
       next.gr[instruction.gr!] = word(result);
       next.fr = setFlagsForArithmeticResult(result, signedSubOverflow(lhs, value, result));
@@ -661,8 +757,53 @@ export const mockCaslCore: CaslCore = {
       prependTrace(next, traceEvent(next, instruction.address, "SUBA", `GR${instruction.gr} - MDR -> ALU -> GR${instruction.gr}`));
     }
 
+    if (instruction.op === "ADDL") {
+      const value = getMemory(next.memory, instruction.operandAddress!);
+      const lhs = next.gr[instruction.gr!];
+      const result = lhs + value;
+      next.lastMemoryReadAddress = instruction.operandAddress!;
+      next.mdr = value;
+      next.gr[instruction.gr!] = word(result);
+      next.fr = setFlagsForLogicalAdd(lhs, value);
+      next.pr = word(next.pr + 2);
+      next.visualPath = VisualPathKind.ADDA_GrMdrToAluToGr;
+      next.lastStep.visualPath = next.visualPath;
+      next.changedRegisters.push(`GR${instruction.gr}`, "MAR", "MDR", "FR");
+      prependTrace(next, traceEvent(next, instruction.address, "ADDL", `GR${instruction.gr} + MDR (unsigned) -> ALU -> GR${instruction.gr}`));
+    }
+
+    if (instruction.op === "SUBL") {
+      const value = getMemory(next.memory, instruction.operandAddress!);
+      const lhs = next.gr[instruction.gr!];
+      next.lastMemoryReadAddress = instruction.operandAddress!;
+      next.mdr = value;
+      next.gr[instruction.gr!] = word(lhs - value);
+      next.fr = setFlagsForLogicalSub(lhs, value);
+      next.pr = word(next.pr + 2);
+      next.visualPath = VisualPathKind.SUBA_GrMdrToAluToGr;
+      next.lastStep.visualPath = next.visualPath;
+      next.changedRegisters.push(`GR${instruction.gr}`, "MAR", "MDR", "FR");
+      prependTrace(next, traceEvent(next, instruction.address, "SUBL", `GR${instruction.gr} - MDR (unsigned) -> ALU -> GR${instruction.gr}`));
+    }
+
+    if (instruction.op === "AND" || instruction.op === "OR" || instruction.op === "XOR") {
+      const value = getMemory(next.memory, instruction.operandAddress!);
+      const lhs = next.gr[instruction.gr!];
+      const result = instruction.op === "AND" ? lhs & value : instruction.op === "OR" ? lhs | value : lhs ^ value;
+      next.lastMemoryReadAddress = instruction.operandAddress!;
+      next.mdr = value;
+      next.gr[instruction.gr!] = word(result);
+      next.fr = setFlagsForLogicalResult(result);
+      next.pr = word(next.pr + 2);
+      next.visualPath = VisualPathKind.ADDA_GrMdrToAluToGr;
+      next.lastStep.visualPath = next.visualPath;
+      next.changedRegisters.push(`GR${instruction.gr}`, "MAR", "MDR", "FR");
+      prependTrace(next, traceEvent(next, instruction.address, instruction.op, `GR${instruction.gr} ${instruction.op} MDR -> ALU -> GR${instruction.gr}`));
+    }
+
     if (instruction.op === "CPA") {
       const value = getMemory(next.memory, instruction.operandAddress!);
+      next.lastMemoryReadAddress = instruction.operandAddress!;
       next.mdr = value;
       next.fr = flagsForCompare(next.gr[instruction.gr!], value);
       next.pr = word(next.pr + 2);
@@ -672,10 +813,23 @@ export const mockCaslCore: CaslCore = {
       prependTrace(next, traceEvent(next, instruction.address, "CPA", `GR${instruction.gr} - MDR -> ALU -> FR`));
     }
 
+    if (instruction.op === "CPL") {
+      const value = getMemory(next.memory, instruction.operandAddress!);
+      next.lastMemoryReadAddress = instruction.operandAddress!;
+      next.mdr = value;
+      next.fr = flagsForLogicalCompare(next.gr[instruction.gr!], value);
+      next.pr = word(next.pr + 2);
+      next.visualPath = VisualPathKind.CPA_GrMdrToAluToFr;
+      next.lastStep.visualPath = next.visualPath;
+      next.changedRegisters.push("MAR", "MDR", "FR");
+      prependTrace(next, traceEvent(next, instruction.address, "CPL", `GR${instruction.gr} compared with MDR (unsigned) -> FR`));
+    }
+
     if (instruction.op === "ST") {
       const value = next.gr[instruction.gr!];
       next.mdr = value;
       next.memory[instruction.operandAddress!] = value;
+      next.lastMemoryWriteAddress = instruction.operandAddress!;
       next.pr = word(next.pr + 2);
       next.visualPath = VisualPathKind.ST_GrToMdrToMemory;
       next.lastStep.visualPath = next.visualPath;

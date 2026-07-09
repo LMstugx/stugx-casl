@@ -54,9 +54,36 @@ Expected observation:
 - The final result should include D.
 - Machine Code should include another instruction word and operand word.
 
+### Task 4. Inspect bitwise logic instructions
+
+Start from `CASL: Logic Operations`.
+
+Before running, predict the value after each operation:
+
+- `#00F0 AND #0F0F`
+- result `OR #0003`
+- result `XOR #0001`
+
+Expected observation:
+
+- Machine Code should show `AND`, `OR`, and `XOR` opcodes.
+- The final GR1 value should be `0002`.
+- Memory[RESULT] should be `0002`.
+
+### Task 5. Observe ADDL / CPL / JOV
+
+Start from `CASL: Logical Add Compare`.
+
+Expected observation:
+
+- `ADDL GR1,B` changes GR1 from `0001` to `0003`.
+- `CPL GR1,C` sets the zero flag because both values are `0003`.
+- `JOV OVER` should fall through because OF is not set.
+- Memory[RESULT] should be `0003`.
+
 ## Level 2: C++ to CASL
 
-### Task 4. Change addition to subtraction
+### Task 6. Change addition to subtraction
 
 Start from `C++: Addition`.
 
@@ -77,7 +104,7 @@ Expected observation:
 - Generated CASL should use `SUBA`.
 - Final GR0 should be `FFF6` for `10 - 20` in 16-bit two's-complement form.
 
-### Task 5. Predict generated CASL
+### Task 7. Predict generated CASL
 
 Before clicking `Assemble`, predict the CASL shape for:
 
@@ -94,7 +121,7 @@ Answer hint:
 - `LD GR0,C`
 - `RET`
 
-### Task 6. Find the machine word for LD
+### Task 8. Find the machine word for LD
 
 Assemble `C++: Addition` and open Machine Code.
 
@@ -105,7 +132,7 @@ Expected observation:
 
 ## Level 3: If / Else
 
-### Task 7. Change condition from == to !=
+### Task 9. Change condition from == to !=
 
 Start from `C++: If Else`.
 
@@ -126,7 +153,7 @@ Expected observation:
 - Generated CASL should use a not-zero conditional jump.
 - With both values still 10, the else path should run.
 
-### Task 8. Predict branch target
+### Task 10. Predict branch target
 
 Before running, find the conditional jump row in Generated CASL.
 
@@ -135,7 +162,7 @@ Expected observation:
 - The control-flow target text should point to a generated IF label.
 - Machine Code explanation should show the target address.
 
-### Task 9. Step until CPA
+### Task 11. Step until CPA
 
 Step through the program until `CPA`.
 
@@ -146,7 +173,7 @@ Expected observation:
 
 ## Level 4: Loops
 
-### Task 10. Change while sum from 3 to 5
+### Task 12. Change while sum from 3 to 5
 
 Start from `C++: While Sum`.
 
@@ -167,7 +194,7 @@ Expected observation:
 - The final sum should be `000F`.
 - Trace should show more loop iterations.
 
-### Task 11. Convert while to for
+### Task 13. Convert while to for
 
 Use the same sum logic with a supported for loop:
 
@@ -188,7 +215,7 @@ Expected observation:
 - The result should still be `0006`.
 - Generated CASL should use `FOR_BEGIN`, `FOR_BODY`, `FOR_CONTINUE`, and `FOR_END`.
 
-### Task 12. Compare LOOP_BEGIN and FOR_BEGIN
+### Task 14. Compare LOOP_BEGIN and FOR_BEGIN
 
 Assemble `C++: While Sum` and `C++: For Sum Sugar`.
 
@@ -200,7 +227,7 @@ Answer hint:
 
 ## Level 5: break / continue
 
-### Task 13. Change continue condition
+### Task 15. Change continue condition
 
 Start from `C++: Break Continue`.
 
@@ -221,7 +248,7 @@ Expected observation:
 - The skipped value changes.
 - Trace should show a jump to `FOR_CONTINUE`.
 
-### Task 14. Change break condition
+### Task 16. Change break condition
 
 Change:
 
@@ -240,7 +267,7 @@ Expected observation:
 - The loop runs longer before exiting.
 - Trace should show a jump to `FOR_END` later.
 
-### Task 15. Predict final sum
+### Task 17. Predict final sum
 
 Using the original `C++: Break Continue`:
 
@@ -266,7 +293,7 @@ Answer hint:
 - `i = 4` breaks.
 - Final sum is `0004`.
 
-### Task 16. Find JUMP target in Machine Code
+### Task 18. Find JUMP target in Machine Code
 
 Open Machine Code for `C++: Break Continue`.
 

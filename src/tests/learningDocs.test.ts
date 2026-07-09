@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import readme from "../../README.md?raw";
 import demoScript from "../../docs/demo-script.md?raw";
 import learningGuide from "../../docs/learning-guide.md?raw";
+import phase9a from "../../docs/phase9a-casl-instruction-coverage.md?raw";
 import practiceTasks from "../../docs/practice-tasks.md?raw";
 import projectOverview from "../../docs/project-overview.md?raw";
 import screenshotsGuide from "../../docs/screenshots-guide.md?raw";
@@ -15,6 +16,8 @@ describe("learning use documentation", () => {
 
   it("learning_guide_lists_recommended_order", () => {
     expect(learningGuide).toContain("Step 1: CASL Direct Execution");
+    expect(learningGuide).toContain("CASL: Logic Operations");
+    expect(learningGuide).toContain("CASL: Logical Add Compare");
     expect(learningGuide).toContain("Step 2: C++ to CASL");
     expect(learningGuide).toContain("Step 6: break / continue");
   });
@@ -64,7 +67,16 @@ describe("learning use documentation", () => {
   it("practice_tasks_exists", () => {
     expect(practiceTasks).toContain("Practice Tasks");
     expect(practiceTasks).toContain("Level 1: CASL Basics");
+    expect(practiceTasks).toContain("Inspect bitwise logic instructions");
+    expect(practiceTasks).toContain("Observe ADDL / CPL / JOV");
     expect(practiceTasks).toContain("Level 5: break / continue");
+  });
+
+  it("phase9a_instruction_coverage_doc_exists", () => {
+    expect(phase9a).toContain("Phase 9A: CASL II Instruction Coverage Batch 1");
+    expect(phase9a).toContain("ADDL");
+    expect(phase9a).toContain("JOV");
+    expect(phase9a).toContain("No index addressing");
   });
 
   it("practice_tasks_do_not_use_unsupported_syntax", () => {

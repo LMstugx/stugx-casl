@@ -25,9 +25,13 @@ The purpose is not to replace a full compiler. The purpose is to make each trans
 
 Example: `CASL: GR2 Addition`
 
+Follow-up examples: `CASL: Logic Operations`, `CASL: Logical Add Compare`
+
 Learn:
 
 - `LD`, `ADDA`, `ST`, `RET`
+- `AND`, `OR`, `XOR` for bitwise ALU operations
+- `ADDL`, `CPL`, `JOV` for unsigned arithmetic, unsigned compare, and overflow-flag jump
 - how GR registers change
 - how a memory write appears in the Memory Viewer
 - how PR advances through instruction words
@@ -38,6 +42,8 @@ Suggested actions:
 2. Step through `LD`, `ADDA`, and `ST`.
 3. Open `Machine Code` and compare addresses with the Source Map.
 4. Open `Memory` and confirm label `C` is written.
+5. Load `CASL: Logic Operations` and inspect the `AND` / `OR` / `XOR` opcodes.
+6. Load `CASL: Logical Add Compare` and observe how `JOV` falls through when OF is not set.
 
 ### Step 2: C++ to CASL
 
@@ -200,12 +206,14 @@ The checkbox in the UI is only local and temporary. It is meant to help you foll
 Use the examples in this order:
 
 1. `CASL: GR2 Addition`: learn direct CASL execution.
-2. `C++: Addition`: learn C++ to CASL and machine-code rows.
-3. `C++: If Else`: learn compare, flags, conditional jump, and target labels.
-4. `C++: While Sum`: learn repeated execution with Trace.
-5. `C++: For Sum`: learn initializer, condition, increment, and loop exit.
-6. `C++: For Sum Sugar`: learn `i++` and `+=` lowering.
-7. `C++: Break Continue`: learn jump targets for loop control.
+2. `CASL: Logic Operations`: learn bitwise ALU operations and memory write.
+3. `CASL: Logical Add Compare`: learn unsigned ADDL / CPL and JOV fallthrough.
+4. `C++: Addition`: learn C++ to CASL and machine-code rows.
+5. `C++: If Else`: learn compare, flags, conditional jump, and target labels.
+6. `C++: While Sum`: learn repeated execution with Trace.
+7. `C++: For Sum`: learn initializer, condition, increment, and loop exit.
+8. `C++: For Sum Sugar`: learn `i++` and `+=` lowering.
+9. `C++: Break Continue`: learn jump targets for loop control.
 
 ## 8. How To Verify Your Understanding
 

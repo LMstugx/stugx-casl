@@ -54,6 +54,24 @@ test("Mock backend shows project overview and keeps learning demo views working"
   await expect(page.getByTestId("machine-code-output")).toContainText("JUMP FOR_END_0");
 });
 
+test("Mock backend runs CASL logic operations and shows machine code", async ({ page }) => {
+  await openStudio(page, "Mock Core");
+  await selectDemoProgram(page, "casl-logic-operations");
+
+  await assemble(page);
+  await page.getByRole("tab", { name: "Machine Code" }).click();
+  await expect(page.getByTestId("machine-code-output")).toContainText("AND GR1,MASK");
+  await expect(page.getByTestId("machine-code-output")).toContainText("OR GR1,B");
+  await expect(page.getByTestId("machine-code-output")).toContainText("XOR GR1,C");
+  await run(page);
+
+  await expect(page.getByTestId("run-state")).toHaveText("Finished");
+  await expectRegister(page, "register-gr1", "0002");
+  await page.getByRole("tab", { name: "Memory" }).click();
+  await expect(page.getByTestId("memory-view-row-002F")).toContainText("RESULT");
+  await expect(page.getByTestId("memory-view-row-002F")).toContainText("0002");
+});
+
 test("Mock backend executes C++ subset if else lowering in the browser UI", async ({ page }) => {
   await openStudio(page, "Mock Core");
   await page.getByTestId("source-mode-cpp").click();

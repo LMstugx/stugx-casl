@@ -74,13 +74,13 @@ function operandLabelForAddress(sourceRows: SourceRowDto[], operandAddress: numb
 }
 
 function programFromDto(sourceRows: SourceRowDto[]): AssembledInstruction[] {
-  const executable = new Set(["LD", "LAD", "ADDA", "SUBA", "CPA", "ST", "JUMP", "JZE", "JNZ", "JPL", "JMI", "RET"]);
+  const executable = new Set(["NOP", "LD", "LAD", "ADDA", "SUBA", "ADDL", "SUBL", "AND", "OR", "XOR", "CPA", "CPL", "ST", "JUMP", "JZE", "JNZ", "JPL", "JMI", "JOV", "RET"]);
   return sourceRows
     .filter((row) => row.instruction !== null && executable.has(row.instruction))
     .map((row) => {
       const op = row.instruction as AssembledInstruction["op"];
       const machineWord = row.machineWords[0] ?? 0;
-      const gr = op === "RET" || op === "JUMP" || op === "JZE" || op === "JNZ" || op === "JPL" || op === "JMI" ? undefined : (machineWord >> 4) & 0x0f;
+      const gr = op === "NOP" || op === "RET" || op === "JUMP" || op === "JZE" || op === "JNZ" || op === "JPL" || op === "JMI" || op === "JOV" ? undefined : (machineWord >> 4) & 0x0f;
       return {
         address: row.address,
         line: row.line,
@@ -95,14 +95,19 @@ function programFromDto(sourceRows: SourceRowDto[]): AssembledInstruction[] {
 }
 
 function visualPathFromDto(dto: CometStateDto): VisualPathKind {
+  if (dto.lastInstructionKind === "NOP") return VisualPathKind.None;
   if (dto.lastInstructionKind === "LD") return VisualPathKind.LD_MemoryToMdrToGr;
   if (dto.lastInstructionKind === "ADDA") return VisualPathKind.ADDA_GrMdrToAluToGr;
+  if (dto.lastInstructionKind === "ADDL" || dto.lastInstructionKind === "AND" || dto.lastInstructionKind === "OR" || dto.lastInstructionKind === "XOR") {
+    return VisualPathKind.ADDA_GrMdrToAluToGr;
+  }
   if (dto.lastInstructionKind === "LAD") return VisualPathKind.LAD_AddressToGr;
   if (dto.lastInstructionKind === "SUBA") return VisualPathKind.SUBA_GrMdrToAluToGr;
-  if (dto.lastInstructionKind === "CPA") return VisualPathKind.CPA_GrMdrToAluToFr;
+  if (dto.lastInstructionKind === "SUBL") return VisualPathKind.SUBA_GrMdrToAluToGr;
+  if (dto.lastInstructionKind === "CPA" || dto.lastInstructionKind === "CPL") return VisualPathKind.CPA_GrMdrToAluToFr;
   if (dto.lastInstructionKind === "ST") return VisualPathKind.ST_GrToMdrToMemory;
   if (dto.lastInstructionKind === "JUMP") return VisualPathKind.Jump_AddressToPr;
-  if (dto.lastInstructionKind === "JZE" || dto.lastInstructionKind === "JNZ" || dto.lastInstructionKind === "JPL" || dto.lastInstructionKind === "JMI") {
+  if (dto.lastInstructionKind === "JZE" || dto.lastInstructionKind === "JNZ" || dto.lastInstructionKind === "JPL" || dto.lastInstructionKind === "JMI" || dto.lastInstructionKind === "JOV") {
     return dto.currentInstructionAddress === dto.effectiveAddress ? VisualPathKind.ConditionalJump_AddressToPr : VisualPathKind.ConditionalJump_NotTaken;
   }
   if (dto.lastInstructionKind === "RET" || dto.runState === "Finished") return VisualPathKind.Finished_None;
@@ -114,19 +119,23 @@ function changedRegistersFromDto(dto: CometStateDto): string[] {
   if (!dto.lastInstructionKind) return [];
 
   const changed = ["PR", "IR"];
-  if (dto.lastInstructionKind === "LD" || dto.lastInstructionKind === "LAD" || dto.lastInstructionKind === "ADDA" || dto.lastInstructionKind === "SUBA") {
+  if (dto.lastInstructionKind === "LD" || dto.lastInstructionKind === "LAD" || dto.lastInstructionKind === "ADDA" || dto.lastInstructionKind === "SUBA" ||
+    dto.lastInstructionKind === "ADDL" || dto.lastInstructionKind === "SUBL" || dto.lastInstructionKind === "AND" ||
+    dto.lastInstructionKind === "OR" || dto.lastInstructionKind === "XOR") {
     if (dto.lastRegisterWriteIndex !== null) changed.push(`GR${dto.lastRegisterWriteIndex}`);
     changed.push("MAR", "MDR");
     if (dto.lastInstructionKind === "LAD") changed.pop();
-    if (dto.lastInstructionKind === "ADDA" || dto.lastInstructionKind === "SUBA") changed.push("FR");
+    if (dto.lastInstructionKind === "ADDA" || dto.lastInstructionKind === "SUBA" || dto.lastInstructionKind === "ADDL" ||
+      dto.lastInstructionKind === "SUBL" || dto.lastInstructionKind === "AND" || dto.lastInstructionKind === "OR" ||
+      dto.lastInstructionKind === "XOR") changed.push("FR");
   }
-  if (dto.lastInstructionKind === "CPA") {
+  if (dto.lastInstructionKind === "CPA" || dto.lastInstructionKind === "CPL") {
     changed.push("MAR", "MDR", "FR");
   }
   if (dto.lastInstructionKind === "ST") {
     changed.push("MAR", "MDR");
   }
-  if (dto.lastInstructionKind === "JUMP" || dto.lastInstructionKind === "JZE" || dto.lastInstructionKind === "JNZ" || dto.lastInstructionKind === "JPL" || dto.lastInstructionKind === "JMI") {
+  if (dto.lastInstructionKind === "JUMP" || dto.lastInstructionKind === "JZE" || dto.lastInstructionKind === "JNZ" || dto.lastInstructionKind === "JPL" || dto.lastInstructionKind === "JMI" || dto.lastInstructionKind === "JOV") {
     changed.push("MAR");
   }
   return changed;
@@ -181,12 +190,19 @@ function traceDetail(dto: CometStateDto): string {
   if (dto.lastInstructionKind === "LAD") return `Address ${formatWord(address)} -> GR${register}`;
   if (dto.lastInstructionKind === "ADDA") return `GR${register} + MDR -> ALU -> GR${register}`;
   if (dto.lastInstructionKind === "SUBA") return `GR${register} - MDR -> ALU -> GR${register}`;
+  if (dto.lastInstructionKind === "ADDL") return `GR${register} + MDR (unsigned) -> ALU -> GR${register}`;
+  if (dto.lastInstructionKind === "SUBL") return `GR${register} - MDR (unsigned) -> ALU -> GR${register}`;
+  if (dto.lastInstructionKind === "AND" || dto.lastInstructionKind === "OR" || dto.lastInstructionKind === "XOR") {
+    return `GR${register} ${dto.lastInstructionKind} MDR -> ALU -> GR${register}`;
+  }
   if (dto.lastInstructionKind === "CPA") return `GR${register} - MDR -> ALU -> FR`;
+  if (dto.lastInstructionKind === "CPL") return `GR${register} compared with MDR (unsigned) -> FR`;
   if (dto.lastInstructionKind === "ST") return `GR${register} -> MDR -> Memory[${formatWord(address)}]`;
   if (dto.lastInstructionKind === "JUMP") return `PR <- ${formatWord(address)}`;
-  if (dto.lastInstructionKind === "JZE" || dto.lastInstructionKind === "JNZ" || dto.lastInstructionKind === "JPL" || dto.lastInstructionKind === "JMI") {
+  if (dto.lastInstructionKind === "JZE" || dto.lastInstructionKind === "JNZ" || dto.lastInstructionKind === "JPL" || dto.lastInstructionKind === "JMI" || dto.lastInstructionKind === "JOV") {
     return dto.currentInstructionAddress === dto.effectiveAddress ? `PR <- ${formatWord(address)}` : "Condition not met; PR advanced";
   }
+  if (dto.lastInstructionKind === "NOP") return "No operation; PR advanced to the next word.";
   if (dto.lastInstructionKind === "RET") return "Program finished without jumping to an invalid address.";
   return "";
 }

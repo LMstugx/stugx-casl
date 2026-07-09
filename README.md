@@ -35,22 +35,29 @@ Each built-in example includes a collapsible `Guided Lesson` in the Demo Guide. 
 1. `CASL: GR2 Addition`
    Learn direct CASL execution, `LD`, `ADDA`, `ST`, `RET`, GR changes, and memory write.
 
-2. `C++: Addition`
+2. `CASL: Logic Operations`
+   Learn `AND`, `OR`, `XOR`, bitwise ALU behavior, and a memory write.
+
+3. `CASL: Logical Add Compare`
+   Learn `ADDL`, `CPL`, `JOV`, unsigned comparison, and overflow-flag jumps.
+
+4. `C++: Addition`
    Learn how assignment and arithmetic become `LD`, `ADDA`, `ST`, and return through `GR0`.
 
-3. `C++: If Else`
+5. `C++: If Else`
    Learn `CPA`, conditional jumps, labels, and branch targets.
 
-4. `C++: While Sum`
+6. `C++: While Sum`
    Learn loop labels, loop-back jumps, Trace, and Memory Viewer.
 
-5. `C++: For Sum Sugar`
+7. `C++: For Sum Sugar`
    Learn for-loop initializer, condition, increment, `i++`, and `+=` lowering.
 
-6. `C++: Break Continue`
+8. `C++: Break Continue`
    Learn why `continue` jumps to the increment block and `break` jumps to the loop end.
 
 For detailed study guidance, see [docs/learning-guide.md](docs/learning-guide.md).
+For the latest CASL instruction coverage batch, see [docs/phase9a-casl-instruction-coverage.md](docs/phase9a-casl-instruction-coverage.md).
 
 ## Key Views
 
@@ -66,6 +73,8 @@ For detailed study guidance, see [docs/learning-guide.md](docs/learning-guide.md
 ## Demo Examples
 
 - `CASL: GR2 Addition`
+- `CASL: Logic Operations`
+- `CASL: Logical Add Compare`
 - `C++: Addition`
 - `C++: If Else`
 - `C++: While Sum`
@@ -86,17 +95,25 @@ Directives:
 
 Instructions:
 
+- `NOP`
 - `LAD`
 - `LD`
 - `ST`
 - `ADDA`
 - `SUBA`
+- `ADDL`
+- `SUBL`
+- `AND`
+- `OR`
+- `XOR`
 - `CPA`
+- `CPL`
 - `JUMP`
 - `JZE`
 - `JNZ`
 - `JPL`
 - `JMI`
+- `JOV`
 - `RET`
 
 ## Supported C++ Subset

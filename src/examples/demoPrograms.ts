@@ -30,6 +30,52 @@ C    DS    1
     suggestedActions: ["Click Assemble.", "Open Machine Code and inspect LD / ADDA / ST words.", "Step through LD, ADDA, and ST.", "Open Memory and confirm label C is written."]
   },
   {
+    id: "casl-logic-operations",
+    name: "CASL: Logic Operations",
+    mode: "casl",
+    source: `MAIN START
+     LD    GR1,A
+     AND   GR1,MASK
+     OR    GR1,B
+     XOR   GR1,C
+     ST    GR1,RESULT
+     RET
+A    DC    #00F0
+MASK DC    #0F0F
+B    DC    #0003
+C    DC    #0001
+RESULT DS  1
+     END`,
+    description: "Bitwise CASL execution with AND, OR, XOR, ALU path reuse, and a Memory[RESULT] write.",
+    whatThisShows: "Logical instructions reuse the ALU data path and update GR / FR without changing the C++ subset pipeline.",
+    expectedResult: "GR1 = 0002 and Memory[RESULT] = 0002 after ST.",
+    suggestedActions: ["Click Assemble.", "Open Machine Code and inspect AND / OR / XOR opcodes.", "Run or Step through the logic operations.", "Open Memory and confirm RESULT is 0002."]
+  },
+  {
+    id: "casl-logical-add-compare",
+    name: "CASL: Logical Add Compare",
+    mode: "casl",
+    source: `MAIN START
+     LD    GR1,A
+     ADDL  GR1,B
+     CPL   GR1,C
+     JOV   OVER
+     ST    GR1,RESULT
+     RET
+OVER LAD   GR1,999
+     ST    GR1,RESULT
+     RET
+A    DC    1
+B    DC    2
+C    DC    3
+RESULT DS  1
+     END`,
+    description: "Unsigned ADDL / CPL with JOV falling through when OF is not set.",
+    whatThisShows: "Logical arithmetic and unsigned compare update flags, and JOV reads the overflow flag as a conditional jump.",
+    expectedResult: "JOV falls through, GR1 = 0003, and Memory[RESULT] = 0003.",
+    suggestedActions: ["Click Assemble.", "Open Machine Code and inspect ADDL / CPL / JOV.", "Step through CPL and JOV.", "Confirm RESULT remains 0003."]
+  },
+  {
     id: "cpp-addition",
     name: "C++: Addition",
     mode: "cpp",

@@ -38,7 +38,7 @@ std::optional<std::uint32_t> instructionSize(const ParsedLine& line, std::vector
     if (!line.opcode.has_value()) return 0;
     const auto opcode = *line.opcode;
     if (hasAddressOperand(opcode)) return 2;
-    if (opcode == Opcode::RET) return 1;
+    if (opcode == Opcode::NOP || opcode == Opcode::RET) return 1;
     if (opcode == Opcode::DC) return static_cast<std::uint32_t>(std::max<std::size_t>(1, line.operands.size()));
     if (opcode == Opcode::DS) {
         const auto count = parseNumber(line.operands.empty() ? "0" : line.operands[0]);
@@ -73,12 +73,14 @@ std::string symbolKey(const std::string& label) {
 
 bool isRegisterAddressOpcode(Opcode opcode) {
     return opcode == Opcode::LD || opcode == Opcode::LAD || opcode == Opcode::ADDA ||
-           opcode == Opcode::SUBA || opcode == Opcode::CPA || opcode == Opcode::ST;
+           opcode == Opcode::SUBA || opcode == Opcode::ADDL || opcode == Opcode::SUBL ||
+           opcode == Opcode::AND || opcode == Opcode::OR || opcode == Opcode::XOR ||
+           opcode == Opcode::CPA || opcode == Opcode::CPL || opcode == Opcode::ST;
 }
 
 bool isJumpOpcode(Opcode opcode) {
     return opcode == Opcode::JUMP || opcode == Opcode::JZE || opcode == Opcode::JNZ ||
-           opcode == Opcode::JPL || opcode == Opcode::JMI;
+           opcode == Opcode::JPL || opcode == Opcode::JMI || opcode == Opcode::JOV;
 }
 
 std::optional<std::uint16_t> resolveAddressOperand(
@@ -242,8 +244,8 @@ bool Assembler::pass2(const std::vector<ParsedLine>& lines, AssembleOutput& outp
             continue;
         }
 
-        if (opcode == Opcode::RET) {
-            const auto machine = encodeInstruction(Opcode::RET, 0);
+        if (opcode == Opcode::NOP || opcode == Opcode::RET) {
+            const auto machine = encodeInstruction(opcode, 0);
             output.state.memory[line.address] = machine;
             output.sourceMap.add({line.line, line.address, {machine}, line.source, line.label, opcode});
             output.instructions.push_back({line.address, line.line, opcode, line.source, 0, std::nullopt, {}, 1});

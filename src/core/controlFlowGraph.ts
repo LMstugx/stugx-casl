@@ -43,7 +43,7 @@ export type ControlFlowGraph = {
   edges: ControlFlowEdge[];
 };
 
-const JUMP_INSTRUCTIONS = new Set<InstructionKind>(["JUMP", "JZE", "JNZ", "JPL", "JMI"]);
+const JUMP_INSTRUCTIONS = new Set<InstructionKind>(["JUMP", "JZE", "JNZ", "JPL", "JMI", "JOV"]);
 
 export function selectControlFlowGraph(
   generatedCaslSource: string,
@@ -180,7 +180,7 @@ function firstInstructionAddressByCaslLine(machineRows: MachineCodeRow[]): Map<n
   return result;
 }
 
-function isJumpOpcode(opcode: string): opcode is "JUMP" | "JZE" | "JNZ" | "JPL" | "JMI" {
+function isJumpOpcode(opcode: string): opcode is "JUMP" | "JZE" | "JNZ" | "JPL" | "JMI" | "JOV" {
   return JUMP_INSTRUCTIONS.has(opcode as InstructionKind);
 }
 

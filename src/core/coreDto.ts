@@ -121,14 +121,27 @@ function memoryWindowToDto(state: CometState, start: number, end: number): Memor
   }));
 }
 
-export function toCometStateDto(state: CometState, memoryStart = 0x20, memoryEnd = 0x2a): CometStateDto {
+function defaultMemoryEnd(state: CometState): number {
+  const sourceEnd = state.sourceMap.reduce((end, row) => {
+    const rowEnd = row.address + Math.max(1, row.machineWords.length) - 1;
+    return Math.max(end, rowEnd);
+  }, 0x2a);
+  return Math.min(0xffff, sourceEnd);
+}
+
+export function toCometStateDto(state: CometState, memoryStart = 0x20, memoryEnd = defaultMemoryEnd(state)): CometStateDto {
   const lastInstruction = instructionAtLastStep(state);
   const currentInstruction = instructionAtCurrentAddress(state);
   const lastInstructionKind = lastInstruction?.op ?? null;
   const effectiveAddress = lastInstruction?.operandAddress ?? null;
-  const lastMemoryReadAddress = lastInstructionKind === "LD" || lastInstructionKind === "ADDA" || lastInstructionKind === "SUBA" || lastInstructionKind === "CPA" ? effectiveAddress : null;
+  const lastMemoryReadAddress = lastInstructionKind === "LD" || lastInstructionKind === "ADDA" || lastInstructionKind === "SUBA" ||
+    lastInstructionKind === "ADDL" || lastInstructionKind === "SUBL" || lastInstructionKind === "AND" ||
+    lastInstructionKind === "OR" || lastInstructionKind === "XOR" || lastInstructionKind === "CPA" ||
+    lastInstructionKind === "CPL" ? effectiveAddress : null;
   const lastMemoryWriteAddress = lastInstructionKind === "ST" ? effectiveAddress : null;
-  const lastRegisterWriteIndex = lastInstructionKind === "LD" || lastInstructionKind === "LAD" || lastInstructionKind === "ADDA" || lastInstructionKind === "SUBA" ? lastInstruction?.gr ?? null : null;
+  const lastRegisterWriteIndex = lastInstructionKind === "LD" || lastInstructionKind === "LAD" || lastInstructionKind === "ADDA" ||
+    lastInstructionKind === "SUBA" || lastInstructionKind === "ADDL" || lastInstructionKind === "SUBL" ||
+    lastInstructionKind === "AND" || lastInstructionKind === "OR" || lastInstructionKind === "XOR" ? lastInstruction?.gr ?? null : null;
 
   return {
     runState: state.runState,
@@ -158,7 +171,7 @@ export function toCometStateDto(state: CometState, memoryStart = 0x20, memoryEnd
   };
 }
 
-export function toAssembleResultDto(state: CometState, memoryStart = 0x20, memoryEnd = 0x2a): AssembleResultDto {
+export function toAssembleResultDto(state: CometState, memoryStart = 0x20, memoryEnd = defaultMemoryEnd(state)): AssembleResultDto {
   return {
     ok: state.assembled && state.diagnostics.every((diagnostic) => diagnostic.severity !== "error"),
     state: toCometStateDto(state, memoryStart, memoryEnd),
@@ -166,7 +179,7 @@ export function toAssembleResultDto(state: CometState, memoryStart = 0x20, memor
   };
 }
 
-export function toStepResultDto(state: CometState, memoryStart = 0x20, memoryEnd = 0x2a): StepResultDto {
+export function toStepResultDto(state: CometState, memoryStart = 0x20, memoryEnd = defaultMemoryEnd(state)): StepResultDto {
   return {
     ok: state.runState !== "Error",
     state: toCometStateDto(state, memoryStart, memoryEnd),

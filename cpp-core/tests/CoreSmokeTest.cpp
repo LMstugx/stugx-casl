@@ -349,6 +349,228 @@ B    DC    10
     require(vm.state().gr[2] == 0x0001, "GR2 after JMI taken branch LAD");
 }
 
+void AssembleNop() {
+    const auto output = assembleOrExit(R"(MAIN START
+     NOP
+     RET
+     END)");
+    require(output.state.memory[0x20] == 0x0000, "NOP machine word");
+    require(output.state.memory[0x21] == 0x8100, "RET should follow NOP");
+    const auto entry = output.sourceMap.entryForAddress(0x20);
+    require(entry.has_value() && entry->instruction == casl::InstructionKind::NOP, "NOP source map");
+}
+
+void ExecuteNopAdvancesPr() {
+    const auto output = assembleOrExit(R"(MAIN START
+     NOP
+     RET
+     END)");
+    casl::CometVm vm;
+    vm.load(output);
+    const auto step = vm.step();
+    require(step.ok, "NOP step should succeed");
+    require(vm.state().pr == 0x21, "NOP should advance PR by one");
+    require(vm.state().gr[1] == 0, "NOP should not modify GR");
+    require(!vm.state().fr.z && !vm.state().fr.c && !vm.state().fr.n && !vm.state().fr.o, "NOP should not modify FR");
+    require(vm.state().visualPath == casl::VisualPathKind::None, "NOP visual path");
+}
+
+void AssembleAddlSubl() {
+    const auto output = assembleOrExit(R"(MAIN START
+     LD    GR1,A
+     ADDL  GR1,B
+     SUBL  GR1,C
+     RET
+A    DC    1
+B    DC    2
+C    DC    1
+     END)");
+    require(output.state.memory[0x22] == 0x2210, "ADDL machine word");
+    require(output.state.memory[0x24] == 0x2310, "SUBL machine word");
+}
+
+void ExecuteAddlUnsigned() {
+    const auto output = assembleOrExit(R"(MAIN START
+     LD    GR1,A
+     ADDL  GR1,B
+     RET
+A    DC    #FFFF
+B    DC    1
+     END)");
+    casl::CometVm vm;
+    vm.load(output);
+    (void)vm.step();
+    const auto step = vm.step();
+    require(step.ok, "ADDL step should succeed");
+    require(vm.state().gr[1] == 0x0000, "ADDL should wrap to zero");
+    require(vm.state().fr.z && vm.state().fr.c && !vm.state().fr.n && vm.state().fr.o, "ADDL carry flags");
+    require(vm.state().lastRegisterWriteIndex.has_value() && *vm.state().lastRegisterWriteIndex == 1, "ADDL write register");
+    require(vm.state().visualPath == casl::VisualPathKind::ADDA_GrMdrToAluToGr, "ADDL visual path");
+}
+
+void ExecuteSublUnsigned() {
+    const auto output = assembleOrExit(R"(MAIN START
+     LD    GR1,A
+     SUBL  GR1,B
+     RET
+A    DC    0
+B    DC    1
+     END)");
+    casl::CometVm vm;
+    vm.load(output);
+    (void)vm.step();
+    const auto step = vm.step();
+    require(step.ok, "SUBL step should succeed");
+    require(vm.state().gr[1] == 0xffff, "SUBL should wrap to FFFF");
+    require(!vm.state().fr.z && vm.state().fr.c && vm.state().fr.n && vm.state().fr.o, "SUBL borrow flags");
+    require(vm.state().visualPath == casl::VisualPathKind::SUBA_GrMdrToAluToGr, "SUBL visual path");
+}
+
+void ExecuteAnd() {
+    const auto output = assembleOrExit(R"(MAIN START
+     LD    GR1,A
+     AND   GR1,MASK
+     RET
+A    DC    #00F0
+MASK DC    #0F0F
+     END)");
+    casl::CometVm vm;
+    vm.load(output);
+    (void)vm.step();
+    const auto step = vm.step();
+    require(step.ok, "AND step should succeed");
+    require(vm.state().gr[1] == 0x0000, "AND result");
+    require(vm.state().fr.z && !vm.state().fr.c && !vm.state().fr.n && !vm.state().fr.o, "AND flags");
+}
+
+void ExecuteOr() {
+    const auto output = assembleOrExit(R"(MAIN START
+     LD    GR1,A
+     OR    GR1,B
+     RET
+A    DC    #0001
+B    DC    #0002
+     END)");
+    casl::CometVm vm;
+    vm.load(output);
+    (void)vm.step();
+    const auto step = vm.step();
+    require(step.ok, "OR step should succeed");
+    require(vm.state().gr[1] == 0x0003, "OR result");
+    require(!vm.state().fr.z && !vm.state().fr.c && !vm.state().fr.n && !vm.state().fr.o, "OR flags");
+}
+
+void ExecuteXor() {
+    const auto output = assembleOrExit(R"(MAIN START
+     LD    GR1,A
+     XOR   GR1,B
+     RET
+A    DC    #0003
+B    DC    #0001
+     END)");
+    casl::CometVm vm;
+    vm.load(output);
+    (void)vm.step();
+    const auto step = vm.step();
+    require(step.ok, "XOR step should succeed");
+    require(vm.state().gr[1] == 0x0002, "XOR result");
+    require(!vm.state().fr.z && !vm.state().fr.c && !vm.state().fr.n && !vm.state().fr.o, "XOR flags");
+}
+
+void ExecuteCplEqual() {
+    const auto output = assembleOrExit(R"(MAIN START
+     LD    GR1,A
+     CPL   GR1,B
+     RET
+A    DC    #FFFF
+B    DC    #FFFF
+     END)");
+    casl::CometVm vm;
+    vm.load(output);
+    (void)vm.step();
+    const auto step = vm.step();
+    require(step.ok, "CPL equal should succeed");
+    require(vm.state().gr[1] == 0xffff, "CPL should not modify GR");
+    require(vm.state().fr.z && !vm.state().fr.c && !vm.state().fr.n && !vm.state().fr.o, "CPL equal flags");
+    require(!vm.state().lastRegisterWriteIndex.has_value(), "CPL should not write register");
+}
+
+void ExecuteCplLess() {
+    const auto output = assembleOrExit(R"(MAIN START
+     LD    GR1,A
+     CPL   GR1,B
+     RET
+A    DC    1
+B    DC    2
+     END)");
+    casl::CometVm vm;
+    vm.load(output);
+    (void)vm.step();
+    (void)vm.step();
+    require(vm.state().fr.n && !vm.state().fr.z, "CPL less should set sign flag");
+}
+
+void ExecuteCplGreater() {
+    const auto output = assembleOrExit(R"(MAIN START
+     LD    GR1,A
+     CPL   GR1,B
+     RET
+A    DC    #FFFF
+B    DC    2
+     END)");
+    casl::CometVm vm;
+    vm.load(output);
+    (void)vm.step();
+    (void)vm.step();
+    require(!vm.state().fr.n && !vm.state().fr.z, "CPL greater should clear sign and zero flags");
+}
+
+void ExecuteJovTaken() {
+    const auto output = assembleOrExit(R"(MAIN START
+     LD    GR1,A
+     ADDL  GR1,B
+     JOV   OVER
+     LAD   GR2,0
+     RET
+OVER LAD   GR2,1
+     RET
+A    DC    #FFFF
+B    DC    1
+     END)");
+    casl::CometVm vm;
+    vm.load(output);
+    (void)vm.step();
+    (void)vm.step();
+    const auto step = vm.step();
+    require(step.ok, "JOV taken should succeed");
+    require(vm.state().pr == symbolAddress(output, "OVER"), "JOV should jump when OF is set");
+    require(vm.state().visualPath == casl::VisualPathKind::ConditionalJump_AddressToPr, "JOV taken visual path");
+}
+
+void ExecuteJovNotTaken() {
+    const auto output = assembleOrExit(R"(MAIN START
+     LD    GR1,A
+     ADDL  GR1,B
+     JOV   OVER
+     ST    GR1,RESULT
+     RET
+OVER LAD   GR1,999
+     ST    GR1,RESULT
+     RET
+A    DC    1
+B    DC    2
+RESULT DS  1
+     END)");
+    casl::CometVm vm;
+    vm.load(output);
+    (void)vm.step();
+    (void)vm.step();
+    const auto step = vm.step();
+    require(step.ok, "JOV not taken should succeed");
+    require(vm.state().pr == 0x26, "JOV should fall through when OF is clear");
+    require(vm.state().visualPath == casl::VisualPathKind::ConditionalJump_NotTaken, "JOV not taken visual path");
+}
+
 void StepStore() {
     casl::CometVm vm;
     vm.load(assembleSample());
@@ -447,6 +669,19 @@ const std::vector<std::pair<std::string_view, TestFunction>>& tests() {
         {"StepJzeTaken", StepJzeTaken},
         {"StepJzeNotTaken", StepJzeNotTaken},
         {"StepJmiTaken", StepJmiTaken},
+        {"AssembleNop", AssembleNop},
+        {"ExecuteNopAdvancesPr", ExecuteNopAdvancesPr},
+        {"AssembleAddlSubl", AssembleAddlSubl},
+        {"ExecuteAddlUnsigned", ExecuteAddlUnsigned},
+        {"ExecuteSublUnsigned", ExecuteSublUnsigned},
+        {"ExecuteAnd", ExecuteAnd},
+        {"ExecuteOr", ExecuteOr},
+        {"ExecuteXor", ExecuteXor},
+        {"ExecuteCplEqual", ExecuteCplEqual},
+        {"ExecuteCplLess", ExecuteCplLess},
+        {"ExecuteCplGreater", ExecuteCplGreater},
+        {"ExecuteJovTaken", ExecuteJovTaken},
+        {"ExecuteJovNotTaken", ExecuteJovNotTaken},
         {"StepStore", StepStore},
         {"StepRetFinished", StepRetFinished},
         {"ExecuteGr2Program", ExecuteGr2Program},

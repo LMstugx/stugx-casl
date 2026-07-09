@@ -15,12 +15,14 @@ test("Mock backend completes assemble and first step in the browser UI", async (
   await expectCurrentSourceInstruction(page, /ADDA\s+GR2,B/);
 });
 
-test("Mock backend shows project overview and keeps submission demo views working", async ({ page }) => {
+test("Mock backend shows project overview and keeps learning demo views working", async ({ page }) => {
   await openStudio(page, "Mock Core");
 
   await page.getByTestId("project-overview-summary").click();
   await expect(page.getByTestId("project-overview")).toContainText("stugx.CASL");
+  await expect(page.getByTestId("project-overview")).toContainText("Learning Studio");
   await expect(page.getByTestId("project-overview")).toContainText("C++ subset -> Generated CASL II Assembly -> COMET II Machine Code");
+  await expect(page.getByTestId("project-overview")).not.toContainText(/contest|hackathon/i);
 
   await selectDemoProgram(page, "cpp-break-continue");
   await assemble(page);

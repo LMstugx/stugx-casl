@@ -1,35 +1,21 @@
 # stugx.CASL
 
-A modern CASL II / COMET II learning studio that connects C++ subset code, CASL assembly, machine code, memory, trace, control flow, and circuit visualization.
+A CASL II / COMET II learning studio for understanding how source code, assembly, machine code, memory, trace, control flow, and circuit state connect.
 
-## Why This Project Exists
+## What This Tool Is
 
-CASL II and COMET II are useful for learning how software becomes machine behavior, but many tools around them feel dated or show only one layer at a time. Students can write a program and get a result, yet still miss the relationship between:
+stugx.CASL is a study-oriented environment for CASL II and COMET II. It lets you write CASL directly, or write a small C++ subset and inspect how it is lowered into CASL II, assembled into COMET II machine words, and executed step by step.
 
-- high-level code
-- generated CASL II assembly
-- COMET II machine words
-- opcode and operand fields
-- registers, memory, PR movement, trace, and circuit data paths
+The goal is practical learning:
 
-stugx.CASL puts those layers in one learning interface. It is not only an editor and not only an emulator; it is a visual bridge between programming language concepts and CPU execution.
+- see how C++ subset statements become CASL II assembly
+- see how CASL II rows become COMET II machine words
+- inspect opcode, register, operand, and resolved label meaning
+- observe PR, GR, memory, trace, control flow, and circuit state together
 
-日本語要約: stugx.CASL は、C++ subset、CASL II、COMET II 機械語、メモリ、トレース、制御フロー、回路図を同じ画面で結びつける学習用ツールです。
+It is not a full C++ compiler and not a full CASL II development environment. It is a focused learning tool.
 
-## Key Features
-
-- CASL II direct execution for the supported instruction subset.
-- C++ subset transpilation into Generated CASL II Assembly.
-- Machine Code view with address, word, source, label, meaning, and related C++ line.
-- Opcode / operand explanation for selected COMET II words.
-- Control Flow visualization for labels, conditional jumps, loop-back jumps, break, and continue.
-- Register, Memory Viewer, Source Map, Trace, and Output panels.
-- SVG COMET II circuit visualization driven by runtime state.
-- Mock TypeScript backend for fast UI development.
-- Experimental C++20 core compiled to WASM through Emscripten.
-- Golden parity, WASM parity, browser E2E, Vitest, and CTest coverage.
-
-## Main Learning Flow
+## Main Learning Pipeline
 
 ```text
 C++ subset source
@@ -40,30 +26,52 @@ C++ subset source
 -> Memory / Trace / Circuit visualization
 ```
 
-CASL mode starts at CASL II source and uses the same assembler, VM state, memory, trace, machine-code, and circuit views.
+CASL mode starts from CASL II source and then uses the same machine-code, runtime, memory, trace, and circuit views.
 
-## Demo Flow
+## Recommended Learning Order
 
-Recommended 3-minute walkthrough:
+1. `CASL: GR2 Addition`
+   Learn direct CASL execution, `LD`, `ADDA`, `ST`, `RET`, GR changes, and memory write.
 
-1. Load `CASL: GR2 Addition`, assemble, and step through `LD`, `ADDA`, and `ST`.
-2. Load `C++: Addition`, assemble, then open `Generated CASL` and `Machine Code`.
-3. Click a machine-code row to show opcode, register, operand, resolved label, and meaning.
-4. Load `C++: For Sum Sugar`, assemble, and show how `i++` and `sum += i` become CASL.
-5. Load `C++: Break Continue`, assemble, show `FOR_CONTINUE` / `FOR_END`, then Run.
-6. Open Trace and Memory to show PR movement, jump targets, and the final result.
+2. `C++: Addition`
+   Learn how assignment and arithmetic become `LD`, `ADDA`, `ST`, and return through `GR0`.
 
-For a scripted Japanese walkthrough, see [docs/demo-script.md](docs/demo-script.md).
+3. `C++: If Else`
+   Learn `CPA`, conditional jumps, labels, and branch targets.
 
-## Demo Programs
+4. `C++: While Sum`
+   Learn loop labels, loop-back jumps, Trace, and Memory Viewer.
 
-- `CASL: GR2 Addition`: direct CASL execution with GR2 and Memory[C].
-- `C++: Addition`: C++ subset arithmetic lowered to CASL load/add/store.
-- `C++: If Else`: `CPA`, `JZE`, and `JUMP` branch lowering.
-- `C++: While Sum`: loop labels, Trace, Memory Viewer, and max-step-safe Run.
-- `C++: For Sum`: explicit assignment increment lowering.
-- `C++: For Sum Sugar`: `i++` and `+=` syntax sugar lowering.
-- `C++: Break Continue`: loop-control statements lowered into CASL `JUMP`.
+5. `C++: For Sum Sugar`
+   Learn for-loop initializer, condition, increment, `i++`, and `+=` lowering.
+
+6. `C++: Break Continue`
+   Learn why `continue` jumps to the increment block and `break` jumps to the loop end.
+
+For detailed study guidance, see [docs/learning-guide.md](docs/learning-guide.md).
+
+## Key Views
+
+- Source Editor: CASL or C++ subset source.
+- Generated CASL: structured CASL II generated from C++ subset source.
+- Machine Code: COMET II address/word rows with source, labels, and meaning.
+- Machine Code Explanation: opcode, register, index, operand, resolved label, and readable meaning.
+- Control Flow: label and jump target hints for if/else, while, for, break, and continue.
+- Memory Viewer: bounded memory windows with label, PR, MAR, read, write, and range controls.
+- Trace: recent execution history for Step and Run.
+- Circuit: SVG COMET II visualization driven by the current runtime state.
+
+## Demo Examples
+
+- `CASL: GR2 Addition`
+- `C++: Addition`
+- `C++: If Else`
+- `C++: While Sum`
+- `C++: For Sum`
+- `C++: For Sum Sugar`
+- `C++: Break Continue`
+
+Use the Demo selector above the Source Editor. Loading an example marks the current runtime as Dirty; click `Assemble` to load it into the backend.
 
 ## Supported CASL II Subset
 
@@ -133,7 +141,7 @@ Install dependencies:
 pnpm install
 ```
 
-Start the default Mock backend:
+Start with the default Mock backend:
 
 ```powershell
 pnpm dev
@@ -146,7 +154,7 @@ pnpm build:wasm
 pnpm dev:wasm
 ```
 
-Run unit tests and build:
+Run frontend tests and build:
 
 ```powershell
 pnpm test
@@ -181,32 +189,27 @@ Run the full local validation script:
 powershell -ExecutionPolicy Bypass -File scripts/validate-all.ps1
 ```
 
-The validation script is optional and intended for final local checks before a demo or contest submission.
+The validation script is optional and intended for final local checks before a study demo or handoff.
 
 ## WASM Backend
 
 The default app uses `MockCoreAdapter`. The experimental WASM backend uses the same CoreAdapter contract and C++ core behavior in browser form.
 
-Generated WASM files are local build artifacts:
+Generated WASM files are local build artifacts and are ignored by Git:
 
 ```text
 public/wasm/stugx_casl_core.js
 public/wasm/stugx_casl_core.wasm
 ```
 
-They are intentionally ignored by Git. Build them with:
-
-```powershell
-pnpm build:wasm
-```
-
-Then start:
-
-```powershell
-pnpm dev:wasm
-```
-
 The current backend is shown in the status bar as `Mock Core`, `WASM Core`, or `WASM Error`.
+
+## Documentation
+
+- [docs/learning-guide.md](docs/learning-guide.md): recommended study order and how to read each view.
+- [docs/demo-script.md](docs/demo-script.md): Japanese-first explanation script for teachers or senior students.
+- [docs/screenshots-guide.md](docs/screenshots-guide.md): useful screenshots for explaining the tool.
+- [docs/project-overview.md](docs/project-overview.md): concise project overview for learning and teaching use.
 
 ## Current Limitations
 
@@ -217,13 +220,3 @@ The current backend is shown in the status bar as `Mock Core`, `WASM Core`, or `
 - The control-flow view is text and badge based; there is no full CFG graph yet.
 - New / Open / Save, language switching, and theme controls are placeholders or limited.
 - There is no desktop packaging or deployment target in this milestone.
-
-## Contest / Demo Note
-
-stugx.CASL is built as an educational visualization tool. The main point of the demo is not that it runs small programs; it is that it shows how each layer maps to the next:
-
-```text
-C++ subset -> CASL II -> COMET II words -> runtime state -> circuit and trace
-```
-
-For a submission-oriented overview, see [docs/submission-overview.md](docs/submission-overview.md).

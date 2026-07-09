@@ -34,9 +34,9 @@ export default function DemoGuidePanel({ program }: { program: DemoProgram }) {
         </summary>
         <div className="demo-guide-body project-overview-body">
           <div>
-            <h3>What it shows</h3>
+            <h3>What this tool helps you learn</h3>
             <p data-testid="project-overview-title">
-              stugx.CASL is a CASL II / COMET II learning studio for connecting source code, assembly, machine code, runtime state, and circuit visualization.
+              stugx.CASL is a CASL II / COMET II Learning Studio for studying how source code, assembly, machine code, memory, trace, control flow, and circuit state connect.
             </p>
           </div>
           <div>
@@ -46,7 +46,11 @@ export default function DemoGuidePanel({ program }: { program: DemoProgram }) {
             </p>
           </div>
           <div>
-            <h3>Current C++ subset</h3>
+            <h3>Recommended examples</h3>
+            <p>Start with CASL: GR2 Addition, then C++: Addition, If Else, While Sum, For Sum Sugar, and Break Continue.</p>
+          </div>
+          <div>
+            <h3>Supported C++ subset</h3>
             <p>
               int main, int variables, assignment, +, -, return, if/else, while, for, break/continue, i++, i--, +=, and -=.
             </p>
@@ -56,10 +60,6 @@ export default function DemoGuidePanel({ program }: { program: DemoProgram }) {
             <p data-testid="project-overview-limitations">
               Not a full C++ compiler: arrays, pointers, functions, classes, templates, strings, and full CASL II coverage are outside the current scope.
             </p>
-          </div>
-          <div>
-            <h3>Suggested demo examples</h3>
-            <p>C++: For Sum Sugar, C++: Break Continue, and CASL: GR2 Addition.</p>
           </div>
         </div>
       </details>

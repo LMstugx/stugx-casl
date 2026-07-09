@@ -172,7 +172,7 @@ describe("demo recording experience", () => {
 
     expect(markup).toContain('data-testid="project-overview"');
     expect(markup).toContain("stugx.CASL");
-    expect(markup).toContain("CASL II / COMET II learning studio");
+    expect(markup).toContain("CASL II / COMET II Learning Studio");
   });
 
   it("about_panel_lists_learning_pipeline", () => {
@@ -190,6 +190,27 @@ describe("demo recording experience", () => {
     expect(markup).toContain("arrays, pointers, functions, classes, templates");
   });
 
+  it("project_overview_uses_learning_wording", () => {
+    const markup = renderToStaticMarkup(<DemoGuidePanel program={getDemoProgram("cpp-break-continue")!} />);
+
+    expect(markup).toContain("What this tool helps you learn");
+    expect(markup).toContain("Recommended examples");
+    expect(markup.toLowerCase()).not.toContain("hackathon");
+    expect(markup.toLowerCase()).not.toContain("contest");
+  });
+
+  it("examples_are_ordered_for_learning", () => {
+    expect(demoPrograms.map((program) => program.id)).toEqual([
+      "casl-gr2-addition",
+      "cpp-addition",
+      "cpp-if-else",
+      "cpp-while-sum",
+      "cpp-for-sum",
+      "cpp-for-sum-sugar",
+      "cpp-break-continue"
+    ]);
+  });
+
   it("demo_examples_have_complete_metadata", () => {
     for (const program of demoPrograms) {
       expect(program.id).not.toHaveLength(0);
@@ -200,5 +221,15 @@ describe("demo recording experience", () => {
       expect(program.expectedResult).not.toHaveLength(0);
       expect(program.suggestedActions.length).toBeGreaterThanOrEqual(3);
     }
+  });
+
+  it("examples_have_learning_actions", () => {
+    const actions = demoPrograms.flatMap((program) => program.suggestedActions).join(" ");
+
+    expect(actions).toContain("Click Assemble.");
+    expect(actions).toContain("Open Generated CASL");
+    expect(actions).toContain("Open Machine Code");
+    expect(actions).toContain("Trace");
+    expect(actions).toContain("Memory");
   });
 });

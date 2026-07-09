@@ -19,6 +19,7 @@ import phase10a from "../../docs/phase10a-cpp-function-call-lowering.md?raw";
 import phase10b from "../../docs/phase10b-calling-convention-design.md?raw";
 import phase10c from "../../docs/phase10c-cpp-single-argument-function.md?raw";
 import phase10d from "../../docs/phase10d-cpp-multi-register-arguments.md?raw";
+import phase10e from "../../docs/phase10e-focus-text-overflow-cleanup.md?raw";
 import circuitVisualContract from "../../docs/circuit-visual-contract.md?raw";
 import futureCustomCircuit from "../../docs/future-custom-circuit-design.md?raw";
 import practiceTasks from "../../docs/practice-tasks.md?raw";
@@ -219,6 +220,22 @@ describe("learning use documentation", () => {
     expect(phase10d).toContain("stack arguments");
   });
 
+  it("phase10e_focus_text_overflow_cleanup_doc_exists", () => {
+    expect(phase10e).toContain("Phase 10E: Focus Mode Text Overflow Cleanup");
+    expect(phase10e).toContain("Signal Probe Compact Design");
+    expect(phase10e).toContain("Call Stack Compact Design");
+    expect(phase10e).toContain("Trace Row Structure");
+    expect(phase10e).toContain("Learning Flow Card Rules");
+    expect(phase10e).toContain("Current Instruction Layered Structure");
+    expect(phase10e).toContain("Table Overflow Rules");
+    expect(phase10e).toContain("Circuit Visual Contract");
+  });
+
+  it("source_editor_header_handles_long_demo_name", () => {
+    expect(phase10e).toContain("Source Editor header must not crop demo names");
+    expect(phase10e).toContain("demo selector uses a stable min/max width and full title");
+  });
+
   it("phase8e_circuit_focus_doc_exists", () => {
     expect(phase8e).toContain("Phase 8E: Circuit Focus Final Layout");
     expect(phase8e).toContain("SP Semantic Rule");
@@ -306,6 +323,7 @@ describe("learning use documentation", () => {
     expect(circuitVisualContract).toContain("ALU inactive for POP");
     expect(circuitVisualContract).toContain("Use EAU for index addressing");
     expect(circuitVisualContract).toContain("Text must never break the circuit layout");
+    expect(circuitVisualContract).toContain("Phase 10E applies these rules");
     expect(circuitVisualContract).toContain("GR1-GR3 are argument registers");
     expect(circuitVisualContract).toContain("stack arguments are not supported yet");
   });
@@ -346,6 +364,8 @@ describe("learning use documentation", () => {
     expect(readme).toContain("docs/phase10b-calling-convention-design.md");
     expect(readme).toContain("docs/phase10c-cpp-single-argument-function.md");
     expect(readme).toContain("docs/phase10d-cpp-multi-register-arguments.md");
+    expect(readme).toContain("docs/circuit-visual-contract.md");
+    expect(readme).toContain("docs/phase10e-focus-text-overflow-cleanup.md");
     expect(readme).toContain("docs/future-custom-circuit-design.md");
     expect(normalized).not.toContain("hackathon");
     expect(normalized).not.toContain("contest submission");

@@ -167,16 +167,16 @@ export default function OutputPanel({
                           data-related={row.isRelated ? "true" : "false"}
                           data-flow-kind={edge?.kind ?? ""}
                         >
-                          <span className="console-prefix">{String(row.lineNumber).padStart(2, "0")}</span>
-                          <span>
+                          <span className="console-prefix mono-value">{String(row.lineNumber).padStart(2, "0")}</span>
+                          <span className="text-ellipsis" title={row.label || "-"}>
                             {label ? <span className={`flow-badge ${label.kind}`}>{controlFlowLabelBadge(label)}</span> : null}
                             {row.label || "-"}
                           </span>
-                          <span>{row.opcode || "-"}</span>
-                          <span>{row.operand || "-"}</span>
-                          <span>{row.mappingKinds.join(", ") || "-"}</span>
-                          <span>{row.relatedCppLine ? `L${row.relatedCppLine}` : "-"}</span>
-                          <span className="flow-target" data-testid={edge ? "generated-casl-flow-target" : undefined}>
+                          <span className="nowrap-symbol" title={row.opcode || "-"}>{row.opcode || "-"}</span>
+                          <span className="nowrap-symbol" title={row.operand || "-"}>{row.operand || "-"}</span>
+                          <span className="text-ellipsis" title={row.mappingKinds.join(", ") || "-"}>{row.mappingKinds.join(", ") || "-"}</span>
+                          <span className="nowrap-symbol" title={row.relatedCppLine ? `L${row.relatedCppLine}` : "-"}>{row.relatedCppLine ? `L${row.relatedCppLine}` : "-"}</span>
+                          <span className="flow-target text-ellipsis" title={edge ? `${controlFlowEdgeLabel(edge)} / ${controlFlowTargetText(edge)}` : "-"} data-testid={edge ? "generated-casl-flow-target" : undefined}>
                             {edge ? `${controlFlowEdgeLabel(edge)} / ${controlFlowTargetText(edge)}` : "-"}
                           </span>
                         </div>
@@ -232,12 +232,12 @@ export default function OutputPanel({
                                 }
                               }}
                             >
-                              <span className="hex">{formatWord(row.address)}</span>
-                              <span className="hex">{formatWord(row.word)}</span>
-                              <span>{row.sourceText}</span>
-                              <span>{row.label ?? "-"}</span>
-                              <span>{edge ? controlFlowEdgeLabel(edge) : row.meaning}</span>
-                              <span>{row.relatedCppLine ? `L${row.relatedCppLine}` : "-"}</span>
+                              <span className="hex mono-value">{formatWord(row.address)}</span>
+                              <span className="hex mono-value">{formatWord(row.word)}</span>
+                              <span className="nowrap-symbol" title={row.sourceText}>{row.sourceText}</span>
+                              <span className="text-ellipsis" title={row.label ?? "-"}>{row.label ?? "-"}</span>
+                              <span className="text-ellipsis" title={edge ? controlFlowEdgeLabel(edge) : row.meaning}>{edge ? controlFlowEdgeLabel(edge) : row.meaning}</span>
+                              <span className="nowrap-symbol" title={row.relatedCppLine ? `L${row.relatedCppLine}` : "-"}>{row.relatedCppLine ? `L${row.relatedCppLine}` : "-"}</span>
                             </div>
                           );
                         })}
@@ -250,35 +250,37 @@ export default function OutputPanel({
                           <dl>
                             <div>
                               <dt>Address</dt>
-                              <dd>{formatWord(machineExplanation.address)}</dd>
+                              <dd className="mono-value">{formatWord(machineExplanation.address)}</dd>
                             </div>
                             <div>
                               <dt>Word</dt>
-                              <dd>{formatWord(machineExplanation.word)}</dd>
+                              <dd className="mono-value">{formatWord(machineExplanation.word)}</dd>
                             </div>
                             <div>
                               <dt>Role</dt>
-                              <dd>{machineExplanation.wordRole === "instruction" ? "instruction word" : machineExplanation.wordRole === "operand" ? "operand word" : machineExplanation.wordRole === "data" ? "data word" : "reserved word"}</dd>
+                              <dd className="text-ellipsis" title={machineExplanation.wordRole === "instruction" ? "instruction word" : machineExplanation.wordRole === "operand" ? "operand word" : machineExplanation.wordRole === "data" ? "data word" : "reserved word"}>{machineExplanation.wordRole === "instruction" ? "instruction word" : machineExplanation.wordRole === "operand" ? "operand word" : machineExplanation.wordRole === "data" ? "data word" : "reserved word"}</dd>
                             </div>
                             <div>
                               <dt>Opcode</dt>
-                              <dd>{machineExplanation.opcode !== undefined ? `${formatWord(machineExplanation.opcode, 2)} = ${machineExplanation.mnemonic ?? "unknown"}` : "-"}</dd>
+                              <dd className="nowrap-symbol">{machineExplanation.opcode !== undefined ? `${formatWord(machineExplanation.opcode, 2)} = ${machineExplanation.mnemonic ?? "unknown"}` : "-"}</dd>
                             </div>
                             <div>
                               <dt>Register</dt>
-                              <dd>{machineExplanation.register !== undefined ? `GR${machineExplanation.register}` : "-"}</dd>
+                              <dd className="nowrap-symbol">{machineExplanation.register !== undefined ? `GR${machineExplanation.register}` : "-"}</dd>
                             </div>
                             <div>
                               <dt>Index x</dt>
-                              <dd>{machineExplanation.indexRegister !== undefined ? `x = GR${machineExplanation.indexRegister}` : "x = none"}</dd>
+                              <dd className="nowrap-symbol">{machineExplanation.indexRegister !== undefined ? `x = GR${machineExplanation.indexRegister}` : "x = none"}</dd>
                             </div>
                             <div>
                               <dt>Index Value</dt>
-                              <dd>{machineExplanation.indexValue !== undefined ? formatWord(machineExplanation.indexValue) : "-"}</dd>
+                              <dd className="mono-value">{machineExplanation.indexValue !== undefined ? formatWord(machineExplanation.indexValue) : "-"}</dd>
                             </div>
                             <div>
                               <dt>Operand</dt>
-                              <dd>
+                              <dd className="text-ellipsis" title={machineExplanation.operandAddress !== undefined
+                                  ? `${formatWord(machineExplanation.operandAddress)}${machineExplanation.resolvedLabel ? ` = address of ${machineExplanation.resolvedLabel}` : ""}`
+                                  : "-"}>
                                 {machineExplanation.operandAddress !== undefined
                                   ? `${formatWord(machineExplanation.operandAddress)}${machineExplanation.resolvedLabel ? ` = address of ${machineExplanation.resolvedLabel}` : ""}`
                                   : "-"}
@@ -286,7 +288,9 @@ export default function OutputPanel({
                             </div>
                             <div>
                               <dt>Effective</dt>
-                              <dd>
+                              <dd className="text-ellipsis" title={machineExplanation.effectiveAddress !== undefined
+                                  ? `${formatWord(machineExplanation.effectiveAddress)}${machineExplanation.effectiveLabel ? ` = ${machineExplanation.effectiveLabel}` : ""}`
+                                  : "-"}>
                                 {machineExplanation.effectiveAddress !== undefined
                                   ? `${formatWord(machineExplanation.effectiveAddress)}${machineExplanation.effectiveLabel ? ` = ${machineExplanation.effectiveLabel}` : ""}`
                                   : "-"}
@@ -294,15 +298,15 @@ export default function OutputPanel({
                             </div>
                             <div>
                               <dt>Return Addr</dt>
-                              <dd>{machineExplanation.returnAddress !== undefined ? formatWord(machineExplanation.returnAddress) : "-"}</dd>
+                              <dd className="mono-value">{machineExplanation.returnAddress !== undefined ? formatWord(machineExplanation.returnAddress) : "-"}</dd>
                             </div>
                             <div>
                               <dt>Stack Addr</dt>
-                              <dd>{machineExplanation.stackAddress !== undefined ? `MEM[${formatWord(machineExplanation.stackAddress)}]` : "-"}</dd>
+                              <dd className="nowrap-symbol">{machineExplanation.stackAddress !== undefined ? `MEM[${formatWord(machineExplanation.stackAddress)}]` : "-"}</dd>
                             </div>
                             <div>
                               <dt>Call Depth</dt>
-                              <dd>
+                              <dd className="nowrap-symbol">
                                 {machineExplanation.callDepthBefore !== undefined && machineExplanation.callDepthAfter !== undefined
                                   ? `${machineExplanation.callDepthBefore} -> ${machineExplanation.callDepthAfter}`
                                   : machineExplanation.callDepth !== undefined
@@ -312,27 +316,27 @@ export default function OutputPanel({
                             </div>
                             <div>
                               <dt>RET Mode</dt>
-                              <dd>{machineExplanation.mnemonic === "RET" ? (machineExplanation.isStackReturnContext ? "stack return" : "top-level finish") : "-"}</dd>
+                              <dd className="text-ellipsis">{machineExplanation.mnemonic === "RET" ? (machineExplanation.isStackReturnContext ? "stack return" : "top-level finish") : "-"}</dd>
                             </div>
                             <div>
                               <dt>Binary</dt>
-                              <dd>{machineExplanation.binaryText}</dd>
+                              <dd className="mono-value">{machineExplanation.binaryText}</dd>
                             </div>
                             <div className="machine-code-explanation-wide">
                               <dt>Control Flow Target</dt>
-                              <dd data-testid="machine-code-control-flow-target">{selectedMachineEdge ? controlFlowTargetText(selectedMachineEdge) : "-"}</dd>
+                              <dd className="text-ellipsis" data-testid="machine-code-control-flow-target" title={selectedMachineEdge ? controlFlowTargetText(selectedMachineEdge) : "-"}>{selectedMachineEdge ? controlFlowTargetText(selectedMachineEdge) : "-"}</dd>
                             </div>
                             <div className="machine-code-explanation-wide">
                               <dt>Edge Kind</dt>
-                              <dd>{selectedMachineEdge?.kind ?? "-"}</dd>
+                              <dd className="text-ellipsis">{selectedMachineEdge?.kind ?? "-"}</dd>
                             </div>
                             <div className="machine-code-explanation-wide">
                               <dt>Source</dt>
-                              <dd>{machineExplanation.sourceText || "-"}</dd>
+                              <dd className="nowrap-symbol" title={machineExplanation.sourceText || "-"}>{machineExplanation.sourceText || "-"}</dd>
                             </div>
                             <div className="machine-code-explanation-wide">
                               <dt>Meaning</dt>
-                              <dd>{selectedMachineEdge ? controlFlowMeaning(selectedMachineEdge) : machineExplanation.meaning}</dd>
+                              <dd className="wrap-explanation" title={selectedMachineEdge ? controlFlowMeaning(selectedMachineEdge) : machineExplanation.meaning}>{selectedMachineEdge ? controlFlowMeaning(selectedMachineEdge) : machineExplanation.meaning}</dd>
                             </div>
                           </dl>
                         </section>

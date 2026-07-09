@@ -62,6 +62,26 @@ describe("LearningFlowPanel control flow", () => {
       />
     );
 
-    expect(markup).toContain("Sequential execution");
+    expect(markup).toContain("Flow: fallthrough");
+    expect(markup).not.toContain("Sequential exe");
+  });
+
+  it("learning_flow_cards_use_short_values", () => {
+    const { program, prepared } = prepareBreakContinue();
+    const state = stateFromRaw(mockCaslCore.assemble(prepared.coreSourceText));
+
+    const markup = renderToStaticMarkup(
+      <LearningFlowPanel
+        state={state}
+        sourceMode="cpp"
+        sourceText={program.source}
+        generatedCaslSource={prepared.generatedCaslSource}
+        cppToCaslMapping={prepared.mapping}
+      />
+    );
+
+    expect(markup).toContain("nowrap-symbol");
+    expect(markup).toContain("secondary-note");
+    expect(markup).toContain("Flow: fallthrough");
   });
 });

@@ -138,10 +138,10 @@ export default function MemoryPanel({ state, embedded = false }: { state: CometS
                   data-read={row.isLastRead ? "true" : "false"}
                   data-write={row.isLastWrite ? "true" : "false"}
                 >
-                  <td className="hex">{formatWord(row.address)}</td>
-                  <td className="hex">{formatWord(row.value)}</td>
-                  <td>{row.label ?? ""}</td>
-                  <td>{markers.join(" ")}</td>
+                  <td className="hex mono-value">{formatWord(row.address)}</td>
+                  <td className="hex mono-value">{formatWord(row.value)}</td>
+                  <td className="text-ellipsis nowrap-symbol" title={row.label ?? ""}>{row.label ?? ""}</td>
+                  <td className="text-ellipsis" title={markers.join(" ")}>{markers.join(" ")}</td>
                 </tr>
               );
             })}

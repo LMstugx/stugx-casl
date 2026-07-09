@@ -24,9 +24,9 @@ export default function RegisterPanel({ state, embedded = false }: { state: Come
         <tbody>
           {general.map((register) => (
             <tr key={register.name} className={register.changed ? "changed" : ""} data-testid={`register-${register.name.toLowerCase()}`}>
-              <td>{register.name}</td>
-              <td className="hex">{formatWord(register.value)}</td>
-              <td>{register.decimal}</td>
+              <td className="compact-label">{register.name}</td>
+              <td className="hex mono-value">{formatWord(register.value)}</td>
+              <td className="text-ellipsis">{register.decimal}</td>
             </tr>
           ))}
         </tbody>
@@ -37,8 +37,8 @@ export default function RegisterPanel({ state, embedded = false }: { state: Come
         <tbody>
           {other.map((register) => (
             <tr key={register.name} className={register.changed ? "changed" : ""} data-testid={`register-${register.name.toLowerCase()}`}>
-              <td>{register.name}</td>
-              <td className="hex">{formatRegisterDisplay(register, state)}</td>
+              <td className="compact-label">{register.name}</td>
+              <td className="hex mono-value">{formatRegisterDisplay(register, state)}</td>
             </tr>
           ))}
         </tbody>

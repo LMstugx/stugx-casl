@@ -117,9 +117,9 @@ function StudioShell() {
             <header className="panel-header">
               <h2>Source Editor</h2>
               <div className="source-header-actions">
-                <label className="demo-program-picker">
+                <label className="demo-program-picker" title={selectedDemoProgram.name}>
                   <span>Demo</span>
-                  <select data-testid="demo-program-select" value={selectedDemoProgramId} onChange={(event) => selectDemoProgram(event.target.value)}>
+                  <select data-testid="demo-program-select" value={selectedDemoProgramId} title={selectedDemoProgram.name} onChange={(event) => selectDemoProgram(event.target.value)}>
                     {demoPrograms.map((program) => (
                       <option key={program.id} value={program.id}>
                         {program.name}
@@ -135,7 +135,7 @@ function StudioShell() {
                     C++ subset
                   </button>
                 </div>
-                <span>{sourceMode === "cpp" ? "example.cpp" : "example.casl"}</span>
+                <span className="source-file-label" title={sourceMode === "cpp" ? "example.cpp" : "example.casl"}>{sourceMode === "cpp" ? "example.cpp" : "example.casl"}</span>
               </div>
             </header>
             <SourceEditor source={sourceText} language={sourceMode} currentLine={editorCurrentLine} onChange={setSourceText} />

@@ -270,7 +270,8 @@ async function captureCallReturnRetStack(page: Page, viewport: Viewport) {
   await step(page);
   await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("RET");
   await expect(page.getByTestId("comet-circuit-svg").locator("[data-testid='wire-mdr-to-pr']")).toHaveAttribute("data-active", "true");
-  await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("Next ST GR1,RESULT");
+  await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("Next");
+  await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("ST GR1,RESULT");
   await expect(page.getByTestId("focus-call-stack")).toContainText("RET -> 0024 from MEM[FFFD]");
   await capture(page, viewport, "call-return-ret-stack.png");
 }

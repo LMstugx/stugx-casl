@@ -19,6 +19,59 @@ button {
   border: 0;
 }
 
+.text-ellipsis,
+.nowrap-symbol {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mono-value {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--color-code-green);
+  font-family: "Cascadia Mono", Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.compact-label {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--color-muted);
+  font-size: 10px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.secondary-note {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--color-muted);
+  font-size: 10.5px;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+}
+
+.wrap-explanation {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.compact-grid,
+.card-overflow-safe {
+  min-width: 0;
+}
+
+.card-overflow-safe * {
+  min-width: 0;
+}
+
 .app-shell {
   height: 100vh;
   min-height: 720px;
@@ -299,7 +352,7 @@ button {
 }
 
 .focus-right-column {
-  grid-template-rows: 228px 132px 114px 130px 142px 58px;
+  grid-template-rows: 218px 158px 146px 130px 150px 54px;
   align-content: start;
   overflow-y: auto;
   padding-right: 2px;
@@ -384,8 +437,8 @@ button {
 
 .focus-current-body {
   display: grid;
-  gap: 5px;
-  padding: 9px 11px;
+  gap: 6px;
+  padding: 8px 10px;
 }
 
 .focus-current-panel {
@@ -398,6 +451,13 @@ button {
   border-bottom-color: #efc2c2;
 }
 
+.focus-current-header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px;
+  align-items: end;
+}
+
 .focus-current-body strong {
   color: var(--color-danger);
   font-size: 22px;
@@ -408,6 +468,22 @@ button {
   color: #10233d;
   font-family: "Cascadia Mono", Consolas, monospace;
   font-size: 13px;
+}
+
+.focus-current-semantic {
+  margin: 0;
+  color: #334155;
+  font-size: 12px;
+  line-height: 1.25;
+}
+
+.focus-current-runtime {
+  display: grid;
+  grid-template-columns: 54px minmax(0, 1fr) 42px minmax(0, 1fr);
+  gap: 3px 7px;
+  align-items: center;
+  padding-top: 2px;
+  border-top: 1px solid #f0caca;
 }
 
 .focus-current-body span,
@@ -503,29 +579,28 @@ button {
 .signal-probe-body {
   min-height: 0;
   display: grid;
-  grid-template-rows: minmax(0, 1fr) auto;
-  gap: 6px;
-  padding: 7px 8px;
+  grid-template-rows: minmax(0, auto) auto auto;
+  gap: 5px;
+  padding: 6px 8px;
   background: #f8fafc;
 }
 
-.signal-probe-grid {
+.signal-probe-rows {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 5px;
+  gap: 3px;
   min-height: 0;
 }
 
 .signal-probe-row {
   min-width: 0;
   display: grid;
-  grid-template-columns: 48px minmax(0, 1fr);
-  gap: 3px 6px;
+  grid-template-columns: 56px minmax(64px, 0.72fr) minmax(0, 1fr);
+  gap: 6px;
   align-items: center;
-  min-height: 31px;
-  padding: 4px 6px;
+  min-height: 20px;
+  padding: 2px 5px;
   border: 1px solid #d9e1ec;
-  border-radius: var(--radius-sm);
+  border-radius: 4px;
   background: #fbfcfe;
   opacity: 0.72;
 }
@@ -537,26 +612,32 @@ button {
   box-shadow: inset 2px 0 0 var(--color-active-red);
 }
 
-.signal-probe-row span,
-.signal-probe-row small {
-  color: var(--color-muted);
-  font-size: 10px;
-  font-weight: 800;
-}
-
 .signal-probe-row code {
   min-width: 0;
   overflow: hidden;
-  color: var(--color-code-green);
-  font-family: "Cascadia Mono", Consolas, monospace;
   font-size: 11px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .signal-probe-row small {
-  grid-column: 1 / -1;
   font-weight: 650;
+}
+
+.signal-probe-details {
+  min-width: 0;
+}
+
+.signal-probe-details summary {
+  cursor: pointer;
+  color: var(--color-muted);
+  font-size: 10.5px;
+  font-weight: 800;
+}
+
+.signal-probe-details[open] {
+  max-height: 74px;
+  overflow: auto;
 }
 
 .signal-probe-evolution {
@@ -578,9 +659,9 @@ button {
 .call-stack-body {
   min-height: 0;
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 4px;
-  padding: 5px 7px;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 5px;
+  padding: 6px 8px;
   background: #f8fafc;
 }
 
@@ -588,26 +669,41 @@ button {
   background: #fffdf8;
 }
 
+.call-stack-summary {
+  display: grid;
+  grid-template-columns: minmax(0, 0.52fr) minmax(0, 1fr);
+  gap: 6px;
+}
+
+.call-stack-summary > div,
 .call-stack-row {
   min-width: 0;
   display: grid;
-  grid-template-columns: 58px minmax(0, 1fr);
-  gap: 3px 6px;
+  grid-template-columns: 70px minmax(0, 1fr);
+  gap: 2px 6px;
   align-items: center;
-  min-height: 26px;
+  min-height: 22px;
   padding: 3px 5px;
   border: 1px solid #d9e1ec;
-  border-radius: var(--radius-sm);
+  border-radius: 4px;
   background: #fbfcfe;
 }
 
+.call-stack-details {
+  display: grid;
+  gap: 3px;
+}
+
+.call-stack-body[data-active="true"] .call-stack-summary > div,
 .call-stack-body[data-active="true"] .call-stack-row {
   border-color: #d9c9a4;
   box-shadow: inset 2px 0 0 #b7791f;
 }
 
 .call-stack-row span,
-.call-stack-row small {
+.call-stack-row small,
+.call-stack-summary span,
+.call-stack-summary small {
   min-width: 0;
   overflow: hidden;
   color: var(--color-muted);
@@ -617,7 +713,8 @@ button {
   white-space: nowrap;
 }
 
-.call-stack-row code {
+.call-stack-row code,
+.call-stack-summary code {
   min-width: 0;
   overflow: hidden;
   color: #10233d;
@@ -628,9 +725,14 @@ button {
   white-space: nowrap;
 }
 
-.call-stack-row small {
+.call-stack-row small,
+.call-stack-summary small {
   grid-column: 1 / -1;
   font-weight: 650;
+}
+
+.call-stack-row-wide {
+  grid-template-columns: 70px minmax(0, 1fr);
 }
 
 .stack-preview-body {
@@ -715,8 +817,8 @@ button {
   display: grid;
   grid-template-columns: 34px minmax(0, 1fr);
   gap: 6px;
-  align-items: center;
-  min-height: 34px;
+  align-items: start;
+  min-height: 46px;
   padding: 5px 7px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
@@ -746,14 +848,29 @@ button {
   font-size: 11px;
 }
 
-.focus-trace-item span {
-  grid-column: 2;
+.focus-trace-lines {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.focus-trace-item span,
+.focus-trace-item small {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--color-muted);
   font-size: 11px;
+}
+
+.focus-trace-item .trace-effect {
+  color: #334155;
+}
+
+.focus-trace-item .trace-note {
+  font-size: 10px;
+  opacity: 0.82;
 }
 
 .focus-source-context {
@@ -810,6 +927,18 @@ button {
   border-bottom: 1px solid var(--color-border);
 }
 
+.panel-header > *,
+.dock-header > * {
+  min-width: 0;
+}
+
+.panel-header h2,
+.dock-header h2 {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .panel-header h2 {
   margin: 0;
   font-size: 14px;
@@ -836,13 +965,20 @@ button {
   display: inline-flex;
   align-items: center;
   gap: 5px;
+  min-width: 0;
   color: var(--color-muted);
   font-size: 11px;
   font-weight: 750;
 }
 
+.demo-program-picker span {
+  flex: 0 0 auto;
+}
+
 .demo-program-picker select {
-  width: 150px;
+  width: clamp(128px, 12vw, 190px);
+  min-width: 128px;
+  max-width: 190px;
   height: 26px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
@@ -850,6 +986,7 @@ button {
   color: var(--color-text);
   font-size: 11px;
   font-weight: 650;
+  text-overflow: ellipsis;
 }
 
 .source-mode button {
@@ -857,6 +994,10 @@ button {
   min-height: 26px;
   font-size: 11px;
   font-weight: 750;
+}
+
+.source-file-label {
+  flex: 0 1 92px;
 }
 
 .panel-header span {
@@ -1600,9 +1741,9 @@ button {
 .flow-card {
   min-width: 0;
   display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr);
+  grid-template-rows: auto auto auto;
   gap: 3px;
-  padding: 8px 9px;
+  padding: 7px 8px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   background: #fbfcfe;
@@ -1624,7 +1765,7 @@ button {
   min-width: 0;
   color: var(--color-text);
   font-family: "Cascadia Mono", Consolas, monospace;
-  font-size: 12px;
+  font-size: 11.5px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1874,6 +2015,7 @@ button {
 
 .data-table {
   width: calc(100% - 20px);
+  table-layout: fixed;
   margin: 0 10px 10px;
   border-collapse: separate;
   border-spacing: 0;
@@ -1888,8 +2030,22 @@ button {
   height: 31px;
   padding: 5px 7px;
   border-bottom: 1px solid #e4eaf2;
+  overflow: hidden;
   text-align: left;
+  text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.memory-table th:nth-child(1),
+.memory-table td:nth-child(1),
+.memory-table th:nth-child(2),
+.memory-table td:nth-child(2) {
+  width: 58px;
+}
+
+.memory-table th:nth-child(4),
+.memory-table td:nth-child(4) {
+  width: 72px;
 }
 
 .data-table th {
@@ -1945,7 +2101,7 @@ button {
 
 .trace-item {
   display: grid;
-  grid-template-columns: 54px 1fr;
+  grid-template-columns: 54px minmax(0, 1fr);
   gap: 8px;
   padding: 7px;
   border: 1px solid var(--color-border);
@@ -1953,22 +2109,36 @@ button {
   background: #ffffff;
 }
 
+.trace-item[data-latest="false"] {
+  opacity: 0.72;
+}
+
 .trace-item strong {
   color: var(--color-danger);
   font-size: 11px;
 }
 
+.trace-item-body {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
 .trace-row {
   display: grid;
-  grid-template-columns: 68px minmax(86px, 1fr) minmax(0, 1.5fr);
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 6px;
   align-items: center;
 }
 
 .trace-row span {
+  min-width: 0;
+  overflow: hidden;
   color: var(--color-text);
   font-family: "Cascadia Mono", Consolas, monospace;
   font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .trace-item p {
@@ -1977,10 +2147,11 @@ button {
   font-size: 12px;
 }
 
-.trace-changes {
+.trace-effect {
   color: #334155;
 }
 
+.trace-note,
 .trace-flow {
   color: #1f5fbf;
   font-family: "Cascadia Mono", Consolas, monospace;
@@ -2079,6 +2250,14 @@ button {
   padding: 0 7px;
 }
 
+.code-table-header > span,
+.code-table-row > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .code-table-header {
   color: var(--color-muted);
   background: #eef2f7;
@@ -2097,17 +2276,17 @@ button {
 
 .generated-casl-table .code-table-header,
 .generated-casl-table .code-table-row {
-  grid-template-columns: 44px 122px 78px minmax(120px, 0.75fr) 156px 48px minmax(190px, 1fr);
+  grid-template-columns: 44px minmax(94px, 0.8fr) 72px minmax(104px, 0.8fr) minmax(118px, 0.8fr) 48px minmax(150px, 1fr);
 }
 
 .machine-code-table .code-table-header,
 .machine-code-table .code-table-row {
-  grid-template-columns: 72px 72px minmax(160px, 1fr) 84px 150px 54px;
+  grid-template-columns: 68px 68px minmax(142px, 1fr) minmax(68px, 0.5fr) minmax(128px, 0.9fr) 54px;
 }
 
 .machine-code-content {
   display: grid;
-  grid-template-columns: minmax(720px, 1fr) minmax(260px, 320px);
+  grid-template-columns: minmax(650px, 1fr) minmax(260px, 330px);
   gap: 10px;
   align-items: start;
 }
@@ -2249,7 +2428,17 @@ button {
   font-family: "Cascadia Mono", Consolas, monospace;
   font-size: 12px;
   color: #10233d;
-  word-break: break-word;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.machine-code-explanation dd.wrap-explanation {
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
 }
 
 .machine-code-explanation-wide {

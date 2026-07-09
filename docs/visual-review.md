@@ -121,6 +121,11 @@ Use the gallery to inspect:
 - C++ function-call screenshots show `FUNC_ADDONE`, `CALL FUNC_ADDONE`, GR0 return value convention, and CALL / RET rows in Trace.
 - C++ function-argument screenshots show `LAD GR1,5`, `ST GR1,FUNC_ADDONE_X`, the `GR1` first-argument convention, and final `GR0 = 0006`.
 - C++ function-arguments screenshots show `LAD GR1,2`, `LAD GR2,3`, `ST GR1,FUNC_ADD_A`, `ST GR2,FUNC_ADD_B`, and final `GR0 = 0005`.
+- Signal Probe uses compact label / value / note rows; extra values appear in details instead of overlapping.
+- Call Stack uses summary and detail rows; depth, RET mode, return address, and routine remain readable.
+- Trace rows show main event, primary effect, and secondary note without overflowing the card.
+- Learning Flow cards use short values such as `Flow: fallthrough` or `Flow: call -> FUNC_ADDONE`.
+- Long labels in Generated CASL and Machine Code use ellipsis rather than pushing table columns out of the dock.
 - Machine Code explanation is readable.
 - Control Flow target text is readable.
 - Source Editor is not squeezed.

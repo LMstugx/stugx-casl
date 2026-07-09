@@ -2,7 +2,9 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import CircuitFocusLayout from "../components/CircuitFocusLayout";
+import MemoryPanel from "../components/MemoryPanel";
 import OutputPanel from "../components/OutputPanel";
+import RegisterPanel from "../components/RegisterPanel";
 import StatusBar from "../components/StatusBar";
 import { mockCaslCore } from "../core/mockCaslCore";
 import type { CometState } from "../core/types";
@@ -113,6 +115,17 @@ describe("Circuit Focus Mode layout", () => {
     expect(markup).toContain('data-testid="focus-current-mnemonic"');
     expect(currentPanel(markup)).toContain("LD");
     expect(currentPanel(markup)).toContain("Current 0020");
+  });
+
+  it("current_instruction_uses_layered_structure", () => {
+    const markup = renderFocus(stepTimes(1));
+    const current = currentPanel(markup);
+
+    expect(current).toContain("focus-current-header");
+    expect(current).toContain("focus-current-semantic");
+    expect(current).toContain("focus-current-runtime");
+    expect(current).toContain('data-testid="focus-current-runtime-summary"');
+    expect(current).toContain("aria-label=\"Current 0020");
   });
 
   it("focus_mode_aligns_program_current_instruction_sourcemap_and_source_context", () => {
@@ -655,6 +668,15 @@ DONE RET
     expect(markup).toContain('data-latest="false"');
   });
 
+  it("trace_item_has_main_effect_note_structure", () => {
+    const markup = renderFocus(stepTimes(3));
+
+    expect(markup).toContain("focus-trace-lines");
+    expect(markup).toContain("trace-main text-ellipsis");
+    expect(markup).toContain("trace-effect text-ellipsis");
+    expect(markup).toContain("trace-note text-ellipsis");
+  });
+
   it("signal_probe_card_renders_compact", () => {
     const markup = renderFocus(stepTimes(1));
 
@@ -662,6 +684,26 @@ DONE RET
     expect(markup).toContain("Signal Probe");
     expect(markup).toContain("Read-only nodes");
     expect(markup).toContain('data-testid="signal-probe-evolution"');
+  });
+
+  it("signal_probe_uses_compact_rows_without_overflow", () => {
+    const markup = renderFocus(stepTimes(2));
+
+    expect(markup).toContain('data-testid="signal-probe-compact-rows"');
+    expect(markup).toContain("signal-probe-row compact-grid");
+    expect(markup).toContain("compact-label text-ellipsis");
+    expect(markup).toContain("mono-value");
+    expect(markup).toContain("secondary-note text-ellipsis");
+    expect(markup).not.toContain("signal-probe-grid");
+  });
+
+  it("signal_probe_shows_details_without_overlapping", () => {
+    const state = stepSource(callReturnSource, 2);
+    const markup = renderFocus(state, callReturnSource);
+
+    expect(markup).toContain('data-testid="signal-probe-details"');
+    expect(markup).toContain("+ ");
+    expect(markup).toContain("CALLDEPTH");
   });
 
   it("signal_probe_shows_current_involved_values", () => {
@@ -683,6 +725,23 @@ DONE RET
     expect(markup).toContain("FFFE");
     expect(markup).toContain("stack preview only");
     expect(markup).toContain('data-testid="signal-probe-row" data-active="false"');
+  });
+
+  it("call_stack_uses_summary_and_detail_rows", () => {
+    const markup = renderFocus(stepSource(callReturnSource, 2), callReturnSource);
+
+    expect(markup).toContain('data-testid="call-stack-summary"');
+    expect(markup).toContain('data-testid="call-stack-details"');
+    expect(markup).toContain("call-stack-row call-stack-row-wide");
+    expect(markup).toContain("Return edge");
+  });
+
+  it("call_stack_top_level_mode_does_not_overflow", () => {
+    const markup = renderFocus(mockCaslCore.assemble(gr2Source), gr2Source);
+
+    expect(markup).toContain('data-testid="call-stack-summary"');
+    expect(markup).toContain('data-testid="call-stack-ret-mode">Top-level finish</code>');
+    expect(markup).toContain("secondary-note text-ellipsis");
   });
 
   it("ret_semantics_unchanged", () => {
@@ -719,5 +778,90 @@ A    DC    3
 
     expect(markup).toContain('data-testid="memory-target-badge"');
     expect(markup).toContain("Target @0029");
+  });
+
+  it("text_overflow_utilities_exist", () => {
+    const focusMarkup = renderFocus(stepSource(callReturnSource, 2), callReturnSource);
+    const machineMarkup = renderToStaticMarkup(
+      <OutputPanel lines={[]} state={mockCaslCore.assemble(gr2Source)} sourceMode="casl" initialTab="machine" onClear={() => undefined} />
+    );
+    const markup = `${focusMarkup}${machineMarkup}`;
+
+    expect(markup).toContain("text-ellipsis");
+    expect(markup).toContain("mono-value");
+    expect(markup).toContain("compact-label");
+    expect(markup).toContain("secondary-note");
+    expect(markup).toContain("nowrap-symbol");
+    expect(markup).toContain("wrap-explanation");
+    expect(markup).toContain("compact-grid");
+    expect(markup).toContain("card-overflow-safe");
+  });
+
+  it("generated_casl_table_ellipsis_long_labels", () => {
+    const program = getDemoProgram("cpp-function-arguments");
+    expect(program).toBeDefined();
+    const prepared = prepareSourceForCoreAssembly(program!.source, "cpp");
+    expect(prepared.ok).toBe(true);
+    const markup = renderToStaticMarkup(
+      <OutputPanel
+        lines={[]}
+        generatedCaslSource={prepared.generatedCaslSource}
+        cppToCaslMapping={prepared.mapping}
+        sourceMode="cpp"
+        initialTab="generated"
+        onClear={() => undefined}
+      />
+    );
+
+    expect(markup).toContain("FUNC_ADD_A");
+    expect(markup).toContain("text-ellipsis");
+    expect(markup).toContain("nowrap-symbol");
+    expect(markup).toContain('title="FUNC_ADD"');
+  });
+
+  it("machine_code_explanation_does_not_overflow", () => {
+    const program = getDemoProgram("cpp-function-arguments");
+    expect(program).toBeDefined();
+    const prepared = prepareSourceForCoreAssembly(program!.source, "cpp");
+    expect(prepared.ok).toBe(true);
+    const state = mockCaslCore.assemble(prepared.coreSourceText);
+    const markup = renderToStaticMarkup(
+      <OutputPanel
+        lines={[]}
+        state={state}
+        generatedCaslSource={prepared.generatedCaslSource}
+        cppToCaslMapping={prepared.mapping}
+        sourceMode="cpp"
+        initialTab="machine"
+        onClear={() => undefined}
+      />
+    );
+
+    expect(markup).toContain('data-testid="machine-code-explanation"');
+    expect(markup).toContain("wrap-explanation");
+    expect(markup).toContain("text-ellipsis");
+    expect(markup).toContain("machine-code-explanation");
+  });
+
+  it("memory_rows_keep_address_value_label_columns", () => {
+    const markup = renderToStaticMarkup(<MemoryPanel state={stepTimes(1)} embedded />);
+
+    expect(markup).toContain('class="data-table memory-table"');
+    expect(markup).toContain("<th>Addr</th>");
+    expect(markup).toContain("<th>Value</th>");
+    expect(markup).toContain("<th>Label</th>");
+    expect(markup).toContain('class="hex mono-value"');
+    expect(markup).toContain('class="text-ellipsis nowrap-symbol"');
+  });
+
+  it("registers_source_column_ellipsis", () => {
+    const markup = renderToStaticMarkup(<RegisterPanel state={stepTimes(1)} embedded />);
+
+    expect(markup).toContain('class="data-table"');
+    expect(markup).toContain("<th>Name</th>");
+    expect(markup).toContain("<th>Value</th>");
+    expect(markup).toContain("<th>(Dec)</th>");
+    expect(markup).toContain('class="hex mono-value"');
+    expect(markup).toContain('class="text-ellipsis"');
   });
 });

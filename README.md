@@ -306,6 +306,8 @@ The current backend is shown in the status bar as `Mock Core`, `WASM Core`, or `
 - [docs/phase10b-calling-convention-design.md](docs/phase10b-calling-convention-design.md): future C++ calling convention design for `GR0` returns, `GR1` / `GR2` register arguments, and stack-frame locals.
 - [docs/phase10c-cpp-single-argument-function.md](docs/phase10c-cpp-single-argument-function.md): single-argument C++ function-call lowering with `GR1` as the first argument register.
 - [docs/phase10d-cpp-multi-register-arguments.md](docs/phase10d-cpp-multi-register-arguments.md): C++ function-call lowering for up to three register arguments in `GR1` / `GR2` / `GR3`.
+- [docs/circuit-visual-contract.md](docs/circuit-visual-contract.md): long-term Circuit Focus Mode rules for lanes, anchors, active modules, compact cards, and text overflow.
+- [docs/phase10e-focus-text-overflow-cleanup.md](docs/phase10e-focus-text-overflow-cleanup.md): Signal Probe, Call Stack, Trace, Learning Flow, and table overflow cleanup.
 
 ## Current Limitations
 

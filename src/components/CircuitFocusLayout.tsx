@@ -203,6 +203,51 @@ function traceChangeText(event: CometState["trace"][number]): string {
   return event.visualPath ?? "control";
 }
 
+function traceMainEvent(event: CometState["trace"][number]): string {
+  const source = compactInstructionText(event.source);
+  if (event.instruction === "RET" && event.visualPath === VisualPathKind.RET_StackToPr) return `#${event.index} RET stack return`;
+  if (event.instruction === "RET") return `#${event.index} RET finish`;
+  if (source) return `#${event.index} ${source}`;
+  return `#${event.index} ${event.instruction} PR ${formatWord(event.pr ?? event.address)}`;
+}
+
+function tracePrimaryEffect(event: CometState["trace"][number]): string {
+  if (event.instruction === "CALL") {
+    const target = event.effectiveAddress !== undefined ? formatWord(event.effectiveAddress) : "----";
+    const returnAddress = event.returnAddress !== undefined ? formatWord(event.returnAddress) : "----";
+    return `target ${target}; return ${returnAddress}`;
+  }
+  if (event.instruction === "RET" && event.visualPath === VisualPathKind.RET_StackToPr) {
+    const stackAddress = event.stackAddress ?? event.changedMemoryAddress;
+    const returnAddress = event.returnAddress ?? event.pr;
+    return `PR <- MEM[${stackAddress !== undefined ? formatWord(stackAddress) : "SP"}] ${returnAddress !== undefined ? formatWord(returnAddress) : "----"}`;
+  }
+  if (event.instruction === "RET") return "program finished";
+  if (event.changedRegister) {
+    const before = event.changedRegisterValueBefore === undefined ? "----" : formatWord(event.changedRegisterValueBefore);
+    const after = event.changedRegisterValueAfter === undefined ? "----" : formatWord(event.changedRegisterValueAfter);
+    return `${event.changedRegister}: ${before} -> ${after}`;
+  }
+  if (event.changedMemoryAddress !== undefined) {
+    const before = event.changedMemoryValueBefore === undefined ? "----" : formatWord(event.changedMemoryValueBefore);
+    const after = event.changedMemoryValueAfter === undefined ? "----" : formatWord(event.changedMemoryValueAfter);
+    return `MEM[${formatWord(event.changedMemoryAddress)}]: ${before} -> ${after}`;
+  }
+  return event.detail || event.visualPath || "sequential";
+}
+
+function traceSecondaryNote(event: CometState["trace"][number]): string {
+  const notes: string[] = [];
+  if (event.stackPointerValueBefore !== undefined && event.stackPointerValueAfter !== undefined) {
+    notes.push(`SP: ${formatWord(event.stackPointerValueBefore)} -> ${formatWord(event.stackPointerValueAfter)}`);
+  }
+  if (event.callDepthBefore !== undefined && event.callDepthAfter !== undefined) {
+    notes.push(`callDepth: ${event.callDepthBefore} -> ${event.callDepthAfter}`);
+  }
+  if (event.runState) notes.push(`State: ${event.runState}`);
+  return notes.join(" | ") || event.visualPath || "No secondary effect";
+}
+
 function focusInstructionContext(state: CometState, sourceMode: SourceMode, sourceText: string, cppToCaslMapping: CppToCaslMap[]): FocusInstructionContext {
   const caslLine = state.lastStep?.executedLine ?? state.currentLine;
   const address = state.lastStep?.executedAddress ?? state.currentAddress;
@@ -268,7 +313,7 @@ function FocusProgramPanel({
           >
             <span className="focus-program-arrow">{row.isCurrent ? ">" : ""}</span>
             <span className="focus-program-line-number">{row.lineNumber.toString().padStart(2, "0")}</span>
-            <code>{row.text || " "}</code>
+            <code className="nowrap-symbol" title={row.text || " "}>{row.text || " "}</code>
           </div>
         ))}
       </div>
@@ -291,20 +336,43 @@ function FocusDisplayPanel() {
 }
 
 function FocusCurrentInstructionPanel({ state, isSourceDirty, focus }: { state: CometState; isSourceDirty: boolean; focus: FocusInstructionContext }) {
+  const instructionText = focus.instructionText ?? summarizeCurrentInstruction(state);
+  const semanticText = instructionMeaning(focus.instructionText, summarizeCurrentInstruction(state), activeVisualPath(state));
+
   return (
     <section className="panel focus-current-panel" data-testid="focus-current-instruction-panel">
       <header className="panel-header">
         <h2>Current Instruction</h2>
         <span className="pipeline-pill">{isSourceDirty ? "Dirty" : focus.pipelineStage}</span>
       </header>
-      <div className="focus-current-body">
-        <strong data-testid="focus-current-mnemonic">{instructionMnemonic(focus.instructionText, state.runState)}</strong>
-        <code>{focus.instructionText ?? summarizeCurrentInstruction(state)}</code>
-        <span>{instructionMeaning(focus.instructionText, summarizeCurrentInstruction(state), activeVisualPath(state))}</span>
-        <small>
-          Current {focus.address !== undefined ? formatWord(focus.address) : "----"} / Next PR {formatWord(state.pr)}
-          {focus.nextInstructionText ? ` / Next ${focus.nextInstructionText}` : ""} / MAR {formatWord(state.mar)} / FR {formatFlags(state.fr)}
-        </small>
+      <div className="focus-current-body card-overflow-safe">
+        <div className="focus-current-header">
+          <strong data-testid="focus-current-mnemonic" className="nowrap-symbol" title={instructionMnemonic(focus.instructionText, state.runState)}>
+            {instructionMnemonic(focus.instructionText, state.runState)}
+          </strong>
+          <code className="nowrap-symbol" title={instructionText}>{instructionText}</code>
+        </div>
+        <p className="focus-current-semantic wrap-explanation" title={semanticText}>{semanticText}</p>
+        <div
+          className="focus-current-runtime compact-grid"
+          data-testid="focus-current-runtime-summary"
+          aria-label={`Current ${focus.address !== undefined ? formatWord(focus.address) : "----"} / Next PR ${formatWord(state.pr)}${focus.nextInstructionText ? ` / Next ${focus.nextInstructionText}` : ""} / MAR ${formatWord(state.mar)} / FR ${formatFlags(state.fr)}`}
+        >
+          <span className="compact-label">Current</span>
+          <code className="mono-value">{focus.address !== undefined ? formatWord(focus.address) : "----"}</code>
+          <span className="compact-label">MAR</span>
+          <code className="mono-value">{formatWord(state.mar)}</code>
+          <span className="compact-label">Next PR</span>
+          <code className="mono-value">{formatWord(state.pr)}</code>
+          <span className="compact-label">FR</span>
+          <code className="mono-value">{formatFlags(state.fr)}</code>
+          {focus.nextInstructionText ? (
+            <>
+              <span className="compact-label">Next</span>
+              <code className="nowrap-symbol" title={focus.nextInstructionText}>{focus.nextInstructionText}</code>
+            </>
+          ) : null}
+        </div>
       </div>
     </section>
   );
@@ -357,10 +425,11 @@ function FocusTracePanel({ state }: { state: CometState }) {
             data-latest={index === 0 ? "true" : "false"}
           >
             <strong>#{event.index}</strong>
-            <code>
-              PR {formatWord(event.pr ?? event.address)} / {event.instruction}
-            </code>
-            <span>{traceChangeText(event)}</span>
+            <div className="focus-trace-lines">
+              <code className="trace-main text-ellipsis" title={traceMainEvent(event)}>{traceMainEvent(event)}</code>
+              <span className="trace-effect text-ellipsis" title={tracePrimaryEffect(event)}>{tracePrimaryEffect(event)}</span>
+              <small className="trace-note text-ellipsis" title={traceSecondaryNote(event)}>{traceSecondaryNote(event)}</small>
+            </div>
           </article>
         ))}
       </div>
@@ -604,26 +673,33 @@ function FocusCallStackPanel({ state, focus }: { state: CometState; focus: Focus
         </div>
         <span>Depth {info.depthText}</span>
       </header>
-      <div className="call-stack-body" data-active={info.active ? "true" : "false"}>
-        <div className="call-stack-row">
-          <span>Depth</span>
-          <code data-testid="call-stack-depth">{info.depthText}</code>
-          <small>{info.transitionText ? `last ${info.transitionText}` : "current"}</small>
+      <div className="call-stack-body card-overflow-safe" data-active={info.active ? "true" : "false"}>
+        <div className="call-stack-summary" data-testid="call-stack-summary">
+          <div>
+            <span className="compact-label">Depth</span>
+            <code data-testid="call-stack-depth">{info.depthText}</code>
+            <small className="secondary-note">{info.transitionText ? `last ${info.transitionText}` : "current"}</small>
+          </div>
+          <div>
+            <span className="compact-label">Mode</span>
+            <code data-testid="call-stack-ret-mode">{info.retModeText}</code>
+          </div>
         </div>
-        <div className="call-stack-row">
-          <span>Top return</span>
-          <code data-testid="call-stack-return-address">{info.topReturnText}</code>
-          <small>{info.storedAtText}</small>
-        </div>
-        <div className="call-stack-row">
-          <span>Routine</span>
-          <code data-testid="call-stack-routine">{info.routineText}</code>
-          <small>current / target</small>
-        </div>
-        <div className="call-stack-row">
-          <span>RET mode</span>
-          <code data-testid="call-stack-ret-mode">{info.retModeText}</code>
-          <small>{info.edgeText}</small>
+        <div className="call-stack-details" data-testid="call-stack-details">
+          <div className="call-stack-row">
+            <span className="compact-label">Top return</span>
+            <code data-testid="call-stack-return-address">{info.topReturnText}</code>
+            <small className="secondary-note text-ellipsis" title={info.storedAtText}>{info.storedAtText}</small>
+          </div>
+          <div className="call-stack-row">
+            <span className="compact-label">Routine</span>
+            <code data-testid="call-stack-routine">{info.routineText}</code>
+            <small className="secondary-note">current / target</small>
+          </div>
+          <div className="call-stack-row call-stack-row-wide">
+            <span className="compact-label">Return edge</span>
+            <code className="nowrap-symbol" title={info.edgeText}>{info.edgeText}</code>
+          </div>
         </div>
       </div>
     </section>
@@ -632,6 +708,10 @@ function FocusCallStackPanel({ state, focus }: { state: CometState; focus: Focus
 
 function FocusSignalProbePanel({ state, focus }: { state: CometState; focus: FocusInstructionContext }) {
   const rows = signalProbeRows(state, focus);
+  const activeRows = rows.filter((row) => row.active);
+  const inactiveRows = rows.filter((row) => !row.active);
+  const primaryRows = [...activeRows, ...inactiveRows].slice(0, 5);
+  const detailRows = [...activeRows, ...inactiveRows].slice(5);
   const recent = state.trace.slice(0, 5);
 
   return (
@@ -643,18 +723,32 @@ function FocusSignalProbePanel({ state, focus }: { state: CometState; focus: Foc
         </div>
         <span>compact</span>
       </header>
-      <div className="signal-probe-body">
-        <div className="signal-probe-grid">
-          {rows.map((row) => (
-            <div key={row.label} className="signal-probe-row" data-testid="signal-probe-row" data-active={row.active ? "true" : "false"}>
-              <span>{row.label}</span>
-              <code>{row.value}</code>
-              <small>{row.note}</small>
+      <div className="signal-probe-body card-overflow-safe">
+        <div className="signal-probe-rows" data-testid="signal-probe-compact-rows">
+          {primaryRows.map((row) => (
+            <div key={row.label} className="signal-probe-row compact-grid" data-testid="signal-probe-row" data-active={row.active ? "true" : "false"}>
+              <span className="compact-label text-ellipsis" title={row.label}>{row.label}</span>
+              <code className="mono-value" title={row.value}>{row.value}</code>
+              <small className="secondary-note text-ellipsis" title={row.note}>{row.note}</small>
             </div>
           ))}
         </div>
+        {detailRows.length ? (
+          <details className="signal-probe-details" data-testid="signal-probe-details">
+            <summary>+ {detailRows.length} more</summary>
+            <div className="signal-probe-rows detail-rows">
+              {detailRows.map((row) => (
+                <div key={row.label} className="signal-probe-row compact-grid" data-testid="signal-probe-row" data-active={row.active ? "true" : "false"}>
+                  <span className="compact-label text-ellipsis" title={row.label}>{row.label}</span>
+                  <code className="mono-value" title={row.value}>{row.value}</code>
+                  <small className="secondary-note text-ellipsis" title={row.note}>{row.note}</small>
+                </div>
+              ))}
+            </div>
+          </details>
+        ) : null}
         <div className="signal-probe-evolution" data-testid="signal-probe-evolution">
-          {recent.length === 0 ? <span>No signal changes yet.</span> : recent.map((event) => <span key={`${event.index}-${event.address}`}>{traceChangeText(event)}</span>)}
+          {recent.length === 0 ? <span>No signal changes yet.</span> : recent.map((event) => <span key={`${event.index}-${event.address}`} title={traceChangeText(event)}>{traceChangeText(event)}</span>)}
         </div>
       </div>
     </section>
@@ -695,9 +789,9 @@ function FocusStackPreviewPanel({ state }: { state: CometState }) {
             data-read={row.isRead ? "true" : "false"}
             data-write={row.isWrite ? "true" : "false"}
           >
-            <code>{formatWord(row.address)}</code>
-            <code>{formatWord(row.value)}</code>
-            <span>{row.isWrite ? (row.isSp ? "WRITE / SP" : "WRITE") : row.isRead ? "READ" : row.isSp ? "<- SP" : ""}</span>
+            <code className="mono-value">{formatWord(row.address)}</code>
+            <code className="mono-value">{formatWord(row.value)}</code>
+            <span className="text-ellipsis">{row.isWrite ? (row.isSp ? "WRITE / SP" : "WRITE") : row.isRead ? "READ" : row.isSp ? "<- SP" : ""}</span>
           </div>
         ))}
       </div>
@@ -780,7 +874,7 @@ export default function CircuitFocusLayout({
             <h2>Source Context</h2>
             <span>{sourceMode === "cpp" ? "C++" : "CASL"}</span>
           </header>
-          <code data-testid="focus-source-context-text">{focus.sourceText}</code>
+          <code className="nowrap-symbol" data-testid="focus-source-context-text" title={focus.sourceText}>{focus.sourceText}</code>
         </section>
       </aside>
     </main>

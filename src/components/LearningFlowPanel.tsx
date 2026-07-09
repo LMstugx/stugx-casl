@@ -34,6 +34,23 @@ function currentMachineWords(state: CometState, mapping: CppToCaslMap[]): string
   return `${formatWord(current.address)} : ${formatWord(current.word)} | ${mnemonic}${register}${operand}`;
 }
 
+function compactControlFlowSummary(edge: ReturnType<typeof selectCurrentControlFlowEdge> | undefined): string {
+  if (!edge) return "Flow: fallthrough";
+  const target = edge.targetLabel ?? (edge.toAddress !== undefined ? formatWord(edge.toAddress) : "unresolved");
+  if (edge.kind === "unconditional-jump") return `Flow: jump -> ${target}`;
+  if (edge.kind === "break") return `Flow: break -> ${target}`;
+  if (edge.kind === "continue") return `Flow: continue -> ${target}`;
+  if (edge.kind === "loop-back") return `Flow: loop -> ${target}`;
+  if (edge.kind === "call") return `Flow: call -> ${target}`;
+  return `Flow: ${edge.kind} -> ${target}`;
+}
+
+function currentInstructionText(state: CometState): string {
+  const latest = state.trace[0];
+  if (latest?.instruction === "RET" && state.runState === "Finished") return "Flow: finish";
+  return state.currentInstruction ?? state.runState;
+}
+
 export default function LearningFlowPanel({
   state,
   sourceMode,
@@ -49,14 +66,16 @@ export default function LearningFlowPanel({
   const currentMachineRow = machineRows.find((row) => row.isCurrentPr) ?? machineRows.find((row) => row.isCurrentIr) ?? machineRows.find((row) => row.address === state.currentAddress);
   const currentMachineEdge = currentMachineRow ? selectControlFlowForMachineRow(currentMachineRow, controlFlowGraph) : undefined;
   const currentEdge = currentMachineEdge ?? selectCurrentControlFlowEdge(state, controlFlowGraph);
-  const controlFlowSummary = currentEdge ? `${currentEdge.sourceText} | ${controlFlowTargetText(currentEdge)}` : "Sequential execution";
+  const controlFlowSummary = compactControlFlowSummary(currentEdge);
+  const controlFlowDetail = currentEdge ? `${currentEdge.sourceText} / ${controlFlowTargetText(currentEdge)}` : "fallthrough";
+  const controlFlowNote = currentEdge ? controlFlowMeaning(currentEdge) : "fallthrough";
 
   return (
     <section className="learning-flow" aria-label="Code Machine Execution">
       <article className="flow-card">
         <span>Code</span>
         <strong>{sourceMode === "cpp" ? "C++ subset" : "CASL II"}</strong>
-        <code>{codeText}</code>
+        <code className="nowrap-symbol" title={codeText}>{codeText}</code>
       </article>
       <div className="flow-arrow" aria-hidden="true">
         &rarr;
@@ -64,7 +83,7 @@ export default function LearningFlowPanel({
       <article className="flow-card">
         <span>CASL II Assembly</span>
         <strong>{sourceMode === "cpp" ? "Generated" : "Source"}</strong>
-        <code>{caslText}</code>
+        <code className="nowrap-symbol" title={caslText}>{caslText}</code>
       </article>
       <div className="flow-arrow" aria-hidden="true">
         &rarr;
@@ -72,7 +91,7 @@ export default function LearningFlowPanel({
       <article className="flow-card">
         <span>COMET II Machine Code</span>
         <strong>Address / Word</strong>
-        <code>{currentMachineWords(state, cppToCaslMapping)}</code>
+        <code className="nowrap-symbol" title={currentMachineWords(state, cppToCaslMapping)}>{currentMachineWords(state, cppToCaslMapping)}</code>
       </article>
       <div className="flow-arrow" aria-hidden="true">
         &rarr;
@@ -80,8 +99,8 @@ export default function LearningFlowPanel({
       <article className="flow-card control-flow-card" data-testid="learning-flow-control-flow">
         <span>Control Flow</span>
         <strong>{currentEdge ? currentEdge.kind : "fallthrough"}</strong>
-        <code>{controlFlowSummary}</code>
-        <small>{controlFlowMeaning(currentEdge)}</small>
+        <code className="nowrap-symbol" title={controlFlowDetail}>{controlFlowSummary}</code>
+        <small className="secondary-note" title={controlFlowNote}>{controlFlowNote}</small>
       </article>
       <div className="flow-arrow" aria-hidden="true">
         &rarr;
@@ -89,7 +108,7 @@ export default function LearningFlowPanel({
       <article className="flow-card now-card">
         <span>Now Executing</span>
         <strong>PC {formatWord(state.pr)}</strong>
-        <code>{state.currentInstruction ?? state.runState}</code>
+        <code className="nowrap-symbol" title={currentInstructionText(state)}>{currentInstructionText(state)}</code>
       </article>
     </section>
   );

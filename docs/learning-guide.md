@@ -405,6 +405,8 @@ The compact Signal Probe card is read-only. It shows current or recent values fo
 
 When stack activity is relevant, Signal Probe also shows `SP` before/after, the stack memory row, and the stack value. For non-stack instructions it stays compact and does not show fake stack activity.
 
+Signal Probe, Call Stack, and Trace use compact rows by default. Read the primary value first, then use the secondary note or details row when a CALL, RET, index-addressing, or stack instruction needs more context.
+
 Display naming is intentionally narrow:
 
 - `OUT Display`: the output device panel. It shows `No output` until an OUT-like instruction exists.

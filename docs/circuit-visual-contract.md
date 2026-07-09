@@ -301,6 +301,7 @@ Text must never break the circuit layout.
 - Trace supports compact latest-row format and detailed full-trace format.
 - No text may overflow card boundaries.
 - Prefer shorter labels over smaller unreadable text.
+- Phase 10E applies these rules with label / value / note rows for Signal Probe, summary/detail rows for Call Stack, and main/effect/note rows for Trace.
 
 If a value needs extra context, use a tooltip, secondary chip, or inspector detail rather than expanding the circuit module.
 

@@ -25,7 +25,7 @@ The purpose is not to replace a full compiler. The purpose is to make each trans
 
 Example: `CASL: GR2 Addition`
 
-Follow-up examples: `CASL: Logic Operations`, `CASL: Logical Add Compare`, `CASL: Shift Operations`, `CASL: Index Addressing`, `CASL: Push Pop Stack`
+Follow-up examples: `CASL: Logic Operations`, `CASL: Logical Add Compare`, `CASL: Shift Operations`, `CASL: Index Addressing`, `CASL: Push Pop Stack`, `CASL: Call Return`
 
 Learn:
 
@@ -35,10 +35,12 @@ Learn:
 - `SLL`, `SRL`, `SLA`, `SRA` for shift operations
 - `adr,x` for base plus index-register effective addressing
 - `PUSH` and `POP` for the first stack-memory convention
+- `CALL` and stack-aware `RET` for subroutine return-address flow
 - how GR registers change
 - how shift instructions update GR and FR without reading memory as shift data
 - how indexed instructions keep a base operand word but access the effective memory row
 - how `PUSH` stores an effective address value on the stack, and how `POP` reads `Memory[SP]`
+- how `CALL` stores a return address on the stack, and how `RET` either returns from a call frame or finishes a top-level program
 - how a memory write appears in the Memory Viewer
 - how PR advances through instruction words
 
@@ -53,6 +55,7 @@ Suggested actions:
 7. Load `CASL: Shift Operations` and confirm the shift count operand is not shown as a memory data read.
 8. Load `CASL: Index Addressing` and compare the base address `A` with the effective address `B`.
 9. Load `CASL: Push Pop Stack` and watch `SP`, Stack Preview, and `Memory[SP]` during `PUSH` / `POP`.
+10. Load `CASL: Call Return` and compare the stack return address with the final top-level `RET`.
 
 ### Step 2: C++ to CASL
 
@@ -220,12 +223,13 @@ Use the examples in this order:
 4. `CASL: Shift Operations`: learn logical and arithmetic shifts, shift counts, and FR / OF updates.
 5. `CASL: Index Addressing`: learn x-field encoding, index registers, and effective address calculation.
 6. `CASL: Push Pop Stack`: learn `SP`, Stack Preview, stack memory writes, and `POP` register updates.
-7. `C++: Addition`: learn C++ to CASL and machine-code rows.
-8. `C++: If Else`: learn compare, flags, conditional jump, and target labels.
-9. `C++: While Sum`: learn repeated execution with Trace.
-10. `C++: For Sum`: learn initializer, condition, increment, and loop exit.
-11. `C++: For Sum Sugar`: learn `i++` and `+=` lowering.
-12. `C++: Break Continue`: learn jump targets for loop control.
+7. `CASL: Call Return`: learn `CALL`, return-address stack writes, stack-aware `RET`, and top-level `RET` finish compatibility.
+8. `C++: Addition`: learn C++ to CASL and machine-code rows.
+9. `C++: If Else`: learn compare, flags, conditional jump, and target labels.
+10. `C++: While Sum`: learn repeated execution with Trace.
+11. `C++: For Sum`: learn initializer, condition, increment, and loop exit.
+12. `C++: For Sum Sugar`: learn `i++` and `+=` lowering.
+13. `C++: Break Continue`: learn jump targets for loop control.
 
 ## 8. How To Verify Your Understanding
 
@@ -312,9 +316,11 @@ Read it by layers:
 
 The active data path targets specific rows where possible. For example, `LD GR2,A` highlights the Memory row for `A`, routes it through `MDR`, and lands on the `GR2` row. Arithmetic and compare instructions route the selected GR row and `MDR` into the ALU, then update either the GR row and `FR` or only `FR`.
 
-`SP` is visible as an independent register. Ordinary arithmetic, memory, shift, and jump instructions do not use it. `PUSH` and `POP` are the first active stack paths: `PUSH` decrements `SP` and writes an effective address value to `Memory[SP]`; `POP` reads `Memory[SP]` into a register and increments `SP`.
+`SP` is visible as an independent register. Ordinary arithmetic, memory, shift, and jump instructions do not use it. `PUSH` and `POP` activate the stack data path: `PUSH` decrements `SP` and writes an effective address value to `Memory[SP]`; `POP` reads `Memory[SP]` into a register and increments `SP`.
 
-The Stack Preview card is read-only but now reflects real `PUSH` / `POP` execution. It shows the current `SP` value, nearby stack memory, the written stack row after `PUSH`, and the read stack row after `POP`. `CALL` and stack-based `RET` are still future work, so current `RET` semantics are unchanged.
+`CALL` also activates the stack path. It writes the return address to `Memory[SP]`, then redirects `PR` to the subroutine target. `RET` is stack-aware only when a call frame exists: it reads the return address from the stack and returns to the caller. A top-level `RET` with no call frame still finishes the program, so existing examples keep their original ending behavior.
+
+The Stack Preview card is read-only but now reflects real `PUSH` / `POP` / `CALL` / stack-`RET` execution. It shows the current `SP` value, nearby stack memory, written return-address rows, and read return-address rows.
 
 Circuit Focus Mode uses a deliberate current/next split. The main teaching target is the last executed instruction: Program, Current Instruction, Current Source Mapping, Source Context, and the latest Trace row should all point to that same instruction. `PR` is the next address and is shown only as a secondary hint together with the next instruction.
 

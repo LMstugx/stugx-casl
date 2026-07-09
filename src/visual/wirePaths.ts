@@ -156,6 +156,7 @@ export function buildWirePaths({ grIndex = 1, indexRegister, memoryAddress = 0x2
   const memoryLeft = circuitAnchors.memory.rowLeft(memoryAddress, memoryWindowStart);
   const memoryRight = circuitAnchors.memory.rowRight(memoryAddress, memoryWindowStart);
   const mdrRight = circuitAnchors.mdr.right();
+  const mdrLeft = circuitAnchors.mdr.left();
   const mdrBottom = circuitAnchors.mdr.bottom();
   const mdrToAlu = circuitAnchors.mdr.outputToAlu();
   const aluInputA = circuitAnchors.alu.inputA();
@@ -165,6 +166,7 @@ export function buildWirePaths({ grIndex = 1, indexRegister, memoryAddress = 0x2
   const frInput = circuitAnchors.fr.input();
   const prRight = circuitAnchors.pr.right();
   const prLeft = circuitAnchors.pr.left();
+  const plus2Right = circuitAnchors.addressResult.right();
   const marLeft = circuitAnchors.mar.left();
   const marRight = circuitAnchors.mar.right();
   const marStackInput = circuitAnchors.mar.stackInput();
@@ -194,6 +196,7 @@ export function buildWirePaths({ grIndex = 1, indexRegister, memoryAddress = 0x2
     prLeft: anchor("pr.left", prLeft, "control"),
     prRight: anchor("pr.right", prRight, "control"),
     plus2Left: anchor("plus2.left", { x: circuitLayout.addressResult.x, y: prRight.y }, "control"),
+    plus2Right: anchor("plus2.right", plus2Right, "control"),
     spOutput: anchor("sp.output", spToMar, "output"),
     spAdjust: anchor("sp.adjust", spAdjust, "address"),
     marLeft: anchor("mar.left", marLeft, "address"),
@@ -211,6 +214,7 @@ export function buildWirePaths({ grIndex = 1, indexRegister, memoryAddress = 0x2
     grRight: anchor(`gr${gr}.right`, grRight, "bidirectional"),
     indexGrRight: anchor(`gr${indexGr}.indexRight`, indexGrRight, "address"),
     mdrRight: anchor("mdr.right", mdrRight, "bidirectional"),
+    mdrLeft: anchor("mdr.left", mdrLeft, "bidirectional"),
     mdrBottom: anchor("mdr.bottom", mdrBottom, "bidirectional"),
     mdrToAlu: anchor("mdr.toAlu", mdrToAlu, "output"),
     aluInputA: anchor("alu.inputA", aluInputA, "input"),
@@ -233,6 +237,7 @@ export function buildWirePaths({ grIndex = 1, indexRegister, memoryAddress = 0x2
     wire("eau-to-gr", "address", "addr", "address", anchors.eauSumOutput, anchors.grLeft, routeViaLane(eauSumOutput, grLeft, { y: addressBusY }), { relatedRegister: gr, relatedStage: "Write Back", junctions: [{ x: grLeft.x, y: addressBusY }] }),
     wire("eau-to-mdr", "address", "addr", "address", anchors.eauSumOutput, anchors.mdrRight, routeViaLane(eauSumOutput, mdrRight, { x: memoryBusX }), { avoidsAlu: true, relatedStage: "Stack write value", junctions: [{ x: memoryBusX, y: eauSumOutput.y }] }),
     wire("eau-to-pr", "address", "ctrl", "control", anchors.eauSumOutput, anchors.prLeft, [eauSumOutput, { x: eauSumOutput.x + portClearance, y: eauSumOutput.y }, { x: eauSumOutput.x + portClearance, y: addressBusY }, { x: prLeft.x - portClearance, y: addressBusY }, { x: prLeft.x - portClearance, y: prLeft.y }, prLeft], { relatedStage: "Next", junctions: [{ x: eauSumOutput.x + portClearance, y: addressBusY }] }),
+    wire("return-address-to-mdr", "address", "addr", "address", anchors.plus2Right, anchors.mdrRight, routeViaLane(plus2Right, mdrRight, { x: memoryBusX }), { avoidsAlu: true, relatedStage: "Return address", junctions: [{ x: memoryBusX, y: plus2Right.y }] }),
     wire("index-to-effective", "address", "addr", "address", anchors.indexGrRight, anchors.marLeft, [indexGrRight, { x: indexGrRight.x + portClearance, y: indexGrRight.y }, { x: indexGrRight.x + portClearance, y: addressBusY }, { x: marLeft.x - portClearance, y: addressBusY }, { x: marLeft.x - portClearance, y: marLeft.y }, marLeft], { relatedRegister: indexGr, relatedStage: "Effective Address", junctions: [{ x: indexGrRight.x + portClearance, y: addressBusY }] }),
     wire("pr-to-plus2", "control", "ctrl", "control", anchors.prRight, anchors.plus2Left, [prRight, { x: circuitLayout.addressResult.x, y: prRight.y }], { relatedStage: "Next" }),
     wire(
@@ -256,6 +261,7 @@ export function buildWirePaths({ grIndex = 1, indexRegister, memoryAddress = 0x2
     wire("mdr-to-gr", "data", "data-bypass", "data", anchors.mdrBottom, anchors.grRight, routeAvoidRect(mdrBottom, grRight, [circuitLayout.alu], { y: dataBypassY }), { avoidsAlu: true, relatedRegister: gr, relatedStage: "Write Back", junctions: [{ x: mdrBottom.x, y: dataBypassY }] }),
     wire("gr-to-mdr", "data", "data-bypass", "data", anchors.grRight, anchors.mdrBottom, routeAvoidRect(grRight, mdrBottom, [circuitLayout.alu], { y: dataBypassY }), { avoidsAlu: true, relatedRegister: gr, relatedStage: "Execute", junctions: [{ x: grRight.x, y: dataBypassY }] }),
     wire("mdr-to-memory", "data", "data-bypass", "data", anchors.mdrRight, anchors.memoryLeft, routeViaLane(mdrRight, memoryLeft, { x: memoryBusX }), { avoidsAlu: true, relatedMemoryAddress: memoryAddress, relatedStage: "Write Back", junctions: [{ x: memoryBusX, y: memoryLeft.y }] }),
+    wire("mdr-to-pr", "address", "ctrl", "control", anchors.mdrLeft, anchors.prLeft, [mdrLeft, { x: mdrLeft.x - portClearance, y: mdrLeft.y }, { x: mdrLeft.x - portClearance, y: controlBusY }, { x: prLeft.x - portClearance, y: controlBusY }, { x: prLeft.x - portClearance, y: prLeft.y }, prLeft], { avoidsAlu: true, relatedStage: "Return", junctions: [{ x: mdrLeft.x - portClearance, y: controlBusY }] }),
     wire("gr-to-alu", "data", "data-compute", "data", anchors.grRight, anchors.aluInputA, routeViaLane(grRight, aluInputA, { x: grBusX }), { relatedRegister: gr, relatedStage: "Execute", junctions: [{ x: grBusX, y: aluInputA.y }] }),
     wire("shift-count-to-alu", "address", "data-compute", "address", anchors.marShiftCount, anchors.aluInputB, routeViaLane(marLeft, aluInputB, { x: aluBusRightX }), { relatedStage: "Operand Read", relatedInstructionKind: "shift", junctions: [{ x: aluBusRightX, y: aluInputB.y }] }),
     wire("mdr-to-alu", "data", "data-compute", "data", anchors.mdrToAlu, anchors.aluInputB, routeViaLane(mdrToAlu, aluInputB, { x: aluBusRightX }), { relatedMemoryAddress: memoryAddress, relatedStage: "Execute", junctions: [{ x: aluBusRightX, y: aluInputB.y }] }),
@@ -283,6 +289,8 @@ export const activeWireIdsByKind: Record<VisualPathKind, string[]> = {
   [VisualPathKind.Shift_AddressToAluToGr]: ["gr-to-alu", "shift-count-to-alu", "alu-to-gr", "alu-to-fr"],
   [VisualPathKind.PUSH_EffectiveAddressToStack]: ["base-to-eau", "eau-to-mdr", "sp-to-mar-preview", "mar-to-memory", "mdr-to-memory"],
   [VisualPathKind.POP_StackToGr]: ["sp-to-mar-preview", "mar-to-memory", "memory-to-mdr", "mdr-to-gr"],
+  [VisualPathKind.CALL_ReturnAddressToStackAndPr]: ["pr-to-plus2", "return-address-to-mdr", "sp-to-mar-preview", "mar-to-memory", "mdr-to-memory", "base-to-eau", "eau-to-pr"],
+  [VisualPathKind.RET_StackToPr]: ["sp-to-mar-preview", "mar-to-memory", "memory-to-mdr", "mdr-to-pr"],
   [VisualPathKind.Jump_AddressToPr]: ["pr-to-mar", "address-to-pr"],
   [VisualPathKind.ConditionalJump_AddressToPr]: ["pr-to-mar", "address-to-pr"],
   [VisualPathKind.ConditionalJump_NotTaken]: ["pr-to-plus2"],

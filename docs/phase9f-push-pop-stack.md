@@ -5,7 +5,7 @@ Phase 9F adds the first executable stack instructions to the teaching VM:
 - `PUSH adr[,x]`
 - `POP GRr`
 
-This phase does not implement `CALL`, stack-based `RET`, `SVC`, `IN`, or `OUT`. Current `RET` semantics are unchanged.
+This phase does not implement `CALL`, stack-based `RET`, `SVC`, `IN`, or `OUT`. At Phase 9F time, current `RET` semantics were unchanged. Phase 9G later adds `CALL` and stack-aware `RET` while preserving top-level `RET` finish behavior.
 
 ## Supported Syntax
 
@@ -114,22 +114,24 @@ Stack Preview shows:
 - the written row after `PUSH`
 - the read row after `POP`
 
-It remains a read-only UI surface. It does not edit stack memory and does not assume `CALL` or stack-based `RET`.
+It remains a read-only UI surface. It does not edit stack memory. Phase 9G reuses the same Stack Preview surface for `CALL` return-address writes and stack-aware `RET` reads.
 
-## Why CALL / RET Are Not Implemented Here
+## Why CALL / RET Were Not Implemented Here
 
 `CALL` and stack-based `RET` require return-address ordering, PR update rules, interaction with current `RET` behavior, and additional visual paths. Keeping them out of Phase 9F lets `PUSH` / `POP` stabilize first without changing the existing program-finish semantics.
 
+Phase 9G builds on this foundation by adding `CALL adr[,x]`, a runtime `callDepth`, and a stack-aware `RET` path. A top-level `RET` still finishes the program when no call frame exists.
+
 ## Current Limitations
 
-- No `CALL`.
-- Current `RET` still finishes execution and does not pop from the stack.
+- Phase 9F itself has no `CALL`; Phase 9G adds it.
+- Phase 9F `RET` still finishes execution and does not pop from the stack; Phase 9G adds stack-aware `RET` only when a call frame exists.
 - No `PUSH GRr` register-to-register form.
 - No `SVC`, `IN`, or `OUT`.
 - C++ subset code does not generate `PUSH` or `POP`.
 
 ## Future Work
 
-- Add `CALL` with return-address push.
-- Add a separate stack-aware return path without breaking current `RET` tests.
-- Expand Stack Preview for call frames if subroutine support is added.
+- Add richer nested-call teaching examples.
+- Show return edges in Control Flow more explicitly.
+- Keep expanding Stack Preview for subroutine teaching once more call-frame examples exist.

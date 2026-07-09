@@ -98,6 +98,17 @@ else()
     RejectGr0AsIndexRegister
     ExecuteLdStWithIndex
     ExecuteLadJumpShiftWithIndex
+    AssemblePushPop
+    RejectInvalidPushPopOperands
+    ExecutePushPopStack
+    PushPopStackPointerWrap
+    AssembleCall
+    AssembleCallWithIndex
+    RejectCallWithoutAddress
+    ExecuteCallReturnStack
+    ExecuteCallWithIndex
+    NestedCallReturnOrder
+    ManualPushPopDoesNotChangeCallDepth
     StepStore
     StepRetFinished
     ExecuteGr2Program

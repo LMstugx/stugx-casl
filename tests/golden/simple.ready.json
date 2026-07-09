@@ -21,6 +21,7 @@
   "frSF": false,
   "frZF": false,
   "frCF": false,
+  "callDepth": 0,
   "currentInstructionAddress": 32,
   "currentSourceLineIndex": 2,
   "currentInstructionText": "LD GR1,A",

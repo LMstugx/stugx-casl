@@ -162,6 +162,17 @@ B    DC    20
 RESULT DS  1
      END`;
 
+const callReturnSource = `MAIN START
+     LAD   GR1,5
+     CALL  SUB
+     ST    GR1,RESULT
+     RET
+SUB  ADDA  GR1,ONE
+     RET
+ONE  DC    1
+RESULT DS  1
+     END`;
+
 function stepTimes(source: string, count: number) {
   let state = mockCaslCore.assemble(source);
   for (let index = 0; index < count; index += 1) {
@@ -660,5 +671,143 @@ VALUE DC   1
     state = mockCaslCore.step(state);
     expect(state.sp).toBe(0x0000);
     expect(state.gr[1]).toBe(state.symbols.VALUE);
+  });
+
+  it("assemble_call", () => {
+    const state = mockCaslCore.assemble(callReturnSource);
+
+    expect(state.runState).toBe("Ready");
+    expect(state.memory[0x22]).toBe(0x8000);
+    expect(state.memory[0x23]).toBe(state.symbols.SUB);
+    expect(state.sourceMap.find((row) => row.address === 0x22)?.instruction).toBe("CALL");
+  });
+
+  it("assemble_call_with_index", () => {
+    const state = mockCaslCore.assemble(`MAIN START
+     LAD   GR2,1
+     CALL  SUB,GR2
+     RET
+SUB  RET
+     END`);
+
+    expect(state.runState).toBe("Ready");
+    expect(state.memory[0x22]).toBe(0x8002);
+  });
+
+  it("reject_call_without_address", () => {
+    const state = mockCaslCore.assemble(`MAIN START
+     CALL
+     END`);
+
+    expect(state.runState).toBe("Error");
+    expect(state.diagnostics.map((diagnostic) => diagnostic.message).join(" ")).toContain("CALL requires an address operand");
+  });
+
+  it("execute_call_pushes_return_address_and_jumps_to_target", () => {
+    const state = stepTimes(callReturnSource, 2);
+
+    expect(state.pr).toBe(state.symbols.SUB);
+    expect(state.sp).toBe(0xfffd);
+    expect(state.memory[0xfffd]).toBe(0x0024);
+    expect(state.lastMemoryWriteAddress).toBe(0xfffd);
+    expect(state.callDepth).toBe(1);
+    expect(state.fr).toEqual({ z: false, c: false, n: false, o: false });
+    expect(state.visualPath).toBe(VisualPathKind.CALL_ReturnAddressToStackAndPr);
+    expect(state.trace[0].detail).toContain("return: 0024");
+    expect(state.trace[0].detail).toContain("callDepth: 0 -> 1");
+  });
+
+  it("execute_call_with_index", () => {
+    const source = `MAIN START
+     LAD   GR2,1
+     CALL  BASE,GR2
+     LAD   GR1,9
+     RET
+BASE RET
+SUB  LAD   GR1,7
+     RET
+     END`;
+    const state = stepTimes(source, 2);
+
+    expect(state.pr).toBe(state.symbols.BASE + 1);
+    expect(state.callDepth).toBe(1);
+    expect(state.memory[0xfffd]).toBe(0x0024);
+  });
+
+  it("execute_ret_with_call_depth_returns_to_stack_address", () => {
+    const state = stepTimes(callReturnSource, 4);
+
+    expect(state.pr).toBe(0x0024);
+    expect(state.sp).toBe(0xfffe);
+    expect(state.callDepth).toBe(0);
+    expect(state.lastMemoryReadAddress).toBe(0xfffd);
+    expect(state.visualPath).toBe(VisualPathKind.RET_StackToPr);
+    expect(state.trace[0].detail).toContain("RET stack return");
+  });
+
+  it("execute_ret_without_call_depth_finishes_program", () => {
+    const state = stepTimes(nopSource, 2);
+
+    expect(state.runState).toBe("Finished");
+    expect(state.callDepth).toBe(0);
+    expect(state.visualPath).toBe(VisualPathKind.Finished_None);
+    expect(state.trace[0].detail).toContain("RET program finish");
+  });
+
+  it("nested_call_return_order", () => {
+    const source = `MAIN START
+     CALL  SUB
+     ST    GR1,RESULT
+     RET
+SUB  CALL  INNER
+     RET
+INNER LAD   GR1,7
+     RET
+RESULT DS  1
+     END`;
+    let state = mockCaslCore.assemble(source);
+    for (let step = 0; step < 12 && state.runState !== "Finished"; step += 1) {
+      state = mockCaslCore.step(state);
+    }
+
+    expect(state.runState).toBe("Finished");
+    expect(state.callDepth).toBe(0);
+    expect(state.gr[1]).toBe(7);
+    expect(state.memory[state.symbols.RESULT]).toBe(7);
+  });
+
+  it("call_ret_does_not_update_fr", () => {
+    const afterCall = stepTimes(callReturnSource, 2);
+    const afterRet = stepTimes(callReturnSource, 4);
+
+    expect(afterCall.fr).toEqual({ z: false, c: false, n: false, o: false });
+    expect(afterRet.fr).toEqual({ z: false, c: false, n: false, o: false });
+  });
+
+  it("call_depth_resets_on_reset", () => {
+    const state = mockCaslCore.reset(stepTimes(callReturnSource, 2));
+
+    expect(state.callDepth).toBe(0);
+    expect(state.sp).toBe(0xfffe);
+  });
+
+  it("manual_push_pop_does_not_change_call_depth", () => {
+    const state = stepTimes(pushPopSource, 3);
+
+    expect(state.callDepth).toBe(0);
+  });
+
+  it("call_return_demo_runs", () => {
+    const program = getDemoProgram("casl-call-return");
+    expect(program).toBeDefined();
+    let state = mockCaslCore.assemble(program!.source);
+    for (let step = 0; step < 12 && state.runState !== "Finished"; step += 1) {
+      state = mockCaslCore.step(state);
+    }
+
+    expect(state.runState).toBe("Finished");
+    expect(state.gr[1]).toBe(0x0006);
+    expect(state.memory[state.symbols.RESULT]).toBe(0x0006);
+    expect(state.callDepth).toBe(0);
   });
 });

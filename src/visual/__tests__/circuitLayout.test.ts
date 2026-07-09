@@ -117,6 +117,8 @@ describe("circuit focus layout", () => {
     expect(activeWireIdsByKind[VisualPathKind.ADDA_GrMdrToAluToGr]).toEqual(["gr-to-alu", "mar-to-memory", "memory-to-mdr", "mdr-to-alu", "alu-to-gr", "alu-to-fr"]);
     expect(activeWireIdsByKind[VisualPathKind.CPA_GrMdrToAluToFr]).not.toContain("alu-to-gr");
     expect(activeWireIdsByKind[VisualPathKind.Shift_AddressToAluToGr]).toEqual(["gr-to-alu", "shift-count-to-alu", "alu-to-gr", "alu-to-fr"]);
+    expect(activeWireIdsByKind[VisualPathKind.CALL_ReturnAddressToStackAndPr]).toEqual(["pr-to-plus2", "return-address-to-mdr", "sp-to-mar-preview", "mar-to-memory", "mdr-to-memory", "base-to-eau", "eau-to-pr"]);
+    expect(activeWireIdsByKind[VisualPathKind.RET_StackToPr]).toEqual(["sp-to-mar-preview", "mar-to-memory", "memory-to-mdr", "mdr-to-pr"]);
     expect(activeWireIdsByKind[VisualPathKind.Jump_AddressToPr]).toEqual(["pr-to-mar", "address-to-pr"]);
     expect(activeWireIdsByKind[VisualPathKind.LAD_AddressToGr]).not.toContain("memory-to-mdr");
   });
@@ -334,10 +336,45 @@ describe("circuit focus layout", () => {
       relatedStage: "Stack preview"
     });
     for (const [kind, wires] of Object.entries(activeWireIdsByKind)) {
-      if (kind === VisualPathKind.PUSH_EffectiveAddressToStack || kind === VisualPathKind.POP_StackToGr) continue;
+      if (
+        kind === VisualPathKind.PUSH_EffectiveAddressToStack ||
+        kind === VisualPathKind.POP_StackToGr ||
+        kind === VisualPathKind.CALL_ReturnAddressToStackAndPr ||
+        kind === VisualPathKind.RET_StackToPr
+      ) continue;
       expect(wires).not.toContain("sp-to-mar-preview");
       expect(wires).not.toContain("mar-to-stack-memory-preview");
     }
+  });
+
+  it("call_path_writes_return_address_and_updates_pr", () => {
+    const paths = buildWirePaths({ grIndex: 1, memoryAddress: 0xfffd, memoryWindowStart: 0xfff8 });
+    const byId = new Map(paths.map((wire) => [wire.id, wire]));
+
+    expect(byId.get("return-address-to-mdr")).toMatchObject({
+      fromAnchor: expect.objectContaining({ id: "plus2.right" }),
+      toAnchor: expect.objectContaining({ id: "mdr.right" }),
+      avoidsAlu: true,
+      relatedStage: "Return address"
+    });
+    expect(byId.get("eau-to-pr")).toMatchObject({
+      fromAnchor: expect.objectContaining({ id: "eau.sum" }),
+      toAnchor: expect.objectContaining({ id: "pr.left" }),
+      lane: "ctrl",
+      semanticType: "control"
+    });
+  });
+
+  it("ret_stack_path_reads_memory_to_pr", () => {
+    const retWires = activeWiresFor(VisualPathKind.RET_StackToPr);
+
+    expect(ids(retWires)).toEqual(["sp-to-mar-preview", "mar-to-memory", "memory-to-mdr", "mdr-to-pr"]);
+    expect(retWires.find((wire) => wire.id === "mdr-to-pr")).toMatchObject({
+      fromAnchor: expect.objectContaining({ id: "mdr.left" }),
+      toAnchor: expect.objectContaining({ id: "pr.left" }),
+      avoidsAlu: true,
+      semanticType: "control"
+    });
   });
 
   it("stack_path_template_placeholders_exist", () => {
@@ -361,8 +398,16 @@ describe("circuit focus layout", () => {
       writesMemory: true,
       futureInstructionKinds: ["PUSH"]
     });
-    expect(stackPathTemplates["call-return-address"].futureInstructionKinds).toEqual(["CALL"]);
-    expect(stackPathTemplates["return-pop-address"].futureInstructionKinds).toEqual(["RET_STACK"]);
+    expect(stackPathTemplates["call-return-address"]).toMatchObject({
+      instructionKind: "CALL",
+      routeSegments: ["pr-to-plus2", "return-address-to-mdr", "sp-to-mar-preview", "mar-to-memory", "mdr-to-memory", "eau-to-pr"],
+      futureInstructionKinds: ["CALL"]
+    });
+    expect(stackPathTemplates["return-pop-address"]).toMatchObject({
+      instructionKind: "RET",
+      routeSegments: ["sp-to-mar-preview", "mar-to-memory", "memory-to-mdr", "mdr-to-pr"],
+      futureInstructionKinds: ["RET_STACK"]
+    });
   });
 
   it("row_anchor_endpoint_is_used_for_memory_read_write", () => {

@@ -50,7 +50,8 @@ function dumpScenario(scenario: string): CometStateDto {
   const childProcess = processLike.getBuiltinModule?.("child_process");
   const exe = coreDumpExe();
   if (!cwd || !childProcess || !exe) throw new Error("core_dump.exe is unavailable.");
-  return JSON.parse(childProcess.execFileSync(exe, ["--scenario", scenario], { cwd, encoding: "utf8" })) as CometStateDto;
+  const dto = JSON.parse(childProcess.execFileSync(exe, ["--scenario", scenario], { cwd, encoding: "utf8" })) as Partial<CometStateDto>;
+  return { callDepth: 0, ...dto } as CometStateDto;
 }
 
 function dumpScenarioIfSupported(scenario: string): CometStateDto | null {

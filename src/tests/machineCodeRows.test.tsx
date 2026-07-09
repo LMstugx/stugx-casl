@@ -548,4 +548,41 @@ describe("machine code rows", () => {
     expect(explanation.register).toBe(1);
     expect(explanation.meaning).toContain("Load memory[SP] into GR1");
   });
+
+  it("machine_code_rows_call", () => {
+    const state = stateFromRaw(mockCaslCore.assemble(getDemoProgram("casl-call-return")!.source));
+    const rows = selectMachineCodeRows(state);
+
+    expect(rows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ address: 0x22, word: 0x8000, sourceText: "CALL SUB", kind: "instruction" }),
+        expect.objectContaining({ address: 0x23, word: 0x0027, sourceText: "CALL SUB", kind: "operand", meaning: expect.stringContaining("subroutine target address") })
+      ])
+    );
+  });
+
+  it("machine_code_explanation_call", () => {
+    let state = mockCaslCore.assemble(getDemoProgram("casl-call-return")!.source);
+    state = mockCaslCore.step(state);
+    state = mockCaslCore.step(state);
+    const rows = selectMachineCodeRows(stateFromRaw(state));
+    const explanation = explainMachineCodeRow(rows.find((row) => row.address === 0x22)!);
+
+    expect(explanation.mnemonic).toBe("CALL");
+    expect(explanation.opcode).toBe(0x80);
+    expect(explanation.meaning).toContain("Push the return address");
+    expect(explanation.effectiveAddress).toBe(0x27);
+  });
+
+  it("machine_code_explanation_ret_stack_vs_finish", () => {
+    let stackState = mockCaslCore.assemble(getDemoProgram("casl-call-return")!.source);
+    for (let index = 0; index < 4; index += 1) stackState = mockCaslCore.step(stackState);
+    const stackRows = selectMachineCodeRows(stackState);
+    const stackRet = explainMachineCodeRow(stackRows.find((row) => row.address === 0x29)!);
+    const finishRows = selectMachineCodeRows(stateFromRaw(mockCaslCore.assemble(getDemoProgram("casl-call-return")!.source)));
+    const topLevelRet = explainMachineCodeRow(finishRows.find((row) => row.address === 0x26)!);
+
+    expect(stackRet.meaning).toContain("Return through the stack");
+    expect(topLevelRet.meaning).toContain("Top-level return");
+  });
 });

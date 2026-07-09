@@ -10,6 +10,7 @@ import { getDemoProgram } from "../examples/demoPrograms";
 
 const gr2Source = getDemoProgram("casl-gr2-addition")!.source;
 const pushPopSource = getDemoProgram("casl-push-pop-stack")!.source;
+const callReturnSource = getDemoProgram("casl-call-return")!.source;
 const timelineItems = [
   { key: "ready", index: 0, label: "Ready", phase: "completed" },
   { key: "ld", index: 1, label: "LD", phase: "current" },
@@ -240,6 +241,43 @@ describe("Circuit Focus Mode layout", () => {
     expect(markup).toContain('data-read="true"');
     expect(markup).toContain('data-address="FFFD" data-sp="false" data-read="true" data-write="false"');
     expect(markup).toContain("Read MEM[FFFD]");
+  });
+
+  it("circuit_call_activates_sp_memory_write_pr_target", () => {
+    const state = stepSource(callReturnSource, 2);
+    const markup = renderFocus(state, callReturnSource);
+
+    expect(markup).toContain('data-testid="module-sp" data-active="true"');
+    expect(markup).toContain('data-testid="module-pr" data-active="true"');
+    expect(markup).toContain('data-testid="effective-address-unit" data-active="true"');
+    expect(activeWireIds(markup)).toEqual(expect.arrayContaining(["pr-to-plus2", "return-address-to-mdr", "sp-to-mar-preview", "mar-to-memory", "mdr-to-memory", "base-to-eau", "eau-to-pr"]));
+    expect(markup).toContain('data-testid="memory-row-FFFD"');
+    expect(markup).toContain('data-write="true"');
+    expect(markup).toContain("return: 0024");
+    expect(markup).toContain("CALLDEPTH");
+  });
+
+  it("circuit_stack_ret_activates_sp_memory_read_pr", () => {
+    const state = stepSource(callReturnSource, 4);
+    const markup = renderFocus(state, callReturnSource);
+
+    expect(markup).toContain('data-testid="module-sp" data-active="true"');
+    expect(markup).toContain('data-testid="module-pr" data-active="true"');
+    expect(activeWireIds(markup)).toEqual(expect.arrayContaining(["sp-to-mar-preview", "mar-to-memory", "memory-to-mdr", "mdr-to-pr"]));
+    expect(markup).toContain('data-testid="memory-row-FFFD"');
+    expect(markup).toContain('data-read="true"');
+    expect(markup).toContain("RET stack return");
+    expect(markup).toContain("RETADDR");
+  });
+
+  it("circuit_top_level_ret_does_not_activate_sp", () => {
+    const state = stepSource(gr2Source, 4);
+    const markup = renderFocus(state, gr2Source);
+
+    expect(markup).toContain('data-testid="module-sp" data-active="false"');
+    expect(activeWireIds(markup)).not.toContain("sp-to-mar-preview");
+    expect(activeWireIds(markup)).not.toContain("memory-to-mdr");
+    expect(markup).toContain("RET program finish");
   });
 
   it("non_stack_instructions_do_not_activate_sp", () => {

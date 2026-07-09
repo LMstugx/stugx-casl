@@ -164,6 +164,14 @@ export const instructionEncodings: Partial<Record<InstructionKind, InstructionEn
     description: "Load Memory[SP] into a general register, then increment SP.",
     fields: ["opcode", "r"]
   },
+  CALL: {
+    mnemonic: "CALL",
+    opcode: 0x80,
+    format: "JUMP_ADR",
+    wordLength: 2,
+    description: "Push the return address to Memory[SP], then jump to the operand address.",
+    fields: ["opcode", "x", "address"]
+  },
   JMI: {
     mnemonic: "JMI",
     opcode: 0x61,
@@ -217,7 +225,7 @@ export const instructionEncodings: Partial<Record<InstructionKind, InstructionEn
     opcode: 0x81,
     format: "RET",
     wordLength: 1,
-    description: "Return from the program and finish execution in this learning VM.",
+    description: "Return through the stack when a call frame exists; otherwise finish execution.",
     fields: ["opcode"]
   },
   DC: {

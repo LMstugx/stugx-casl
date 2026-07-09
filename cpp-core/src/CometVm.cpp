@@ -456,6 +456,26 @@ StepResult CometVm::step() {
             pushTrace("POP");
             break;
         }
+        case Opcode::CALL: {
+            if (!instruction->operandAddress.has_value()) {
+                fail(result, "Invalid CALL operand");
+                return result;
+            }
+            const auto newSp = static_cast<std::uint16_t>(state_.sp - 1);
+            const auto returnAddress = static_cast<std::uint16_t>(instruction->address + 2);
+            state_.sp = newSp;
+            state_.mar = newSp;
+            state_.mdr = returnAddress;
+            state_.memory[newSp] = returnAddress;
+            state_.lastMemoryWriteAddress = newSp;
+            state_.pr = effective.effectiveAddress;
+            state_.callDepth += 1;
+            state_.visualPath = VisualPathKind::CALL_ReturnAddressToStackAndPr;
+            result.visualPath = state_.visualPath;
+            result.ok = true;
+            pushTrace("CALL");
+            break;
+        }
         case Opcode::ST: {
             const auto gr = instruction->gr;
             if (gr >= kGeneralRegisterCount || !instruction->operandAddress.has_value()) {
@@ -495,12 +515,26 @@ StepResult CometVm::step() {
             break;
         }
         case Opcode::RET:
-            state_.runState = RunState::Finished;
-            state_.visualPath = VisualPathKind::Finished_None;
-            result.visualPath = state_.visualPath;
-            result.ok = true;
-            result.finished = true;
-            pushTrace("RET");
+            if (state_.callDepth > 0) {
+                const auto oldSp = state_.sp;
+                state_.mar = oldSp;
+                state_.lastMemoryReadAddress = oldSp;
+                state_.mdr = state_.memory[oldSp];
+                state_.pr = state_.mdr;
+                state_.sp = static_cast<std::uint16_t>(state_.sp + 1);
+                state_.callDepth -= 1;
+                state_.visualPath = VisualPathKind::RET_StackToPr;
+                result.visualPath = state_.visualPath;
+                result.ok = true;
+                pushTrace("RET_STACK");
+            } else {
+                state_.runState = RunState::Finished;
+                state_.visualPath = VisualPathKind::Finished_None;
+                result.visualPath = state_.visualPath;
+                result.ok = true;
+                result.finished = true;
+                pushTrace("RET");
+            }
             break;
         default:
             fail(result, "Illegal opcode");

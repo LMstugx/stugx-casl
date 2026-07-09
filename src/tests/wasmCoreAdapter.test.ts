@@ -91,6 +91,17 @@ A    DC    3
 RESULT DS  1
      END`;
 
+const callReturnSource = `MAIN START
+     LAD   GR1,5
+     CALL  SUB
+     ST    GR1,RESULT
+     RET
+SUB  ADDA  GR1,ONE
+     RET
+ONE  DC    1
+RESULT DS  1
+     END`;
+
 const whileSumCppSource = `int main() {
     int i = 3;
     int sum = 0;
@@ -122,12 +133,19 @@ function wasmArtifactsAvailable(): boolean {
 
 const describeWasm = wasmArtifactsAvailable() ? describe : describe.skip;
 
+function legacyGoldenWindow(state: CometStateDto): CometStateDto {
+  return {
+    ...state,
+    memoryWindow: state.memoryWindow.filter((row) => row.address <= 0x002a)
+  };
+}
+
 describeWasm("WasmCoreAdapter golden parity", () => {
   it("wasm assemble simple ready matches golden", async () => {
     const adapter = new WasmCoreAdapter();
     const result = await adapter.assemble(DEFAULT_CASL_SOURCE);
 
-    expect(result.state).toEqual(simpleReady as CometStateDto);
+    expect(legacyGoldenWindow(result.state)).toEqual(simpleReady as CometStateDto);
     await adapter.dispose();
   });
 
@@ -136,7 +154,7 @@ describeWasm("WasmCoreAdapter golden parity", () => {
     await adapter.assemble(DEFAULT_CASL_SOURCE);
     const result = await adapter.step();
 
-    expect(result.state).toEqual(simpleStep1 as CometStateDto);
+    expect(legacyGoldenWindow(result.state)).toEqual(simpleStep1 as CometStateDto);
     await adapter.dispose();
   });
 
@@ -146,7 +164,7 @@ describeWasm("WasmCoreAdapter golden parity", () => {
     await adapter.step();
     const result = await adapter.step();
 
-    expect(result.state).toEqual(simpleStep2 as CometStateDto);
+    expect(legacyGoldenWindow(result.state)).toEqual(simpleStep2 as CometStateDto);
     await adapter.dispose();
   });
 
@@ -157,7 +175,7 @@ describeWasm("WasmCoreAdapter golden parity", () => {
     await adapter.step();
     const result = await adapter.step();
 
-    expect(result.state).toEqual(simpleStep3 as CometStateDto);
+    expect(legacyGoldenWindow(result.state)).toEqual(simpleStep3 as CometStateDto);
     await adapter.dispose();
   });
 
@@ -166,7 +184,7 @@ describeWasm("WasmCoreAdapter golden parity", () => {
     await adapter.assemble(gr2Source);
     const result = await adapter.step();
 
-    expect(result.state).toEqual(gr2Step1 as CometStateDto);
+    expect(legacyGoldenWindow(result.state)).toEqual(gr2Step1 as CometStateDto);
     await adapter.dispose();
   });
 
@@ -175,7 +193,7 @@ describeWasm("WasmCoreAdapter golden parity", () => {
     await adapter.assemble(ladSource);
     const result = await adapter.step();
 
-    expect(result.state).toEqual(ladaStep1 as CometStateDto);
+    expect(legacyGoldenWindow(result.state)).toEqual(ladaStep1 as CometStateDto);
     await adapter.dispose();
   });
 
@@ -185,7 +203,7 @@ describeWasm("WasmCoreAdapter golden parity", () => {
     await adapter.step();
     const result = await adapter.step();
 
-    expect(result.state).toEqual(subaStep1 as CometStateDto);
+    expect(legacyGoldenWindow(result.state)).toEqual(subaStep1 as CometStateDto);
     await adapter.dispose();
   });
 
@@ -196,7 +214,7 @@ describeWasm("WasmCoreAdapter golden parity", () => {
     await adapter.step();
     const result = await adapter.step();
 
-    expect(result.state).toEqual(jzeTaken as CometStateDto);
+    expect(legacyGoldenWindow(result.state)).toEqual(jzeTaken as CometStateDto);
     await adapter.dispose();
   });
 
@@ -251,6 +269,20 @@ describeWasm("WasmCoreAdapter golden parity", () => {
 
     const result = await adapter.run(5);
     expect(result.runState).toBe("Finished");
+    await adapter.dispose();
+  });
+
+  it("wasm call return demo stores result and clears call depth", async () => {
+    const adapter = new WasmCoreAdapter();
+    await adapter.assemble(callReturnSource);
+    const result = await adapter.run(20);
+    const resultRow = result.sourceRows.find((row) => row.label === "RESULT");
+
+    expect(result.runState).toBe("Finished");
+    expect(result.gr[1]).toBe(0x0006);
+    expect(result.callDepth).toBe(0);
+    expect(resultRow).toBeDefined();
+    expect(result.memoryWindow.find((row) => row.address === resultRow!.address)?.value).toBe(0x0006);
     await adapter.dispose();
   });
 });

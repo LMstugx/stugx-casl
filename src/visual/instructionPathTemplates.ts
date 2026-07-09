@@ -9,6 +9,8 @@ export type InstructionPathCategory =
   | "compare"
   | "shift"
   | "stack"
+  | "call"
+  | "return"
   | "jump"
   | "no-op";
 
@@ -34,13 +36,16 @@ export type InstructionPathTemplate = {
   usesMAR?: boolean;
   writesSP?: boolean;
   readsMemory?: boolean;
+  updatesPR?: boolean;
+  finishesProgram?: boolean;
+  stackPathKind?: StackPathKind;
 };
 
 export type StackPathKind = "stack-read" | "stack-write" | "call-return-address" | "return-pop-address";
 export type FutureStackInstructionKind = "PUSH" | "POP" | "CALL" | "RET_STACK";
 
 export type StackPathTemplate = {
-  instructionKind?: "PUSH" | "POP";
+  instructionKind?: "PUSH" | "POP" | "CALL" | "RET";
   kind: StackPathKind;
   source: "SP" | "PR" | "GR" | "Memory";
   target: "MAR" | "Memory[SP]" | "PR" | "GR";
@@ -192,6 +197,53 @@ const popTemplate: InstructionPathTemplate = {
   readsMemory: true
 };
 
+const callTemplate: InstructionPathTemplate = {
+  instructionKind: "CALL",
+  category: "call",
+  visualPath: VisualPathKind.CALL_ReturnAddressToStackAndPr,
+  stages: ["fetch", "decode", "operand", "writeback", "next"],
+  activeModules: ["PR", "+2", "EAU", "SP", "MAR", "MDR", "Memory"],
+  activeAnchors: ["plus2.right", "mdr.right", "sp.output", "mar.stackInput", "memory.rowLeft", "eau.sum", "pr.left"],
+  routeSegments: ["pr-to-plus2", "return-address-to-mdr", "sp-to-mar-preview", "mar-to-memory", "mdr-to-memory", "base-to-eau", "eau-to-pr"],
+  updatesFR: false,
+  writesRegister: false,
+  writesMemory: true,
+  usesALU: false,
+  usesMDR: true,
+  usesMemory: true,
+  usesControlPath: true,
+  usesEAU: true,
+  usesSP: true,
+  usesMAR: true,
+  writesSP: true,
+  readsMemory: false,
+  updatesPR: true,
+  stackPathKind: "call-return-address"
+};
+
+export const retStackTemplate: InstructionPathTemplate = {
+  instructionKind: "RET",
+  category: "return",
+  visualPath: VisualPathKind.RET_StackToPr,
+  stages: ["fetch", "decode", "operand", "writeback", "next"],
+  activeModules: ["SP", "MAR", "Memory", "MDR", "PR"],
+  activeAnchors: ["sp.output", "mar.stackInput", "memory.rowLeft", "mdr.left", "pr.left"],
+  routeSegments: ["sp-to-mar-preview", "mar-to-memory", "memory-to-mdr", "mdr-to-pr"],
+  updatesFR: false,
+  writesRegister: false,
+  writesMemory: false,
+  usesALU: false,
+  usesMDR: true,
+  usesMemory: true,
+  usesControlPath: true,
+  usesSP: true,
+  usesMAR: true,
+  writesSP: true,
+  readsMemory: true,
+  updatesPR: true,
+  stackPathKind: "return-pop-address"
+};
+
 const noOpTemplate: InstructionPathTemplate = {
   instructionKind: "NOP",
   category: "no-op",
@@ -229,13 +281,14 @@ export const instructionPathTemplates: Partial<Record<InstructionKind, Instructi
   SRL: { ...shiftTemplate, instructionKind: "SRL" },
   PUSH: pushTemplate,
   POP: popTemplate,
+  CALL: callTemplate,
   JUMP: jumpTemplate,
   JZE: { ...jumpTemplate, instructionKind: "JZE", visualPath: VisualPathKind.ConditionalJump_AddressToPr },
   JNZ: { ...jumpTemplate, instructionKind: "JNZ", visualPath: VisualPathKind.ConditionalJump_AddressToPr },
   JPL: { ...jumpTemplate, instructionKind: "JPL", visualPath: VisualPathKind.ConditionalJump_AddressToPr },
   JMI: { ...jumpTemplate, instructionKind: "JMI", visualPath: VisualPathKind.ConditionalJump_AddressToPr },
   JOV: { ...jumpTemplate, instructionKind: "JOV", visualPath: VisualPathKind.ConditionalJump_AddressToPr },
-  RET: { ...noOpTemplate, instructionKind: "RET", visualPath: VisualPathKind.Finished_None }
+  RET: { ...noOpTemplate, instructionKind: "RET", category: "return", visualPath: VisualPathKind.Finished_None, finishesProgram: true }
 };
 
 export const stackPathTemplates: Record<StackPathKind, StackPathTemplate> = {
@@ -270,10 +323,11 @@ export const stackPathTemplates: Record<StackPathKind, StackPathTemplate> = {
     futureInstructionKinds: ["PUSH"]
   },
   "call-return-address": {
+    instructionKind: "CALL",
     kind: "call-return-address",
     source: "PR",
     target: "Memory[SP]",
-    routeSegments: ["sp-to-mar-preview", "mar-to-stack-memory-preview"],
+    routeSegments: ["pr-to-plus2", "return-address-to-mdr", "sp-to-mar-preview", "mar-to-memory", "mdr-to-memory", "eau-to-pr"],
     usesSP: true,
     usesMAR: true,
     usesMemory: true,
@@ -284,10 +338,11 @@ export const stackPathTemplates: Record<StackPathKind, StackPathTemplate> = {
     futureInstructionKinds: ["CALL"]
   },
   "return-pop-address": {
+    instructionKind: "RET",
     kind: "return-pop-address",
     source: "Memory",
     target: "PR",
-    routeSegments: ["sp-to-mar-preview", "mar-to-stack-memory-preview"],
+    routeSegments: ["sp-to-mar-preview", "mar-to-memory", "memory-to-mdr", "mdr-to-pr"],
     usesSP: true,
     usesMAR: true,
     usesMemory: true,

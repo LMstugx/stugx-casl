@@ -152,4 +152,27 @@ A    DC    3
 
     expect(graph.edges).toEqual([]);
   });
+
+  it("control_flow_recognizes_call_target", () => {
+    const source = getDemoProgram("casl-call-return")!.source;
+    const rawState = mockCaslCore.assemble(source);
+    const state = createCometStateFromDto(toAssembleResultDto(rawState).state);
+    const machineRows = selectMachineCodeRows(state);
+    const graph = selectControlFlowGraph(source, [], machineRows, state);
+
+    expect(graph.edges).toEqual(expect.arrayContaining([
+      expect.objectContaining({ kind: "call", targetLabel: "SUB", fromAddress: 0x22, toAddress: 0x27 })
+    ]));
+    expect(graph.edges.some((edge) => edge.kind === "conditional-false" && edge.fromAddress === 0x22)).toBe(false);
+  });
+
+  it("control_flow_ret_finish_safe", () => {
+    const source = getDemoProgram("casl-call-return")!.source;
+    const rawState = mockCaslCore.assemble(source);
+    const state = createCometStateFromDto(toAssembleResultDto(rawState).state);
+    const machineRows = selectMachineCodeRows(state);
+    const graph = selectControlFlowGraph(source, [], machineRows, state);
+
+    expect(graph.edges.some((edge) => edge.sourceText === "RET")).toBe(false);
+  });
 });

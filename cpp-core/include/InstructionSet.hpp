@@ -30,6 +30,7 @@ enum class Opcode {
     SRL,
     PUSH,
     POP,
+    CALL,
     ST,
     JUMP,
     JZE,

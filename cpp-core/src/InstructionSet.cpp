@@ -41,6 +41,7 @@ std::optional<Opcode> parseOpcode(std::string_view text) {
     if (op == "SRL") return Opcode::SRL;
     if (op == "PUSH") return Opcode::PUSH;
     if (op == "POP") return Opcode::POP;
+    if (op == "CALL") return Opcode::CALL;
     if (op == "ST") return Opcode::ST;
     if (op == "JUMP") return Opcode::JUMP;
     if (op == "JZE") return Opcode::JZE;
@@ -76,6 +77,7 @@ std::string opcodeName(Opcode opcode) {
         case Opcode::SRL: return "SRL";
         case Opcode::PUSH: return "PUSH";
         case Opcode::POP: return "POP";
+        case Opcode::CALL: return "CALL";
         case Opcode::ST: return "ST";
         case Opcode::JUMP: return "JUMP";
         case Opcode::JZE: return "JZE";
@@ -93,7 +95,7 @@ bool isExecutableOpcode(Opcode opcode) {
            opcode == Opcode::SUBA || opcode == Opcode::ADDL || opcode == Opcode::SUBL || opcode == Opcode::AND ||
            opcode == Opcode::OR || opcode == Opcode::XOR || opcode == Opcode::CPA || opcode == Opcode::CPL ||
            opcode == Opcode::SLA || opcode == Opcode::SRA || opcode == Opcode::SLL || opcode == Opcode::SRL ||
-           opcode == Opcode::PUSH || opcode == Opcode::POP || opcode == Opcode::ST || opcode == Opcode::JUMP || opcode == Opcode::JZE || opcode == Opcode::JNZ ||
+           opcode == Opcode::PUSH || opcode == Opcode::POP || opcode == Opcode::CALL || opcode == Opcode::ST || opcode == Opcode::JUMP || opcode == Opcode::JZE || opcode == Opcode::JNZ ||
            opcode == Opcode::JPL || opcode == Opcode::JMI || opcode == Opcode::JOV || opcode == Opcode::RET;
 }
 
@@ -103,7 +105,7 @@ bool hasAddressOperand(Opcode opcode) {
            opcode == Opcode::XOR || opcode == Opcode::CPA || opcode == Opcode::CPL || opcode == Opcode::SLA ||
            opcode == Opcode::SRA || opcode == Opcode::SLL || opcode == Opcode::SRL || opcode == Opcode::ST ||
            opcode == Opcode::JUMP || opcode == Opcode::JZE || opcode == Opcode::JNZ || opcode == Opcode::JPL ||
-           opcode == Opcode::JMI || opcode == Opcode::JOV || opcode == Opcode::PUSH;
+           opcode == Opcode::JMI || opcode == Opcode::JOV || opcode == Opcode::PUSH || opcode == Opcode::CALL;
 }
 
 std::uint16_t encodeInstruction(Opcode opcode, std::uint8_t gr, std::uint8_t indexRegister) {
@@ -128,6 +130,7 @@ std::uint16_t encodeInstruction(Opcode opcode, std::uint8_t gr, std::uint8_t ind
         case Opcode::SRL: return static_cast<std::uint16_t>(0x5300 | registerBits | indexBits);
         case Opcode::PUSH: return static_cast<std::uint16_t>(0x7000 | indexBits);
         case Opcode::POP: return static_cast<std::uint16_t>(0x7100 | registerBits);
+        case Opcode::CALL: return static_cast<std::uint16_t>(0x8000 | indexBits);
         case Opcode::ST: return static_cast<std::uint16_t>(0x1100 | registerBits | indexBits);
         case Opcode::JMI: return static_cast<std::uint16_t>(0x6100 | indexBits);
         case Opcode::JNZ: return static_cast<std::uint16_t>(0x6200 | indexBits);

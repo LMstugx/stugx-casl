@@ -180,8 +180,26 @@ void writeNumberArray(std::ostream& output, const std::vector<std::uint16_t>& va
 
 void writeMemoryWindow(std::ostream& output, const casl::CometState& state, const casl::AssembleOutput& assembled, std::optional<std::uint16_t> currentAddress) {
     const auto labels = labelsByAddress(assembled);
+    auto endAddress = static_cast<std::uint16_t>(0x2a);
+
+    for (const auto& entry : assembled.sourceMap.entries()) {
+        for (std::size_t offset = 0; offset < entry.machineWords.size(); offset += 1) {
+            const auto address = static_cast<std::uint16_t>(entry.address + offset);
+            if (address > endAddress) endAddress = address;
+        }
+    }
+    if (currentAddress.has_value() && *currentAddress > endAddress) endAddress = *currentAddress;
+    if (state.lastMemoryReadAddress.has_value() && *state.lastMemoryReadAddress > endAddress) endAddress = *state.lastMemoryReadAddress;
+    if (state.lastMemoryWriteAddress.has_value() && *state.lastMemoryWriteAddress > endAddress) endAddress = *state.lastMemoryWriteAddress;
+    if (state.mar > endAddress && state.mar < 0xff00) endAddress = state.mar;
+
+    const auto maxRows = static_cast<std::uint16_t>(0x100);
+    if (endAddress > static_cast<std::uint16_t>(0x20 + maxRows - 1)) {
+        endAddress = static_cast<std::uint16_t>(0x20 + maxRows - 1);
+    }
+
     output << "[\n";
-    for (std::uint16_t address = 0x20; address <= 0x2a; address = static_cast<std::uint16_t>(address + 1)) {
+    for (std::uint16_t address = 0x20; address <= endAddress; address = static_cast<std::uint16_t>(address + 1)) {
         const auto label = labels.find(address);
         const auto isChanged = state.lastMemoryWriteAddress.has_value() && *state.lastMemoryWriteAddress == address;
         output << "      {\n";
@@ -191,7 +209,7 @@ void writeMemoryWindow(std::ostream& output, const casl::CometState& state, cons
         output << "        \"isCurrent\": " << boolText(currentAddress.has_value() && *currentAddress == address) << ",\n";
         output << "        \"isChanged\": " << boolText(isChanged) << "\n";
         output << "      }";
-        if (address != 0x2a) output << ",";
+        if (address != endAddress) output << ",";
         output << "\n";
     }
     output << "    ]";
@@ -256,6 +274,7 @@ std::string dumpStateJson(
     output << "  \"stepCount\": " << state.stepCount << ",\n";
     output << "  \"pr\": " << state.pr << ",\n";
     output << "  \"sp\": " << state.sp << ",\n";
+    output << "  \"callDepth\": " << state.callDepth << ",\n";
     output << "  \"ir0\": " << state.ir << ",\n";
     output << "  \"ir1\": " << nullableNumber(ir1Address ? std::optional<std::uint32_t>(state.memory[*ir1Address]) : std::nullopt) << ",\n";
     output << "  \"mar\": " << state.mar << ",\n";
@@ -314,6 +333,7 @@ std::string emptyStateJson(casl::RunState runState, const std::vector<casl::Diag
     output << "  \"stepCount\": 0,\n";
     output << "  \"pr\": " << casl::kDefaultStartAddress << ",\n";
     output << "  \"sp\": " << casl::kDefaultStackPointer << ",\n";
+    output << "  \"callDepth\": 0,\n";
     output << "  \"ir0\": 0,\n";
     output << "  \"ir1\": null,\n";
     output << "  \"mar\": " << casl::kDefaultStartAddress << ",\n";

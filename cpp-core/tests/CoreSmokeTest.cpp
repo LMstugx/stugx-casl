@@ -859,6 +859,122 @@ VALUE DC   1
     require(vm.state().gr[1] == symbolAddress(output, "VALUE"), "POP wrapped stack value");
 }
 
+void AssembleCall() {
+    const auto output = assembleOrExit(R"(MAIN START
+     CALL  SUB
+     RET
+SUB  RET
+     END)");
+    require(output.state.memory[0x20] == 0x8000, "CALL machine word");
+    require(output.state.memory[0x21] == symbolAddress(output, "SUB"), "CALL operand word");
+}
+
+void AssembleCallWithIndex() {
+    const auto output = assembleOrExit(R"(MAIN START
+     LAD   GR2,1
+     CALL  SUB,GR2
+     RET
+SUB  RET
+NEXT RET
+     END)");
+    require(output.state.memory[0x22] == 0x8002, "CALL indexed machine word");
+}
+
+void RejectCallWithoutAddress() {
+    casl::Assembler assembler;
+    const auto missingCall = assembler.assemble("MAIN START\n CALL\n END");
+    require(!missingCall.ok && hasError(missingCall, "CALL requires an address operand"), "CALL missing operand should fail");
+}
+
+void ExecuteCallReturnStack() {
+    const auto output = assembleOrExit(R"(MAIN START
+     LAD   GR1,5
+     CALL  SUB
+     ST    GR1,RESULT
+     RET
+SUB  ADDA  GR1,ONE
+     RET
+ONE  DC    1
+RESULT DS  1
+     END)");
+    casl::CometVm vm;
+    vm.load(output);
+    (void)vm.step();
+    const auto callStep = vm.step();
+    require(callStep.instructionKind.has_value() && *callStep.instructionKind == casl::InstructionKind::CALL, "CALL step kind");
+    require(vm.state().sp == 0xfffd, "CALL decrements SP");
+    require(vm.state().memory[0xfffd] == 0x0024, "CALL pushes return address");
+    require(vm.state().pr == symbolAddress(output, "SUB"), "CALL jumps to subroutine");
+    require(vm.state().callDepth == 1, "CALL increments call depth");
+    require(vm.state().visualPath == casl::VisualPathKind::CALL_ReturnAddressToStackAndPr, "CALL visual path");
+
+    (void)vm.step();
+    const auto retStep = vm.step();
+    require(retStep.instructionKind.has_value() && *retStep.instructionKind == casl::InstructionKind::RET, "RET stack step kind");
+    require(!retStep.finished, "RET inside call frame should not finish");
+    require(vm.state().pr == 0x0024, "RET returns to caller ST");
+    require(vm.state().sp == 0xfffe, "RET stack return increments SP");
+    require(vm.state().callDepth == 0, "RET stack return decrements call depth");
+    require(vm.state().lastMemoryReadAddress.has_value() && *vm.state().lastMemoryReadAddress == 0xfffd, "RET stack read address");
+    require(vm.state().visualPath == casl::VisualPathKind::RET_StackToPr, "RET stack visual path");
+
+    (void)vm.step();
+    (void)vm.step();
+    require(vm.state().runState == casl::RunState::Finished, "Final top-level RET finishes");
+    require(vm.state().memory[symbolAddress(output, "RESULT")] == 0x0006, "CALL return result");
+}
+
+void ExecuteCallWithIndex() {
+    const auto output = assembleOrExit(R"(MAIN START
+     LAD   GR2,1
+     CALL  BASE,GR2
+     RET
+BASE RET
+NEXT LAD   GR1,7
+     RET
+     END)");
+    casl::CometVm vm;
+    vm.load(output);
+    (void)vm.step();
+    (void)vm.step();
+    require(vm.state().pr == symbolAddress(output, "BASE") + 1, "CALL indexed effective target");
+    require(vm.state().callDepth == 1, "CALL indexed call depth");
+}
+
+void NestedCallReturnOrder() {
+    const auto output = assembleOrExit(R"(MAIN START
+     CALL  SUB
+     ST    GR1,RESULT
+     RET
+SUB  CALL  INNER
+     RET
+INNER LAD   GR1,7
+     RET
+RESULT DS  1
+     END)");
+    casl::CometVm vm;
+    vm.load(output);
+    for (int step = 0; step < 12 && vm.state().runState != casl::RunState::Finished; ++step) {
+        (void)vm.step();
+    }
+    require(vm.state().runState == casl::RunState::Finished, "Nested CALL program finishes");
+    require(vm.state().callDepth == 0, "Nested CALL callDepth returns to zero");
+    require(vm.state().memory[symbolAddress(output, "RESULT")] == 7, "Nested CALL result");
+}
+
+void ManualPushPopDoesNotChangeCallDepth() {
+    casl::CometVm vm;
+    vm.load(assembleOrExit(R"(MAIN START
+     PUSH  VALUE
+     POP   GR1
+     RET
+VALUE DC   1
+     END)"));
+    (void)vm.step();
+    (void)vm.step();
+    require(vm.state().callDepth == 0, "Manual PUSH/POP does not change callDepth");
+}
+
 void StepStore() {
     casl::CometVm vm;
     vm.load(assembleSample());
@@ -987,6 +1103,13 @@ const std::vector<std::pair<std::string_view, TestFunction>>& tests() {
         {"RejectInvalidPushPopOperands", RejectInvalidPushPopOperands},
         {"ExecutePushPopStack", ExecutePushPopStack},
         {"PushPopStackPointerWrap", PushPopStackPointerWrap},
+        {"AssembleCall", AssembleCall},
+        {"AssembleCallWithIndex", AssembleCallWithIndex},
+        {"RejectCallWithoutAddress", RejectCallWithoutAddress},
+        {"ExecuteCallReturnStack", ExecuteCallReturnStack},
+        {"ExecuteCallWithIndex", ExecuteCallWithIndex},
+        {"NestedCallReturnOrder", NestedCallReturnOrder},
+        {"ManualPushPopDoesNotChangeCallDepth", ManualPushPopDoesNotChangeCallDepth},
         {"StepStore", StepStore},
         {"StepRetFinished", StepRetFinished},
         {"ExecuteGr2Program", ExecuteGr2Program},

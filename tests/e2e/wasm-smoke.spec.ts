@@ -165,3 +165,19 @@ test("WASM backend runs CASL PUSH POP stack demo in the browser UI", async ({ pa
   await expect(page.getByTestId("memory-view-row-002A")).toContainText("RESULT");
   await expect(page.getByTestId("memory-view-row-002A")).toContainText("0029");
 });
+
+test("WASM backend runs CASL CALL RETURN demo in the browser UI", async ({ page }) => {
+  await openStudio(page, "WASM Core");
+  await selectDemoProgram(page, "casl-call-return");
+
+  await assemble(page);
+  await page.getByRole("tab", { name: "Machine Code" }).click();
+  await expect(page.getByTestId("machine-code-output")).toContainText("CALL SUB");
+  await run(page);
+
+  await expect(page.getByTestId("run-state")).toHaveText("Finished");
+  await expectRegister(page, "register-gr1", "0006");
+  await page.getByRole("tab", { name: "Memory" }).click();
+  await expect(page.getByTestId("memory-view-row-002B")).toContainText("RESULT");
+  await expect(page.getByTestId("memory-view-row-002B")).toContainText("0006");
+});

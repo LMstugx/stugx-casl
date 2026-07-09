@@ -108,6 +108,10 @@ bool isPopOpcode(Opcode opcode) {
     return opcode == Opcode::POP;
 }
 
+bool isCallOpcode(Opcode opcode) {
+    return opcode == Opcode::CALL;
+}
+
 std::optional<std::uint16_t> resolveAddressOperand(
     const std::string& token,
     const std::unordered_map<std::string, std::uint16_t>& symbols,
@@ -305,6 +309,41 @@ bool Assembler::pass2(const std::vector<ParsedLine>& lines, AssembleOutput& outp
             }
             if (line.operands.size() > 2) {
                 addDiagnostic(diagnostics, line.line, "PUSH has too many operands");
+                ok = false;
+                continue;
+            }
+            std::uint8_t indexRegister = 0;
+            if (line.operands.size() == 2) {
+                const auto parsedIndex = parseIndexRegister(line.operands[1], diagnostics, line.line);
+                if (!parsedIndex.has_value()) {
+                    ok = false;
+                    continue;
+                }
+                indexRegister = *parsedIndex;
+            }
+
+            const auto operandAddress = resolveAddressOperand(line.operands[0], output.symbols, diagnostics, line.line);
+            if (!operandAddress.has_value()) {
+                ok = false;
+                continue;
+            }
+
+            const auto machine = encodeInstruction(opcode, 0, indexRegister);
+            output.state.memory[line.address] = machine;
+            output.state.memory[static_cast<std::uint16_t>(line.address + 1)] = *operandAddress;
+            output.sourceMap.add({line.line, line.address, {machine, *operandAddress}, line.source, line.label, opcode});
+            output.instructions.push_back({line.address, line.line, opcode, line.source, 0, *operandAddress, line.operands[0], indexRegister, 2});
+            continue;
+        }
+
+        if (isCallOpcode(opcode)) {
+            if (line.operands.empty()) {
+                addDiagnostic(diagnostics, line.line, "CALL requires an address operand");
+                ok = false;
+                continue;
+            }
+            if (line.operands.size() > 2) {
+                addDiagnostic(diagnostics, line.line, "CALL has too many operands");
                 ok = false;
                 continue;
             }

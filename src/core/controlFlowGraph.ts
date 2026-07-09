@@ -12,7 +12,8 @@ export type ControlFlowEdgeKind =
   | "fallthrough"
   | "loop-back"
   | "break"
-  | "continue";
+  | "continue"
+  | "call";
 
 export type ControlFlowLabelKind = "if-label" | "loop-label" | "for-label" | "continue-label" | "end-label" | "user-label";
 
@@ -43,7 +44,8 @@ export type ControlFlowGraph = {
   edges: ControlFlowEdge[];
 };
 
-const JUMP_INSTRUCTIONS = new Set<InstructionKind>(["JUMP", "JZE", "JNZ", "JPL", "JMI", "JOV"]);
+const JUMP_INSTRUCTIONS = new Set<InstructionKind>(["CALL", "JUMP", "JZE", "JNZ", "JPL", "JMI", "JOV"]);
+const CONDITIONAL_JUMP_INSTRUCTIONS = new Set<InstructionKind>(["JZE", "JNZ", "JPL", "JMI", "JOV"]);
 
 export function selectControlFlowGraph(
   generatedCaslSource: string,
@@ -74,7 +76,7 @@ export function selectControlFlowGraph(
     });
     edges.push(baseEdge);
 
-    if (row.opcode !== "JUMP") {
+    if (isConditionalJumpOpcode(row.opcode)) {
       const falseTarget = nextExecutableRow(generatedRows, row.lineNumber, machineByCaslLine);
       edges.push(makeEdge({
         row,
@@ -122,6 +124,7 @@ export function controlFlowEdgeLabel(edge?: ControlFlowEdge): string {
   const target = edge.targetLabel ?? (edge.toAddress !== undefined ? formatWord(edge.toAddress) : "next");
   if (edge.kind === "break") return `break -> ${target}`;
   if (edge.kind === "continue") return `continue -> ${target}`;
+  if (edge.kind === "call") return `call -> ${target}`;
   if (edge.kind === "loop-back") return `loop back -> ${target}`;
   if (edge.kind === "conditional-true") return `true -> ${target}`;
   if (edge.kind === "conditional-false") return `false -> ${edge.toAddress !== undefined ? formatWord(edge.toAddress) : "next"}`;
@@ -143,6 +146,7 @@ export function controlFlowMeaning(edge?: ControlFlowEdge): string {
   const target = controlFlowTargetText(edge);
   if (edge.kind === "break") return `Break statement jumps to loop exit: ${target}.`;
   if (edge.kind === "continue") return `Continue statement jumps to the loop continue target: ${target}.`;
+  if (edge.kind === "call") return `CALL jumps to subroutine target: ${target}.`;
   if (edge.kind === "loop-back") return `Loop back jump returns control to ${target}.`;
   if (edge.kind === "conditional-true") return `Conditional jump target: ${target}.`;
   if (edge.kind === "conditional-false") return `Condition not met; execution falls through to ${target}.`;
@@ -180,8 +184,12 @@ function firstInstructionAddressByCaslLine(machineRows: MachineCodeRow[]): Map<n
   return result;
 }
 
-function isJumpOpcode(opcode: string): opcode is "JUMP" | "JZE" | "JNZ" | "JPL" | "JMI" | "JOV" {
+function isJumpOpcode(opcode: string): opcode is "CALL" | "JUMP" | "JZE" | "JNZ" | "JPL" | "JMI" | "JOV" {
   return JUMP_INSTRUCTIONS.has(opcode as InstructionKind);
+}
+
+function isConditionalJumpOpcode(opcode: string): opcode is "JZE" | "JNZ" | "JPL" | "JMI" | "JOV" {
+  return CONDITIONAL_JUMP_INSTRUCTIONS.has(opcode as InstructionKind);
 }
 
 function jumpTargetLabel(row: GeneratedCaslRow): string | undefined {
@@ -191,6 +199,7 @@ function jumpTargetLabel(row: GeneratedCaslRow): string | undefined {
 function jumpEdgeKind(row: GeneratedCaslRow, mappingKinds: Set<CppToCaslMapKind>, targetLabel?: string): ControlFlowEdgeKind {
   if (mappingKinds.has("break-statement")) return "break";
   if (mappingKinds.has("continue-statement")) return "continue";
+  if (row.opcode === "CALL") return "call";
   if (row.opcode !== "JUMP") return "conditional-true";
   if (targetLabel && /^(LOOP_BEGIN|FOR_BEGIN)_/i.test(targetLabel)) return "loop-back";
   return "unconditional-jump";

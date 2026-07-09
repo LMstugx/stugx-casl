@@ -32,6 +32,7 @@ export interface CometStateDto {
   stepCount: number;
   pr: number;
   sp: number;
+  callDepth: number;
   ir0: number;
   ir1: number | null;
   mar: number;
@@ -159,6 +160,7 @@ export function toCometStateDto(state: CometState, memoryStart = 0x20, memoryEnd
     stepCount: state.stepIndex,
     pr: state.pr,
     sp: state.sp,
+    callDepth: state.callDepth,
     ir0: state.ir,
     ir1: readMemoryWord(state, instructionSecondWordAddress(lastInstruction ?? currentInstruction)),
     mar: state.mar,

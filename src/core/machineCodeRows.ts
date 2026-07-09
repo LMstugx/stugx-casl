@@ -20,6 +20,8 @@ export type MachineCodeRow = {
   indexRegister?: number;
   indexValue?: number;
   effectiveAddress?: number;
+  callDepth?: number;
+  isStackReturnContext?: boolean;
   resolvedLabel?: string;
   effectiveLabel?: string;
   meaning: string;
@@ -44,6 +46,8 @@ export type MachineCodeExplanation = {
   baseAddress?: number;
   operandAddress?: number;
   effectiveAddress?: number;
+  callDepth?: number;
+  isStackReturnContext?: boolean;
   resolvedLabel?: string;
   effectiveLabel?: string;
   meaning: string;
@@ -69,6 +73,7 @@ const EXECUTABLE_INSTRUCTIONS = new Set<InstructionKind>([
   "SRL",
   "PUSH",
   "POP",
+  "CALL",
   "ST",
   "JUMP",
   "JZE",
@@ -116,6 +121,8 @@ export function selectMachineCodeRows(state: CometState, mapping: CppToCaslMap[]
         indexRegister,
         indexValue,
         effectiveAddress: rowEffectiveAddress,
+        callDepth: state.callDepth,
+        isStackReturnContext: entry.instruction === "RET" && (state.callDepth > 0 || (state.lastStep?.executedAddress === entry.address && state.lastMemoryReadAddress !== undefined)),
         resolvedLabel: rowBaseAddress === undefined ? undefined : labels.get(rowBaseAddress),
         effectiveLabel: rowEffectiveAddress === undefined ? undefined : labels.get(rowEffectiveAddress),
         kind: machineRowKind(entry.instruction, offset),
@@ -154,6 +161,8 @@ export function explainMachineCodeRow(row: MachineCodeRow): MachineCodeExplanati
       baseAddress: row.baseAddress,
       operandAddress: row.operandAddress,
       effectiveAddress: row.effectiveAddress,
+      callDepth: row.callDepth,
+      isStackReturnContext: row.isStackReturnContext,
       resolvedLabel: row.resolvedLabel,
       effectiveLabel: row.effectiveLabel,
       meaning: instructionMeaning(row, register),
@@ -173,10 +182,14 @@ export function explainMachineCodeRow(row: MachineCodeRow): MachineCodeExplanati
       indexValue: row.indexValue,
       operandAddress: row.word,
       effectiveAddress: row.effectiveAddress,
+      callDepth: row.callDepth,
+      isStackReturnContext: row.isStackReturnContext,
       resolvedLabel: row.resolvedLabel,
       effectiveLabel: row.effectiveLabel,
       meaning: row.instruction === "PUSH"
         ? `Effective address operand for ${row.sourceText}${operandIndexExplanation(row)} PUSH stores this effective address value, not memory data.`
+        : row.instruction === "CALL"
+        ? `Subroutine target operand for ${row.sourceText}${operandIndexExplanation(row)}. CALL pushes the return address, then jumps to this effective address.`
         : isShiftInstruction(row.instruction)
         ? `Shift count / effective address for ${row.sourceText}${operandIndexExplanation(row)}. This word is not a memory data read.`
         : `Operand address for ${row.sourceText}${operandIndexExplanation(row)}`,
@@ -211,10 +224,12 @@ function machineRowMeaning(instruction: InstructionKind | undefined, offset: num
   if (offset === 0) return "opcode/register word";
   if (indexRegister === undefined || effectiveAddress === undefined) {
     if (instruction === "PUSH") return "effective address value to push";
+    if (instruction === "CALL") return "subroutine target address";
     return isShiftInstruction(instruction) ? "shift count / effective address" : "operand address";
   }
   const indexSuffix = ` + GR${indexRegister} => ${formatWord(effectiveAddress)}`;
   if (instruction === "PUSH") return `effective address value to push${indexSuffix}`;
+  if (instruction === "CALL") return `subroutine target address${indexSuffix}`;
   if (isShiftInstruction(instruction)) return `shift count / effective address${indexSuffix}`;
   return `operand address${indexSuffix}${resolvedLabel ? ` (${resolvedLabel})` : ""}`;
 }
@@ -273,6 +288,8 @@ function instructionMeaning(row: MachineCodeRow, register?: number): string {
       return `Decrement SP and store effective address ${operand} at memory[SP]. This stores the address value, not memory data.`;
     case "POP":
       return `Load memory[SP] into ${gr}, then increment SP.`;
+    case "CALL":
+      return `Push the return address to memory[SP], then jump to ${operand}.`;
     case "JUMP":
       return `Jump to ${operand}.`;
     case "JZE":
@@ -286,7 +303,9 @@ function instructionMeaning(row: MachineCodeRow, register?: number): string {
     case "JOV":
       return `Jump to ${operand} when the overflow flag is set.`;
     case "RET":
-      return "Return and finish execution in this learning VM.";
+      return row.isStackReturnContext
+        ? `Return through the stack: read memory[SP] into PR, increment SP, and decrease call depth from ${row.callDepth ?? 0}.`
+        : "Top-level return: finish execution because there is no active call frame.";
     default:
       return row.meaning;
   }

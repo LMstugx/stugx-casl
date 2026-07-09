@@ -133,6 +133,25 @@ RESULT DS  1
     suggestedActions: ["Click Assemble.", "Step PUSH in Circuit Focus Mode and watch SP / Stack Preview.", "Step POP and confirm GR1 receives the stack value.", "Open Machine Code and inspect PUSH / POP opcodes.", "Run and confirm RESULT is 0029."]
   },
   {
+    id: "casl-call-return",
+    name: "CASL: Call Return",
+    mode: "casl",
+    source: `MAIN START
+     LAD   GR1,5
+     CALL  SUB
+     ST    GR1,RESULT
+     RET
+SUB  ADDA  GR1,ONE
+     RET
+ONE  DC    1
+RESULT DS  1
+     END`,
+    description: "Subroutine call with return-address stack write and stack-aware RET returning to the caller.",
+    whatThisShows: "CALL stores the return address on the stack and jumps to a subroutine; RET inside the call frame reads the return address back into PR, while the final top-level RET still finishes.",
+    expectedResult: "GR1 becomes 0006, Memory[RESULT] = 0006, and the final top-level RET finishes the program.",
+    suggestedActions: ["Click Assemble.", "Step CALL in Circuit Focus Mode and watch the return address stack write.", "Step through SUB and RET to see PR return to ST.", "Open Machine Code and inspect CALL opcode 80.", "Run and confirm RESULT is 0006."]
+  },
+  {
     id: "cpp-addition",
     name: "C++: Addition",
     mode: "cpp",

@@ -21,6 +21,7 @@
   "frSF": true,
   "frZF": false,
   "frCF": false,
+  "callDepth": 0,
   "currentInstructionAddress": 41,
   "currentSourceLineIndex": 7,
   "currentInstructionText": "LESS LAD GR2,1",

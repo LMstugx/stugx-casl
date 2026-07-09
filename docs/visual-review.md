@@ -107,8 +107,8 @@ Use the gallery to inspect:
 - ST writeback lands at the Memory row edge instead of crossing value or label text.
 - READ / WRITE / EXEC / FLAG indicators match the visible active path.
 - Signal Probe is compact and derived from the current instruction / recent trace.
-- Stack Preview is compact, read-only, and shows real `PUSH` / `POP` stack read/write rows.
-- The SP -> MAR -> Memory guide is faint and inactive during ordinary execution, but active for `PUSH` / `POP`.
+- Stack Preview is compact, read-only, and shows real `PUSH` / `POP` / `CALL` / stack-`RET` stack read/write rows.
+- The SP -> MAR -> Memory guide is faint and inactive during ordinary execution, but active for stack instructions and stack-aware returns.
 - Older Trace rows are lower emphasis than the latest row.
 - Output Log remains available but compact in Focus Mode.
 - SP is visible but inactive for ordinary execution.
@@ -116,6 +116,7 @@ Use the gallery to inspect:
 - Shift screenshots show the ALU/Shifter path and do not mark Memory as the shift-count data source.
 - Index addressing screenshots show the `IDX` register badge, Effective Address Unit, base/index/effective calculation, and effective Memory row highlight.
 - PUSH / POP screenshots show `SP`, Stack Preview, stack row write/read, and Machine Code explanations that distinguish effective address values from memory data.
+- CALL / RET screenshots show return-address stack writes, stack return reads, PR target changes, and the final top-level `RET` finish.
 - Machine Code explanation is readable.
 - Control Flow target text is readable.
 - Source Editor is not squeezed.
@@ -133,6 +134,10 @@ Use the gallery to inspect:
 - `stack-preview-focus.png` (Circuit Focus Mode)
 - `push-pop-stack-circuit.png` (Circuit Focus Mode)
 - `push-pop-stack-machine-code.png` (Machine Code explanation)
+- `call-return-call.png` (Circuit Focus Mode)
+- `call-return-ret-stack.png` (Circuit Focus Mode)
+- `call-return-finish.png` (Circuit Focus Mode)
+- `call-return-machine-code.png` (Machine Code explanation)
 - `cpp-addition-generated-casl.png`
 - `machine-code-explanation.png`
 - `for-sum-control-flow.png`

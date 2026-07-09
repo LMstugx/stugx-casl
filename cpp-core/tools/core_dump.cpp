@@ -322,6 +322,7 @@ std::string dumpStateJson(const casl::AssembleOutput& assembled, const casl::Com
     output << "  \"stepCount\": " << state.stepCount << ",\n";
     output << "  \"pr\": " << state.pr << ",\n";
     output << "  \"sp\": " << state.sp << ",\n";
+    output << "  \"callDepth\": " << state.callDepth << ",\n";
     output << "  \"ir0\": " << state.ir << ",\n";
     output << "  \"ir1\": " << nullableNumber(ir1Address ? std::optional<std::uint32_t>(state.memory[*ir1Address]) : std::nullopt) << ",\n";
     output << "  \"mar\": " << state.mar << ",\n";

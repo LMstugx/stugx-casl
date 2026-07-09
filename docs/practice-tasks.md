@@ -129,11 +129,26 @@ Expected observation:
 - Stack Preview should mark the new `SP` row as a write.
 - The pushed value should be the effective address of `B`, not the value stored at `B`.
 - `POP GR1` should read `Memory[SP]` into `GR1`, then increment `SP`.
-- `CALL` and stack-based `RET` are still not implemented.
 
 Answer hint:
 
 - In the built-in demo, `RESULT` should become the address of `B`.
+
+### Task 5D. Observe CALL / stack-aware RET
+
+Start from `CASL: Call Return` and open Circuit Focus Mode.
+
+Expected observation:
+
+- `CALL SUB` should write the return address to the stack.
+- Stack Preview should mark the written return-address row.
+- Control flow should jump to `SUB`.
+- The `RET` inside `SUB` should read the return address from the stack and return to the caller.
+- The final top-level `RET` should finish the program without stack activity.
+
+Answer hint:
+
+- `RESULT` should become `0006`.
 
 ## Level 2: C++ to CASL
 

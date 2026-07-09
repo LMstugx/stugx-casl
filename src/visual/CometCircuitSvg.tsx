@@ -108,7 +108,7 @@ function StatusIndicators({ activeWireIds, state }: { activeWireIds: Set<string>
 }
 
 function isJumpVisualPath(visualPath: VisualPathKind): boolean {
-  return visualPath === VisualPathKind.Jump_AddressToPr || visualPath === VisualPathKind.ConditionalJump_AddressToPr;
+  return visualPath === VisualPathKind.Jump_AddressToPr || visualPath === VisualPathKind.ConditionalJump_AddressToPr || visualPath === VisualPathKind.CALL_ReturnAddressToStackAndPr;
 }
 
 function addEffectiveAddressUnitWires(activeWireIds: Set<string>, visualPath: VisualPathKind, hasIndexAddressing: boolean): void {
@@ -354,6 +354,8 @@ function MemoryModule({ state, focusAddress, windowStart, visualPath }: { state:
     visualPath === VisualPathKind.ST_GrToMdrToMemory ||
     visualPath === VisualPathKind.PUSH_EffectiveAddressToStack ||
     visualPath === VisualPathKind.POP_StackToGr ||
+    visualPath === VisualPathKind.CALL_ReturnAddressToStackAndPr ||
+    visualPath === VisualPathKind.RET_StackToPr ||
     state.changedMemoryAddresses.length > 0;
   return (
     <Module layout={circuitLayout.memory} title="Memory" accent={activeMemory} testId="module-memory" layer="memory">
@@ -414,7 +416,7 @@ function CometCircuitSvg({ state, sourceMapFocus }: { state: CometState; sourceM
   const visualPath = resolveVisualPath(state);
   const activeWireIds = resolveActiveWireIds(visualPath);
   const effectiveActiveWireIds = new Set(activeWireIds);
-  const usesEffectiveAddressUnit = hasIndexAddressing || visualPath === VisualPathKind.PUSH_EffectiveAddressToStack;
+  const usesEffectiveAddressUnit = hasIndexAddressing || visualPath === VisualPathKind.PUSH_EffectiveAddressToStack || visualPath === VisualPathKind.CALL_ReturnAddressToStackAndPr;
   if (usesEffectiveAddressUnit) addEffectiveAddressUnitWires(effectiveActiveWireIds, visualPath, hasIndexAddressing);
   const mdrLeft = circuitAnchors.mdr.left();
   const mdrRight = circuitAnchors.mdr.right();

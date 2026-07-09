@@ -241,6 +241,60 @@ async function capturePushPopStackMachineCode(page: Page, viewport: Viewport) {
   await capture(page, viewport, "push-pop-stack-machine-code.png");
 }
 
+async function captureCallReturnCall(page: Page, viewport: Viewport) {
+  await openStudio(page, "Mock Core");
+  await selectDemoProgram(page, "casl-call-return");
+  await enterCircuitFocusMode(page);
+  await assemble(page);
+  await step(page);
+  await step(page);
+  await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("CALL");
+  await expect(page.getByTestId("comet-circuit-svg").locator("[data-testid='module-sp']")).toHaveAttribute("data-active", "true");
+  await expect(page.getByTestId("comet-circuit-svg").locator("[data-testid='wire-return-address-to-mdr']")).toHaveAttribute("data-active", "true");
+  await expect(page.getByTestId("comet-circuit-svg").locator("[data-testid='wire-eau-to-pr']")).toHaveAttribute("data-active", "true");
+  await expect(page.getByTestId("focus-signal-probe")).toContainText("RETADDR");
+  await capture(page, viewport, "call-return-call.png");
+}
+
+async function captureCallReturnRetStack(page: Page, viewport: Viewport) {
+  await openStudio(page, "Mock Core");
+  await selectDemoProgram(page, "casl-call-return");
+  await enterCircuitFocusMode(page);
+  await assemble(page);
+  await step(page);
+  await step(page);
+  await step(page);
+  await step(page);
+  await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("RET");
+  await expect(page.getByTestId("comet-circuit-svg").locator("[data-testid='wire-mdr-to-pr']")).toHaveAttribute("data-active", "true");
+  await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("Next ST GR1,RESULT");
+  await capture(page, viewport, "call-return-ret-stack.png");
+}
+
+async function captureCallReturnFinish(page: Page, viewport: Viewport) {
+  await openStudio(page, "Mock Core");
+  await selectDemoProgram(page, "casl-call-return");
+  await enterCircuitFocusMode(page);
+  await assemble(page);
+  await run(page);
+  await expect(page.getByTestId("run-state")).toHaveText("Finished");
+  await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("RET");
+  await expect(page.getByTestId("comet-circuit-svg").locator("[data-testid='module-sp']")).toHaveAttribute("data-active", "false");
+  await capture(page, viewport, "call-return-finish.png");
+}
+
+async function captureCallReturnMachineCode(page: Page, viewport: Viewport) {
+  await openStudio(page, "Mock Core");
+  await selectDemoProgram(page, "casl-call-return");
+  await assemble(page);
+  await openOutputTab(page, "Machine Code");
+  await expect(page.getByTestId("machine-code-output")).toContainText("CALL SUB");
+  await page.getByTestId("machine-code-row-0022").click();
+  await expect(page.getByTestId("machine-code-explanation")).toContainText("CALL");
+  await expect(page.getByTestId("machine-code-explanation")).toContainText("return address");
+  await capture(page, viewport, "call-return-machine-code.png");
+}
+
 test.describe("visual review screenshot gallery", () => {
   for (const viewport of viewports) {
     test(`captures visual review gallery at ${viewport.name}`, async ({ page }) => {
@@ -262,6 +316,10 @@ test.describe("visual review screenshot gallery", () => {
       await captureIndexAddressingMachineCode(page, viewport);
       await capturePushPopStackCircuit(page, viewport);
       await capturePushPopStackMachineCode(page, viewport);
+      await captureCallReturnCall(page, viewport);
+      await captureCallReturnRetStack(page, viewport);
+      await captureCallReturnFinish(page, viewport);
+      await captureCallReturnMachineCode(page, viewport);
     });
   }
 });

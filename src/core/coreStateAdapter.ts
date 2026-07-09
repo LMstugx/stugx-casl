@@ -74,13 +74,13 @@ function operandLabelForAddress(sourceRows: SourceRowDto[], operandAddress: numb
 }
 
 function programFromDto(sourceRows: SourceRowDto[]): AssembledInstruction[] {
-  const executable = new Set(["NOP", "LD", "LAD", "ADDA", "SUBA", "ADDL", "SUBL", "AND", "OR", "XOR", "CPA", "CPL", "SLA", "SRA", "SLL", "SRL", "PUSH", "POP", "ST", "JUMP", "JZE", "JNZ", "JPL", "JMI", "JOV", "RET"]);
+  const executable = new Set(["NOP", "LD", "LAD", "ADDA", "SUBA", "ADDL", "SUBL", "AND", "OR", "XOR", "CPA", "CPL", "SLA", "SRA", "SLL", "SRL", "PUSH", "POP", "CALL", "ST", "JUMP", "JZE", "JNZ", "JPL", "JMI", "JOV", "RET"]);
   return sourceRows
     .filter((row) => row.instruction !== null && executable.has(row.instruction))
     .map((row) => {
       const op = row.instruction as AssembledInstruction["op"];
       const machineWord = row.machineWords[0] ?? 0;
-      const gr = op === "NOP" || op === "RET" || op === "PUSH" || op === "JUMP" || op === "JZE" || op === "JNZ" || op === "JPL" || op === "JMI" || op === "JOV" ? undefined : (machineWord >> 4) & 0x0f;
+      const gr = op === "NOP" || op === "RET" || op === "PUSH" || op === "CALL" || op === "JUMP" || op === "JZE" || op === "JNZ" || op === "JPL" || op === "JMI" || op === "JOV" ? undefined : (machineWord >> 4) & 0x0f;
       return {
         address: row.address,
         line: row.line,
@@ -111,6 +111,8 @@ function visualPathFromDto(dto: CometStateDto): VisualPathKind {
   }
   if (dto.lastInstructionKind === "PUSH") return VisualPathKind.PUSH_EffectiveAddressToStack;
   if (dto.lastInstructionKind === "POP") return VisualPathKind.POP_StackToGr;
+  if (dto.lastInstructionKind === "CALL") return VisualPathKind.CALL_ReturnAddressToStackAndPr;
+  if (dto.lastInstructionKind === "RET" && dto.lastMemoryReadAddress !== null) return VisualPathKind.RET_StackToPr;
   if (dto.lastInstructionKind === "ST") return VisualPathKind.ST_GrToMdrToMemory;
   if (dto.lastInstructionKind === "JUMP") return VisualPathKind.Jump_AddressToPr;
   if (dto.lastInstructionKind === "JZE" || dto.lastInstructionKind === "JNZ" || dto.lastInstructionKind === "JPL" || dto.lastInstructionKind === "JMI" || dto.lastInstructionKind === "JOV") {
@@ -151,6 +153,12 @@ function changedRegistersFromDto(dto: CometStateDto): string[] {
   if (dto.lastInstructionKind === "POP") {
     changed.push("SP", "MAR", "MDR");
     if (dto.lastRegisterWriteIndex !== null) changed.push(`GR${dto.lastRegisterWriteIndex}`);
+  }
+  if (dto.lastInstructionKind === "CALL") {
+    changed.push("PR", "SP", "MAR", "MDR");
+  }
+  if (dto.lastInstructionKind === "RET" && dto.lastMemoryReadAddress !== null) {
+    changed.push("PR", "SP", "MAR", "MDR");
   }
   if (dto.lastInstructionKind === "JUMP" || dto.lastInstructionKind === "JZE" || dto.lastInstructionKind === "JNZ" || dto.lastInstructionKind === "JPL" || dto.lastInstructionKind === "JMI" || dto.lastInstructionKind === "JOV") {
     changed.push("MAR");
@@ -222,13 +230,16 @@ function traceDetail(dto: CometStateDto): string {
   }
   if (dto.lastInstructionKind === "PUSH") return `${indexDetail}EA ${formatWord(address)} -> stack; SP ${formatWord(dto.sp)}; MEM[${dto.lastMemoryWriteAddress !== null ? formatWord(dto.lastMemoryWriteAddress) : "----"}] <- ${formatWord(address)}`;
   if (dto.lastInstructionKind === "POP") return `MEM[${dto.lastMemoryReadAddress !== null ? formatWord(dto.lastMemoryReadAddress) : "----"}] -> MDR -> GR${register}; SP ${formatWord(dto.sp)}`;
+  if (dto.lastInstructionKind === "CALL") return `${indexDetail}return address -> stack; target ${formatWord(address)}; SP ${formatWord(dto.sp)}; callDepth ${dto.callDepth}`;
   if (dto.lastInstructionKind === "ST") return `${indexDetail}GR${register} -> MDR -> Memory[${formatWord(address)}]`;
   if (dto.lastInstructionKind === "JUMP") return `${indexDetail}PR <- ${formatWord(address)}`;
   if (dto.lastInstructionKind === "JZE" || dto.lastInstructionKind === "JNZ" || dto.lastInstructionKind === "JPL" || dto.lastInstructionKind === "JMI" || dto.lastInstructionKind === "JOV") {
     return dto.currentInstructionAddress === dto.effectiveAddress ? `${indexDetail}PR <- ${formatWord(address)}` : `${indexDetail}Condition not met; PR advanced`;
   }
   if (dto.lastInstructionKind === "NOP") return "No operation; PR advanced to the next word.";
-  if (dto.lastInstructionKind === "RET") return "Program finished without jumping to an invalid address.";
+  if (dto.lastInstructionKind === "RET") {
+    return dto.lastMemoryReadAddress !== null ? `RET stack return; PR <- MEM[${formatWord(dto.lastMemoryReadAddress)}] = ${formatWord(dto.pr)}; SP ${formatWord(dto.sp)}; callDepth ${dto.callDepth}` : "RET program finish; no active call frame.";
+  }
   return "";
 }
 
@@ -240,7 +251,7 @@ function traceFromDto(dto: CometStateDto, previous?: CometState): TraceEvent[] {
 
   const row = findLastInstructionRow(dto);
   const changedRegisterIndex = dto.lastRegisterWriteIndex;
-  const changedMemoryAddress = dto.lastMemoryWriteAddress ?? undefined;
+  const changedMemoryAddress = dto.lastMemoryWriteAddress ?? (dto.lastInstructionKind === "RET" || dto.lastInstructionKind === "POP" ? dto.lastMemoryReadAddress ?? undefined : undefined);
   const event: TraceEvent = {
     index: dto.stepCount,
     address: row?.address ?? dto.currentInstructionAddress ?? dto.pr,
@@ -255,8 +266,11 @@ function traceFromDto(dto: CometStateDto, previous?: CometState): TraceEvent[] {
     changedMemoryAddress,
     changedMemoryValueBefore: changedMemoryAddress !== undefined ? previous?.memory[changedMemoryAddress] ?? 0 : undefined,
     changedMemoryValueAfter: changedMemoryAddress !== undefined ? dto.mdr : undefined,
-    stackPointerValueBefore: dto.lastInstructionKind === "PUSH" || dto.lastInstructionKind === "POP" ? previous?.sp : undefined,
-    stackPointerValueAfter: dto.lastInstructionKind === "PUSH" || dto.lastInstructionKind === "POP" ? dto.sp : undefined,
+    stackPointerValueBefore: dto.lastInstructionKind === "PUSH" || dto.lastInstructionKind === "POP" || dto.lastInstructionKind === "CALL" || (dto.lastInstructionKind === "RET" && dto.lastMemoryReadAddress !== null) ? previous?.sp : undefined,
+    stackPointerValueAfter: dto.lastInstructionKind === "PUSH" || dto.lastInstructionKind === "POP" || dto.lastInstructionKind === "CALL" || (dto.lastInstructionKind === "RET" && dto.lastMemoryReadAddress !== null) ? dto.sp : undefined,
+    callDepthBefore: dto.lastInstructionKind === "CALL" || dto.lastInstructionKind === "RET" ? previous?.callDepth : undefined,
+    callDepthAfter: dto.lastInstructionKind === "CALL" || dto.lastInstructionKind === "RET" ? dto.callDepth : undefined,
+    returnAddress: dto.lastInstructionKind === "CALL" ? ((row?.address ?? dto.pr) + 2) & 0xffff : dto.lastInstructionKind === "RET" && dto.lastMemoryReadAddress !== null ? dto.pr : undefined,
     baseAddress: dto.baseAddress ?? undefined,
     indexRegister: dto.indexRegister ?? undefined,
     indexValue: dto.indexValue ?? undefined,
@@ -315,6 +329,7 @@ export function createCometStateFromDto(dto: CometStateDto, options: StateFromDt
     runState: dto.runState,
     pr: dto.pr,
     sp: dto.sp,
+    callDepth: dto.callDepth,
     ir: dto.ir0,
     mar: dto.mar,
     mdr: dto.mdr,
@@ -353,6 +368,7 @@ export function createEmptyUiCometState(runState: CometState["runState"] = "Idle
     stepCount: 0,
     pr: START_ADDRESS,
     sp: INITIAL_SP,
+    callDepth: 0,
     ir0: 0,
     ir1: null,
     mar: START_ADDRESS,

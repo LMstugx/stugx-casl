@@ -21,6 +21,7 @@
   "frSF": false,
   "frZF": false,
   "frCF": false,
+  "callDepth": 0,
   "currentInstructionAddress": 38,
   "currentSourceLineIndex": 5,
   "currentInstructionText": "RET",

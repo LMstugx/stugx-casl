@@ -54,6 +54,8 @@ enum class VisualPathKind {
     Shift_AddressToAluToGr,
     PUSH_EffectiveAddressToStack,
     POP_StackToGr,
+    CALL_ReturnAddressToStackAndPr,
+    RET_StackToPr,
     Jump_AddressToPr,
     ConditionalJump_AddressToPr,
     ConditionalJump_NotTaken,
@@ -76,6 +78,7 @@ struct CometState {
     std::array<std::uint16_t, kGeneralRegisterCount> gr{};
     std::uint16_t pr = kDefaultStartAddress;
     std::uint16_t sp = kDefaultStackPointer;
+    int callDepth = 0;
     std::uint16_t ir = 0;
     std::uint16_t mar = kDefaultStartAddress;
     std::uint16_t mdr = 0;

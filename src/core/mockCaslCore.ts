@@ -41,6 +41,7 @@ const SUPPORTED_OPS = new Set([
   "SRL",
   "PUSH",
   "POP",
+  "CALL",
   "ST",
   "JUMP",
   "JZE",
@@ -54,6 +55,7 @@ const REGISTER_ADDRESS_OPS = new Set<InstructionKind>(["LD", "LAD", "ADDA", "SUB
 const JUMP_OPS = new Set<InstructionKind>(["JUMP", "JZE", "JNZ", "JPL", "JMI", "JOV"]);
 const SHIFT_OPS = new Set<InstructionKind>(["SLA", "SRA", "SLL", "SRL"]);
 const STACK_ADDRESS_OPS = new Set<InstructionKind>(["PUSH"]);
+const CALL_OPS = new Set<InstructionKind>(["CALL"]);
 
 type ParsedLine = {
   line: number;
@@ -165,7 +167,7 @@ function symbolKey(label: string): string {
 }
 
 function instructionSize(line: ParsedLine): number {
-  if (line.op && (REGISTER_ADDRESS_OPS.has(line.op) || JUMP_OPS.has(line.op) || STACK_ADDRESS_OPS.has(line.op))) return 2;
+  if (line.op && (REGISTER_ADDRESS_OPS.has(line.op) || JUMP_OPS.has(line.op) || STACK_ADDRESS_OPS.has(line.op) || CALL_OPS.has(line.op))) return 2;
   if (line.op === "NOP" || line.op === "RET" || line.op === "POP") return 1;
   if (line.op === "DC") return Math.max(1, line.operands.length);
   if (line.op === "DS") return Math.max(0, parseNumber(line.operands[0] ?? "0"));
@@ -224,6 +226,8 @@ function encodeInstruction(op: AssembledInstruction["op"], gr = 0, indexRegister
       return 0x7000 | indexBits;
     case "POP":
       return 0x7100 | registerBits;
+    case "CALL":
+      return 0x8000 | indexBits;
     case "ST":
       return 0x1100 | registerBits | indexBits;
     case "JMI":
@@ -354,6 +358,42 @@ function assembleArtifacts(source: string): AssembleArtifacts {
         const op = line.op as AssembledInstruction["op"];
         if (line.operands.length < 1) throw new Error(`${line.op} requires an address operand`);
         if (line.operands.length > 2) throw new Error(`${line.op} has too many operands`);
+        const operand = line.operands[0];
+        const indexRegister = parseOptionalIndexOperand(line.operands[1]);
+        const operandAddress = resolveAddressOperand(operand, symbols);
+        const machine = encodeInstruction(op, 0, indexRegister ?? 0);
+        memory[address] = machine;
+        memory[address + 1] = operandAddress;
+        sourceMap.push({
+          line: line.line,
+          address,
+          machineWords: [machine, operandAddress],
+          source: sourceText,
+          label: line.label,
+          instruction: op
+        });
+        program.push({
+          address,
+          line: line.line,
+          op,
+          source: sourceText,
+          size: 2,
+          operandLabel: symbols[symbolKey(operand)] === operandAddress ? operand : undefined,
+          operandAddress,
+          indexRegister
+        });
+        address += 2;
+      } catch (error) {
+        diagnostics.push({ line: line.line, message: (error as Error).message, severity: "error" });
+      }
+      continue;
+    }
+
+    if (line.op === "CALL") {
+      try {
+        const op = line.op;
+        if (line.operands.length < 1) throw new Error("CALL requires an address operand");
+        if (line.operands.length > 2) throw new Error("CALL has too many operands");
         const operand = line.operands[0];
         const indexRegister = parseOptionalIndexOperand(line.operands[1]);
         const operandAddress = resolveAddressOperand(operand, symbols);
@@ -761,6 +801,7 @@ function createState(artifacts: AssembleArtifacts): CometState {
     runState: hasErrors ? "Error" : "Ready",
     pr: START_ADDRESS,
     sp: 0xfffe,
+    callDepth: 0,
     ir: 0,
     mar: START_ADDRESS,
     mdr: 0,
@@ -792,6 +833,7 @@ export function createEmptyCometState(runState: CometState["runState"] = "Idle",
     runState,
     pr: START_ADDRESS,
     sp: 0xfffe,
+    callDepth: 0,
     ir: 0,
     mar: START_ADDRESS,
     mdr: 0,
@@ -819,7 +861,8 @@ function traceEvent(
   address: number,
   instruction: string,
   detail: string,
-  stackPointerChange?: { before: number; after: number }
+  stackPointerChange?: { before: number; after: number },
+  callChange?: { before: number; after: number; returnAddress?: number }
 ): TraceEvent {
   return {
     index: state.stepIndex + 1,
@@ -833,6 +876,9 @@ function traceEvent(
     changedMemoryAddress: state.changedMemoryAddresses[0],
     stackPointerValueBefore: stackPointerChange?.before,
     stackPointerValueAfter: stackPointerChange?.after,
+    callDepthBefore: callChange?.before,
+    callDepthAfter: callChange?.after,
+    returnAddress: callChange?.returnAddress,
     baseAddress: state.lastBaseAddress,
     indexRegister: state.lastIndexRegister,
     indexValue: state.lastIndexValue,
@@ -1051,7 +1097,7 @@ export const mockCaslCore: CaslCore = {
       next.pr = word(next.pr + 2);
       next.visualPath = VisualPathKind.PUSH_EffectiveAddressToStack;
       next.lastStep.visualPath = next.visualPath;
-      next.changedRegisters.push("SP", "MAR", "MDR");
+      next.changedRegisters.push("PR", "SP", "MAR", "MDR");
       next.changedMemoryAddresses = [spAfter];
       const event = traceEvent(
         next,
@@ -1094,6 +1140,36 @@ export const mockCaslCore: CaslCore = {
       prependTrace(next, event);
     }
 
+    if (instruction.op === "CALL") {
+      const spBefore = next.sp;
+      const spAfter = word(next.sp - 1);
+      const stackValueBefore = getMemory(next.memory, spAfter);
+      const returnAddress = word(instruction.address + 2);
+      const callDepthBefore = next.callDepth;
+      next.sp = spAfter;
+      next.mar = spAfter;
+      next.mdr = returnAddress;
+      next.memory[spAfter] = returnAddress;
+      next.lastMemoryWriteAddress = spAfter;
+      next.pr = effective.effectiveAddress;
+      next.callDepth = callDepthBefore + 1;
+      next.visualPath = VisualPathKind.CALL_ReturnAddressToStackAndPr;
+      next.lastStep.visualPath = next.visualPath;
+      next.changedRegisters.push("SP", "MAR", "MDR");
+      next.changedMemoryAddresses = [spAfter];
+      const event = traceEvent(
+        next,
+        instruction.address,
+        "CALL",
+        `${indexDetail}return: ${formatWord(returnAddress)}; target: ${formatWord(effective.effectiveAddress)}; SP: ${formatWord(spBefore)} -> ${formatWord(spAfter)}; MEM[${formatWord(spAfter)}]: ${formatWord(stackValueBefore)} -> ${formatWord(returnAddress)}; callDepth: ${callDepthBefore} -> ${next.callDepth}`,
+        { before: spBefore, after: spAfter },
+        { before: callDepthBefore, after: next.callDepth, returnAddress }
+      );
+      event.changedMemoryValueBefore = stackValueBefore;
+      event.changedMemoryValueAfter = returnAddress;
+      prependTrace(next, event);
+    }
+
     if (instruction.op === "ST") {
       const value = next.gr[instruction.gr!];
       next.mdr = value;
@@ -1121,11 +1197,39 @@ export const mockCaslCore: CaslCore = {
     }
 
     if (instruction.op === "RET") {
-      next.runState = "Finished";
-      next.visualPath = VisualPathKind.Finished_None;
-      next.lastStep.visualPath = next.visualPath;
-      prependTrace(next, traceEvent(next, instruction.address, "RET", "Program finished without jumping to an invalid address."));
-      next.output.push("Execution finished.");
+      if (next.callDepth > 0) {
+        const spBefore = next.sp;
+        const returnAddress = getMemory(next.memory, spBefore);
+        const spAfter = word(next.sp + 1);
+        const callDepthBefore = next.callDepth;
+        next.mar = spBefore;
+        next.lastMemoryReadAddress = spBefore;
+        next.mdr = returnAddress;
+        next.sp = spAfter;
+        next.pr = returnAddress;
+        next.callDepth = Math.max(0, callDepthBefore - 1);
+        next.visualPath = VisualPathKind.RET_StackToPr;
+        next.lastStep.visualPath = next.visualPath;
+        next.changedRegisters.push("PR", "SP", "MAR", "MDR");
+        const event = traceEvent(
+          next,
+          instruction.address,
+          "RET",
+          `RET stack return; PR <- MEM[${formatWord(spBefore)}] = ${formatWord(returnAddress)}; SP: ${formatWord(spBefore)} -> ${formatWord(spAfter)}; callDepth: ${callDepthBefore} -> ${next.callDepth}`,
+          { before: spBefore, after: spAfter },
+          { before: callDepthBefore, after: next.callDepth, returnAddress }
+        );
+        event.changedMemoryAddress = spBefore;
+        event.changedMemoryValueBefore = returnAddress;
+        event.changedMemoryValueAfter = returnAddress;
+        prependTrace(next, event);
+      } else {
+        next.runState = "Finished";
+        next.visualPath = VisualPathKind.Finished_None;
+        next.lastStep.visualPath = next.visualPath;
+        prependTrace(next, traceEvent(next, instruction.address, "RET", "RET program finish; no active call frame."));
+        next.output.push("Execution finished.");
+      }
     }
 
     next.stepIndex += 1;
@@ -1138,6 +1242,7 @@ export const mockCaslCore: CaslCore = {
       runState: state.assembled ? "Ready" : "Idle",
       pr: START_ADDRESS,
       sp: 0xfffe,
+      callDepth: 0,
       ir: 0,
       mar: START_ADDRESS,
       mdr: 0,

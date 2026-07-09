@@ -49,7 +49,7 @@ function compactInstructionText(text?: string): string | undefined {
 }
 
 function instructionMnemonic(text: string | undefined, fallback: string): string {
-  const match = /\b(NOP|LD|LAD|ST|ADDA|SUBA|ADDL|SUBL|AND|OR|XOR|CPA|CPL|SLA|SRA|SLL|SRL|PUSH|POP|JUMP|JZE|JNZ|JPL|JMI|JOV|RET)\b/i.exec(text ?? "");
+  const match = /\b(NOP|LD|LAD|ST|ADDA|SUBA|ADDL|SUBL|AND|OR|XOR|CPA|CPL|SLA|SRA|SLL|SRL|PUSH|POP|CALL|JUMP|JZE|JNZ|JPL|JMI|JOV|RET)\b/i.exec(text ?? "");
   return match?.[1]?.toUpperCase() ?? fallback;
 }
 
@@ -57,7 +57,7 @@ function addressOperandLabel(target: string, index?: string): string {
   return index ? `${target}+${index}` : target;
 }
 
-function instructionMeaning(text: string | undefined, fallback: string): string {
+function instructionMeaning(text: string | undefined, fallback: string, visualPath?: VisualPathKind): string {
   const compact = (text ?? "").replace(/\s+/g, " ").trim();
   const [mnemonic = "", operand = ""] = compact.split(/\s+/, 2);
   const [register = "", target = "", index = ""] = operand.split(",").map((part) => part.trim());
@@ -92,6 +92,8 @@ function instructionMeaning(text: string | undefined, fallback: string): string 
       return `stack[--SP] <- effective address ${addressOperand}`;
     case "POP":
       return `${register} <- memory[SP]; SP++`;
+    case "CALL":
+      return `stack[--SP] <- return address; PR <- ${addressOperand}`;
     case "JUMP":
       return `PR <- ${operand}`;
     case "JZE":
@@ -101,7 +103,7 @@ function instructionMeaning(text: string | undefined, fallback: string): string 
     case "JOV":
       return `conditional PR <- ${operand}`;
     case "RET":
-      return "finish execution";
+      return visualPath === VisualPathKind.RET_StackToPr ? "PR <- memory[SP]; SP++" : "finish execution";
     case "NOP":
       return "sequential execution";
     default:
@@ -115,7 +117,7 @@ function timelineStageIndex(state: CometState): number {
   if (state.visualPath === VisualPathKind.Ready_PrToMar) return 0;
   if (state.visualPath === VisualPathKind.LD_MemoryToMdrToGr) return 2;
   if (state.visualPath === VisualPathKind.ST_GrToMdrToMemory) return 4;
-  if (state.visualPath === VisualPathKind.PUSH_EffectiveAddressToStack || state.visualPath === VisualPathKind.POP_StackToGr) return 4;
+  if (state.visualPath === VisualPathKind.PUSH_EffectiveAddressToStack || state.visualPath === VisualPathKind.POP_StackToGr || state.visualPath === VisualPathKind.CALL_ReturnAddressToStackAndPr || state.visualPath === VisualPathKind.RET_StackToPr) return 4;
   if (
     state.visualPath === VisualPathKind.ADDA_GrMdrToAluToGr ||
     state.visualPath === VisualPathKind.SUBA_GrMdrToAluToGr ||
@@ -153,7 +155,7 @@ function activeMemoryAddress(state: CometState): number | undefined {
 }
 
 function traceChangeText(event: CometState["trace"][number]): string {
-  if (event.instruction === "PUSH" || event.instruction === "POP") {
+  if (event.instruction === "PUSH" || event.instruction === "POP" || event.instruction === "CALL" || event.instruction === "RET") {
     return event.detail;
   }
   if (event.changedRegister) {
@@ -268,7 +270,7 @@ function FocusCurrentInstructionPanel({ state, isSourceDirty, focus }: { state: 
       <div className="focus-current-body">
         <strong data-testid="focus-current-mnemonic">{instructionMnemonic(focus.instructionText, state.runState)}</strong>
         <code>{focus.instructionText ?? summarizeCurrentInstruction(state)}</code>
-        <span>{instructionMeaning(focus.instructionText, summarizeCurrentInstruction(state))}</span>
+        <span>{instructionMeaning(focus.instructionText, summarizeCurrentInstruction(state), activeVisualPath(state))}</span>
         <small>
           Current {focus.address !== undefined ? formatWord(focus.address) : "----"} / Next PR {formatWord(state.pr)}
           {focus.nextInstructionText ? ` / Next ${focus.nextInstructionText}` : ""} / MAR {formatWord(state.mar)} / FR {formatFlags(state.fr)}
@@ -402,7 +404,7 @@ function signalProbeRows(state: CometState, focus: FocusInstructionContext): Pro
       label: "MDR",
       value: formatWord(state.mdr),
       note: "memory buffer",
-      active: visualPath === VisualPathKind.LD_MemoryToMdrToGr || visualPath === VisualPathKind.ST_GrToMdrToMemory || visualPath === VisualPathKind.ADDA_GrMdrToAluToGr || visualPath === VisualPathKind.SUBA_GrMdrToAluToGr || visualPath === VisualPathKind.CPA_GrMdrToAluToFr
+      active: visualPath === VisualPathKind.LD_MemoryToMdrToGr || visualPath === VisualPathKind.ST_GrToMdrToMemory || visualPath === VisualPathKind.ADDA_GrMdrToAluToGr || visualPath === VisualPathKind.SUBA_GrMdrToAluToGr || visualPath === VisualPathKind.CPA_GrMdrToAluToFr || visualPath === VisualPathKind.PUSH_EffectiveAddressToStack || visualPath === VisualPathKind.POP_StackToGr || visualPath === VisualPathKind.CALL_ReturnAddressToStackAndPr || visualPath === VisualPathKind.RET_StackToPr
     },
     {
       label: "ALU.Y",
@@ -425,18 +427,38 @@ function signalProbeRows(state: CometState, focus: FocusInstructionContext): Pro
     {
       label: "SP",
       value: stackPointerValue,
-      note: visualPath === VisualPathKind.PUSH_EffectiveAddressToStack || visualPath === VisualPathKind.POP_StackToGr ? "stack pointer" : "stack preview only",
-      active: visualPath === VisualPathKind.PUSH_EffectiveAddressToStack || visualPath === VisualPathKind.POP_StackToGr
+      note: visualPath === VisualPathKind.PUSH_EffectiveAddressToStack || visualPath === VisualPathKind.POP_StackToGr || visualPath === VisualPathKind.CALL_ReturnAddressToStackAndPr || visualPath === VisualPathKind.RET_StackToPr ? "stack pointer" : "stack preview only",
+      active: visualPath === VisualPathKind.PUSH_EffectiveAddressToStack || visualPath === VisualPathKind.POP_StackToGr || visualPath === VisualPathKind.CALL_ReturnAddressToStackAndPr || visualPath === VisualPathKind.RET_StackToPr
     }
   ];
 
-  if (visualPath === VisualPathKind.PUSH_EffectiveAddressToStack || visualPath === VisualPathKind.POP_StackToGr) {
+  if (visualPath === VisualPathKind.PUSH_EffectiveAddressToStack || visualPath === VisualPathKind.POP_StackToGr || visualPath === VisualPathKind.CALL_ReturnAddressToStackAndPr || visualPath === VisualPathKind.RET_StackToPr) {
     rows.push({
       label: "STACK",
       value: memoryAddress !== undefined ? `MEM[${formatWord(memoryAddress)}]` : "inactive",
-      note: visualPath === VisualPathKind.PUSH_EffectiveAddressToStack ? "stack write" : "stack read",
+      note: visualPath === VisualPathKind.PUSH_EffectiveAddressToStack || visualPath === VisualPathKind.CALL_ReturnAddressToStackAndPr ? "stack write" : "stack read",
       active: true
     });
+  }
+
+  if (visualPath === VisualPathKind.CALL_ReturnAddressToStackAndPr || visualPath === VisualPathKind.RET_StackToPr) {
+    rows.push(
+      {
+        label: "RETADDR",
+        value: latest?.returnAddress !== undefined ? formatWord(latest.returnAddress) : formatWord(state.pr),
+        note: visualPath === VisualPathKind.CALL_ReturnAddressToStackAndPr ? "return address" : "return target",
+        active: true
+      },
+      {
+        label: "CALLDEPTH",
+        value:
+          latest?.callDepthBefore !== undefined && latest.callDepthAfter !== undefined
+            ? `${latest.callDepthBefore} -> ${latest.callDepthAfter}`
+            : String(state.callDepth),
+        note: "call frames",
+        active: true
+      }
+    );
   }
 
   if (state.lastIndexRegister !== undefined && state.lastEffectiveAddress !== undefined) {
@@ -506,13 +528,19 @@ function FocusSignalProbePanel({ state, focus }: { state: CometState; focus: Foc
 
 function FocusStackPreviewPanel({ state }: { state: CometState }) {
   const rows = stackPreviewRows(state);
+  const visualPath = activeVisualPath(state);
+  const stackActive =
+    visualPath === VisualPathKind.PUSH_EffectiveAddressToStack ||
+    visualPath === VisualPathKind.POP_StackToGr ||
+    visualPath === VisualPathKind.CALL_ReturnAddressToStackAndPr ||
+    visualPath === VisualPathKind.RET_StackToPr;
 
   return (
     <section className="panel focus-stack-preview" data-testid="focus-stack-preview">
       <header className="panel-header">
         <div>
           <h2>Stack Preview</h2>
-          <span>Stack path preview only.</span>
+          <span>{stackActive ? "Stack path active." : "Stack path preview only."}</span>
         </div>
         <span>SP {formatWord(state.sp)}</span>
       </header>

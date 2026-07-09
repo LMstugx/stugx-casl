@@ -441,6 +441,81 @@ export const learningLessons: LearningLesson[] = [
     ]
   },
   {
+    exampleId: "casl-call-return",
+    title: "CALL and stack-aware RET",
+    level: "Machine code",
+    concepts: ["CALL target", "return address", "stack write", "stack-aware RET", "top-level RET finish", "callDepth"],
+    learningGoals: [
+      "Understand how CALL saves the return address on the stack before jumping to a subroutine.",
+      "Distinguish a RET inside a call frame from the final top-level RET that finishes the program."
+    ],
+    observe: ["CALL stack write row", "SUB execution", "RET stack return target", "Final top-level RET finish", "RESULT after ST"],
+    suggestedSteps: [
+      {
+        id: "assemble",
+        label: "Assemble call program",
+        action: "Click Assemble.",
+        expectedObservation: "Machine Code shows CALL with opcode 80 and a target operand word.",
+        recommendedTab: "Machine Code"
+      },
+      {
+        id: "step-call",
+        label: "Step CALL",
+        action: "Step to CALL SUB in Circuit Focus Mode.",
+        expectedObservation: "The return address is written to Memory[SP], SP decrements, and PR jumps to SUB.",
+        recommendedTab: "Trace"
+      },
+      {
+        id: "step-sub-ret",
+        label: "Step subroutine RET",
+        action: "Step ADDA in SUB, then Step RET.",
+        expectedObservation: "RET reads the return address from Memory[SP], increments SP, and returns PR to ST.",
+        recommendedTab: "Trace"
+      },
+      {
+        id: "finish",
+        label: "Finish program",
+        action: "Run or Step through ST and final RET.",
+        expectedObservation: "RESULT becomes 0006 and the final RET finishes because callDepth is back to zero.",
+        recommendedTab: "Memory"
+      }
+    ],
+    checkpoints: [
+      {
+        id: "call-stack-write",
+        label: "CALL stack write",
+        expected: "CALL should write return address 0024 to the new SP row.",
+        whereToLook: "Stack Preview / Signal Probe / Trace",
+        note: "The return address is the instruction after CALL."
+      },
+      {
+        id: "ret-stack-return",
+        label: "Stack RET",
+        expected: "RET inside SUB should restore PR to 0024 and decrease callDepth.",
+        whereToLook: "Trace / Current Instruction",
+        note: "This RET returns to ST instead of finishing the program."
+      },
+      {
+        id: "top-level-ret",
+        label: "Top-level RET",
+        expected: "The final RET should finish the program without stack activity.",
+        whereToLook: "Run State / Trace",
+        note: "Existing RET demos stay compatible because callDepth is zero."
+      },
+      {
+        id: "final-result",
+        label: "Final result",
+        expected: "Memory[RESULT] should be 0006.",
+        whereToLook: "Memory tab",
+        note: "The subroutine increments GR1 from 0005 to 0006."
+      }
+    ],
+    commonQuestions: [
+      "Why does CALL push 0024 instead of the subroutine address?",
+      "Why does one RET return while the final RET finishes?"
+    ]
+  },
+  {
     exampleId: "cpp-addition",
     title: "C++ addition lowered to CASL",
     level: "C++ to CASL",

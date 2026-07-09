@@ -2,7 +2,7 @@
 
 Phase 9E did not add stack instructions. It prepared the visual and documentation foundation for later stack-related work.
 
-At the time of Phase 9E, the project did not implement `PUSH`, `POP`, `CALL`, stack-based `RET`, `SVC`, `IN`, or `OUT`. Later Phase 9F adds `PUSH` / `POP`; `CALL` and stack-based `RET` remain out of scope.
+At the time of Phase 9E, the project did not implement `PUSH`, `POP`, `CALL`, stack-based `RET`, `SVC`, `IN`, or `OUT`. Later Phase 9F adds `PUSH` / `POP`; Phase 9G adds `CALL` and stack-aware `RET` while preserving top-level `RET` finish behavior.
 
 ## Why Stack Path Foundation Is Needed
 
@@ -88,9 +88,9 @@ SP post-increment
 
 The preview card becomes the first place to observe top-of-stack movement.
 
-## Future CALL Return-Address Path
+## Later CALL Return-Address Path
 
-A future `CALL` path will likely need:
+Phase 9G turns this into an active `CALL` path:
 
 ```text
 PR next -> Memory[SP]
@@ -98,13 +98,13 @@ target address -> PR
 SP adjustment
 ```
 
-This should be visualized as control/address flow, not as ALU data computation unless an explicit SP arithmetic stage is added.
+It is visualized as control/address flow, not as ALU data computation.
 
-## Future RET Stack Path
+## Later RET Stack Path
 
-Current `RET` semantics are unchanged and simply finish execution.
+Top-level `RET` still finishes execution when no call frame exists.
 
-A later stack-aware return path could use:
+Phase 9G adds a stack-aware return path when `callDepth > 0`:
 
 ```text
 SP -> MAR
@@ -112,11 +112,11 @@ Memory[SP] -> PR
 SP adjustment
 ```
 
-That future behavior should use a separate template such as `RET_STACK`, so current `RET` tests remain stable.
+That behavior uses a separate runtime path, so existing top-level `RET` tests remain stable.
 
 ## Current Limitations
 
 - In Phase 9E itself, no stack instruction was implemented.
 - This document is a historical foundation note. Phase 9F implements `PUSH` / `POP`.
-- `CALL` and stack-based `RET` remain future work.
-- Current `RET` semantics are unchanged.
+- Phase 9G implements `CALL` and stack-aware `RET`.
+- Top-level `RET` finish semantics remain compatible.

@@ -646,6 +646,68 @@ export const learningLessons: LearningLesson[] = [
     ]
   },
   {
+    exampleId: "cpp-function-argument",
+    title: "C++ single-argument function lowered through GR1",
+    level: "C++ to CASL",
+    concepts: ["GR1 argument register", "GR0 return value", "CALL", "stack-aware RET", "static parameter label", "no stack-frame locals yet"],
+    learningGoals: [
+      "See how the first C++ argument is loaded into GR1 before CALL.",
+      "Confirm that the callee saves GR1 into a generated static parameter label.",
+      "Connect the GR1 argument convention with the existing GR0 return convention."
+    ],
+    observe: ["LAD GR1,5 before CALL", "ST GR1,FUNC_ADDONE_X at function entry", "CALL FUNC_ADDONE", "GR0 = 0006 after return"],
+    suggestedSteps: [
+      {
+        id: "open-generated",
+        label: "Find argument lowering",
+        action: "Click Assemble and open Generated CASL.",
+        expectedObservation: "The call site contains LAD GR1,5 followed by CALL FUNC_ADDONE.",
+        recommendedTab: "Generated CASL"
+      },
+      {
+        id: "inspect-function-entry",
+        label: "Inspect function entry",
+        action: "Find FUNC_ADDONE in Generated CASL.",
+        expectedObservation: "The first instruction stores GR1 into FUNC_ADDONE_X.",
+        recommendedTab: "Generated CASL"
+      },
+      {
+        id: "run-trace",
+        label: "Run and read Trace",
+        action: "Open Trace and click Run.",
+        expectedObservation: "Trace shows GR1 loaded with 0005, CALL / RET flow, and final GR0 = 0006.",
+        recommendedTab: "Trace"
+      }
+    ],
+    checkpoints: [
+      {
+        id: "gr1-argument",
+        label: "GR1 argument",
+        expected: "Generated CASL should contain LAD GR1,5 before CALL FUNC_ADDONE.",
+        whereToLook: "Generated CASL",
+        note: "Phase 10C uses GR1 as the first argument register."
+      },
+      {
+        id: "parameter-save",
+        label: "Parameter save",
+        expected: "Function body should contain ST GR1,FUNC_ADDONE_X.",
+        whereToLook: "Generated CASL",
+        note: "This is a static parameter label, not a stack-frame local."
+      },
+      {
+        id: "gr0-result",
+        label: "Return value",
+        expected: "GR0 should be 0006 when the program finishes.",
+        whereToLook: "Registers tab / Trace",
+        note: "GR0 remains the return-value register."
+      }
+    ],
+    commonQuestions: [
+      "Why does the argument use GR1 but the return value use GR0?",
+      "Why is FUNC_ADDONE_X not a real stack-frame local yet?"
+    ]
+  },
+  {
     exampleId: "cpp-addition",
     title: "C++ addition lowered to CASL",
     level: "C++ to CASL",

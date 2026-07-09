@@ -102,6 +102,23 @@ Calling convention design note:
 - Stack arguments and stack-frame locals are design topics only; they are not implemented in the current C++ subset.
 - Read [phase10b-calling-convention-design.md](phase10b-calling-convention-design.md) before trying to design parameter or recursion lessons.
 
+Single-argument follow-up: `C++: Function Argument`
+
+Learn:
+
+- `GR1` is the first argument register.
+- `GR0` remains the return-value register.
+- `y = addOne(5);` lowers into `LAD GR1,5`, `CALL FUNC_ADDONE`, and `ST GR0,MAIN_Y`.
+- The callee saves `GR1` into `FUNC_ADDONE_X` before reading parameter `x`.
+- `FUNC_ADDONE_X` is a static parameter label, not a stack-frame local.
+
+Suggested actions:
+
+1. Assemble `C++: Function Argument`.
+2. Open `Generated CASL` and find `LAD GR1,5` before `CALL FUNC_ADDONE`.
+3. Find `FUNC_ADDONE ST GR1,FUNC_ADDONE_X`.
+4. Run and confirm `GR0 = 0006`.
+
 ### Step 3: if / else
 
 Example: `C++: If Else`
@@ -415,8 +432,8 @@ For `break` / `continue`, pay attention to:
 - C++ support is a learning subset, not a complete compiler.
 - CASL II support is a teaching subset, not the full instruction set.
 - Index addressing is supported for CASL address operands, but C++ subset code does not generate indexed operands yet.
-- No-argument `int` functions are supported, but function parameters, recursion, overloads, stack-frame locals, and calls inside larger expressions are not supported.
-- Phase 10B documents a future calling convention using `GR0` returns, possible `GR1` / `GR2` register arguments, and later stack frames; it does not mean parameter lowering is implemented.
+- No-argument and single-argument `int` functions are supported, but multiple parameters, recursion, overloads, stack-frame locals, and calls inside larger expressions are not supported.
+- Phase 10C implements the first `GR1` argument path. Stack arguments and real stack-frame locals remain future design work.
 - Arrays, pointers, references, classes, templates, strings, and floating-point types are not supported.
 - Complex boolean expressions such as `&&`, `||`, and `!` are not supported.
 - Control Flow is currently text and badge based, not a graph layout.

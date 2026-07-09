@@ -119,6 +119,7 @@ Use the gallery to inspect:
 - CALL / RET screenshots show return-address stack writes, stack return reads, PR target changes, Call Stack depth, return edge text, and the final top-level `RET` finish.
 - Nested CALL screenshot shows `callDepth` greater than 1 and last-in-first-out return order context.
 - C++ function-call screenshots show `FUNC_ADDONE`, `CALL FUNC_ADDONE`, GR0 return value convention, and CALL / RET rows in Trace.
+- C++ function-argument screenshots show `LAD GR1,5`, `ST GR1,FUNC_ADDONE_X`, the `GR1` first-argument convention, and final `GR0 = 0006`.
 - Machine Code explanation is readable.
 - Control Flow target text is readable.
 - Source Editor is not squeezed.
@@ -144,6 +145,9 @@ Use the gallery to inspect:
 - `cpp-function-call-generated-casl.png`
 - `cpp-function-call-trace.png`
 - `cpp-function-call-machine-code.png`
+- `cpp-function-argument-generated-casl.png`
+- `cpp-function-argument-trace.png`
+- `cpp-function-argument-machine-code.png`
 - `cpp-addition-generated-casl.png`
 - `machine-code-explanation.png`
 - `for-sum-control-flow.png`

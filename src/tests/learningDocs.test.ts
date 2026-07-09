@@ -17,6 +17,7 @@ import phase9g from "../../docs/phase9g-call-ret-stack-semantics.md?raw";
 import phase9h from "../../docs/phase9h-subroutine-teaching-polish.md?raw";
 import phase10a from "../../docs/phase10a-cpp-function-call-lowering.md?raw";
 import phase10b from "../../docs/phase10b-calling-convention-design.md?raw";
+import phase10c from "../../docs/phase10c-cpp-single-argument-function.md?raw";
 import futureCustomCircuit from "../../docs/future-custom-circuit-design.md?raw";
 import practiceTasks from "../../docs/practice-tasks.md?raw";
 import projectOverview from "../../docs/project-overview.md?raw";
@@ -96,6 +97,7 @@ describe("learning use documentation", () => {
     expect(practiceTasks).toContain("Trace nested return order");
     expect(practiceTasks).toContain("Observe C++ function-call lowering");
     expect(practiceTasks).toContain("Read the future calling convention design");
+    expect(practiceTasks).toContain("Observe single-argument function lowering");
     expect(practiceTasks).toContain("Level 5: break / continue");
   });
 
@@ -180,10 +182,22 @@ describe("learning use documentation", () => {
     expect(phase10b).toContain("GR1");
     expect(phase10b).toContain("GR2");
     expect(phase10b).toContain("register arguments");
+    expect(phase10b).toContain("only `GR1` is implemented today");
     expect(phase10b).toContain("stack arguments");
     expect(phase10b).toContain("stack-frame locals");
     expect(phase10b).toContain("Current Limitations");
     expect(phase10b).toContain("not implemented");
+  });
+
+  it("phase10c_single_argument_function_doc_exists", () => {
+    expect(phase10c).toContain("Phase 10C: C++ Single-Argument Function Call Lowering");
+    expect(phase10c).toContain("GR1");
+    expect(phase10c).toContain("GR0");
+    expect(phase10c).toContain("LAD   GR1,5");
+    expect(phase10c).toContain("ST    GR1,FUNC_ADDONE_X");
+    expect(phase10c).toContain("static parameter label");
+    expect(phase10c).toContain("multiple parameters");
+    expect(phase10c).toContain("complex function call arguments are not supported yet");
   });
 
   it("phase8e_circuit_focus_doc_exists", () => {
@@ -244,6 +258,7 @@ describe("learning use documentation", () => {
     expect(futureCustomCircuit).toContain("Phase 9G connects `CALL`");
     expect(futureCustomCircuit).toContain("Phase 10A connects no-argument C++ function-call lowering");
     expect(futureCustomCircuit).toContain("Phase 10B documents the future C++ calling convention");
+    expect(futureCustomCircuit).toContain("Phase 10C implements the first concrete argument path");
     expect(futureCustomCircuit).toContain("GR1");
     expect(futureCustomCircuit).toContain("stack-frame locals");
   });
@@ -282,6 +297,7 @@ describe("learning use documentation", () => {
     expect(readme).toContain("docs/phase9h-subroutine-teaching-polish.md");
     expect(readme).toContain("docs/phase10a-cpp-function-call-lowering.md");
     expect(readme).toContain("docs/phase10b-calling-convention-design.md");
+    expect(readme).toContain("docs/phase10c-cpp-single-argument-function.md");
     expect(readme).toContain("docs/future-custom-circuit-design.md");
     expect(normalized).not.toContain("hackathon");
     expect(normalized).not.toContain("contest submission");

@@ -234,7 +234,7 @@ Expected observation:
 Answer hint:
 
 - Final `GR0` should be `0001`.
-- The MVP does not support parameters, recursion, or calls inside larger expressions such as `foo() + 1`.
+- The MVP does not support multiple parameters, recursion, or calls inside larger expressions such as `foo() + 1`.
 
 ### Task 8C. Read the future calling convention design
 
@@ -249,8 +249,25 @@ Expected observation:
 
 Answer hint:
 
-- Do not write parameterized C++ functions yet; the current transpiler should still reject function arguments.
+- Write only one simple `int` parameter if you try the implemented path; multiple parameters and complex arguments should still be rejected.
 - The useful study question is: which values would be easiest to observe in Registers, and which values would need Stack Preview?
+
+### Task 8D. Observe single-argument function lowering
+
+Start from `C++: Function Argument`.
+
+Expected observation:
+
+- The call site should contain `LAD GR1,5` before `CALL FUNC_ADDONE`.
+- The function entry should contain `ST GR1,FUNC_ADDONE_X`.
+- `FUNC_ADDONE_X` should be a static parameter label, not a stack-frame local.
+- After the callee returns, `GR0` should contain `0006`.
+
+Answer hint:
+
+- `GR1` carries the first argument.
+- `GR0` carries the return value.
+- Multiple parameters and stack arguments are still unsupported.
 
 ## Level 3: If / Else
 

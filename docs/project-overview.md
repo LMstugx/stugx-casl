@@ -81,7 +81,7 @@ The same workflow works with the TypeScript Mock backend and the experimental WA
 - C++ support is a teaching subset, not full C++.
 - CASL II support is a teaching subset, not the full instruction set.
 - Index addressing is supported for CASL address operands, but C++ subset code does not generate indexed operands yet.
-- No-argument C++ `int` functions are supported, but parameters, recursion, stack-frame locals, arrays, pointers, classes, templates, strings, and floats are unsupported.
+- No-argument and single-argument C++ `int` functions are supported, but multiple parameters, recursion, stack-frame locals, arrays, pointers, classes, templates, strings, and floats are unsupported.
 - Control Flow is shown as labels, badges, and target text rather than a full graph.
 
 ## Japanese Summary

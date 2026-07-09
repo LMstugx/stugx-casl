@@ -124,6 +124,13 @@ function emitStatements(context: GeneratorContext, statements: CppStatement[], b
 
 function emitFunctionBody(context: GeneratorContext, fn: CppProgram["main"]): void {
   context.currentFunction = fn.name;
+  if (fn.parameters[0]) {
+    emit(context, `     ST    GR1,${labelForVariable(context, fn.parameters[0].name)}`, {
+      cppLine: fn.parameters[0].line,
+      reason: `save ${fn.parameters[0].name} parameter from GR1`,
+      kind: "function-declaration"
+    });
+  }
   emitStatements(context, fn.body);
   if (!hasExplicitReturn(fn.body)) {
     emit(context, "     LAD   GR0,0", { cppLine: fn.line, reason: "implicit return 0", kind: "function-return" });
@@ -139,7 +146,7 @@ function emitStatement(context: GeneratorContext, statement: CppStatement, branc
 
   if (statement.kind === "Return") {
     if (statement.expression.kind === "CallExpression") {
-      emitCall(context, statement.expression.callee, statement.line, "function-call");
+      emitCall(context, statement.expression, statement.line, "function-call");
       emit(context, "     RET", { cppLine: statement.line, reason: `return from ${context.currentFunction}`, kind: "function-return" });
       return;
     }
@@ -176,7 +183,7 @@ function emitStatement(context: GeneratorContext, statement: CppStatement, branc
 
 function emitAssignment(context: GeneratorContext, statement: Extract<CppStatement, { kind: "Assignment" }>, kind: CppToCaslMapKind): void {
   if (statement.expression.kind === "CallExpression") {
-    emitCall(context, statement.expression.callee, statement.line, "function-call");
+    emitCall(context, statement.expression, statement.line, "function-call");
     emit(context, `     ST    GR0,${labelForVariable(context, statement.target)}`, {
       cppLine: statement.line,
       reason: `store ${statement.target} from function return`,
@@ -344,7 +351,7 @@ function emitExpression(
 
   if (expression.kind === "CallExpression") {
     if (targetRegister !== "GR0") throw new Error("Function calls can only be evaluated into GR0 in the current C++ subset.");
-    emitCall(context, expression.callee, cppLine, "function-call");
+    emitCall(context, expression, cppLine, "function-call");
     return;
   }
 
@@ -364,12 +371,38 @@ function operandForExpression(context: GeneratorContext, expression: CppExpressi
   throw new Error("Nested binary right-hand expressions are not supported by the C++ subset generator.");
 }
 
-function emitCall(context: GeneratorContext, callee: string, cppLine: number, kind: CppToCaslMapKind): void {
+function emitCall(context: GeneratorContext, expression: Extract<CppExpression, { kind: "CallExpression" }>, cppLine: number, kind: CppToCaslMapKind): void {
+  const callee = expression.callee;
+  if (expression.arguments[0]) {
+    emitArgumentToGr1(context, expression.arguments[0], callee, cppLine, kind);
+  }
   emit(context, `     CALL  ${functionLabel(callee)}`, {
     cppLine,
     reason: `call ${callee}`,
     kind
   });
+}
+
+function emitArgumentToGr1(context: GeneratorContext, argument: CppExpression, callee: string, cppLine: number, kind: CppToCaslMapKind): void {
+  if (argument.kind === "IntegerLiteral") {
+    emit(context, `     LAD   GR1,${formatCaslLiteral(argument.value)}`, {
+      cppLine,
+      reason: `load first argument for ${callee}`,
+      kind
+    });
+    return;
+  }
+
+  if (argument.kind === "Identifier") {
+    emit(context, `     LD    GR1,${labelForVariable(context, argument.name)}`, {
+      cppLine,
+      reason: `load first argument for ${callee}`,
+      kind
+    });
+    return;
+  }
+
+  throw new Error("complex function call arguments are not supported yet");
 }
 
 function labelForVariable(context: GeneratorContext, name: string): string {

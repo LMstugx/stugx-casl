@@ -96,7 +96,7 @@ export function checkCppSemantics(program: CppProgram | null, parseDiagnostics: 
   const useScopedLabels = program.functions.length > 1;
   for (const fn of program.functions) {
     const functionVariables = new Map<string, CppVariableSymbol>();
-    validateStatements(fn.body, {
+    const context: ValidationContext = {
       functionName: fn.name,
       functionIndex: functionOrder.get(fn.name) ?? 0,
       variables: functionVariables,
@@ -107,10 +107,39 @@ export function checkCppSemantics(program: CppProgram | null, parseDiagnostics: 
       functionOrder,
       useScopedLabels,
       loopDepth: 0
-    });
+    };
+    validateFunctionParameters(fn, context);
+    validateStatements(fn.body, context);
   }
 
   return { ok: diagnostics.every((diagnostic) => diagnostic.severity !== "error"), diagnostics, variables };
+}
+
+function validateFunctionParameters(fn: CppFunction, context: ValidationContext): void {
+  if (fn.name === "main" && fn.parameters.length > 0) {
+    context.diagnostics.push({ line: fn.parameters[0].line, message: "main parameters are not supported yet", severity: "error" });
+  }
+
+  if (fn.parameters.length > 1) {
+    context.diagnostics.push({ line: fn.parameters[1].line, message: "only one function parameter is supported yet", severity: "error" });
+  }
+
+  for (const parameter of fn.parameters) {
+    if (context.variables.has(parameter.name)) {
+      context.diagnostics.push({ line: parameter.line, message: `Duplicate parameter declaration: ${parameter.name}`, severity: "error" });
+      continue;
+    }
+
+    const symbol = {
+      name: parameter.name,
+      functionName: context.functionName,
+      label: makeSafeLabel(`${functionLabel(context.functionName)}_${parameter.name}`, context.usedLabels),
+      declarationLine: parameter.line,
+      isParameter: true
+    };
+    context.variables.set(parameter.name, symbol);
+    context.allVariables.push(symbol);
+  }
 }
 
 function validateStatements(statements: CppStatement[], context: ValidationContext): void {
@@ -176,7 +205,12 @@ function validateStatements(statements: CppStatement[], context: ValidationConte
 }
 
 function validateVarDecl(statement: CppVarDecl, context: ValidationContext, storeLiteralInitializer: boolean): void {
-  if (context.variables.has(statement.name)) {
+  const existing = context.variables.get(statement.name);
+  if (existing) {
+    if (existing.isParameter) {
+      context.diagnostics.push({ line: statement.line, message: "parameter name conflicts with local variable", severity: "error" });
+      return;
+    }
     context.diagnostics.push({ line: statement.line, message: `Duplicate variable declaration: ${statement.name}`, severity: "error" });
     return;
   }
@@ -299,13 +333,16 @@ function validateCondition(condition: CppCondition, context: ValidationContext):
 }
 
 function validateCallExpression(expression: Extract<CppExpression, { kind: "CallExpression" }>, context: ValidationContext): void {
-  if (expression.arguments.length > 0) {
-    context.diagnostics.push({ line: expression.line, message: "Function arguments are not supported yet.", severity: "error" });
-    for (const arg of expression.arguments) validateExpression(arg, context);
+  for (const arg of expression.arguments) {
+    validateFunctionCallArgument(arg, context);
   }
-  if (!context.functionNames.has(expression.callee)) {
+  const callee = context.functionNames.get(expression.callee);
+  if (!callee) {
     context.diagnostics.push({ line: expression.line, message: `Function '${expression.callee}' is not defined.`, severity: "error" });
     return;
+  }
+  if (expression.arguments.length !== callee.parameters.length) {
+    context.diagnostics.push({ line: expression.line, message: "function call argument count mismatch", severity: "error" });
   }
   if (expression.callee === context.functionName) {
     context.diagnostics.push({ line: expression.line, message: "recursive function calls are not supported yet", severity: "error" });
@@ -318,6 +355,13 @@ function validateCallExpression(expression: Extract<CppExpression, { kind: "Call
       severity: "error"
     });
   }
+}
+
+function validateFunctionCallArgument(argument: CppExpression, context: ValidationContext): void {
+  if (argument.kind !== "Identifier" && argument.kind !== "IntegerLiteral") {
+    context.diagnostics.push({ line: argument.line, message: "complex function call arguments are not supported yet", severity: "error" });
+  }
+  validateExpression(argument, context);
 }
 
 function containsCallExpression(expression: CppExpression): boolean {

@@ -106,6 +106,16 @@ describe("guided learning lessons", () => {
     expect(text).toContain("FUNC_ADDONE");
   });
 
+  it("lesson_for_cpp_function_argument_mentions_gr1_and_parameter_save", () => {
+    const lesson = getLearningLesson("cpp-function-argument");
+    const text = JSON.stringify(lesson);
+
+    expect(text).toContain("GR1");
+    expect(text).toContain("FUNC_ADDONE_X");
+    expect(text).toContain("GR0");
+    expect(text).toContain("static parameter label");
+  });
+
   it("learning_lessons_have_recommended_tabs", () => {
     for (const lesson of learningLessons) {
       expect(lesson.suggestedSteps.every((step) => step.recommendedTab)).toBe(true);

@@ -12,7 +12,7 @@ Supported:
 - assignment from a function call: `x = addOne();`
 - return from a function call: `return addOne();`
 
-Not supported:
+Phase 10A did not support:
 
 - function parameters
 - forward declarations
@@ -21,6 +21,8 @@ Not supported:
 - `void` functions
 - function pointers
 - calls inside larger expressions such as `foo() + 1`
+
+Phase 10C later adds the first single-argument path using `GR1`. Multiple parameters, recursion, and stack-frame locals are still unsupported.
 
 ## GR0 Return Value Convention
 
@@ -109,7 +111,7 @@ Use `C++: Function Call` to observe:
 
 ## Future Work
 
-- parameter passing convention
+- additional register arguments beyond the Phase 10C `GR1` path
 - stack-frame local variables
 - recursion teaching model
 - C++ function calls inside expressions

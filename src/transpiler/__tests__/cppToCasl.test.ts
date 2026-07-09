@@ -941,6 +941,115 @@ int main() {
     expect(cppLineForCaslLine(result.mapping, rows[0])).toBe(7);
   });
 
+  it("transpile_parameter_save_from_gr1", () => {
+    const result = expectOk(`int addOne(int x) {
+    return x + 1;
+}
+
+int main() {
+    return addOne(5);
+}`);
+
+    expect(result.caslSource).toContain("FUNC_ADDONE ST    GR1,FUNC_ADDONE_X");
+    expect(result.caslSource).toContain("FUNC_ADDONE_X DS    1");
+  });
+
+  it("transpile_call_literal_argument_to_lad_gr1", () => {
+    const result = expectOk(`int addOne(int x) {
+    return x + 1;
+}
+
+int main() {
+    int y;
+    y = addOne(5);
+    return y;
+}`);
+
+    const lines = result.caslSource.split("\n");
+    const argIndex = lines.findIndex((line) => line.includes("LAD   GR1,5"));
+    const callIndex = lines.findIndex((line) => line.includes("CALL  FUNC_ADDONE"));
+    expect(argIndex).toBeGreaterThan(0);
+    expect(callIndex).toBeGreaterThan(argIndex);
+  });
+
+  it("transpile_call_identifier_argument_to_ld_gr1", () => {
+    const result = expectOk(`int addOne(int x) {
+    return x + 1;
+}
+
+int main() {
+    int a = 5;
+    int y;
+    y = addOne(a);
+    return y;
+}`);
+
+    const lines = result.caslSource.split("\n");
+    const argIndex = lines.findIndex((line) => line.includes("LD    GR1,MAIN_A"));
+    const callIndex = lines.findIndex((line) => line.includes("CALL  FUNC_ADDONE"));
+    expect(argIndex).toBeGreaterThan(0);
+    expect(callIndex).toBeGreaterThan(argIndex);
+  });
+
+  it("transpile_assignment_from_single_argument_call", () => {
+    const result = expectOk(`int addOne(int x) {
+    return x + 1;
+}
+
+int main() {
+    int y;
+    y = addOne(5);
+    return y;
+}`);
+
+    expect(result.caslSource).toContain("     ST    GR0,MAIN_Y");
+  });
+
+  it("transpile_return_from_single_argument_call", () => {
+    const result = expectOk(`int addOne(int x) {
+    return x + 1;
+}
+
+int main() {
+    return addOne(5);
+}`);
+
+    const lines = result.caslSource.split("\n");
+    const callIndex = lines.findIndex((line) => line.includes("CALL  FUNC_ADDONE"));
+    expect(lines[callIndex - 1]).toContain("LAD   GR1,5");
+    expect(lines[callIndex + 1]).toContain("RET");
+  });
+
+  it("parameter_label_is_namespaced", () => {
+    const result = expectOk(`int id(int x) {
+    return x;
+}
+
+int main() {
+    return id(5);
+}`);
+
+    expect(result.caslSource).toContain("FUNC_ID_X DS    1");
+    expect(result.caslSource).toContain("FUNC_ID ST    GR1,FUNC_ID_X");
+  });
+
+  it("function_call_argument_mapping", () => {
+    const result = expectOk(`int addOne(int x) {
+    return x + 1;
+}
+
+int main() {
+    int y;
+    y = addOne(5);
+    return y;
+}`);
+
+    const rows = result.mapping.filter((entry) => entry.kind === "function-call" && entry.cppLine === 7).flatMap((entry) => entry.caslLines);
+    const mappedLines = rows.map((line) => result.caslSource.split("\n")[line - 1]);
+    expect(mappedLines.some((line) => line.includes("LAD   GR1,5"))).toBe(true);
+    expect(mappedLines.some((line) => line.includes("CALL  FUNC_ADDONE"))).toBe(true);
+  });
+
   it("cpp_function_call_returns_value", () => {
     const result = expectOk(`int addOne() {
     return 1;
@@ -988,6 +1097,54 @@ int main() {
     expect(state.trace.some((event) => event.instruction === "RET" && event.callDepthBefore === 1 && event.callDepthAfter === 0)).toBe(true);
     expect(state.runState).toBe("Finished");
     expect(state.callDepth).toBe(0);
+  });
+
+  it("cpp_single_argument_function_returns_value", () => {
+    const result = expectOk(`int addOne(int x) {
+    return x + 1;
+}
+
+int main() {
+    int y;
+    y = addOne(5);
+    return y;
+}`);
+    const state = runToEnd(result.caslSource);
+
+    expect(state.runState).toBe("Finished");
+    expect(state.gr[0]).toBe(0x0006);
+  });
+
+  it("cpp_single_argument_function_stores_result", () => {
+    const result = expectOk(`int addOne(int x) {
+    return x + 1;
+}
+
+int main() {
+    int y;
+    y = addOne(5);
+    return y;
+}`);
+    const state = runToEnd(result.caslSource);
+
+    expect(state.memory[state.symbols.MAIN_Y]).toBe(0x0006);
+    expect(state.memory[state.symbols.FUNC_ADDONE_X]).toBe(0x0005);
+  });
+
+  it("cpp_no_argument_function_regression", () => {
+    const result = expectOk(`int addOne() {
+    return 1;
+}
+
+int main() {
+    int x;
+    x = addOne();
+    return x;
+}`);
+    const state = runToEnd(result.caslSource);
+
+    expect(state.runState).toBe("Finished");
+    expect(state.gr[0]).toBe(0x0001);
   });
 
   it("existing_cpp_addition_still_works", () => {

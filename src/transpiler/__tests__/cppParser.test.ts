@@ -261,6 +261,60 @@ int main() {
     });
   });
 
+  it("parse_single_int_parameter_function", () => {
+    const result = parseCpp(`int addOne(int x) {
+    return x + 1;
+}
+
+int main() {
+    return addOne(5);
+}`);
+
+    expect(result.diagnostics).toEqual([]);
+    expect(result.program?.functions[0]).toMatchObject({
+      kind: "Function",
+      name: "addOne",
+      parameters: [{ name: "x", type: "int" }]
+    });
+  });
+
+  it("parse_single_argument_call_literal", () => {
+    const result = parseCpp(`int addOne(int x) {
+    return x;
+}
+
+int main() {
+    int y;
+    y = addOne(5);
+    return y;
+}`);
+
+    expect(result.diagnostics).toEqual([]);
+    expect(result.program?.main.body[1]).toMatchObject({
+      kind: "Assignment",
+      expression: { kind: "CallExpression", callee: "addOne", arguments: [{ kind: "IntegerLiteral", value: 5 }] }
+    });
+  });
+
+  it("parse_single_argument_call_identifier", () => {
+    const result = parseCpp(`int addOne(int x) {
+    return x;
+}
+
+int main() {
+    int a = 5;
+    int y;
+    y = addOne(a);
+    return y;
+}`);
+
+    expect(result.diagnostics).toEqual([]);
+    expect(result.program?.main.body[2]).toMatchObject({
+      kind: "Assignment",
+      expression: { kind: "CallExpression", callee: "addOne", arguments: [{ kind: "Identifier", name: "a" }] }
+    });
+  });
+
   it("existing_main_only_program_still_parses", () => {
     const result = parseCpp(`int main() {
     int a = 1;

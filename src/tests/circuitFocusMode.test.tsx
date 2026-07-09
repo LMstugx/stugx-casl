@@ -302,6 +302,23 @@ describe("Circuit Focus Mode layout", () => {
     expect(markup).toContain("x = addOne();");
   });
 
+  it("call_stack_view_updates_for_single_argument_function", () => {
+    const program = getDemoProgram("cpp-function-argument");
+    expect(program).toBeDefined();
+    const prepared = prepareSourceForCoreAssembly(program!.source, "cpp");
+    expect(prepared.ok).toBe(true);
+    let rawState = mockCaslCore.assemble(prepared.coreSourceText);
+    rawState = mockCaslCore.step(rawState);
+    rawState = mockCaslCore.step(rawState);
+
+    const markup = renderCppFocus(rawState, program!.source, prepared.generatedCaslSource, prepared.mapping);
+
+    expect(markup).toContain('data-testid="call-stack-depth">1</code>');
+    expect(markup).toContain('data-testid="call-stack-routine">FUNC_ADDONE</code>');
+    expect(markup).toContain("CALL -&gt; FUNC_ADDONE");
+    expect(markup).toContain("y = addOne(5);");
+  });
+
   it("call_stack_view_shows_top_level_ret_mode", () => {
     const state = mockCaslCore.assemble(gr2Source);
     const markup = renderFocus(state, gr2Source);

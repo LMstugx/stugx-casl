@@ -46,6 +46,7 @@ describe("demo recording experience", () => {
       "CASL: Call Return",
       "CASL: Nested Call Return",
       "C++: Function Call",
+      "C++: Function Argument",
       "C++: Addition",
       "C++: If Else",
       "C++: While Sum",
@@ -181,6 +182,25 @@ describe("demo recording experience", () => {
     expect(state.runState).toBe("Finished");
     expect(state.gr[0]).toBe(0x0001);
     expect(state.trace.some((event) => event.instruction === "CALL")).toBe(true);
+  });
+
+  it("demo_cpp_function_argument_run_finishes", () => {
+    const program = getDemoProgram("cpp-function-argument");
+    expect(program).toBeDefined();
+    const prepared = prepareSourceForCoreAssembly(program!.source, "cpp");
+    expect(prepared.ok).toBe(true);
+    expect(prepared.generatedCaslSource).toContain("LAD   GR1,5");
+    expect(prepared.generatedCaslSource).toContain("CALL  FUNC_ADDONE");
+    expect(prepared.generatedCaslSource).toContain("ST    GR1,FUNC_ADDONE_X");
+
+    let state = mockCaslCore.assemble(prepared.coreSourceText);
+    for (let step = 0; step < 120 && state.runState !== "Finished"; step += 1) {
+      state = mockCaslCore.step(state);
+    }
+
+    expect(state.runState).toBe("Finished");
+    expect(state.gr[0]).toBe(0x0006);
+    expect(state.memory[state.symbols.MAIN_Y]).toBe(0x0006);
   });
 
   it("demo_guide_displays_expected_result", () => {
@@ -333,7 +353,7 @@ describe("demo recording experience", () => {
     const markup = renderToStaticMarkup(<DemoGuidePanel program={getDemoProgram("cpp-break-continue")!} />);
 
     expect(markup).toContain("Not a full C++ compiler");
-    expect(markup).toContain("function parameters, recursion, stack-frame locals");
+    expect(markup).toContain("multiple parameters, recursion, stack-frame locals");
     expect(markup).toContain("arrays, pointers, classes, templates");
   });
 
@@ -357,6 +377,7 @@ describe("demo recording experience", () => {
       "casl-call-return",
       "casl-nested-call-return",
       "cpp-function-call",
+      "cpp-function-argument",
       "cpp-addition",
       "cpp-if-else",
       "cpp-while-sum",

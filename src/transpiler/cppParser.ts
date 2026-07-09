@@ -12,6 +12,7 @@ import type {
   CppFunction,
   CppIfStatement,
   CppIntegerLiteral,
+  CppParameter,
   CppProgram,
   CppReturn,
   CppStatement,
@@ -74,11 +75,8 @@ class Parser {
     }
 
     this.consumeSymbol("(", `Expected '(' after ${name.value}.`);
-    if (!this.checkSymbol(")")) {
-      this.error(this.current(), "Function parameters are not supported yet.");
-      this.synchronizeFunctionParameters();
-    }
-    this.consumeSymbol(")", "Current C++ subset only supports no-argument functions.");
+    const parameters = this.parseFunctionParameters();
+    this.consumeSymbol(")", "Expected ')' after function parameters.");
     this.consumeSymbol("{", `Expected '{' to start ${name.value} body.`);
 
     const body: CppStatement[] = [];
@@ -88,7 +86,30 @@ class Parser {
     }
 
     this.consumeSymbol("}", `Expected '}' to close ${name.value} body.`);
-    return { kind: "Function", name: name.value, returnType: "int", parameters: [], line: start.line, body };
+    return { kind: "Function", name: name.value, returnType: "int", parameters, line: start.line, body };
+  }
+
+  private parseFunctionParameters(): CppParameter[] {
+    const parameters: CppParameter[] = [];
+    if (this.checkSymbol(")")) return parameters;
+
+    while (!this.is("eof") && !this.checkSymbol(")")) {
+      const start = this.current();
+      if (!this.matchKeyword("int")) {
+        this.error(start, "Function parameters must be int.");
+        this.synchronizeFunctionParameter();
+      } else {
+        if (this.matchSymbol("*")) {
+          this.error(this.previous(), "Current C++ subset does not support pointer parameters.");
+        }
+        const name = this.consume("identifier", "Expected parameter name after int.");
+        if (name) parameters.push({ name: name.value, type: "int", line: name.line });
+      }
+
+      if (!this.matchSymbol(",")) break;
+    }
+
+    return parameters;
   }
 
   private parseStatement(): CppStatement | null {
@@ -377,7 +398,6 @@ class Parser {
         if (arg) args.push(arg);
         if (!this.matchSymbol(",")) break;
       }
-      if (args.length > 0) this.error(callee, "Function arguments are not supported yet.");
     }
     this.consumeSymbol(")", "Expected ')' after function call.");
     return { kind: "CallExpression", line: callee.line, callee: callee.value, arguments: args };
@@ -392,8 +412,8 @@ class Parser {
     while (!this.is("eof") && !this.checkSymbol(";") && !this.checkSymbol(")")) this.advance();
   }
 
-  private synchronizeFunctionParameters() {
-    while (!this.is("eof") && !this.checkSymbol(")")) this.advance();
+  private synchronizeFunctionParameter() {
+    while (!this.is("eof") && !this.checkSymbol(",") && !this.checkSymbol(")")) this.advance();
   }
 
   private consume(kind: CppToken["kind"], message: string): CppToken | null {

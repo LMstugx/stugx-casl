@@ -1,8 +1,10 @@
 # Phase 10B: C++ Calling Convention and Stack-Frame Design
 
-Phase 10B is a design and teaching-preparation phase. It does not add C++ syntax, parameters, recursion, stack-frame locals, or new VM behavior.
+Phase 10B is a design and teaching-preparation phase. It did not add C++ syntax, parameters, recursion, stack-frame locals, or new VM behavior when it was introduced.
 
-The current implementation remains the Phase 10A MVP:
+Phase 10C implements the first part of this design: a single `int` parameter passed through `GR1`.
+
+The Phase 10A implementation started as:
 
 - no-argument `int` functions
 - `CALL FUNC_NAME` for a function call
@@ -10,6 +12,12 @@ The current implementation remains the Phase 10A MVP:
 - stack-aware `RET` inside a call frame
 - top-level `RET` in `main` still finishes the program
 - static namespaced local labels such as `MAIN_X` and `ADDONE_X`
+
+Phase 10C extends that with:
+
+- one `int` parameter per helper function
+- `GR1` as the first argument register
+- static parameter labels such as `FUNC_ADDONE_X`
 
 ## Design Goals
 
@@ -53,15 +61,15 @@ This convention is already implemented in Phase 10A and should remain stable.
 
 ## Future Parameter Convention
 
-Parameters are not implemented yet. The proposed first convention is a hybrid design:
+Phase 10C implements the first register-argument slot. The broader proposed convention remains a hybrid design:
 
-- `GR1`, `GR2`, and `GR3` are the first register argument slots.
+- `GR1`, `GR2`, and `GR3` are the first register argument slots; only `GR1` is implemented today.
 - Additional arguments, when supported later, are passed on the stack.
 - `GR0` remains reserved for the return value.
 - `SP` owns stack argument and return-address storage.
 - `CALL` continues to push the return address.
 
-Example future shape, not implemented yet:
+Example shape:
 
 ```cpp
 int add(int a, int b) {
@@ -78,7 +86,7 @@ Possible lowering direction:
      ST    GR0,MAIN_X
 ```
 
-Inside `FUNC_ADD`, `GR1` and `GR2` would be read as parameters. This keeps the first parameter lesson short and lets students see argument values in the Register panel.
+Inside `FUNC_ADD`, `GR1` and `GR2` would be read as parameters. Today only the single-argument `GR1` version is implemented; `GR2` remains future work.
 
 ## Register Arguments vs Stack Arguments
 
@@ -156,7 +164,8 @@ No UI should imply stack-frame locals before the transpiler actually lowers loca
 
 Still not implemented:
 
-- function parameters
+- multiple function parameters
+- `GR2` / `GR3` argument lowering
 - stack arguments
 - stack-frame locals
 - recursion

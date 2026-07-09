@@ -669,4 +669,38 @@ describe("machine code rows", () => {
     expect(rows.find((row) => row.sourceText === "CALL FUNC_ADDONE")?.relatedCppLine).toBe(7);
     expect(rows.find((row) => row.sourceText === "ST GR0,MAIN_X")?.relatedCppLine).toBe(7);
   });
+
+  it("generated_casl_shows_gr1_argument_load", () => {
+    const program = getDemoProgram("cpp-function-argument");
+    expect(program).toBeDefined();
+    const prepared = prepareSourceForCoreAssembly(program!.source, "cpp");
+    expect(prepared.ok).toBe(true);
+
+    expect(prepared.generatedCaslSource).toContain("LAD   GR1,5");
+    expect(prepared.mapping.some((entry) => entry.kind === "function-call" && entry.cppLine === 7)).toBe(true);
+  });
+
+  it("generated_casl_shows_parameter_save", () => {
+    const program = getDemoProgram("cpp-function-argument");
+    expect(program).toBeDefined();
+    const prepared = prepareSourceForCoreAssembly(program!.source, "cpp");
+    expect(prepared.ok).toBe(true);
+
+    expect(prepared.generatedCaslSource).toContain("FUNC_ADDONE ST    GR1,FUNC_ADDONE_X");
+    expect(prepared.generatedCaslSource).toContain("FUNC_ADDONE_X DS    1");
+  });
+
+  it("machine_code_shows_call_for_single_argument_function", () => {
+    const program = getDemoProgram("cpp-function-argument");
+    expect(program).toBeDefined();
+    const prepared = prepareSourceForCoreAssembly(program!.source, "cpp");
+    expect(prepared.ok).toBe(true);
+    const state = stateFromRaw(mockCaslCore.assemble(prepared.coreSourceText));
+    const rows = selectMachineCodeRows(state, prepared.mapping);
+
+    expect(rows.find((row) => row.sourceText === "LAD GR1,5")).toBeDefined();
+    const callRow = rows.find((row) => row.sourceText === "CALL FUNC_ADDONE" && row.kind === "instruction");
+    expect(callRow).toBeDefined();
+    expect(explainMachineCodeRow(callRow!).mnemonic).toBe("CALL");
+  });
 });

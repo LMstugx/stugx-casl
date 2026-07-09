@@ -26,6 +26,9 @@ describe("visual review screenshot gallery setup", () => {
     expect(visualReviewSpec).toContain("cpp-function-call-generated-casl.png");
     expect(visualReviewSpec).toContain("cpp-function-call-trace.png");
     expect(visualReviewSpec).toContain("cpp-function-call-machine-code.png");
+    expect(visualReviewSpec).toContain("cpp-function-argument-generated-casl.png");
+    expect(visualReviewSpec).toContain("cpp-function-argument-trace.png");
+    expect(visualReviewSpec).toContain("cpp-function-argument-machine-code.png");
     expect(visualReviewSpec).toContain("page.screenshot");
   });
 
@@ -71,6 +74,9 @@ describe("visual review screenshot gallery setup", () => {
     expect(visualReviewDoc).toContain("cpp-function-call-generated-casl.png");
     expect(visualReviewDoc).toContain("cpp-function-call-trace.png");
     expect(visualReviewDoc).toContain("cpp-function-call-machine-code.png");
+    expect(visualReviewDoc).toContain("cpp-function-argument-generated-casl.png");
+    expect(visualReviewDoc).toContain("cpp-function-argument-trace.png");
+    expect(visualReviewDoc).toContain("cpp-function-argument-machine-code.png");
   });
 
   it("package_json_has_visual_review_scripts", () => {

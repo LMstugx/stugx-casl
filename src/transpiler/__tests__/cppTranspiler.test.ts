@@ -209,7 +209,7 @@ int main() {
     expect(result.diagnostics.map((diagnostic) => diagnostic.message).join("\n")).toContain("Function 'missing' is not defined");
   });
 
-  it("semantic_rejects_function_arguments", () => {
+  it("semantic_rejects_argument_count_mismatch", () => {
     const result = transpileCppToCasl(`int addOne() {
     return 1;
 }
@@ -221,7 +221,63 @@ int main() {
 }`);
 
     expect(result.ok).toBe(false);
-    expect(result.diagnostics.map((diagnostic) => diagnostic.message).join("\n")).toContain("Function arguments are not supported yet");
+    expect(result.diagnostics.map((diagnostic) => diagnostic.message).join("\n")).toContain("function call argument count mismatch");
+  });
+
+  it("semantic_rejects_two_parameters", () => {
+    const result = transpileCppToCasl(`int add(int a, int b) {
+    return a;
+}
+
+int main() {
+    return add(1);
+}`);
+
+    expect(result.ok).toBe(false);
+    expect(result.diagnostics.map((diagnostic) => diagnostic.message).join("\n")).toContain("only one function parameter is supported yet");
+  });
+
+  it("semantic_rejects_unknown_argument_identifier", () => {
+    const result = transpileCppToCasl(`int addOne(int x) {
+    return x + 1;
+}
+
+int main() {
+    int y;
+    y = addOne(missing);
+    return y;
+}`);
+
+    expect(result.ok).toBe(false);
+    expect(result.diagnostics.map((diagnostic) => diagnostic.message).join("\n")).toContain("Variable 'missing' is used before declaration");
+  });
+
+  it("semantic_rejects_parameter_local_name_conflict", () => {
+    const result = transpileCppToCasl(`int id(int x) {
+    int x;
+    return x;
+}
+
+int main() {
+    return id(1);
+}`);
+
+    expect(result.ok).toBe(false);
+    expect(result.diagnostics.map((diagnostic) => diagnostic.message).join("\n")).toContain("parameter name conflicts with local variable");
+  });
+
+  it("semantic_rejects_complex_function_call_argument", () => {
+    const result = transpileCppToCasl(`int addOne(int x) {
+    return x + 1;
+}
+
+int main() {
+    int a = 5;
+    return addOne(a + 1);
+}`);
+
+    expect(result.ok).toBe(false);
+    expect(result.diagnostics.map((diagnostic) => diagnostic.message).join("\n")).toContain("complex function call arguments are not supported yet");
   });
 
   it("semantic_rejects_recursive_function_call", () => {
@@ -244,6 +300,19 @@ int helper() {
 
     expect(result.ok).toBe(false);
     expect(result.diagnostics.map((diagnostic) => diagnostic.message).join("\n")).toContain("Forward declarations are not supported yet");
+  });
+
+  it("existing_no_argument_function_still_works", () => {
+    const result = transpileCppToCasl(`int addOne() {
+    return 1;
+}
+
+int main() {
+    return addOne();
+}`);
+
+    expect(result.ok).toBe(true);
+    expect(result.diagnostics).toEqual([]);
   });
 
   it("transpile_invalid_syntax", () => {

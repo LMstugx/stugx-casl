@@ -52,8 +52,14 @@ export interface CppFunction {
   name: string;
   returnType: "int";
   line: number;
-  parameters: [];
+  parameters: CppParameter[];
   body: CppStatement[];
+}
+
+export interface CppParameter {
+  name: string;
+  type: "int";
+  line: number;
 }
 
 export interface CppVarDecl {
@@ -153,6 +159,7 @@ export interface CppVariableSymbol {
   label: string;
   declarationLine: number;
   initializer?: number;
+  isParameter?: boolean;
 }
 
 export interface SemanticResult {

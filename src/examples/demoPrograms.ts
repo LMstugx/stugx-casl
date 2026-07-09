@@ -193,6 +193,24 @@ int main() {
     suggestedActions: ["Click Assemble.", "Open Generated CASL and find FUNC_ADDONE / CALL.", "Open Machine Code and inspect CALL opcode 80.", "Open Trace and watch CALL / RET.", "Run and confirm GR0 = 0001."]
   },
   {
+    id: "cpp-function-argument",
+    name: "C++: Function Argument",
+    mode: "cpp",
+    source: `int addOne(int x) {
+    return x + 1;
+}
+
+int main() {
+    int y;
+    y = addOne(5);
+    return y;
+}`,
+    description: "Single-argument C++ function lowered with GR1 as the first argument register and GR0 as the return-value register.",
+    whatThisShows: "The call site loads the argument into GR1, CALL jumps to FUNC_ADDONE, the callee saves GR1 into FUNC_ADDONE_X, and RET returns through GR0.",
+    expectedResult: "LAD GR1,5 passes the argument, GR0 becomes 0006, y stores 0006, and the final top-level RET finishes.",
+    suggestedActions: ["Click Assemble.", "Open Generated CASL and find LAD GR1,5 / CALL FUNC_ADDONE / ST GR1,FUNC_ADDONE_X.", "Open Trace and watch GR1 before CALL.", "Open Machine Code and inspect CALL opcode 80.", "Run and confirm GR0 = 0006."]
+  },
+  {
     id: "cpp-addition",
     name: "C++: Addition",
     mode: "cpp",

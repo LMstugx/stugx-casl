@@ -179,18 +179,18 @@ export default function DemoGuidePanel({
           </div>
           <div>
             <h3>Recommended examples</h3>
-            <p>Start with CASL: GR2 Addition, then C++: Addition, Function Call, If Else, While Sum, For Sum Sugar, and Break Continue.</p>
+            <p>Start with CASL: GR2 Addition, then C++: Addition, Function Call, Function Argument, If Else, While Sum, For Sum Sugar, and Break Continue.</p>
           </div>
           <div>
             <h3>Supported C++ subset</h3>
             <p>
-              int main, no-argument int functions, int variables, assignment, +, -, return, if/else, while, for, break/continue, i++, i--, +=, and -=.
+              int main, no-argument and single-argument int functions, int variables, assignment, +, -, return, if/else, while, for, break/continue, i++, i--, +=, and -=.
             </p>
           </div>
           <div>
             <h3>Current limitations</h3>
             <p data-testid="project-overview-limitations">
-              Not a full C++ compiler: function parameters, recursion, stack-frame locals, arrays, pointers, classes, templates, strings, and full CASL II coverage are outside the current scope.
+              Not a full C++ compiler: multiple parameters, recursion, stack-frame locals, arrays, pointers, classes, templates, strings, and full CASL II coverage are outside the current scope.
             </p>
           </div>
         </div>

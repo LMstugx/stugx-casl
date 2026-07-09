@@ -890,4 +890,21 @@ RESULT DS  1
     expect(state.trace.some((event) => event.instruction === "CALL" && event.callDepthAfter === 1)).toBe(true);
     expect(state.trace.some((event) => event.instruction === "RET" && event.callDepthBefore === 1 && event.callDepthAfter === 0)).toBe(true);
   });
+
+  it("trace_shows_gr1_argument_before_call", () => {
+    const program = getDemoProgram("cpp-function-argument");
+    expect(program).toBeDefined();
+    const transpiled = transpileCppToCasl(program!.source);
+    expect(transpiled.ok).toBe(true);
+
+    let state = mockCaslCore.assemble(transpiled.caslSource);
+    for (let step = 0; step < 30 && state.runState !== "Finished"; step += 1) {
+      state = mockCaslCore.step(state);
+    }
+
+    expect(state.runState).toBe("Finished");
+    expect(state.gr[0]).toBe(0x0006);
+    expect(state.trace.some((event) => event.instruction === "LAD" && event.detail.includes("0005 -> GR1"))).toBe(true);
+    expect(state.trace.some((event) => event.instruction === "CALL" && event.callDepthAfter === 1)).toBe(true);
+  });
 });

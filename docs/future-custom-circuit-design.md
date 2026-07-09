@@ -108,12 +108,12 @@ Phase 9E adds stack-address infrastructure without stack execution semantics. Ph
 
 The current stack template names are intentionally split by behavior: `stack-read` and `stack-write` are used by `POP` and `PUSH`; `call-return-address` and `return-pop-address` are used by `CALL` and stack-aware `RET`. Top-level `RET` keeps a separate finish path so old demos do not need a stack frame.
 
-Phase 10A connects no-argument C++ function-call lowering to the same `CALL` / stack-aware `RET` route. The C++ side still uses static namespaced data labels such as `MAIN_X` and `ADDONE_X`; it does not create stack-frame locals, arguments, or recursive frames yet. Future custom-circuit work should treat Phase 10A as a teaching bridge, not as a complete function-frame model.
+Phase 10A connects no-argument C++ function-call lowering to the same `CALL` / stack-aware `RET` route. At that phase, the C++ side still used static namespaced data labels such as `MAIN_X` and `ADDONE_X`; it did not create stack-frame locals, arguments, or recursive frames. Future custom-circuit work should treat Phase 10A as a teaching bridge, not as a complete function-frame model.
 
-Phase 10B documents the future C++ calling convention without implementing it. The current stable convention is `GR0` for return values. The proposed first parameter model uses small register argument slots such as `GR1` and `GR2`, with stack arguments and stack-frame locals reserved for a later phase. Future custom-circuit templates should therefore keep three concepts visually separate:
+Phase 10B documents the future C++ calling convention, and Phase 10C implements the first concrete argument path. The current stable convention is `GR0` for return values and `GR1` for the first argument. Additional register arguments such as `GR2`, plus stack arguments and stack-frame locals, are reserved for later phases. Future custom-circuit templates should therefore keep three concepts visually separate:
 
 - `GR0` return value path
-- `GR1` / `GR2` register argument path
+- `GR1` current register argument path, with `GR2` reserved for a future second argument
 - later stack-frame slots for arguments and locals
 
-Do not show stack-frame locals or stack arguments in a circuit template until the transpiler and teaching UI actually lower C++ parameters to those locations.
+Do not show stack-frame locals or stack arguments in a circuit template until the transpiler and teaching UI actually lower C++ parameters to those locations. The current single-argument lowering stores `GR1` into a static parameter label such as `FUNC_ADDONE_X`; that label is not a real stack-frame local.

@@ -95,6 +95,13 @@ Suggested actions:
 3. Open `Machine Code` and click `CALL FUNC_ADDONE`.
 4. Open `Trace` or Circuit Focus Mode and compare the call stack return with the final top-level `RET`.
 
+Calling convention design note:
+
+- Current C++ calls use `GR0` as the return-value register.
+- Future parameter support is planned around small register arguments such as `GR1` and `GR2`.
+- Stack arguments and stack-frame locals are design topics only; they are not implemented in the current C++ subset.
+- Read [phase10b-calling-convention-design.md](phase10b-calling-convention-design.md) before trying to design parameter or recursion lessons.
+
 ### Step 3: if / else
 
 Example: `C++: If Else`
@@ -409,6 +416,7 @@ For `break` / `continue`, pay attention to:
 - CASL II support is a teaching subset, not the full instruction set.
 - Index addressing is supported for CASL address operands, but C++ subset code does not generate indexed operands yet.
 - No-argument `int` functions are supported, but function parameters, recursion, overloads, stack-frame locals, and calls inside larger expressions are not supported.
+- Phase 10B documents a future calling convention using `GR0` returns, possible `GR1` / `GR2` register arguments, and later stack frames; it does not mean parameter lowering is implemented.
 - Arrays, pointers, references, classes, templates, strings, and floating-point types are not supported.
 - Complex boolean expressions such as `&&`, `||`, and `!` are not supported.
 - Control Flow is currently text and badge based, not a graph layout.

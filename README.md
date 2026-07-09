@@ -303,13 +303,14 @@ The current backend is shown in the status bar as `Mock Core`, `WASM Core`, or `
 - [docs/phase9g-call-ret-stack-semantics.md](docs/phase9g-call-ret-stack-semantics.md): `CALL`, stack-aware `RET`, and top-level `RET` compatibility.
 - [docs/phase9h-subroutine-teaching-polish.md](docs/phase9h-subroutine-teaching-polish.md): Call Stack view, return edge explanation, and nested-call teaching notes.
 - [docs/phase10a-cpp-function-call-lowering.md](docs/phase10a-cpp-function-call-lowering.md): no-argument C++ function-call lowering to CASL `CALL` / `RET` with `GR0` return values.
+- [docs/phase10b-calling-convention-design.md](docs/phase10b-calling-convention-design.md): future C++ calling convention design for `GR0` returns, `GR1` / `GR2` register arguments, and stack-frame locals.
 
 ## Current Limitations
 
 - This is a learning-oriented C++ subset transpiler, not a complete C++ compiler.
 - The CASL II assembler supports the current teaching subset, not the full instruction set.
 - Index addressing is supported for CASL address operands, but C++ subset code does not generate indexed operands yet.
-- C++ subset can lower no-argument `int` function calls, but it does not support parameters, recursion, stack-frame locals, or C++ function-call expressions inside larger expressions.
+- C++ subset can lower no-argument `int` function calls, but it does not support parameters, recursion, stack-frame locals, or C++ function-call expressions inside larger expressions. The future calling convention is documented separately and is not implemented yet.
 - The WASM bridge currently uses a single runtime and JSON strings.
 - The control-flow view is text and badge based; there is no full CFG graph yet.
 - New / Open / Save, language switching, and theme controls are placeholders or limited.

@@ -236,6 +236,22 @@ Answer hint:
 - Final `GR0` should be `0001`.
 - The MVP does not support parameters, recursion, or calls inside larger expressions such as `foo() + 1`.
 
+### Task 8C. Read the future calling convention design
+
+Start from `C++: Function Call`, then read `docs/phase10b-calling-convention-design.md`.
+
+Expected observation:
+
+- `GR0` is already the return-value register.
+- Future small arguments are planned for register slots such as `GR1` and `GR2`.
+- Stack arguments are a later design topic, not current syntax.
+- Static namespaced labels such as `MAIN_X` are not stack-frame locals.
+
+Answer hint:
+
+- Do not write parameterized C++ functions yet; the current transpiler should still reject function arguments.
+- The useful study question is: which values would be easiest to observe in Registers, and which values would need Stack Preview?
+
 ## Level 3: If / Else
 
 ### Task 9. Change condition from == to !=

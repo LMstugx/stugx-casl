@@ -16,6 +16,7 @@ import phase9f from "../../docs/phase9f-push-pop-stack.md?raw";
 import phase9g from "../../docs/phase9g-call-ret-stack-semantics.md?raw";
 import phase9h from "../../docs/phase9h-subroutine-teaching-polish.md?raw";
 import phase10a from "../../docs/phase10a-cpp-function-call-lowering.md?raw";
+import phase10b from "../../docs/phase10b-calling-convention-design.md?raw";
 import futureCustomCircuit from "../../docs/future-custom-circuit-design.md?raw";
 import practiceTasks from "../../docs/practice-tasks.md?raw";
 import projectOverview from "../../docs/project-overview.md?raw";
@@ -94,6 +95,7 @@ describe("learning use documentation", () => {
     expect(practiceTasks).toContain("Observe CALL / stack-aware RET");
     expect(practiceTasks).toContain("Trace nested return order");
     expect(practiceTasks).toContain("Observe C++ function-call lowering");
+    expect(practiceTasks).toContain("Read the future calling convention design");
     expect(practiceTasks).toContain("Level 5: break / continue");
   });
 
@@ -172,6 +174,18 @@ describe("learning use documentation", () => {
     expect(phase10a).toContain("no recursion");
   });
 
+  it("phase10b_calling_convention_design_doc_exists", () => {
+    expect(phase10b).toContain("Phase 10B: C++ Calling Convention and Stack-Frame Design");
+    expect(phase10b).toContain("GR0");
+    expect(phase10b).toContain("GR1");
+    expect(phase10b).toContain("GR2");
+    expect(phase10b).toContain("register arguments");
+    expect(phase10b).toContain("stack arguments");
+    expect(phase10b).toContain("stack-frame locals");
+    expect(phase10b).toContain("Current Limitations");
+    expect(phase10b).toContain("not implemented");
+  });
+
   it("phase8e_circuit_focus_doc_exists", () => {
     expect(phase8e).toContain("Phase 8E: Circuit Focus Final Layout");
     expect(phase8e).toContain("SP Semantic Rule");
@@ -229,6 +243,9 @@ describe("learning use documentation", () => {
     expect(futureCustomCircuit).toContain("Phase 9F connects");
     expect(futureCustomCircuit).toContain("Phase 9G connects `CALL`");
     expect(futureCustomCircuit).toContain("Phase 10A connects no-argument C++ function-call lowering");
+    expect(futureCustomCircuit).toContain("Phase 10B documents the future C++ calling convention");
+    expect(futureCustomCircuit).toContain("GR1");
+    expect(futureCustomCircuit).toContain("stack-frame locals");
   });
 
   it("practice_tasks_do_not_use_unsupported_syntax", () => {
@@ -264,6 +281,7 @@ describe("learning use documentation", () => {
     expect(readme).toContain("docs/phase9g-call-ret-stack-semantics.md");
     expect(readme).toContain("docs/phase9h-subroutine-teaching-polish.md");
     expect(readme).toContain("docs/phase10a-cpp-function-call-lowering.md");
+    expect(readme).toContain("docs/phase10b-calling-convention-design.md");
     expect(readme).toContain("docs/future-custom-circuit-design.md");
     expect(normalized).not.toContain("hackathon");
     expect(normalized).not.toContain("contest submission");

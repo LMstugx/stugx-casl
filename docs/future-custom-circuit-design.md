@@ -109,3 +109,11 @@ Phase 9E adds stack-address infrastructure without stack execution semantics. Ph
 The current stack template names are intentionally split by behavior: `stack-read` and `stack-write` are used by `POP` and `PUSH`; `call-return-address` and `return-pop-address` are used by `CALL` and stack-aware `RET`. Top-level `RET` keeps a separate finish path so old demos do not need a stack frame.
 
 Phase 10A connects no-argument C++ function-call lowering to the same `CALL` / stack-aware `RET` route. The C++ side still uses static namespaced data labels such as `MAIN_X` and `ADDONE_X`; it does not create stack-frame locals, arguments, or recursive frames yet. Future custom-circuit work should treat Phase 10A as a teaching bridge, not as a complete function-frame model.
+
+Phase 10B documents the future C++ calling convention without implementing it. The current stable convention is `GR0` for return values. The proposed first parameter model uses small register argument slots such as `GR1` and `GR2`, with stack arguments and stack-frame locals reserved for a later phase. Future custom-circuit templates should therefore keep three concepts visually separate:
+
+- `GR0` return value path
+- `GR1` / `GR2` register argument path
+- later stack-frame slots for arguments and locals
+
+Do not show stack-frame locals or stack arguments in a circuit template until the transpiler and teaching UI actually lower C++ parameters to those locations.

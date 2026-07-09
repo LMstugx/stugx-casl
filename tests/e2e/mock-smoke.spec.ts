@@ -24,6 +24,16 @@ test("Mock backend shows project overview and keeps learning demo views working"
   await expect(page.getByTestId("project-overview")).toContainText("C++ subset -> Generated CASL II Assembly -> COMET II Machine Code");
   await expect(page.getByTestId("project-overview")).not.toContainText(/contest|hackathon/i);
 
+  await expect(page.getByTestId("guided-lesson")).toBeVisible();
+  await selectDemoProgram(page, "cpp-break-continue");
+  await page.getByTestId("guided-lesson-summary").click();
+  await expect(page.getByTestId("guided-lesson")).toContainText("FOR_CONTINUE");
+  await expect(page.getByTestId("guided-lesson")).toContainText("FOR_END");
+
+  await selectDemoProgram(page, "cpp-addition");
+  await expect(page.getByTestId("guided-lesson")).toContainText("Generated CASL");
+  await expect(page.getByTestId("guided-lesson")).toContainText("Machine Code");
+
   await selectDemoProgram(page, "cpp-break-continue");
   await assemble(page);
   await page.getByRole("tab", { name: "Generated CASL" }).click();

@@ -30,6 +30,8 @@ CASL mode starts from CASL II source and then uses the same machine-code, runtim
 
 ## Recommended Learning Order
 
+Each built-in example includes a collapsible `Guided Lesson` in the Demo Guide. Use it as a manual checklist: read the concepts, assemble the example, open the recommended tab, then confirm each checkpoint.
+
 1. `CASL: GR2 Addition`
    Learn direct CASL execution, `LD`, `ADDA`, `ST`, `RET`, GR changes, and memory write.
 
@@ -207,6 +209,7 @@ The current backend is shown in the status bar as `Mock Core`, `WASM Core`, or `
 ## Documentation
 
 - [docs/learning-guide.md](docs/learning-guide.md): recommended study order and how to read each view.
+- [docs/practice-tasks.md](docs/practice-tasks.md): small exercises for checking understanding.
 - [docs/demo-script.md](docs/demo-script.md): Japanese-first explanation script for teachers or senior students.
 - [docs/screenshots-guide.md](docs/screenshots-guide.md): useful screenshots for explaining the tool.
 - [docs/project-overview.md](docs/project-overview.md): concise project overview for learning and teaching use.

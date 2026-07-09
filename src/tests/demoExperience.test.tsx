@@ -8,6 +8,7 @@ import DemoGuidePanel from "../components/DemoGuidePanel";
 import OutputPanel from "../components/OutputPanel";
 import { mockCaslCore } from "../core/mockCaslCore";
 import { demoPrograms, getDemoProgram } from "../examples/demoPrograms";
+import { getLearningLesson } from "../examples/learningLessons";
 import { appStoreReducer, createInitialAppState, prepareSourceForCoreAssembly } from "../store/useAppStore";
 import { transpileCppToCasl } from "../transpiler/cppTranspiler";
 
@@ -165,6 +166,29 @@ describe("demo recording experience", () => {
     expect(markup).toContain('data-testid="demo-guide"');
     expect(markup).toContain("SUM = 0006");
     expect(markup).toContain("GR0 = 0006");
+  });
+
+  it("demo_guide_shows_guided_lesson_for_selected_example", () => {
+    const program = getDemoProgram("cpp-break-continue");
+    const lesson = getLearningLesson("cpp-break-continue");
+    expect(program).toBeDefined();
+    expect(lesson).toBeDefined();
+
+    const markup = renderToStaticMarkup(<DemoGuidePanel program={program!} lesson={lesson} />);
+
+    expect(markup).toContain('data-testid="guided-lesson"');
+    expect(markup).toContain("Guided Lesson");
+    expect(markup).toContain("FOR_CONTINUE");
+    expect(markup).toContain("FOR_END");
+  });
+
+  it("demo_guide_shows_no_lesson_for_custom_source", () => {
+    const program = getDemoProgram("cpp-addition");
+    expect(program).toBeDefined();
+
+    const markup = renderToStaticMarkup(<DemoGuidePanel program={program!} />);
+
+    expect(markup).toContain("No guided lesson for custom source.");
   });
 
   it("about_panel_renders_project_summary", () => {

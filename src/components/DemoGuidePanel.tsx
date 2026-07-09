@@ -1,6 +1,12 @@
 import type { DemoProgram } from "../examples/demoPrograms";
+import type { LearningLesson } from "../examples/learningLessons";
 
-export default function DemoGuidePanel({ program }: { program: DemoProgram }) {
+type DemoGuidePanelProps = {
+  program: DemoProgram;
+  lesson?: LearningLesson;
+};
+
+export default function DemoGuidePanel({ program, lesson }: DemoGuidePanelProps) {
   return (
     <section className="panel demo-guide-panel" data-testid="demo-guide">
       <details open>
@@ -26,6 +32,83 @@ export default function DemoGuidePanel({ program }: { program: DemoProgram }) {
             </ol>
           </div>
         </div>
+      </details>
+      <details className="guided-lesson" data-testid="guided-lesson">
+        <summary data-testid="guided-lesson-summary">
+          <span>Guided Lesson</span>
+          <strong>{lesson ? lesson.title : "Custom Source"}</strong>
+        </summary>
+        {lesson ? (
+          <div className="demo-guide-body guided-lesson-body">
+            <div>
+              <h3>Level</h3>
+              <p data-testid="guided-lesson-level">{lesson.level}</p>
+            </div>
+            <div>
+              <h3>Concepts</h3>
+              <p data-testid="guided-lesson-concepts">{lesson.concepts.join(" / ")}</p>
+            </div>
+            <div>
+              <h3>Learning goals</h3>
+              <ul>
+                {lesson.learningGoals.map((goal) => (
+                  <li key={goal}>{goal}</li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h3>Observe</h3>
+              <ul>
+                {lesson.observe.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h3>Suggested steps</h3>
+              <ol>
+                {lesson.suggestedSteps.map((step) => (
+                  <li key={step.id} data-testid="guided-lesson-step">
+                    <strong>{step.label}:</strong> {step.action} <span>{step.expectedObservation}</span>
+                    {step.recommendedTab ? <em> ({step.recommendedTab})</em> : null}
+                  </li>
+                ))}
+              </ol>
+            </div>
+            <div>
+              <h3>Checkpoints</h3>
+              <ul className="lesson-checkpoints">
+                {lesson.checkpoints.map((checkpoint) => (
+                  <li key={checkpoint.id} data-testid="guided-lesson-checkpoint">
+                    <label>
+                      <input type="checkbox" />
+                      <span>
+                        <strong>{checkpoint.label}:</strong> {checkpoint.expected}
+                      </span>
+                    </label>
+                    <p>
+                      Look at {checkpoint.whereToLook}. {checkpoint.note}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            {lesson.commonQuestions?.length ? (
+              <div>
+                <h3>Common questions</h3>
+                <ul>
+                  {lesson.commonQuestions.map((question) => (
+                    <li key={question}>{question}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+          </div>
+        ) : (
+          <div className="demo-guide-body guided-lesson-body">
+            <p data-testid="guided-lesson-empty">No guided lesson for custom source.</p>
+          </div>
+        )}
       </details>
       <details className="project-overview" data-testid="project-overview">
         <summary data-testid="project-overview-summary">

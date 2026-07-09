@@ -12,6 +12,7 @@ import { summarizeCurrentInstruction } from "./visual/visualState";
 import { AppStoreProvider, useAppStore } from "./store/useAppStore";
 import { cppLineForCaslLine } from "./transpiler/cppMapping";
 import { demoPrograms, getDefaultDemoProgram, getDemoProgram } from "./examples/demoPrograms";
+import { getLearningLesson } from "./examples/learningLessons";
 
 export default function App() {
   return (
@@ -52,6 +53,8 @@ function StudioShell() {
   const diagnostics = useMemo(() => storeDiagnostics.filter((diagnostic) => diagnostic.severity === "error"), [storeDiagnostics]);
   const editorCurrentLine = sourceMode === "cpp" ? cppLineForCaslLine(cppToCaslMapping, state.currentLine) : state.currentLine;
   const selectedDemoProgram = getDemoProgram(selectedDemoProgramId) ?? getDefaultDemoProgram();
+  const selectedDemoMatchesSource = selectedDemoProgram.source === sourceText && selectedDemoProgram.mode === sourceMode;
+  const selectedLesson = selectedDemoMatchesSource ? getLearningLesson(selectedDemoProgram.id) : undefined;
   const timelineItems = useMemo(() => {
     const compactProgram = state.program && state.program.length > 0 && state.program.length <= 4 ? ["Ready", ...state.program.map((instruction) => instruction.op)] : [];
     if (compactProgram.length > 0 || state.trace.length === 0) {
@@ -118,7 +121,7 @@ function StudioShell() {
             </div>
           </section>
 
-          <DemoGuidePanel program={selectedDemoProgram} />
+          <DemoGuidePanel program={selectedDemoProgram} lesson={selectedLesson} />
 
           <section className="panel errors-panel">
             <header className="panel-header">

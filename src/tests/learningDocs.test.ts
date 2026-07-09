@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import readme from "../../README.md?raw";
 import demoScript from "../../docs/demo-script.md?raw";
 import learningGuide from "../../docs/learning-guide.md?raw";
+import practiceTasks from "../../docs/practice-tasks.md?raw";
 import projectOverview from "../../docs/project-overview.md?raw";
 import screenshotsGuide from "../../docs/screenshots-guide.md?raw";
 import validateAllScript from "../../scripts/validate-all.ps1?raw";
@@ -34,6 +35,12 @@ describe("learning use documentation", () => {
     expect(learningGuide).toContain("How To Use Control Flow Badges");
   });
 
+  it("learning_guide_mentions_guided_lesson", () => {
+    expect(learningGuide).toContain("How To Use Guided Lesson");
+    expect(learningGuide).toContain("How To Use Checkpoints");
+    expect(learningGuide).toContain("No guided lesson for custom source.");
+  });
+
   it("demo_script_uses_learning_demo_wording", () => {
     expect(demoScript).toContain("学習");
     expect(demoScript).toContain("前輩や先生");
@@ -45,6 +52,22 @@ describe("learning use documentation", () => {
     expect(screenshotsGuide).toContain("Screenshots Guide");
     expect(screenshotsGuide).toContain("C++ Addition -> Generated CASL");
     expect(screenshotsGuide).toContain("Memory Viewer");
+  });
+
+  it("practice_tasks_exists", () => {
+    expect(practiceTasks).toContain("Practice Tasks");
+    expect(practiceTasks).toContain("Level 1: CASL Basics");
+    expect(practiceTasks).toContain("Level 5: break / continue");
+  });
+
+  it("practice_tasks_do_not_use_unsupported_syntax", () => {
+    expect(practiceTasks).not.toContain("std::");
+    expect(practiceTasks).not.toContain("cout");
+    expect(practiceTasks).not.toContain("vector");
+    expect(practiceTasks).not.toContain("do while");
+    expect(practiceTasks).not.toContain("switch");
+    expect(practiceTasks).not.toContain("&&");
+    expect(practiceTasks).not.toContain("||");
   });
 
   it("project_overview_uses_learning_wording", () => {

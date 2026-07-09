@@ -509,4 +509,43 @@ describe("machine code rows", () => {
 
     expect(container?.querySelector('[data-testid="machine-code-control-flow-target"]')?.textContent).toContain("FOR_END_0");
   });
+
+  it("machine_code_rows_push_pop", () => {
+    const program = getDemoProgram("casl-push-pop-stack");
+    expect(program).toBeDefined();
+    const state = stateFromRaw(mockCaslCore.assemble(program!.source));
+    const rows = selectMachineCodeRows(state);
+
+    expect(rows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ address: 0x22, word: 0x7002, sourceText: "PUSH A,GR2", kind: "instruction" }),
+        expect.objectContaining({ address: 0x23, word: 0x0028, sourceText: "PUSH A,GR2", kind: "operand", meaning: expect.stringContaining("effective address value to push") }),
+        expect.objectContaining({ address: 0x24, word: 0x7110, sourceText: "POP GR1", kind: "instruction" })
+      ])
+    );
+  });
+
+  it("machine_code_explanation_push", () => {
+    let state = mockCaslCore.assemble(getDemoProgram("casl-push-pop-stack")!.source);
+    state = mockCaslCore.step(state);
+    state = mockCaslCore.step(state);
+    const rows = selectMachineCodeRows(stateFromRaw(state));
+    const explanation = explainMachineCodeRow(rows.find((row) => row.address === 0x22)!);
+
+    expect(explanation.mnemonic).toBe("PUSH");
+    expect(explanation.indexRegister).toBe(2);
+    expect(explanation.baseAddress).toBe(0x28);
+    expect(explanation.effectiveAddress).toBe(0x29);
+    expect(explanation.meaning).toContain("stores the address value");
+  });
+
+  it("machine_code_explanation_pop", () => {
+    const state = stateFromRaw(mockCaslCore.assemble(getDemoProgram("casl-push-pop-stack")!.source));
+    const rows = selectMachineCodeRows(state);
+    const explanation = explainMachineCodeRow(rows.find((row) => row.address === 0x24)!);
+
+    expect(explanation.mnemonic).toBe("POP");
+    expect(explanation.register).toBe(1);
+    expect(explanation.meaning).toContain("Load memory[SP] into GR1");
+  });
 });

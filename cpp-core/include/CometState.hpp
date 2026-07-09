@@ -52,6 +52,8 @@ enum class VisualPathKind {
     SUBA_GrMdrToAluToGr,
     CPA_GrMdrToAluToFr,
     Shift_AddressToAluToGr,
+    PUSH_EffectiveAddressToStack,
+    POP_StackToGr,
     Jump_AddressToPr,
     ConditionalJump_AddressToPr,
     ConditionalJump_NotTaken,

@@ -418,6 +418,44 @@ StepResult CometVm::step() {
             pushTrace(opcodeName(instruction->opcode));
             break;
         }
+        case Opcode::PUSH: {
+            if (!instruction->operandAddress.has_value()) {
+                fail(result, "Invalid PUSH operand");
+                return result;
+            }
+            const auto newSp = static_cast<std::uint16_t>(state_.sp - 1);
+            state_.sp = newSp;
+            state_.mar = newSp;
+            state_.mdr = effective.effectiveAddress;
+            state_.memory[newSp] = state_.mdr;
+            state_.lastMemoryWriteAddress = newSp;
+            state_.pr = static_cast<std::uint16_t>(state_.pr + 2);
+            state_.visualPath = VisualPathKind::PUSH_EffectiveAddressToStack;
+            result.visualPath = state_.visualPath;
+            result.ok = true;
+            pushTrace("PUSH");
+            break;
+        }
+        case Opcode::POP: {
+            const auto gr = instruction->gr;
+            if (gr >= kGeneralRegisterCount) {
+                fail(result, "Invalid POP operand");
+                return result;
+            }
+            const auto oldSp = state_.sp;
+            state_.mar = oldSp;
+            state_.lastMemoryReadAddress = oldSp;
+            state_.mdr = state_.memory[oldSp];
+            state_.gr[gr] = state_.mdr;
+            state_.lastRegisterWriteIndex = gr;
+            state_.sp = static_cast<std::uint16_t>(state_.sp + 1);
+            state_.pr = static_cast<std::uint16_t>(state_.pr + 1);
+            state_.visualPath = VisualPathKind::POP_StackToGr;
+            result.visualPath = state_.visualPath;
+            result.ok = true;
+            pushTrace("POP");
+            break;
+        }
         case Opcode::ST: {
             const auto gr = instruction->gr;
             if (gr >= kGeneralRegisterCount || !instruction->operandAddress.has_value()) {

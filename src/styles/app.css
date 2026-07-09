@@ -611,6 +611,20 @@ button {
   box-shadow: inset 2px 0 0 var(--color-primary);
 }
 
+.stack-preview-row.read {
+  color: #10233d;
+  background: #eef8f1;
+  border-color: #b8dfc4;
+  box-shadow: inset 2px 0 0 #2f8f53;
+}
+
+.stack-preview-row.write {
+  color: #10233d;
+  background: #fff1f1;
+  border-color: #f3b6b6;
+  box-shadow: inset 2px 0 0 var(--color-active-red);
+}
+
 .stack-preview-row code {
   color: var(--color-code-green);
   font-family: "Cascadia Mono", Consolas, monospace;

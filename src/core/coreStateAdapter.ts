@@ -74,13 +74,13 @@ function operandLabelForAddress(sourceRows: SourceRowDto[], operandAddress: numb
 }
 
 function programFromDto(sourceRows: SourceRowDto[]): AssembledInstruction[] {
-  const executable = new Set(["NOP", "LD", "LAD", "ADDA", "SUBA", "ADDL", "SUBL", "AND", "OR", "XOR", "CPA", "CPL", "SLA", "SRA", "SLL", "SRL", "ST", "JUMP", "JZE", "JNZ", "JPL", "JMI", "JOV", "RET"]);
+  const executable = new Set(["NOP", "LD", "LAD", "ADDA", "SUBA", "ADDL", "SUBL", "AND", "OR", "XOR", "CPA", "CPL", "SLA", "SRA", "SLL", "SRL", "PUSH", "POP", "ST", "JUMP", "JZE", "JNZ", "JPL", "JMI", "JOV", "RET"]);
   return sourceRows
     .filter((row) => row.instruction !== null && executable.has(row.instruction))
     .map((row) => {
       const op = row.instruction as AssembledInstruction["op"];
       const machineWord = row.machineWords[0] ?? 0;
-      const gr = op === "NOP" || op === "RET" || op === "JUMP" || op === "JZE" || op === "JNZ" || op === "JPL" || op === "JMI" || op === "JOV" ? undefined : (machineWord >> 4) & 0x0f;
+      const gr = op === "NOP" || op === "RET" || op === "PUSH" || op === "JUMP" || op === "JZE" || op === "JNZ" || op === "JPL" || op === "JMI" || op === "JOV" ? undefined : (machineWord >> 4) & 0x0f;
       return {
         address: row.address,
         line: row.line,
@@ -109,6 +109,8 @@ function visualPathFromDto(dto: CometStateDto): VisualPathKind {
   if (dto.lastInstructionKind === "SLA" || dto.lastInstructionKind === "SRA" || dto.lastInstructionKind === "SLL" || dto.lastInstructionKind === "SRL") {
     return VisualPathKind.Shift_AddressToAluToGr;
   }
+  if (dto.lastInstructionKind === "PUSH") return VisualPathKind.PUSH_EffectiveAddressToStack;
+  if (dto.lastInstructionKind === "POP") return VisualPathKind.POP_StackToGr;
   if (dto.lastInstructionKind === "ST") return VisualPathKind.ST_GrToMdrToMemory;
   if (dto.lastInstructionKind === "JUMP") return VisualPathKind.Jump_AddressToPr;
   if (dto.lastInstructionKind === "JZE" || dto.lastInstructionKind === "JNZ" || dto.lastInstructionKind === "JPL" || dto.lastInstructionKind === "JMI" || dto.lastInstructionKind === "JOV") {
@@ -142,6 +144,13 @@ function changedRegistersFromDto(dto: CometStateDto): string[] {
   }
   if (dto.lastInstructionKind === "ST") {
     changed.push("MAR", "MDR");
+  }
+  if (dto.lastInstructionKind === "PUSH") {
+    changed.push("SP", "MAR", "MDR");
+  }
+  if (dto.lastInstructionKind === "POP") {
+    changed.push("SP", "MAR", "MDR");
+    if (dto.lastRegisterWriteIndex !== null) changed.push(`GR${dto.lastRegisterWriteIndex}`);
   }
   if (dto.lastInstructionKind === "JUMP" || dto.lastInstructionKind === "JZE" || dto.lastInstructionKind === "JNZ" || dto.lastInstructionKind === "JPL" || dto.lastInstructionKind === "JMI" || dto.lastInstructionKind === "JOV") {
     changed.push("MAR");
@@ -211,6 +220,8 @@ function traceDetail(dto: CometStateDto): string {
   if (dto.lastInstructionKind === "SLA" || dto.lastInstructionKind === "SRA" || dto.lastInstructionKind === "SLL" || dto.lastInstructionKind === "SRL") {
     return `${indexDetail}GR${register} shifted by ${formatWord(address)} -> Shifter -> GR${register} / FR`;
   }
+  if (dto.lastInstructionKind === "PUSH") return `${indexDetail}EA ${formatWord(address)} -> stack; SP ${formatWord(dto.sp)}; MEM[${dto.lastMemoryWriteAddress !== null ? formatWord(dto.lastMemoryWriteAddress) : "----"}] <- ${formatWord(address)}`;
+  if (dto.lastInstructionKind === "POP") return `MEM[${dto.lastMemoryReadAddress !== null ? formatWord(dto.lastMemoryReadAddress) : "----"}] -> MDR -> GR${register}; SP ${formatWord(dto.sp)}`;
   if (dto.lastInstructionKind === "ST") return `${indexDetail}GR${register} -> MDR -> Memory[${formatWord(address)}]`;
   if (dto.lastInstructionKind === "JUMP") return `${indexDetail}PR <- ${formatWord(address)}`;
   if (dto.lastInstructionKind === "JZE" || dto.lastInstructionKind === "JNZ" || dto.lastInstructionKind === "JPL" || dto.lastInstructionKind === "JMI" || dto.lastInstructionKind === "JOV") {
@@ -244,6 +255,8 @@ function traceFromDto(dto: CometStateDto, previous?: CometState): TraceEvent[] {
     changedMemoryAddress,
     changedMemoryValueBefore: changedMemoryAddress !== undefined ? previous?.memory[changedMemoryAddress] ?? 0 : undefined,
     changedMemoryValueAfter: changedMemoryAddress !== undefined ? dto.mdr : undefined,
+    stackPointerValueBefore: dto.lastInstructionKind === "PUSH" || dto.lastInstructionKind === "POP" ? previous?.sp : undefined,
+    stackPointerValueAfter: dto.lastInstructionKind === "PUSH" || dto.lastInstructionKind === "POP" ? dto.sp : undefined,
     baseAddress: dto.baseAddress ?? undefined,
     indexRegister: dto.indexRegister ?? undefined,
     indexValue: dto.indexValue ?? undefined,

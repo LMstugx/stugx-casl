@@ -67,6 +67,8 @@ const EXECUTABLE_INSTRUCTIONS = new Set<InstructionKind>([
   "SRA",
   "SLL",
   "SRL",
+  "PUSH",
+  "POP",
   "ST",
   "JUMP",
   "JZE",
@@ -137,7 +139,7 @@ export function explainMachineCodeRow(row: MachineCodeRow): MachineCodeExplanati
   if (row.kind === "instruction") {
     const opcode = decodeOpcode(row.word);
     const encoding = encodingForMnemonic(row.instruction);
-    const register = encoding?.format === "R_ADR" ? decodeRegisterField(row.word) : undefined;
+    const register = encoding?.format === "R_ADR" || encoding?.format === "R_ONLY" ? decodeRegisterField(row.word) : undefined;
     const indexRegister = encoding?.format === "R_ADR" || encoding?.format === "JUMP_ADR" ? decodeIndexRegisterField(row.word) : undefined;
     return {
       address: row.address,
@@ -173,7 +175,9 @@ export function explainMachineCodeRow(row: MachineCodeRow): MachineCodeExplanati
       effectiveAddress: row.effectiveAddress,
       resolvedLabel: row.resolvedLabel,
       effectiveLabel: row.effectiveLabel,
-      meaning: isShiftInstruction(row.instruction)
+      meaning: row.instruction === "PUSH"
+        ? `Effective address operand for ${row.sourceText}${operandIndexExplanation(row)} PUSH stores this effective address value, not memory data.`
+        : isShiftInstruction(row.instruction)
         ? `Shift count / effective address for ${row.sourceText}${operandIndexExplanation(row)}. This word is not a memory data read.`
         : `Operand address for ${row.sourceText}${operandIndexExplanation(row)}`,
       binaryText: row.word.toString(2).padStart(16, "0")
@@ -206,9 +210,11 @@ function machineRowMeaning(instruction: InstructionKind | undefined, offset: num
   if (instruction === "RET") return "instruction word";
   if (offset === 0) return "opcode/register word";
   if (indexRegister === undefined || effectiveAddress === undefined) {
+    if (instruction === "PUSH") return "effective address value to push";
     return isShiftInstruction(instruction) ? "shift count / effective address" : "operand address";
   }
   const indexSuffix = ` + GR${indexRegister} => ${formatWord(effectiveAddress)}`;
+  if (instruction === "PUSH") return `effective address value to push${indexSuffix}`;
   if (isShiftInstruction(instruction)) return `shift count / effective address${indexSuffix}`;
   return `operand address${indexSuffix}${resolvedLabel ? ` (${resolvedLabel})` : ""}`;
 }
@@ -263,6 +269,10 @@ function instructionMeaning(row: MachineCodeRow, register?: number): string {
       return `Logical left shift ${gr} by ${operand}. The shifted-out bit updates OF when available.`;
     case "SRL":
       return `Logical right shift ${gr} by ${operand}. The shifted-out bit updates OF when available.`;
+    case "PUSH":
+      return `Decrement SP and store effective address ${operand} at memory[SP]. This stores the address value, not memory data.`;
+    case "POP":
+      return `Load memory[SP] into ${gr}, then increment SP.`;
     case "JUMP":
       return `Jump to ${operand}.`;
     case "JZE":

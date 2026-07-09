@@ -16,6 +16,8 @@ describe("visual review screenshot gallery setup", () => {
     expect(visualReviewSpec).toContain("shift-operations-circuit.png");
     expect(visualReviewSpec).toContain("shift-operations-machine-code.png");
     expect(visualReviewSpec).toContain("stack-preview-focus.png");
+    expect(visualReviewSpec).toContain("push-pop-stack-circuit.png");
+    expect(visualReviewSpec).toContain("push-pop-stack-machine-code.png");
     expect(visualReviewSpec).toContain("page.screenshot");
   });
 
@@ -46,9 +48,12 @@ describe("visual review screenshot gallery setup", () => {
     expect(visualReviewDoc).toContain("ST writeback lands at the Memory row edge");
     expect(visualReviewDoc).toContain("Signal Probe is compact");
     expect(visualReviewDoc).toContain("Stack Preview is compact");
-    expect(visualReviewDoc).toContain("SP -> MAR -> Memory guide is faint and inactive");
+    expect(visualReviewDoc).toContain("active for `PUSH` / `POP`");
+    expect(visualReviewDoc).toContain("PUSH / POP screenshots show");
     expect(visualReviewDoc).toContain("Circuit Focus screenshots include Program, Display, Current Instruction");
     expect(visualReviewDoc).toContain("stack-preview-focus.png");
+    expect(visualReviewDoc).toContain("push-pop-stack-circuit.png");
+    expect(visualReviewDoc).toContain("push-pop-stack-machine-code.png");
   });
 
   it("package_json_has_visual_review_scripts", () => {

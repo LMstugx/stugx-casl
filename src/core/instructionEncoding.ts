@@ -1,6 +1,6 @@
 import type { InstructionKind } from "./types";
 
-export type InstructionFormat = "NO_OPERAND" | "R_ADR" | "JUMP_ADR" | "RET" | "DATA";
+export type InstructionFormat = "NO_OPERAND" | "R_ONLY" | "R_ADR" | "JUMP_ADR" | "RET" | "DATA";
 
 export type InstructionEncoding = {
   mnemonic: InstructionKind;
@@ -147,6 +147,22 @@ export const instructionEncodings: Partial<Record<InstructionKind, InstructionEn
     wordLength: 2,
     description: "Logical right shift of a general register by the operand address value.",
     fields: ["opcode", "r", "x", "shift-count"]
+  },
+  PUSH: {
+    mnemonic: "PUSH",
+    opcode: 0x70,
+    format: "JUMP_ADR",
+    wordLength: 2,
+    description: "Decrement SP and store the effective address value at Memory[SP].",
+    fields: ["opcode", "x", "address"]
+  },
+  POP: {
+    mnemonic: "POP",
+    opcode: 0x71,
+    format: "R_ONLY",
+    wordLength: 1,
+    description: "Load Memory[SP] into a general register, then increment SP.",
+    fields: ["opcode", "r"]
   },
   JMI: {
     mnemonic: "JMI",

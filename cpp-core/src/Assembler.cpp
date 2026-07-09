@@ -38,7 +38,7 @@ std::optional<std::uint32_t> instructionSize(const ParsedLine& line, std::vector
     if (!line.opcode.has_value()) return 0;
     const auto opcode = *line.opcode;
     if (hasAddressOperand(opcode)) return 2;
-    if (opcode == Opcode::NOP || opcode == Opcode::RET) return 1;
+    if (opcode == Opcode::NOP || opcode == Opcode::POP || opcode == Opcode::RET) return 1;
     if (opcode == Opcode::DC) return static_cast<std::uint32_t>(std::max<std::size_t>(1, line.operands.size()));
     if (opcode == Opcode::DS) {
         const auto count = parseNumber(line.operands.empty() ? "0" : line.operands[0]);
@@ -98,6 +98,14 @@ bool isRegisterAddressOpcode(Opcode opcode) {
 bool isJumpOpcode(Opcode opcode) {
     return opcode == Opcode::JUMP || opcode == Opcode::JZE || opcode == Opcode::JNZ ||
            opcode == Opcode::JPL || opcode == Opcode::JMI || opcode == Opcode::JOV;
+}
+
+bool isPushOpcode(Opcode opcode) {
+    return opcode == Opcode::PUSH;
+}
+
+bool isPopOpcode(Opcode opcode) {
+    return opcode == Opcode::POP;
 }
 
 std::optional<std::uint16_t> resolveAddressOperand(
@@ -286,6 +294,67 @@ bool Assembler::pass2(const std::vector<ParsedLine>& lines, AssembleOutput& outp
             output.state.memory[static_cast<std::uint16_t>(line.address + 1)] = *operandAddress;
             output.sourceMap.add({line.line, line.address, {machine, *operandAddress}, line.source, line.label, opcode});
             output.instructions.push_back({line.address, line.line, opcode, line.source, 0, *operandAddress, line.operands[0], indexRegister, 2});
+            continue;
+        }
+
+        if (isPushOpcode(opcode)) {
+            if (line.operands.empty()) {
+                addDiagnostic(diagnostics, line.line, "PUSH requires an address operand");
+                ok = false;
+                continue;
+            }
+            if (line.operands.size() > 2) {
+                addDiagnostic(diagnostics, line.line, "PUSH has too many operands");
+                ok = false;
+                continue;
+            }
+            std::uint8_t indexRegister = 0;
+            if (line.operands.size() == 2) {
+                const auto parsedIndex = parseIndexRegister(line.operands[1], diagnostics, line.line);
+                if (!parsedIndex.has_value()) {
+                    ok = false;
+                    continue;
+                }
+                indexRegister = *parsedIndex;
+            }
+
+            const auto operandAddress = resolveAddressOperand(line.operands[0], output.symbols, diagnostics, line.line);
+            if (!operandAddress.has_value()) {
+                ok = false;
+                continue;
+            }
+
+            const auto machine = encodeInstruction(opcode, 0, indexRegister);
+            output.state.memory[line.address] = machine;
+            output.state.memory[static_cast<std::uint16_t>(line.address + 1)] = *operandAddress;
+            output.sourceMap.add({line.line, line.address, {machine, *operandAddress}, line.source, line.label, opcode});
+            output.instructions.push_back({line.address, line.line, opcode, line.source, 0, *operandAddress, line.operands[0], indexRegister, 2});
+            continue;
+        }
+
+        if (isPopOpcode(opcode)) {
+            if (line.operands.empty()) {
+                addDiagnostic(diagnostics, line.line, "POP requires a register operand");
+                ok = false;
+                continue;
+            }
+            if (line.operands.size() > 1) {
+                addDiagnostic(diagnostics, line.line, "POP does not support index operands");
+                ok = false;
+                continue;
+            }
+
+            const auto gr = parseRegister(line.operands[0]);
+            if (!gr.has_value()) {
+                addDiagnostic(diagnostics, line.line, "Invalid register: " + line.operands[0]);
+                ok = false;
+                continue;
+            }
+
+            const auto machine = encodeInstruction(opcode, *gr, 0);
+            output.state.memory[line.address] = machine;
+            output.sourceMap.add({line.line, line.address, {machine}, line.source, line.label, opcode});
+            output.instructions.push_back({line.address, line.line, opcode, line.source, *gr, std::nullopt, {}, 0, 1});
             continue;
         }
 

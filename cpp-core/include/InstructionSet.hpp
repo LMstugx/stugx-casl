@@ -28,6 +28,8 @@ enum class Opcode {
     SRA,
     SLL,
     SRL,
+    PUSH,
+    POP,
     ST,
     JUMP,
     JZE,

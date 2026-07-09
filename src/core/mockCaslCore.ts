@@ -39,6 +39,8 @@ const SUPPORTED_OPS = new Set([
   "SRA",
   "SLL",
   "SRL",
+  "PUSH",
+  "POP",
   "ST",
   "JUMP",
   "JZE",
@@ -51,6 +53,7 @@ const SUPPORTED_OPS = new Set([
 const REGISTER_ADDRESS_OPS = new Set<InstructionKind>(["LD", "LAD", "ADDA", "SUBA", "ADDL", "SUBL", "AND", "OR", "XOR", "CPA", "CPL", "SLA", "SRA", "SLL", "SRL", "ST"]);
 const JUMP_OPS = new Set<InstructionKind>(["JUMP", "JZE", "JNZ", "JPL", "JMI", "JOV"]);
 const SHIFT_OPS = new Set<InstructionKind>(["SLA", "SRA", "SLL", "SRL"]);
+const STACK_ADDRESS_OPS = new Set<InstructionKind>(["PUSH"]);
 
 type ParsedLine = {
   line: number;
@@ -162,8 +165,8 @@ function symbolKey(label: string): string {
 }
 
 function instructionSize(line: ParsedLine): number {
-  if (line.op && (REGISTER_ADDRESS_OPS.has(line.op) || JUMP_OPS.has(line.op))) return 2;
-  if (line.op === "NOP" || line.op === "RET") return 1;
+  if (line.op && (REGISTER_ADDRESS_OPS.has(line.op) || JUMP_OPS.has(line.op) || STACK_ADDRESS_OPS.has(line.op))) return 2;
+  if (line.op === "NOP" || line.op === "RET" || line.op === "POP") return 1;
   if (line.op === "DC") return Math.max(1, line.operands.length);
   if (line.op === "DS") return Math.max(0, parseNumber(line.operands[0] ?? "0"));
   return 0;
@@ -217,6 +220,10 @@ function encodeInstruction(op: AssembledInstruction["op"], gr = 0, indexRegister
       return 0x5200 | registerBits | indexBits;
     case "SRL":
       return 0x5300 | registerBits | indexBits;
+    case "PUSH":
+      return 0x7000 | indexBits;
+    case "POP":
+      return 0x7100 | registerBits;
     case "ST":
       return 0x1100 | registerBits | indexBits;
     case "JMI":
@@ -372,6 +379,66 @@ function assembleArtifacts(source: string): AssembleArtifacts {
           indexRegister
         });
         address += 2;
+      } catch (error) {
+        diagnostics.push({ line: line.line, message: (error as Error).message, severity: "error" });
+      }
+      continue;
+    }
+
+    if (line.op === "PUSH") {
+      try {
+        const op = line.op;
+        if (line.operands.length < 1) throw new Error("PUSH requires an address operand");
+        if (line.operands.length > 2) throw new Error("PUSH has too many operands");
+        const operand = line.operands[0];
+        const indexRegister = parseOptionalIndexOperand(line.operands[1]);
+        const operandAddress = resolveAddressOperand(operand, symbols);
+        const machine = encodeInstruction(op, 0, indexRegister ?? 0);
+        memory[address] = machine;
+        memory[address + 1] = operandAddress;
+        sourceMap.push({
+          line: line.line,
+          address,
+          machineWords: [machine, operandAddress],
+          source: sourceText,
+          label: line.label,
+          instruction: op
+        });
+        program.push({
+          address,
+          line: line.line,
+          op,
+          source: sourceText,
+          size: 2,
+          operandLabel: symbols[symbolKey(operand)] === operandAddress ? operand : undefined,
+          operandAddress,
+          indexRegister
+        });
+        address += 2;
+      } catch (error) {
+        diagnostics.push({ line: line.line, message: (error as Error).message, severity: "error" });
+      }
+      continue;
+    }
+
+    if (line.op === "POP") {
+      try {
+        const op = line.op;
+        if (line.operands.length < 1) throw new Error("POP requires a register operand");
+        if (line.operands.length > 1) throw new Error("POP does not support index operands");
+        const gr = registerNumber(line.operands[0] ?? "");
+        const machine = encodeInstruction(op, gr);
+        memory[address] = machine;
+        sourceMap.push({
+          line: line.line,
+          address,
+          machineWords: [machine],
+          source: sourceText,
+          label: line.label,
+          instruction: op
+        });
+        program.push({ address, line: line.line, op, source: sourceText, size: 1, gr });
+        address += 1;
       } catch (error) {
         diagnostics.push({ line: line.line, message: (error as Error).message, severity: "error" });
       }
@@ -747,7 +814,13 @@ export function createEmptyCometState(runState: CometState["runState"] = "Idle",
   });
 }
 
-function traceEvent(state: CometState, address: number, instruction: string, detail: string): TraceEvent {
+function traceEvent(
+  state: CometState,
+  address: number,
+  instruction: string,
+  detail: string,
+  stackPointerChange?: { before: number; after: number }
+): TraceEvent {
   return {
     index: state.stepIndex + 1,
     address,
@@ -758,6 +831,8 @@ function traceEvent(state: CometState, address: number, instruction: string, det
     visualPath: state.visualPath,
     changedRegister: state.changedRegisters.find((register) => register.startsWith("GR")),
     changedMemoryAddress: state.changedMemoryAddresses[0],
+    stackPointerValueBefore: stackPointerChange?.before,
+    stackPointerValueAfter: stackPointerChange?.after,
     baseAddress: state.lastBaseAddress,
     indexRegister: state.lastIndexRegister,
     indexValue: state.lastIndexValue,
@@ -962,6 +1037,61 @@ export const mockCaslCore: CaslCore = {
       next.lastStep.visualPath = next.visualPath;
       next.changedRegisters.push(`GR${instruction.gr}`, "MAR", "FR");
       prependTrace(next, traceEvent(next, instruction.address, instruction.op, `${indexDetail}GR${instruction.gr} shifted by ${formatWord(count)} -> Shifter -> GR${instruction.gr} / FR`));
+    }
+
+    if (instruction.op === "PUSH") {
+      const spBefore = next.sp;
+      const spAfter = word(next.sp - 1);
+      const stackValueBefore = getMemory(next.memory, spAfter);
+      next.sp = spAfter;
+      next.mar = spAfter;
+      next.mdr = effective.effectiveAddress;
+      next.memory[spAfter] = next.mdr;
+      next.lastMemoryWriteAddress = spAfter;
+      next.pr = word(next.pr + 2);
+      next.visualPath = VisualPathKind.PUSH_EffectiveAddressToStack;
+      next.lastStep.visualPath = next.visualPath;
+      next.changedRegisters.push("SP", "MAR", "MDR");
+      next.changedMemoryAddresses = [spAfter];
+      const event = traceEvent(
+        next,
+        instruction.address,
+        "PUSH",
+        `${indexDetail}EA ${formatWord(effective.effectiveAddress)}; SP: ${formatWord(spBefore)} -> ${formatWord(spAfter)}; MEM[${formatWord(spAfter)}]: ${formatWord(stackValueBefore)} -> ${formatWord(effective.effectiveAddress)}`,
+        { before: spBefore, after: spAfter }
+      );
+      event.changedMemoryValueBefore = stackValueBefore;
+      event.changedMemoryValueAfter = effective.effectiveAddress;
+      prependTrace(next, event);
+    }
+
+    if (instruction.op === "POP") {
+      const spBefore = next.sp;
+      const value = getMemory(next.memory, spBefore);
+      const spAfter = word(next.sp + 1);
+      const grBefore = next.gr[instruction.gr!];
+      next.mar = spBefore;
+      next.lastMemoryReadAddress = spBefore;
+      next.mdr = value;
+      next.gr[instruction.gr!] = value;
+      next.sp = spAfter;
+      next.pr = word(next.pr + 1);
+      next.visualPath = VisualPathKind.POP_StackToGr;
+      next.lastStep.visualPath = next.visualPath;
+      next.changedRegisters.push("SP", "MAR", "MDR", `GR${instruction.gr}`);
+      const event = traceEvent(
+        next,
+        instruction.address,
+        "POP",
+        `GR${instruction.gr}: ${formatWord(grBefore)} -> ${formatWord(value)}; SP: ${formatWord(spBefore)} -> ${formatWord(spAfter)}; Read MEM[${formatWord(spBefore)}]`,
+        { before: spBefore, after: spAfter }
+      );
+      event.changedRegisterValueBefore = grBefore;
+      event.changedRegisterValueAfter = value;
+      event.changedMemoryAddress = spBefore;
+      event.changedMemoryValueBefore = value;
+      event.changedMemoryValueAfter = value;
+      prependTrace(next, event);
     }
 
     if (instruction.op === "ST") {

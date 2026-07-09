@@ -118,17 +118,22 @@ Expected observation:
 - `GR1` should become `0014`.
 - After `ST`, Memory[RESULT] should become `0014`.
 
-### Task 5C. Observe the stack preview foundation
+### Task 5C. Observe PUSH / POP stack behavior
 
-Start from `CASL: GR2 Addition` and open Circuit Focus Mode.
+Start from `CASL: Push Pop Stack` and open Circuit Focus Mode.
 
 Expected observation:
 
 - `SP` should be visible in the top address/control layer.
-- Stack Preview should show the current `SP` and a small nearby memory window.
-- The stack path should be marked as preview-only.
-- Stepping `LD`, `ADDA`, and `ST` should not activate `SP`.
-- This does not mean `PUSH`, `POP`, or `CALL` are implemented yet.
+- `PUSH A,GR2` should decrement `SP`.
+- Stack Preview should mark the new `SP` row as a write.
+- The pushed value should be the effective address of `B`, not the value stored at `B`.
+- `POP GR1` should read `Memory[SP]` into `GR1`, then increment `SP`.
+- `CALL` and stack-based `RET` are still not implemented.
+
+Answer hint:
+
+- In the built-in demo, `RESULT` should become the address of `B`.
 
 ## Level 2: C++ to CASL
 

@@ -9,6 +9,7 @@ import type { CometState } from "../core/types";
 import { getDemoProgram } from "../examples/demoPrograms";
 
 const gr2Source = getDemoProgram("casl-gr2-addition")!.source;
+const pushPopSource = getDemoProgram("casl-push-pop-stack")!.source;
 const timelineItems = [
   { key: "ready", index: 0, label: "Ready", phase: "completed" },
   { key: "ld", index: 1, label: "LD", phase: "current" },
@@ -213,6 +214,40 @@ describe("Circuit Focus Mode layout", () => {
     expect(markup).toContain('data-active="false" data-path-id="mar-to-stack-memory-preview"');
     expect(activeWireIds(markup)).not.toContain("sp-to-mar-preview");
     expect(activeWireIds(markup)).not.toContain("mar-to-stack-memory-preview");
+  });
+
+  it("circuit_push_activates_sp_memory_write", () => {
+    const state = stepSource(pushPopSource, 2);
+    const markup = renderFocus(state, pushPopSource);
+
+    expect(markup).toContain('data-testid="module-sp" data-active="true"');
+    expect(markup).toContain('data-testid="effective-address-unit" data-active="true"');
+    expect(activeWireIds(markup)).toEqual(expect.arrayContaining(["base-to-eau", "eau-to-mdr", "sp-to-mar-preview", "mar-to-memory", "mdr-to-memory"]));
+    expect(markup).toContain('data-testid="memory-row-FFFD"');
+    expect(markup).toContain('data-write="true"');
+    expect(markup).toContain('data-address="FFFD" data-sp="true" data-read="false" data-write="true"');
+    expect(markup).toContain("SP: FFFE -&gt; FFFD");
+  });
+
+  it("circuit_pop_activates_sp_memory_read_gr_write", () => {
+    const state = stepSource(pushPopSource, 3);
+    const markup = renderFocus(state, pushPopSource);
+
+    expect(markup).toContain('data-testid="module-sp" data-active="true"');
+    expect(markup).toContain('data-testid="register-gr1" data-active="true"');
+    expect(activeWireIds(markup)).toEqual(expect.arrayContaining(["sp-to-mar-preview", "mar-to-memory", "memory-to-mdr", "mdr-to-gr"]));
+    expect(markup).toContain('data-testid="memory-row-FFFD"');
+    expect(markup).toContain('data-read="true"');
+    expect(markup).toContain('data-address="FFFD" data-sp="false" data-read="true" data-write="false"');
+    expect(markup).toContain("Read MEM[FFFD]");
+  });
+
+  it("non_stack_instructions_do_not_activate_sp", () => {
+    for (const state of [stepTimes(1), stepTimes(2), stepTimes(3)]) {
+      const markup = renderFocus(state);
+      expect(markup).toContain('data-testid="module-sp" data-active="false"');
+      expect(activeWireIds(markup)).not.toContain("sp-to-mar-preview");
+    }
   });
 
   it("focus_mode_memory_row_arrow_visible and focus_mode_gr_row_arrow_visible", () => {

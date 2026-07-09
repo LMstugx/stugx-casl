@@ -1,8 +1,8 @@
 # Phase 9E: SP / Stack Address Path Foundation
 
-Phase 9E does not add stack instructions. It prepares the visual and documentation foundation for later stack-related work.
+Phase 9E did not add stack instructions. It prepared the visual and documentation foundation for later stack-related work.
 
-The current project still does not implement `PUSH`, `POP`, `CALL`, stack-based `RET`, `SVC`, `IN`, or `OUT`. The VM, assembler, WASM bridge, mock core, Step, Run, and Reset semantics are unchanged.
+At the time of Phase 9E, the project did not implement `PUSH`, `POP`, `CALL`, stack-based `RET`, `SVC`, `IN`, or `OUT`. Later Phase 9F adds `PUSH` / `POP`; `CALL` and stack-based `RET` remain out of scope.
 
 ## Why Stack Path Foundation Is Needed
 
@@ -21,20 +21,21 @@ In Circuit Focus Mode:
 - `SP` remains in the top control/address layer.
 - `SP` has stable output and adjust anchors.
 - Ordinary `LD`, `ST`, arithmetic, logic, compare, shift, and jump instructions do not activate `SP`.
-- The preview stack guide is always inactive until real stack semantics exist.
+- The preview stack guide stays inactive for ordinary instructions. Later `PUSH` / `POP` semantics may activate the stack route explicitly.
 
 `SP` is reserved for future stack operations. It is not part of the current fetch path.
 
 ## Stack Preview UI
 
-Focus Mode includes a compact, read-only Stack Preview card.
+Focus Mode includes a compact Stack Preview card.
 
 It shows:
 
 - current `SP`
 - a small memory window from `SP - 2` through `SP + 4`
 - a marker on the current `SP` row
-- the note `Stack path preview only.`
+- a preview note when no stack instruction is involved
+- read/write markers once a real stack instruction updates stack memory
 
 The preview does not infer stack direction and does not render full memory.
 
@@ -46,7 +47,7 @@ The circuit contains a faint preview guide:
 SP -> MAR -> Memory[SP]
 ```
 
-This guide is rendered as inactive infrastructure. It is not an active signal path for current instructions.
+This guide is rendered as inactive infrastructure for non-stack instructions. It becomes an active route only for later stack instructions that explicitly use `SP`.
 
 Future stack instructions can reuse:
 
@@ -56,36 +57,36 @@ Future stack instructions can reuse:
 - `mar.stackInput`
 - `memory.spPreview`
 
-## Why This Phase Does Not Implement PUSH / POP / CALL
+## Why Phase 9E Did Not Implement PUSH / POP / CALL
 
-This phase intentionally avoids execution semantics. Adding stack instructions requires assembler opcode support, VM state transitions, SP adjustment rules, memory ordering, Machine Code explanation updates, trace changes, and parity tests.
+Phase 9E intentionally avoided execution semantics. Adding stack instructions requires assembler opcode support, VM state transitions, SP adjustment rules, memory ordering, Machine Code explanation updates, trace changes, and parity tests.
 
 Those belong in a later instruction-semantics phase.
 
-## Future PUSH Path
+## Later PUSH Path
 
-A future `PUSH` path should use:
+Phase 9F turns this into an active path for `PUSH`:
 
 ```text
-GR -> MDR
+effective address -> stack value
 SP -> MAR
-MDR -> Memory[SP]
-SP adjustment
+Memory[SP] write
+SP pre-decrement
 ```
 
-The exact pre-decrement or post-decrement rule must be defined with the instruction implementation.
+The Phase 9F teaching rule is pre-decrement: `SP = SP - 1`, then `Memory[SP] = effectiveAddress`.
 
-## Future POP Path
+## Later POP Path
 
-A future `POP` path should use:
+Phase 9F turns this into an active path for `POP`:
 
 ```text
 SP -> MAR
 Memory[SP] -> MDR -> GR
-SP adjustment
+SP post-increment
 ```
 
-The preview card can become the first place to observe top-of-stack movement.
+The preview card becomes the first place to observe top-of-stack movement.
 
 ## Future CALL Return-Address Path
 
@@ -115,8 +116,7 @@ That future behavior should use a separate template such as `RET_STACK`, so curr
 
 ## Current Limitations
 
-- No stack instruction is implemented.
-- No stack direction is assumed.
-- The Stack Preview is read-only.
-- The stack guide is inactive and does not represent current execution.
-- `SP` remains constant in existing programs unless future instructions change it.
+- In Phase 9E itself, no stack instruction was implemented.
+- This document is a historical foundation note. Phase 9F implements `PUSH` / `POP`.
+- `CALL` and stack-based `RET` remain future work.
+- Current `RET` semantics are unchanged.

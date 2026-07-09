@@ -318,7 +318,7 @@ describe("circuit focus layout", () => {
     const marToStack = paths.find((wire) => wire.id === "mar-to-stack-memory-preview");
 
     expect(spToMar).toMatchObject({
-      role: "inactive",
+      role: "address",
       lane: "addr",
       semanticType: "address",
       fromAnchor: expect.objectContaining({ id: "sp.output" }),
@@ -326,14 +326,15 @@ describe("circuit focus layout", () => {
       relatedStage: "Stack preview"
     });
     expect(marToStack).toMatchObject({
-      role: "inactive",
+      role: "address",
       lane: "addr",
       semanticType: "address",
       fromAnchor: expect.objectContaining({ id: "mar.right" }),
       toAnchor: expect.objectContaining({ id: "memory.spPreview" }),
       relatedStage: "Stack preview"
     });
-    for (const wires of Object.values(activeWireIdsByKind)) {
+    for (const [kind, wires] of Object.entries(activeWireIdsByKind)) {
+      if (kind === VisualPathKind.PUSH_EffectiveAddressToStack || kind === VisualPathKind.POP_StackToGr) continue;
       expect(wires).not.toContain("sp-to-mar-preview");
       expect(wires).not.toContain("mar-to-stack-memory-preview");
     }
@@ -344,7 +345,7 @@ describe("circuit focus layout", () => {
       kind: "stack-read",
       source: "SP",
       target: "GR",
-      routeSegments: ["sp-to-mar-preview", "mar-to-stack-memory-preview"],
+      routeSegments: ["sp-to-mar-preview", "mar-to-memory", "memory-to-mdr", "mdr-to-gr"],
       usesSP: true,
       usesMAR: true,
       usesMemory: true,
@@ -354,8 +355,9 @@ describe("circuit focus layout", () => {
     });
     expect(stackPathTemplates["stack-write"]).toMatchObject({
       kind: "stack-write",
-      source: "GR",
+      source: "SP",
       target: "Memory[SP]",
+      routeSegments: ["base-to-eau", "eau-to-mdr", "sp-to-mar-preview", "mar-to-memory", "mdr-to-memory"],
       writesMemory: true,
       futureInstructionKinds: ["PUSH"]
     });

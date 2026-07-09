@@ -366,6 +366,81 @@ export const learningLessons: LearningLesson[] = [
     ]
   },
   {
+    exampleId: "casl-push-pop-stack",
+    title: "PUSH / POP stack basics",
+    level: "Machine code",
+    concepts: ["SP", "stack memory", "PUSH stores effective address", "POP reads Memory[SP]", "SP decrement", "SP increment", "stack preview"],
+    learningGoals: [
+      "Understand the teaching VM stack convention used by PUSH and POP.",
+      "Observe that PUSH stores the effective address value itself, not the memory data at that address."
+    ],
+    observe: ["SP before and after PUSH / POP", "Stack Preview row written by PUSH", "GR1 after POP", "RESULT after ST"],
+    suggestedSteps: [
+      {
+        id: "assemble",
+        label: "Assemble stack program",
+        action: "Click Assemble.",
+        expectedObservation: "Machine Code shows PUSH with an operand word and POP as a one-word register instruction.",
+        recommendedTab: "Machine Code"
+      },
+      {
+        id: "step-push",
+        label: "Step PUSH",
+        action: "Step to PUSH A,GR2 in Circuit Focus Mode.",
+        expectedObservation: "SP decrements, the stack row is written, and the stored value is the effective address of B.",
+        recommendedTab: "Trace"
+      },
+      {
+        id: "step-pop",
+        label: "Step POP",
+        action: "Step POP GR1.",
+        expectedObservation: "GR1 receives the value from Memory[SP], then SP increments.",
+        recommendedTab: "Trace"
+      },
+      {
+        id: "check-result",
+        label: "Check RESULT",
+        action: "Run or Step through ST and open Memory.",
+        expectedObservation: "RESULT contains 0029, the address of B in this demo.",
+        recommendedTab: "Memory"
+      }
+    ],
+    checkpoints: [
+      {
+        id: "push-sp-decrement",
+        label: "PUSH SP update",
+        expected: "PUSH should decrement SP before writing stack memory.",
+        whereToLook: "Stack Preview / Trace",
+        note: "The active stack write row is the new SP address."
+      },
+      {
+        id: "push-stores-ea",
+        label: "PUSH stored value",
+        expected: "Memory[new SP] should store 0029, the effective address of B.",
+        whereToLook: "Stack Preview / Signal Probe",
+        note: "PUSH A,GR2 stores A+GR2, not Memory[A+GR2]."
+      },
+      {
+        id: "pop-loads-gr",
+        label: "POP register update",
+        expected: "POP should load GR1 with 0029 and then increment SP.",
+        whereToLook: "Registers / Trace",
+        note: "POP reads the old SP row before SP moves upward."
+      },
+      {
+        id: "final-result",
+        label: "Final result",
+        expected: "Memory[RESULT] should be 0029.",
+        whereToLook: "Memory tab",
+        note: "The result is an address value, not decimal 20."
+      }
+    ],
+    commonQuestions: [
+      "Why is RESULT 0029 instead of 0014?",
+      "Why does PUSH write to Memory[SP] before POP reads from Memory[SP]?"
+    ]
+  },
+  {
     exampleId: "cpp-addition",
     title: "C++ addition lowered to CASL",
     level: "C++ to CASL",

@@ -114,6 +114,25 @@ RESULT DS  1
     suggestedActions: ["Click Assemble.", "Open Machine Code and inspect x = GR2.", "Step LD in Circuit Focus Mode and watch the Effective Address Unit.", "Open Memory and confirm RESULT is 0014."]
   },
   {
+    id: "casl-push-pop-stack",
+    name: "CASL: Push Pop Stack",
+    mode: "casl",
+    source: `MAIN START
+     LAD   GR2,1
+     PUSH  A,GR2
+     POP   GR1
+     ST    GR1,RESULT
+     RET
+A    DC    10
+B    DC    20
+RESULT DS  1
+     END`,
+    description: "Stack basics with PUSH storing an effective address and POP reading Memory[SP] into a register.",
+    whatThisShows: "PUSH decrements SP and stores the effective address value itself; POP reads the stack value into GR1 and increments SP.",
+    expectedResult: "PUSH A,GR2 stores the address of B on the stack; POP loads that address into GR1; Memory[RESULT] = 0029.",
+    suggestedActions: ["Click Assemble.", "Step PUSH in Circuit Focus Mode and watch SP / Stack Preview.", "Step POP and confirm GR1 receives the stack value.", "Open Machine Code and inspect PUSH / POP opcodes.", "Run and confirm RESULT is 0029."]
+  },
+  {
     id: "cpp-addition",
     name: "C++: Addition",
     mode: "cpp",

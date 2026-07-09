@@ -107,14 +107,15 @@ Use the gallery to inspect:
 - ST writeback lands at the Memory row edge instead of crossing value or label text.
 - READ / WRITE / EXEC / FLAG indicators match the visible active path.
 - Signal Probe is compact and derived from the current instruction / recent trace.
-- Stack Preview is compact, read-only, and clearly marked as preview-only.
-- The SP -> MAR -> Memory guide is faint and inactive during ordinary execution.
+- Stack Preview is compact, read-only, and shows real `PUSH` / `POP` stack read/write rows.
+- The SP -> MAR -> Memory guide is faint and inactive during ordinary execution, but active for `PUSH` / `POP`.
 - Older Trace rows are lower emphasis than the latest row.
 - Output Log remains available but compact in Focus Mode.
 - SP is visible but inactive for ordinary execution.
 - LD and ST do not make the ALU look active; ADDA and related ALU instructions do.
 - Shift screenshots show the ALU/Shifter path and do not mark Memory as the shift-count data source.
 - Index addressing screenshots show the `IDX` register badge, Effective Address Unit, base/index/effective calculation, and effective Memory row highlight.
+- PUSH / POP screenshots show `SP`, Stack Preview, stack row write/read, and Machine Code explanations that distinguish effective address values from memory data.
 - Machine Code explanation is readable.
 - Control Flow target text is readable.
 - Source Editor is not squeezed.
@@ -130,6 +131,8 @@ Use the gallery to inspect:
 - `index-addressing-circuit.png` (Circuit Focus Mode)
 - `index-addressing-machine-code.png` (Machine Code explanation)
 - `stack-preview-focus.png` (Circuit Focus Mode)
+- `push-pop-stack-circuit.png` (Circuit Focus Mode)
+- `push-pop-stack-machine-code.png` (Machine Code explanation)
 - `cpp-addition-generated-casl.png`
 - `machine-code-explanation.png`
 - `for-sum-control-flow.png`

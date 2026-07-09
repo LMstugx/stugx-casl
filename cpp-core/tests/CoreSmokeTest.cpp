@@ -785,6 +785,80 @@ A    DC    10
     require(vm.state().pr == static_cast<std::uint16_t>(symbolAddress(output, "DONE") + 1), "JUMP indexed effective target");
 }
 
+void AssemblePushPop() {
+    const auto output = assembleOrExit(R"(MAIN START
+     LAD   GR2,1
+     PUSH  A,GR2
+     POP   GR1
+     RET
+A    DC    10
+B    DC    20
+     END)");
+    require(output.state.memory[0x22] == 0x7002, "PUSH machine word");
+    require(output.state.memory[0x23] == symbolAddress(output, "A"), "PUSH operand word");
+    require(output.state.memory[0x24] == 0x7110, "POP machine word");
+}
+
+void RejectInvalidPushPopOperands() {
+    casl::Assembler assembler;
+    const auto missingPush = assembler.assemble("MAIN START\n PUSH\n END");
+    const auto missingPop = assembler.assemble("MAIN START\n POP\n END");
+    const auto indexedPop = assembler.assemble("MAIN START\n POP GR1,GR2\n END");
+    require(!missingPush.ok && hasError(missingPush, "PUSH requires an address operand"), "PUSH missing operand should fail");
+    require(!missingPop.ok && hasError(missingPop, "POP requires a register operand"), "POP missing register should fail");
+    require(!indexedPop.ok && hasError(indexedPop, "POP does not support index operands"), "POP index should fail");
+}
+
+void ExecutePushPopStack() {
+    const auto output = assembleOrExit(R"(MAIN START
+     LAD   GR2,1
+     PUSH  A,GR2
+     POP   GR1
+     ST    GR1,RESULT
+     RET
+A    DC    10
+B    DC    20
+RESULT DS  1
+     END)");
+    casl::CometVm vm;
+    vm.load(output);
+    (void)vm.step();
+    const auto pushStep = vm.step();
+    require(pushStep.instructionKind.has_value() && *pushStep.instructionKind == casl::InstructionKind::PUSH, "PUSH step kind");
+    require(vm.state().sp == 0xfffd, "PUSH decrements SP");
+    require(vm.state().mdr == symbolAddress(output, "B"), "PUSH MDR effective address");
+    require(vm.state().memory[0xfffd] == symbolAddress(output, "B"), "PUSH stack write value");
+    require(vm.state().lastMemoryWriteAddress.has_value() && *vm.state().lastMemoryWriteAddress == 0xfffd, "PUSH write address");
+    require(!vm.state().lastMemoryReadAddress.has_value(), "PUSH should not read memory data");
+    require(vm.state().visualPath == casl::VisualPathKind::PUSH_EffectiveAddressToStack, "PUSH visual path");
+
+    const auto popStep = vm.step();
+    require(popStep.instructionKind.has_value() && *popStep.instructionKind == casl::InstructionKind::POP, "POP step kind");
+    require(vm.state().gr[1] == symbolAddress(output, "B"), "POP loads target register");
+    require(vm.state().sp == 0xfffe, "POP increments SP");
+    require(vm.state().lastMemoryReadAddress.has_value() && *vm.state().lastMemoryReadAddress == 0xfffd, "POP read address");
+    require(vm.state().lastRegisterWriteIndex.has_value() && *vm.state().lastRegisterWriteIndex == 1, "POP write index");
+    require(vm.state().visualPath == casl::VisualPathKind::POP_StackToGr, "POP visual path");
+}
+
+void PushPopStackPointerWrap() {
+    auto output = assembleOrExit(R"(MAIN START
+     PUSH  VALUE
+     POP   GR1
+     RET
+VALUE DC   1
+     END)");
+    output.state.sp = 0x0000;
+    casl::CometVm vm;
+    vm.load(output);
+    (void)vm.step();
+    require(vm.state().sp == 0xffff, "PUSH SP wrap");
+    require(vm.state().lastMemoryWriteAddress.has_value() && *vm.state().lastMemoryWriteAddress == 0xffff, "PUSH wrapped write address");
+    (void)vm.step();
+    require(vm.state().sp == 0x0000, "POP SP wrap");
+    require(vm.state().gr[1] == symbolAddress(output, "VALUE"), "POP wrapped stack value");
+}
+
 void StepStore() {
     casl::CometVm vm;
     vm.load(assembleSample());
@@ -909,6 +983,10 @@ const std::vector<std::pair<std::string_view, TestFunction>>& tests() {
         {"RejectGr0AsIndexRegister", RejectGr0AsIndexRegister},
         {"ExecuteLdStWithIndex", ExecuteLdStWithIndex},
         {"ExecuteLadJumpShiftWithIndex", ExecuteLadJumpShiftWithIndex},
+        {"AssemblePushPop", AssemblePushPop},
+        {"RejectInvalidPushPopOperands", RejectInvalidPushPopOperands},
+        {"ExecutePushPopStack", ExecutePushPopStack},
+        {"PushPopStackPointerWrap", PushPopStackPointerWrap},
         {"StepStore", StepStore},
         {"StepRetFinished", StepRetFinished},
         {"ExecuteGr2Program", ExecuteGr2Program},

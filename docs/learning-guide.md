@@ -25,7 +25,7 @@ The purpose is not to replace a full compiler. The purpose is to make each trans
 
 Example: `CASL: GR2 Addition`
 
-Follow-up examples: `CASL: Logic Operations`, `CASL: Logical Add Compare`, `CASL: Shift Operations`, `CASL: Index Addressing`
+Follow-up examples: `CASL: Logic Operations`, `CASL: Logical Add Compare`, `CASL: Shift Operations`, `CASL: Index Addressing`, `CASL: Push Pop Stack`
 
 Learn:
 
@@ -34,9 +34,11 @@ Learn:
 - `ADDL`, `CPL`, `JOV` for unsigned arithmetic, unsigned compare, and overflow-flag jump
 - `SLL`, `SRL`, `SLA`, `SRA` for shift operations
 - `adr,x` for base plus index-register effective addressing
+- `PUSH` and `POP` for the first stack-memory convention
 - how GR registers change
 - how shift instructions update GR and FR without reading memory as shift data
 - how indexed instructions keep a base operand word but access the effective memory row
+- how `PUSH` stores an effective address value on the stack, and how `POP` reads `Memory[SP]`
 - how a memory write appears in the Memory Viewer
 - how PR advances through instruction words
 
@@ -50,6 +52,7 @@ Suggested actions:
 6. Load `CASL: Logical Add Compare` and observe how `JOV` falls through when OF is not set.
 7. Load `CASL: Shift Operations` and confirm the shift count operand is not shown as a memory data read.
 8. Load `CASL: Index Addressing` and compare the base address `A` with the effective address `B`.
+9. Load `CASL: Push Pop Stack` and watch `SP`, Stack Preview, and `Memory[SP]` during `PUSH` / `POP`.
 
 ### Step 2: C++ to CASL
 
@@ -216,12 +219,13 @@ Use the examples in this order:
 3. `CASL: Logical Add Compare`: learn unsigned ADDL / CPL and JOV fallthrough.
 4. `CASL: Shift Operations`: learn logical and arithmetic shifts, shift counts, and FR / OF updates.
 5. `CASL: Index Addressing`: learn x-field encoding, index registers, and effective address calculation.
-6. `C++: Addition`: learn C++ to CASL and machine-code rows.
-7. `C++: If Else`: learn compare, flags, conditional jump, and target labels.
-8. `C++: While Sum`: learn repeated execution with Trace.
-9. `C++: For Sum`: learn initializer, condition, increment, and loop exit.
-10. `C++: For Sum Sugar`: learn `i++` and `+=` lowering.
-11. `C++: Break Continue`: learn jump targets for loop control.
+6. `CASL: Push Pop Stack`: learn `SP`, Stack Preview, stack memory writes, and `POP` register updates.
+7. `C++: Addition`: learn C++ to CASL and machine-code rows.
+8. `C++: If Else`: learn compare, flags, conditional jump, and target labels.
+9. `C++: While Sum`: learn repeated execution with Trace.
+10. `C++: For Sum`: learn initializer, condition, increment, and loop exit.
+11. `C++: For Sum Sugar`: learn `i++` and `+=` lowering.
+12. `C++: Break Continue`: learn jump targets for loop control.
 
 ## 8. How To Verify Your Understanding
 
@@ -308,9 +312,9 @@ Read it by layers:
 
 The active data path targets specific rows where possible. For example, `LD GR2,A` highlights the Memory row for `A`, routes it through `MDR`, and lands on the `GR2` row. Arithmetic and compare instructions route the selected GR row and `MDR` into the ALU, then update either the GR row and `FR` or only `FR`.
 
-`SP` is visible as an independent register. Since stack instructions are not implemented yet, it is not part of the default `PR -> MAR` fetch path and should not become active during ordinary arithmetic or memory instructions.
+`SP` is visible as an independent register. Ordinary arithmetic, memory, shift, and jump instructions do not use it. `PUSH` and `POP` are the first active stack paths: `PUSH` decrements `SP` and writes an effective address value to `Memory[SP]`; `POP` reads `Memory[SP]` into a register and increments `SP`.
 
-The Stack Preview card is read-only. It shows the current `SP` value and a small memory window around `SP`, with a faint inactive guide for the future `SP -> MAR -> Memory[SP]` path. This is only preparation for later stack instructions; current programs do not push, pop, call, or return through the stack.
+The Stack Preview card is read-only but now reflects real `PUSH` / `POP` execution. It shows the current `SP` value, nearby stack memory, the written stack row after `PUSH`, and the read stack row after `POP`. `CALL` and stack-based `RET` are still future work, so current `RET` semantics are unchanged.
 
 Circuit Focus Mode uses a deliberate current/next split. The main teaching target is the last executed instruction: Program, Current Instruction, Current Source Mapping, Source Context, and the latest Trace row should all point to that same instruction. `PR` is the next address and is shown only as a secondary hint together with the next instruction.
 
@@ -330,7 +334,7 @@ Focus Mode is layered intentionally. Current Instruction and the active path are
 
 The compact Signal Probe card is read-only. It shows current or recent values for the selected GR row, `MDR`, `ALU.Y` when involved, `FR`, target memory, and recent trace changes. It is a study aid, not an automatic grader or custom circuit editor.
 
-When stack preview is relevant, Signal Probe also shows `SP` with the note `stack preview only`. That row is not fake activity; it is a reminder that `SP` is reserved for future stack operations and remains inactive for current ordinary instructions.
+When stack activity is relevant, Signal Probe also shows `SP` before/after, the stack memory row, and the stack value. For non-stack instructions it stays compact and does not show fake stack activity.
 
 Display naming is intentionally narrow:
 

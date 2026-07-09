@@ -213,6 +213,34 @@ async function captureIndexAddressingMachineCode(page: Page, viewport: Viewport)
   await capture(page, viewport, "index-addressing-machine-code.png");
 }
 
+async function capturePushPopStackCircuit(page: Page, viewport: Viewport) {
+  await openStudio(page, "Mock Core");
+  await selectDemoProgram(page, "casl-push-pop-stack");
+  await enterCircuitFocusMode(page);
+  await assemble(page);
+  await step(page);
+  await step(page);
+  await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("PUSH");
+  await expect(page.getByTestId("comet-circuit-svg").locator("[data-testid='module-sp']")).toHaveAttribute("data-active", "true");
+  await expect(page.getByTestId("comet-circuit-svg").locator("[data-testid='memory-row-FFFD']")).toHaveAttribute("data-write", "true");
+  await expect(page.getByTestId("focus-stack-preview")).toContainText("WRITE");
+  await expect(page.getByTestId("focus-signal-probe")).toContainText("STACK");
+  await capture(page, viewport, "push-pop-stack-circuit.png");
+}
+
+async function capturePushPopStackMachineCode(page: Page, viewport: Viewport) {
+  await openStudio(page, "Mock Core");
+  await selectDemoProgram(page, "casl-push-pop-stack");
+  await assemble(page);
+  await openOutputTab(page, "Machine Code");
+  await expect(page.getByTestId("machine-code-output")).toContainText("PUSH A,GR2");
+  await expect(page.getByTestId("machine-code-output")).toContainText("POP GR1");
+  await page.getByTestId("machine-code-row-0022").click();
+  await expect(page.getByTestId("machine-code-explanation")).toContainText("PUSH");
+  await expect(page.getByTestId("machine-code-explanation")).toContainText("effective address");
+  await capture(page, viewport, "push-pop-stack-machine-code.png");
+}
+
 test.describe("visual review screenshot gallery", () => {
   for (const viewport of viewports) {
     test(`captures visual review gallery at ${viewport.name}`, async ({ page }) => {
@@ -232,6 +260,8 @@ test.describe("visual review screenshot gallery", () => {
       await captureShiftOperationsMachineCode(page, viewport);
       await captureIndexAddressingCircuit(page, viewport);
       await captureIndexAddressingMachineCode(page, viewport);
+      await capturePushPopStackCircuit(page, viewport);
+      await capturePushPopStackMachineCode(page, viewport);
     });
   }
 });

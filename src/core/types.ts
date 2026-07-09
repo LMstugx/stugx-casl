@@ -12,6 +12,8 @@ export enum VisualPathKind {
   SUBA_GrMdrToAluToGr = "SUBA_GrMdrToAluToGr",
   CPA_GrMdrToAluToFr = "CPA_GrMdrToAluToFr",
   Shift_AddressToAluToGr = "Shift_AddressToAluToGr",
+  PUSH_EffectiveAddressToStack = "PUSH_EffectiveAddressToStack",
+  POP_StackToGr = "POP_StackToGr",
   Jump_AddressToPr = "Jump_AddressToPr",
   ConditionalJump_AddressToPr = "ConditionalJump_AddressToPr",
   ConditionalJump_NotTaken = "ConditionalJump_NotTaken",
@@ -40,6 +42,8 @@ export type InstructionKind =
   | "SRA"
   | "SLL"
   | "SRL"
+  | "PUSH"
+  | "POP"
   | "ST"
   | "JUMP"
   | "JZE"
@@ -98,6 +102,8 @@ export interface TraceEvent {
   changedMemoryAddress?: number;
   changedMemoryValueBefore?: number;
   changedMemoryValueAfter?: number;
+  stackPointerValueBefore?: number;
+  stackPointerValueAfter?: number;
   baseAddress?: number;
   indexRegister?: number;
   indexValue?: number;
@@ -114,7 +120,7 @@ export interface Diagnostic {
 export interface AssembledInstruction {
   address: number;
   line: number;
-  op: "NOP" | "LD" | "LAD" | "ADDA" | "SUBA" | "ADDL" | "SUBL" | "AND" | "OR" | "XOR" | "CPA" | "CPL" | "SLA" | "SRA" | "SLL" | "SRL" | "ST" | "JUMP" | "JZE" | "JNZ" | "JPL" | "JMI" | "JOV" | "RET";
+  op: "NOP" | "LD" | "LAD" | "ADDA" | "SUBA" | "ADDL" | "SUBL" | "AND" | "OR" | "XOR" | "CPA" | "CPL" | "SLA" | "SRA" | "SLL" | "SRL" | "PUSH" | "POP" | "ST" | "JUMP" | "JZE" | "JNZ" | "JPL" | "JMI" | "JOV" | "RET";
   source: string;
   size: number;
   gr?: number;

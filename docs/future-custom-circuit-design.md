@@ -98,11 +98,11 @@ Phase 9C adds indexed operands, and Phase 9D visualizes the address computation 
 - LAD and shift use the effective address as a value, not as a memory data read
 - memory instructions highlight the effective Memory row, not the base operand row
 
-Phase 9E adds stack-address infrastructure without stack execution semantics. Future stack templates should preserve this preview shape:
+Phase 9E adds stack-address infrastructure without stack execution semantics. Phase 9F connects the first real stack instructions, `PUSH` and `POP`, to that infrastructure. Future stack templates should preserve this shape:
 
 - SP -> MAR -> Memory[SP] is an address path, not an ALU data path
-- Stack Preview is read-only until `PUSH`, `POP`, or `CALL` exist
+- Stack Preview stays read-only as a UI surface, but it now reflects real `PUSH` / `POP` stack reads and writes
 - `SP` has output and adjustment anchors, but ordinary instructions keep it inactive
-- future stack templates should define whether they read memory, write memory, adjust SP, or update PR
+- stack templates should define whether they read memory, write memory, adjust SP, or update PR
 
-The current placeholder names are intentionally future-facing: `stack-read`, `stack-write`, `call-return-address`, and `return-pop-address`.
+The current stack template names are intentionally split by behavior: `stack-read` and `stack-write` are used by `POP` and `PUSH`; `call-return-address` and `return-pop-address` remain future-facing for `CALL` and stack-aware `RET`.

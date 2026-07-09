@@ -152,7 +152,7 @@ export function toCometStateDto(state: CometState, memoryStart = 0x20, memoryEnd
     lastInstructionKind === "SUBA" || lastInstructionKind === "ADDL" || lastInstructionKind === "SUBL" ||
     lastInstructionKind === "AND" || lastInstructionKind === "OR" || lastInstructionKind === "XOR" ||
     lastInstructionKind === "SLA" || lastInstructionKind === "SRA" || lastInstructionKind === "SLL" ||
-    lastInstructionKind === "SRL" ? lastInstruction?.gr ?? null : null;
+    lastInstructionKind === "SRL" || lastInstructionKind === "POP" ? lastInstruction?.gr ?? null : null;
 
   return {
     runState: state.runState,

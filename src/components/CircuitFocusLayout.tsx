@@ -49,7 +49,7 @@ function compactInstructionText(text?: string): string | undefined {
 }
 
 function instructionMnemonic(text: string | undefined, fallback: string): string {
-  const match = /\b(NOP|LD|LAD|ST|ADDA|SUBA|ADDL|SUBL|AND|OR|XOR|CPA|CPL|SLA|SRA|SLL|SRL|JUMP|JZE|JNZ|JPL|JMI|JOV|RET)\b/i.exec(text ?? "");
+  const match = /\b(NOP|LD|LAD|ST|ADDA|SUBA|ADDL|SUBL|AND|OR|XOR|CPA|CPL|SLA|SRA|SLL|SRL|PUSH|POP|JUMP|JZE|JNZ|JPL|JMI|JOV|RET)\b/i.exec(text ?? "");
   return match?.[1]?.toUpperCase() ?? fallback;
 }
 
@@ -88,6 +88,10 @@ function instructionMeaning(text: string | undefined, fallback: string): string 
     case "SLL":
     case "SRL":
       return `${register} <- ${mnemonic.toUpperCase()} ${register} by ${addressOperand}`;
+    case "PUSH":
+      return `stack[--SP] <- effective address ${addressOperand}`;
+    case "POP":
+      return `${register} <- memory[SP]; SP++`;
     case "JUMP":
       return `PR <- ${operand}`;
     case "JZE":
@@ -111,6 +115,7 @@ function timelineStageIndex(state: CometState): number {
   if (state.visualPath === VisualPathKind.Ready_PrToMar) return 0;
   if (state.visualPath === VisualPathKind.LD_MemoryToMdrToGr) return 2;
   if (state.visualPath === VisualPathKind.ST_GrToMdrToMemory) return 4;
+  if (state.visualPath === VisualPathKind.PUSH_EffectiveAddressToStack || state.visualPath === VisualPathKind.POP_StackToGr) return 4;
   if (
     state.visualPath === VisualPathKind.ADDA_GrMdrToAluToGr ||
     state.visualPath === VisualPathKind.SUBA_GrMdrToAluToGr ||
@@ -148,6 +153,9 @@ function activeMemoryAddress(state: CometState): number | undefined {
 }
 
 function traceChangeText(event: CometState["trace"][number]): string {
+  if (event.instruction === "PUSH" || event.instruction === "POP") {
+    return event.detail;
+  }
   if (event.changedRegister) {
     if (event.changedRegisterValueBefore !== undefined && event.changedRegisterValueAfter !== undefined) {
       return `${event.changedRegister}: ${formatWord(event.changedRegisterValueBefore)} -> ${formatWord(event.changedRegisterValueAfter)}`;
@@ -339,6 +347,8 @@ type StackPreviewRow = {
   address: number;
   value: number;
   isSp: boolean;
+  isRead: boolean;
+  isWrite: boolean;
 };
 
 function wrapAddress(address: number): number {
@@ -351,7 +361,9 @@ function stackPreviewRows(state: CometState): StackPreviewRow[] {
     return {
       address,
       value: state.memory[address] ?? 0,
-      isSp: address === state.sp
+      isSp: address === state.sp,
+      isRead: address === state.lastMemoryReadAddress,
+      isWrite: address === state.lastMemoryWriteAddress
     };
   });
 }
@@ -374,6 +386,10 @@ function signalProbeRows(state: CometState, focus: FocusInstructionContext): Pro
       : memoryAddress !== undefined
         ? formatWord(state.memory[memoryAddress] ?? 0)
         : "inactive";
+  const stackPointerValue =
+    latest?.stackPointerValueBefore !== undefined && latest.stackPointerValueAfter !== undefined
+      ? `${formatWord(latest.stackPointerValueBefore)} -> ${formatWord(latest.stackPointerValueAfter)}`
+      : formatWord(state.sp);
 
   const rows: ProbeRow[] = [
     {
@@ -408,11 +424,20 @@ function signalProbeRows(state: CometState, focus: FocusInstructionContext): Pro
     },
     {
       label: "SP",
-      value: formatWord(state.sp),
-      note: "stack preview only",
-      active: false
+      value: stackPointerValue,
+      note: visualPath === VisualPathKind.PUSH_EffectiveAddressToStack || visualPath === VisualPathKind.POP_StackToGr ? "stack pointer" : "stack preview only",
+      active: visualPath === VisualPathKind.PUSH_EffectiveAddressToStack || visualPath === VisualPathKind.POP_StackToGr
     }
   ];
+
+  if (visualPath === VisualPathKind.PUSH_EffectiveAddressToStack || visualPath === VisualPathKind.POP_StackToGr) {
+    rows.push({
+      label: "STACK",
+      value: memoryAddress !== undefined ? `MEM[${formatWord(memoryAddress)}]` : "inactive",
+      note: visualPath === VisualPathKind.PUSH_EffectiveAddressToStack ? "stack write" : "stack read",
+      active: true
+    });
+  }
 
   if (state.lastIndexRegister !== undefined && state.lastEffectiveAddress !== undefined) {
     rows.splice(
@@ -498,10 +523,18 @@ function FocusStackPreviewPanel({ state }: { state: CometState }) {
           <span>Note</span>
         </div>
         {rows.map((row) => (
-          <div key={row.address} className={row.isSp ? "stack-preview-grid stack-preview-row current" : "stack-preview-grid stack-preview-row"} data-testid="stack-preview-row" data-address={formatWord(row.address)} data-sp={row.isSp ? "true" : "false"}>
+          <div
+            key={row.address}
+            className={`stack-preview-grid stack-preview-row ${row.isSp ? "current" : ""} ${row.isRead ? "read" : ""} ${row.isWrite ? "write" : ""}`}
+            data-testid="stack-preview-row"
+            data-address={formatWord(row.address)}
+            data-sp={row.isSp ? "true" : "false"}
+            data-read={row.isRead ? "true" : "false"}
+            data-write={row.isWrite ? "true" : "false"}
+          >
             <code>{formatWord(row.address)}</code>
             <code>{formatWord(row.value)}</code>
-            <span>{row.isSp ? "<- SP" : ""}</span>
+            <span>{row.isWrite ? (row.isSp ? "WRITE / SP" : "WRITE") : row.isRead ? "READ" : row.isSp ? "<- SP" : ""}</span>
           </div>
         ))}
       </div>

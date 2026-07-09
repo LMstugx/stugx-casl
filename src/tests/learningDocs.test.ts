@@ -12,6 +12,7 @@ import phase9a from "../../docs/phase9a-casl-instruction-coverage.md?raw";
 import phase9b from "../../docs/phase9b-shift-instructions-and-path-templates.md?raw";
 import phase9d from "../../docs/phase9d-effective-address-unit.md?raw";
 import phase9e from "../../docs/phase9e-stack-address-path-foundation.md?raw";
+import phase9f from "../../docs/phase9f-push-pop-stack.md?raw";
 import futureCustomCircuit from "../../docs/future-custom-circuit-design.md?raw";
 import practiceTasks from "../../docs/practice-tasks.md?raw";
 import projectOverview from "../../docs/project-overview.md?raw";
@@ -29,6 +30,7 @@ describe("learning use documentation", () => {
     expect(learningGuide).toContain("CASL: Logic Operations");
     expect(learningGuide).toContain("CASL: Logical Add Compare");
     expect(learningGuide).toContain("CASL: Shift Operations");
+    expect(learningGuide).toContain("CASL: Push Pop Stack");
     expect(learningGuide).toContain("Step 2: C++ to CASL");
     expect(learningGuide).toContain("Step 6: break / continue");
   });
@@ -82,6 +84,7 @@ describe("learning use documentation", () => {
     expect(practiceTasks).toContain("Inspect bitwise logic instructions");
     expect(practiceTasks).toContain("Observe ADDL / CPL / JOV");
     expect(practiceTasks).toContain("Observe shift instructions");
+    expect(practiceTasks).toContain("Observe PUSH / POP stack behavior");
     expect(practiceTasks).toContain("Level 5: break / continue");
   });
 
@@ -116,8 +119,18 @@ describe("learning use documentation", () => {
     expect(phase9e).toContain("Phase 9E: SP / Stack Address Path Foundation");
     expect(phase9e).toContain("SP -> MAR -> Memory[SP]");
     expect(phase9e).toContain("Stack Preview");
-    expect(phase9e).toContain("does not implement `PUSH`, `POP`, `CALL`");
+    expect(phase9e).toContain("At the time of Phase 9E");
+    expect(phase9e).toContain("Phase 9F implements `PUSH` / `POP`");
     expect(phase9e).toContain("Current `RET` semantics are unchanged");
+  });
+
+  it("phase9f_push_pop_stack_doc_exists", () => {
+    expect(phase9f).toContain("Phase 9F: PUSH / POP Stack Semantics");
+    expect(phase9f).toContain("PUSH adr[,x]");
+    expect(phase9f).toContain("POP GRr");
+    expect(phase9f).toContain("PUSH Stores Effective Address");
+    expect(phase9f).toContain("Memory[SP] = effectiveAddress");
+    expect(phase9f).toContain("Current `RET` semantics are unchanged");
   });
 
   it("phase8e_circuit_focus_doc_exists", () => {
@@ -174,6 +187,7 @@ describe("learning use documentation", () => {
     expect(futureCustomCircuit).toContain("shift template");
     expect(futureCustomCircuit).toContain("stack-read");
     expect(futureCustomCircuit).toContain("SP -> MAR -> Memory[SP]");
+    expect(futureCustomCircuit).toContain("Phase 9F connects");
   });
 
   it("practice_tasks_do_not_use_unsupported_syntax", () => {
@@ -205,6 +219,7 @@ describe("learning use documentation", () => {
     expect(readme).toContain("docs/phase9b-shift-instructions-and-path-templates.md");
     expect(readme).toContain("docs/phase9d-effective-address-unit.md");
     expect(readme).toContain("docs/phase9e-stack-address-path-foundation.md");
+    expect(readme).toContain("docs/phase9f-push-pop-stack.md");
     expect(readme).toContain("docs/future-custom-circuit-design.md");
     expect(normalized).not.toContain("hackathon");
     expect(normalized).not.toContain("contest submission");

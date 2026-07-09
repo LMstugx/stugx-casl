@@ -137,6 +137,41 @@ test("Mock backend runs CASL index addressing and explains effective address", a
   await expect(focusInspector.getByTestId("memory-view-row-0029")).toContainText("0014");
 });
 
+test("Mock backend runs CASL PUSH POP stack demo and shows stack path", async ({ page }) => {
+  await openStudio(page, "Mock Core");
+  await selectDemoProgram(page, "casl-push-pop-stack");
+  await page.getByTestId("circuit-focus-toggle").click();
+
+  await assemble(page);
+  await step(page);
+  await step(page);
+
+  const circuit = page.getByTestId("comet-circuit-svg");
+  await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("PUSH");
+  await expect(circuit.locator("[data-testid='module-sp']")).toHaveAttribute("data-active", "true");
+  await expect(circuit.locator("[data-testid='wire-sp-to-mar-preview']")).toHaveAttribute("data-active", "true");
+  await expect(circuit.locator("[data-testid='wire-mdr-to-memory']")).toHaveAttribute("data-active", "true");
+  await expect(circuit.locator("[data-testid='memory-row-FFFD']")).toHaveAttribute("data-write", "true");
+  await expect(page.getByTestId("focus-stack-preview").locator("[data-testid='stack-preview-row'][data-address='FFFD']")).toHaveAttribute("data-write", "true");
+  await expect(page.getByTestId("focus-signal-probe")).toContainText("SP");
+  await expect(page.getByTestId("focus-signal-probe")).toContainText("STACK");
+
+  await step(page);
+  await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("POP");
+  await expect(circuit.locator("[data-testid='module-sp']")).toHaveAttribute("data-active", "true");
+  await expect(circuit.locator("[data-testid='wire-memory-to-mdr']")).toHaveAttribute("data-active", "true");
+  await expect(circuit.locator("[data-testid='wire-mdr-to-gr']")).toHaveAttribute("data-active", "true");
+  await expect(circuit.locator("[data-testid='memory-row-FFFD']")).toHaveAttribute("data-read", "true");
+  await expect(page.getByTestId("focus-registers-panel").getByTestId("register-gr1")).toContainText("0029");
+
+  await run(page);
+  await expect(page.getByTestId("run-state")).toHaveText("Finished");
+  const focusInspector = page.getByTestId("focus-registers-panel");
+  await focusInspector.getByRole("tab", { name: "Memory" }).click();
+  await expect(focusInspector.getByTestId("memory-view-row-002A")).toContainText("RESULT");
+  await expect(focusInspector.getByTestId("memory-view-row-002A")).toContainText("0029");
+});
+
 test("Mock backend keeps circuit focus paths anchored to rows", async ({ page }) => {
   await openStudio(page, "Mock Core");
   await selectDemoProgram(page, "casl-gr2-addition");

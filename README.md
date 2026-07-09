@@ -47,19 +47,22 @@ Each built-in example includes a collapsible `Guided Lesson` in the Demo Guide. 
 5. `CASL: Index Addressing`
    Learn `adr,x`, x-field encoding, base address, index register, and effective address.
 
-6. `C++: Addition`
+6. `CASL: Push Pop Stack`
+   Learn `SP`, stack memory, `PUSH` storing an effective address, and `POP` reading `Memory[SP]`.
+
+7. `C++: Addition`
    Learn how assignment and arithmetic become `LD`, `ADDA`, `ST`, and return through `GR0`.
 
-7. `C++: If Else`
+8. `C++: If Else`
    Learn `CPA`, conditional jumps, labels, and branch targets.
 
-8. `C++: While Sum`
+9. `C++: While Sum`
    Learn loop labels, loop-back jumps, Trace, and Memory Viewer.
 
-9. `C++: For Sum Sugar`
+10. `C++: For Sum Sugar`
    Learn for-loop initializer, condition, increment, `i++`, and `+=` lowering.
 
-10. `C++: Break Continue`
+11. `C++: Break Continue`
    Learn why `continue` jumps to the increment block and `break` jumps to the loop end.
 
 For detailed study guidance, see [docs/learning-guide.md](docs/learning-guide.md).
@@ -74,6 +77,7 @@ For the latest CASL instruction coverage batch, see [docs/phase9a-casl-instructi
 For shift instruction coverage and path templates, see [docs/phase9b-shift-instructions-and-path-templates.md](docs/phase9b-shift-instructions-and-path-templates.md).
 For index addressing, see [docs/phase9c-index-addressing.md](docs/phase9c-index-addressing.md).
 For the stack address path preview foundation, see [docs/phase9e-stack-address-path-foundation.md](docs/phase9e-stack-address-path-foundation.md).
+For `PUSH` / `POP` stack semantics, see [docs/phase9f-push-pop-stack.md](docs/phase9f-push-pop-stack.md).
 
 ## Key Views
 
@@ -94,6 +98,7 @@ For the stack address path preview foundation, see [docs/phase9e-stack-address-p
 - `CASL: Logical Add Compare`
 - `CASL: Shift Operations`
 - `CASL: Index Addressing`
+- `CASL: Push Pop Stack`
 - `C++: Addition`
 - `C++: If Else`
 - `C++: While Sum`
@@ -131,6 +136,8 @@ Instructions:
 - `SRA`
 - `SLL`
 - `SRL`
+- `PUSH`
+- `POP`
 - `JUMP`
 - `JZE`
 - `JNZ`
@@ -145,6 +152,12 @@ Index addressing:
 - x may be `GR1` through `GR7`.
 - `GR0` is rejected as an index register.
 - Effective address is `(base address + GRx) & 0xFFFF`.
+
+Stack subset:
+
+- `PUSH adr[,x]` decrements `SP` and stores the effective address value itself at `Memory[SP]`.
+- `POP GRr` reads `Memory[SP]` into the target register, then increments `SP`.
+- `CALL` and stack-based `RET` are not implemented yet.
 
 ## Supported C++ Subset
 
@@ -271,13 +284,14 @@ The current backend is shown in the status bar as `Mock Core`, `WASM Core`, or `
 - [docs/project-overview.md](docs/project-overview.md): concise project overview for learning and teaching use.
 - [docs/phase9d-effective-address-unit.md](docs/phase9d-effective-address-unit.md): Effective Address Unit visualization for indexed operands.
 - [docs/phase9e-stack-address-path-foundation.md](docs/phase9e-stack-address-path-foundation.md): SP, Stack Preview, and inactive stack-address path foundation for future stack instructions.
+- [docs/phase9f-push-pop-stack.md](docs/phase9f-push-pop-stack.md): `PUSH` / `POP` stack semantics, Stack Preview updates, and circuit stack path.
 
 ## Current Limitations
 
 - This is a learning-oriented C++ subset transpiler, not a complete C++ compiler.
 - The CASL II assembler supports the current teaching subset, not the full instruction set.
 - Index addressing is supported for CASL address operands, but C++ subset code does not generate indexed operands yet.
-- Stack Preview is visual-only. `PUSH`, `POP`, `CALL`, and stack-based `RET` are not implemented yet.
+- `PUSH` and `POP` are implemented for the teaching VM, but `CALL` and stack-based `RET` are not implemented yet.
 - The WASM bridge currently uses a single runtime and JSON strings.
 - The control-flow view is text and badge based; there is no full CFG graph yet.
 - New / Open / Save, language switching, and theme controls are placeholders or limited.

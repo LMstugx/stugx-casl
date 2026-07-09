@@ -151,6 +151,17 @@ A    DC    3
 RESULT DS  1
      END`;
 
+const pushPopSource = `MAIN START
+     LAD   GR2,1
+     PUSH  A,GR2
+     POP   GR1
+     ST    GR1,RESULT
+     RET
+A    DC    10
+B    DC    20
+RESULT DS  1
+     END`;
+
 function stepTimes(source: string, count: number) {
   let state = mockCaslCore.assemble(source);
   for (let index = 0; index < count; index += 1) {
@@ -556,5 +567,98 @@ A    DC    3
     expect(state.runState).toBe("Finished");
     expect(state.gr[1]).toBe(0x0003);
     expect(state.memory[state.symbols.RESULT]).toBe(0x0003);
+  });
+
+  it("assemble_push_address", () => {
+    const state = mockCaslCore.assemble(pushPopSource);
+
+    expect(state.runState).toBe("Ready");
+    expect(state.memory[0x22]).toBe(0x7002);
+    expect(state.memory[0x23]).toBe(state.symbols.A);
+    expect(state.sourceMap.find((row) => row.address === 0x22)?.instruction).toBe("PUSH");
+  });
+
+  it("assemble_push_with_index_and_pop_register", () => {
+    const state = mockCaslCore.assemble(pushPopSource);
+
+    expect(state.memory[0x22]).toBe(0x7002);
+    expect(state.memory[0x24]).toBe(0x7110);
+    expect(state.sourceMap.find((row) => row.address === 0x24)?.instruction).toBe("POP");
+  });
+
+  it("reject_push_without_address", () => {
+    const state = mockCaslCore.assemble(`MAIN START
+     PUSH
+     END`);
+
+    expect(state.runState).toBe("Error");
+    expect(state.diagnostics.map((diagnostic) => diagnostic.message).join(" ")).toContain("PUSH requires an address operand");
+  });
+
+  it("reject_pop_without_register_and_with_index", () => {
+    const missing = mockCaslCore.assemble(`MAIN START
+     POP
+     END`);
+    const indexed = mockCaslCore.assemble(`MAIN START
+     POP   GR1,GR2
+     END`);
+
+    expect(missing.runState).toBe("Error");
+    expect(indexed.runState).toBe("Error");
+    expect(missing.diagnostics.map((diagnostic) => diagnostic.message).join(" ")).toContain("POP requires a register operand");
+    expect(indexed.diagnostics.map((diagnostic) => diagnostic.message).join(" ")).toContain("POP does not support index operands");
+  });
+
+  it("execute_push_decrements_sp_and_writes_effective_address_to_stack", () => {
+    const state = stepTimes(pushPopSource, 2);
+
+    expect(state.sp).toBe(0xfffd);
+    expect(state.memory[0xfffd]).toBe(state.symbols.B);
+    expect(state.lastMemoryWriteAddress).toBe(0xfffd);
+    expect(state.mdr).toBe(state.symbols.B);
+    expect(state.fr).toEqual({ z: false, c: false, n: false, o: false });
+    expect(state.visualPath).toBe(VisualPathKind.PUSH_EffectiveAddressToStack);
+    expect(state.trace[0].detail).toContain("SP: FFFE -> FFFD");
+  });
+
+  it("execute_pop_reads_memory_at_sp_increments_sp_and_writes_target_register", () => {
+    const state = stepTimes(pushPopSource, 3);
+
+    expect(state.gr[1]).toBe(state.symbols.B);
+    expect(state.sp).toBe(0xfffe);
+    expect(state.lastMemoryReadAddress).toBe(0xfffd);
+    expect(state.lastMemoryWriteAddress).toBeUndefined();
+    expect(state.fr).toEqual({ z: false, c: false, n: false, o: false });
+    expect(state.visualPath).toBe(VisualPathKind.POP_StackToGr);
+    expect(state.trace[0].detail).toContain("Read MEM[FFFD]");
+  });
+
+  it("push_pop_round_trip_demo_runs", () => {
+    const program = getDemoProgram("casl-push-pop-stack");
+    expect(program).toBeDefined();
+    let state = mockCaslCore.assemble(program!.source);
+    for (let step = 0; step < 10 && state.runState !== "Finished"; step += 1) {
+      state = mockCaslCore.step(state);
+    }
+
+    expect(state.runState).toBe("Finished");
+    expect(state.gr[1]).toBe(state.symbols.B);
+    expect(state.memory[state.symbols.RESULT]).toBe(state.symbols.B);
+  });
+
+  it("sp_wrap_behavior_is_stable", () => {
+    let state = mockCaslCore.assemble(`MAIN START
+     PUSH  VALUE
+     POP   GR1
+     RET
+VALUE DC   1
+     END`);
+    state.sp = 0x0000;
+    state = mockCaslCore.step(state);
+    expect(state.sp).toBe(0xffff);
+    expect(state.lastMemoryWriteAddress).toBe(0xffff);
+    state = mockCaslCore.step(state);
+    expect(state.sp).toBe(0x0000);
+    expect(state.gr[1]).toBe(state.symbols.VALUE);
   });
 });

@@ -61,6 +61,11 @@ export function buildWirePaths({ grIndex = 1, memoryAddress = 0x27, memoryWindow
   const aluBusLeftX = circuitLayout.alu.x - 14;
   const aluBusRightX = circuitLayout.alu.x + circuitLayout.alu.w + 16;
   const memoryBusX = circuitLayout.memory.x - 18;
+  const irBottom = { x: circuitLayout.ir.x + circuitLayout.ir.w / 2, y: circuitLayout.ir.y + circuitLayout.ir.h };
+  const decoderTop = { x: circuitLayout.decoder.x + circuitLayout.decoder.w / 2, y: circuitLayout.decoder.y };
+  const decoderBottom = { x: circuitLayout.decoder.x + circuitLayout.decoder.w / 2, y: circuitLayout.decoder.y + circuitLayout.decoder.h };
+  const controllerTop = { x: circuitLayout.controller.x + circuitLayout.controller.w / 2, y: circuitLayout.controller.y };
+  const controllerRight = { x: circuitLayout.controller.x + circuitLayout.controller.w, y: circuitLayout.controller.y + circuitLayout.controller.h / 2 };
 
   return Object.freeze([
     { id: "pr-to-mar", role: "address", d: pathThrough([prRight, { x: prRight.x + 18, y: prRight.y }, { x: prRight.x + 18, y: addressBusY }, { x: marLeft.x - 18, y: addressBusY }, { x: marLeft.x - 18, y: marLeft.y }, marLeft]) },
@@ -69,11 +74,10 @@ export function buildWirePaths({ grIndex = 1, memoryAddress = 0x27, memoryWindow
       id: "sp-reference",
       role: "inactive",
       d: pathThrough([
-        { x: circuitLayout.sp.x + circuitLayout.sp.w, y: circuitLayout.sp.y + 20 },
-        { x: circuitLayout.sp.x + circuitLayout.sp.w + 18, y: circuitLayout.sp.y + 20 },
-        { x: circuitLayout.sp.x + circuitLayout.sp.w + 18, y: circuitLayout.mar.y + circuitLayout.mar.h + 18 },
-        { x: circuitLayout.mar.x + 36, y: circuitLayout.mar.y + circuitLayout.mar.h + 18 },
-        { x: circuitLayout.mar.x + 36, y: circuitLayout.mar.y + circuitLayout.mar.h }
+        { x: circuitLayout.sp.x + circuitLayout.sp.w / 2, y: circuitLayout.sp.y + circuitLayout.sp.h },
+        { x: circuitLayout.sp.x + circuitLayout.sp.w / 2, y: circuitLayout.sp.y + circuitLayout.sp.h + 15 },
+        { x: circuitLayout.mar.x + circuitLayout.mar.w / 2, y: circuitLayout.sp.y + circuitLayout.sp.h + 15 },
+        { x: circuitLayout.mar.x + circuitLayout.mar.w / 2, y: circuitLayout.mar.y + circuitLayout.mar.h }
       ])
     },
     { id: "mar-to-memory", role: "address", d: pathThrough([marRight, { x: memoryBusX, y: marRight.y }, { x: memoryBusX, y: memoryLeft.y }, memoryLeft]) },
@@ -87,9 +91,9 @@ export function buildWirePaths({ grIndex = 1, memoryAddress = 0x27, memoryWindow
     { id: "alu-to-fr", role: "control", d: pathThrough([aluFlagOut, { x: aluFlagOut.x, y: frInput.y - 12 }, frInput]) },
     { id: "address-to-gr", role: "address", d: pathThrough([marLeft, { x: marLeft.x - 20, y: marLeft.y }, { x: marLeft.x - 20, y: grLeft.y }, grLeft]) },
     { id: "address-to-pr", role: "address", d: pathThrough([marLeft, { x: marLeft.x - 18, y: marLeft.y }, { x: marLeft.x - 18, y: addressBusY }, { x: prLeft.x - 18, y: addressBusY }, { x: prLeft.x - 18, y: prLeft.y }, prLeft]) },
-    { id: "ir-to-decoder", role: "control", d: "M 108 96 L 108 114" },
-    { id: "decoder-to-controller", role: "control", d: "M 108 220 L 108 240" },
-    { id: "controller-to-pr", role: "control", d: "M 180 282 L 238 282 L 238 66 L 316 66" }
+    { id: "ir-to-decoder", role: "control", d: pathThrough([irBottom, decoderTop]) },
+    { id: "decoder-to-controller", role: "control", d: pathThrough([decoderBottom, controllerTop]) },
+    { id: "controller-to-pr", role: "control", d: pathThrough([controllerRight, { x: prLeft.x - 22, y: controllerRight.y }, { x: prLeft.x - 22, y: prLeft.y }, prLeft]) }
   ]);
 }
 

@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import Toolbar from "./components/Toolbar";
 import SourceEditor from "./components/SourceEditor";
 import InspectorPanel from "./components/InspectorPanel";
@@ -6,6 +6,7 @@ import OutputPanel from "./components/OutputPanel";
 import StatusBar from "./components/StatusBar";
 import LearningFlowPanel from "./components/LearningFlowPanel";
 import DemoGuidePanel from "./components/DemoGuidePanel";
+import CircuitFocusLayout from "./components/CircuitFocusLayout";
 import CometCircuitSvg from "./visual/CometCircuitSvg";
 import { formatWord } from "./core/types";
 import { summarizeCurrentInstruction } from "./visual/visualState";
@@ -48,6 +49,7 @@ function StudioShell() {
     toggleLessonStep,
     resetLessonProgress
   } = useAppStore();
+  const [isCircuitFocusMode, setCircuitFocusMode] = useState(false);
   const isRunning = state.runState === "Running";
   const canExecute = state.runState === "Ready" || (state.runState === "Stopped" && runStopReason === "manual");
   const canRun = !isSourceDirty && state.assembled && canExecute;
@@ -82,9 +84,33 @@ function StudioShell() {
   }, [state.program, state.runState, state.stepIndex, state.trace]);
 
   return (
-    <div className="app-shell">
-      <Toolbar assembleStatus={assembleStatus} canRun={canRun} canStep={canStep} canReset={canReset} isRunning={isRunning} onAssemble={assemble} onRun={() => run()} onStep={step} onReset={reset} onStop={stop} />
+    <div className={isCircuitFocusMode ? "app-shell circuit-focus-active" : "app-shell"}>
+      <Toolbar
+        assembleStatus={assembleStatus}
+        canRun={canRun}
+        canStep={canStep}
+        canReset={canReset}
+        isRunning={isRunning}
+        isCircuitFocusMode={isCircuitFocusMode}
+        onToggleCircuitFocusMode={() => setCircuitFocusMode((value) => !value)}
+        onAssemble={assemble}
+        onRun={() => run()}
+        onStep={step}
+        onReset={reset}
+        onStop={stop}
+      />
 
+      {isCircuitFocusMode ? (
+        <CircuitFocusLayout
+          state={state}
+          sourceMode={sourceMode}
+          sourceText={sourceText}
+          generatedCaslSource={generatedCaslSource}
+          cppToCaslMapping={cppToCaslMapping}
+          isSourceDirty={isSourceDirty}
+          timelineItems={timelineItems}
+        />
+      ) : (
       <main className="workspace">
         <section className="left-column">
           <section className="panel source-panel">
@@ -181,6 +207,7 @@ function StudioShell() {
           <InspectorPanel state={state} />
         </aside>
       </main>
+      )}
 
       <OutputPanel
         lines={state.output}

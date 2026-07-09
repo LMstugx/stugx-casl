@@ -11,6 +11,7 @@ describe("visual review screenshot gallery setup", () => {
     expect(visualReviewSpec).toContain("visual review screenshot gallery");
     expect(visualReviewSpec).toContain("project-overview.png");
     expect(visualReviewSpec).toContain("casl-gr2-ld.png");
+    expect(visualReviewSpec).toContain("enterCircuitFocusMode");
     expect(visualReviewSpec).toContain("logical-add-compare-jov.png");
     expect(visualReviewSpec).toContain("page.screenshot");
   });
@@ -33,6 +34,7 @@ describe("visual review screenshot gallery setup", () => {
     expect(visualReviewDoc).toContain("pnpm visual:capture");
     expect(visualReviewDoc).toContain("phone");
     expect(visualReviewDoc).toContain("Memory arrow points to the active memory row");
+    expect(visualReviewDoc).toContain("Circuit Focus screenshots include Program, Display, Current Instruction");
   });
 
   it("package_json_has_visual_review_scripts", () => {

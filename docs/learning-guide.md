@@ -283,7 +283,11 @@ The viewer does not render all 65536 memory words at once.
 
 ## 12. How To Read Circuit Focus Mode
 
-Circuit Focus Mode is the compact hardware view in the center of the app.
+Circuit Focus Mode is the dedicated hardware view opened from the toolbar. It keeps the normal IDE available, but reorganizes the same runtime state for teaching:
+
+- left: Program, Display, Current Instruction
+- center: large COMET II circuit and Step Timeline
+- right: Registers / Memory, recent Trace, and Source Context
 
 Read it by layers:
 

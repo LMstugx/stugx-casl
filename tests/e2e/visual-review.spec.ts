@@ -29,6 +29,18 @@ async function openOutputTab(page: Page, name: "Generated CASL" | "Machine Code"
   await page.getByRole("tab", { name }).click();
 }
 
+async function enterCircuitFocusMode(page: Page) {
+  await page.getByTestId("circuit-focus-toggle").click();
+  await expect(page.getByTestId("circuit-focus-layout")).toBeVisible();
+  await expect(page.getByTestId("focus-program-panel")).toBeVisible();
+  await expect(page.getByTestId("focus-display-panel")).toBeVisible();
+  await expect(page.getByTestId("focus-current-instruction-panel")).toBeVisible();
+  await expect(page.getByTestId("focus-circuit-panel")).toBeVisible();
+  await expect(page.getByTestId("focus-registers-panel")).toBeVisible();
+  await expect(page.getByTestId("focus-trace-panel")).toBeVisible();
+  await expect(page.getByTestId("focus-step-timeline")).toBeVisible();
+}
+
 async function captureProjectOverview(page: Page, viewport: Viewport) {
   await openStudio(page, "Mock Core");
   await page.getByTestId("project-overview-summary").click();
@@ -40,10 +52,12 @@ async function captureProjectOverview(page: Page, viewport: Viewport) {
 async function captureCaslGr2Flow(page: Page, viewport: Viewport) {
   await openStudio(page, "Mock Core");
   await selectDemoProgram(page, "casl-gr2-addition");
+  await enterCircuitFocusMode(page);
   await assemble(page);
 
   await step(page);
   await expect(page.getByTestId("comet-circuit-svg").locator("[data-testid='register-gr2']")).toHaveAttribute("data-active", "true");
+  await expect(page.getByTestId("comet-circuit-svg").locator("[data-testid='module-sp']")).toHaveAttribute("data-active", "false");
   await capture(page, viewport, "casl-gr2-ld.png");
 
   await step(page);

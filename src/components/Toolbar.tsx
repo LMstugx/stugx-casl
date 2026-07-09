@@ -1,4 +1,4 @@
-import { Check, FolderOpen, Loader2, Moon, Play, Plus, RotateCcw, Save, Square, StepForward, Sun } from "lucide-react";
+import { Check, Cpu, FolderOpen, Loader2, Moon, Play, Plus, RotateCcw, Save, Square, StepForward, Sun } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 
@@ -8,6 +8,8 @@ type ToolbarProps = {
   canStep: boolean;
   canReset: boolean;
   isRunning: boolean;
+  isCircuitFocusMode?: boolean;
+  onToggleCircuitFocusMode?: () => void;
   onAssemble: () => void;
   onRun: () => void;
   onStep: () => void;
@@ -37,7 +39,20 @@ function ToolButton({ label, icon, testId, variant, emphasis, disabled, active, 
   );
 }
 
-export default function Toolbar({ assembleStatus, canRun, canStep, canReset, isRunning, onAssemble, onRun, onStep, onReset, onStop }: ToolbarProps) {
+export default function Toolbar({
+  assembleStatus,
+  canRun,
+  canStep,
+  canReset,
+  isRunning,
+  isCircuitFocusMode = false,
+  onToggleCircuitFocusMode = () => undefined,
+  onAssemble,
+  onRun,
+  onStep,
+  onReset,
+  onStop,
+}: ToolbarProps) {
   const [showAssembleSuccess, setShowAssembleSuccess] = useState(false);
 
   useEffect(() => {
@@ -63,6 +78,14 @@ export default function Toolbar({ assembleStatus, canRun, canStep, canReset, isR
         <ToolButton label="New" icon={<Plus size={18} />} disabled title="New file is not implemented in Phase 2B" />
         <ToolButton label="Open" icon={<FolderOpen size={18} />} disabled title="File open is not implemented in Phase 2B" />
         <ToolButton label="Save" icon={<Save size={18} />} disabled title="File save is not implemented in Phase 2B" />
+        <ToolButton
+          label="Circuit Focus"
+          icon={<Cpu size={18} />}
+          active={isCircuitFocusMode}
+          testId="circuit-focus-toggle"
+          onClick={onToggleCircuitFocusMode}
+          title={isCircuitFocusMode ? "Return to studio layout" : "Open Circuit Focus Mode"}
+        />
         <ToolButton
           label={assembleLabel}
           icon={<Check size={18} />}

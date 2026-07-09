@@ -3,6 +3,7 @@ import readme from "../../README.md?raw";
 import demoScript from "../../docs/demo-script.md?raw";
 import learningGuide from "../../docs/learning-guide.md?raw";
 import phase8e from "../../docs/phase8e-circuit-focus-final-layout.md?raw";
+import phase8g from "../../docs/phase8g-circuit-focus-visual-convergence.md?raw";
 import phase9a from "../../docs/phase9a-casl-instruction-coverage.md?raw";
 import practiceTasks from "../../docs/practice-tasks.md?raw";
 import projectOverview from "../../docs/project-overview.md?raw";
@@ -88,6 +89,13 @@ describe("learning use documentation", () => {
     expect(phase8e).toContain("Register Row Anchors");
   });
 
+  it("phase8g_circuit_focus_visual_convergence_doc_exists", () => {
+    expect(phase8g).toContain("Phase 8G: Circuit Focus Visual Convergence");
+    expect(phase8g).toContain("Focus Mode Layout");
+    expect(phase8g).toContain("Program, Display, Current Instruction");
+    expect(phase8g).toContain("SP Semantic Rule");
+  });
+
   it("practice_tasks_do_not_use_unsupported_syntax", () => {
     expect(practiceTasks).not.toContain("std::");
     expect(practiceTasks).not.toContain("cout");
@@ -110,6 +118,7 @@ describe("learning use documentation", () => {
     expect(readme).toContain("learning studio");
     expect(readme).toContain("docs/learning-guide.md");
     expect(readme).toContain("docs/phase8e-circuit-focus-final-layout.md");
+    expect(readme).toContain("docs/phase8g-circuit-focus-visual-convergence.md");
     expect(normalized).not.toContain("hackathon");
     expect(normalized).not.toContain("contest submission");
     expect(normalized).not.toContain("submission-oriented");

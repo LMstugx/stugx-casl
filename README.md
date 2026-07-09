@@ -58,6 +58,7 @@ Each built-in example includes a collapsible `Guided Lesson` in the Demo Guide. 
 
 For detailed study guidance, see [docs/learning-guide.md](docs/learning-guide.md).
 For circuit layout semantics, see [docs/phase8e-circuit-focus-final-layout.md](docs/phase8e-circuit-focus-final-layout.md).
+For the Circuit Focus presentation layout, see [docs/phase8g-circuit-focus-visual-convergence.md](docs/phase8g-circuit-focus-visual-convergence.md).
 For the latest CASL instruction coverage batch, see [docs/phase9a-casl-instruction-coverage.md](docs/phase9a-casl-instruction-coverage.md).
 
 ## Key Views
@@ -69,6 +70,7 @@ For the latest CASL instruction coverage batch, see [docs/phase9a-casl-instructi
 - Control Flow: label and jump target hints for if/else, while, for, break, and continue.
 - Memory Viewer: bounded memory windows with label, PR, MAR, read, write, and range controls.
 - Trace: recent execution history for Step and Run.
+- Circuit Focus Mode: a presentation layout with Program, Display, Current Instruction, large COMET II circuit, Registers, Trace, and Timeline panels.
 - Circuit: SVG COMET II visualization driven by the current runtime state, with row-level GR/Memory targeting for active data paths.
 
 ## Demo Examples

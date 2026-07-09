@@ -91,6 +91,7 @@ This phase does not install tunnel tools automatically.
 
 Use the gallery to inspect:
 
+- Circuit Focus screenshots include Program, Display, Current Instruction, Circuit, Registers, Trace, and Timeline together.
 - Memory arrow points to the active memory row.
 - GR arrow points to the active GR row.
 - SP is visible but inactive for ordinary execution.
@@ -104,9 +105,9 @@ Use the gallery to inspect:
 ## Captured Scenes
 
 - `project-overview.png`
-- `casl-gr2-ld.png`
-- `casl-gr2-adda.png`
-- `casl-gr2-st.png`
+- `casl-gr2-ld.png` (Circuit Focus Mode)
+- `casl-gr2-adda.png` (Circuit Focus Mode)
+- `casl-gr2-st.png` (Circuit Focus Mode)
 - `cpp-addition-generated-casl.png`
 - `machine-code-explanation.png`
 - `for-sum-control-flow.png`

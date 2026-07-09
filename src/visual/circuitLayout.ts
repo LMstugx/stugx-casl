@@ -1,4 +1,4 @@
-export const CIRCUIT_VIEWBOX = { width: 1100, height: 536 };
+export const CIRCUIT_VIEWBOX = { width: 1120, height: 536 };
 export const CIRCUIT_MEMORY_ROW_COUNT = 11;
 
 export type RectLayout = {
@@ -13,16 +13,16 @@ export const circuitLayout = {
   decoder: { x: 36, y: 114, w: 144, h: 106 },
   controller: { x: 36, y: 240, w: 144, h: 84 },
   display: { x: 36, y: 350, w: 186, h: 72 },
-  pr: { x: 294, y: 36, w: 116, h: 60 },
-  addressResult: { x: 438, y: 43, w: 90, h: 46 },
-  sp: { x: 560, y: 112, w: 110, h: 54 },
-  mar: { x: 690, y: 36, w: 126, h: 60 },
-  gr: { x: 252, y: 144, w: 190, h: 266 },
-  alu: { x: 474, y: 156, w: 226, h: 206 },
-  mdr: { x: 726, y: 230, w: 106, h: 66 },
-  fr: { x: 518, y: 394, w: 138, h: 56 },
-  memory: { x: 858, y: 88, w: 182, h: 360 },
-  sourceMap: { x: 266, y: 438, w: 262, h: 70 }
+  pr: { x: 260, y: 36, w: 116, h: 60 },
+  addressResult: { x: 404, y: 43, w: 90, h: 46 },
+  sp: { x: 528, y: 36, w: 110, h: 60 },
+  mar: { x: 668, y: 36, w: 126, h: 60 },
+  gr: { x: 232, y: 144, w: 190, h: 266 },
+  alu: { x: 452, y: 154, w: 236, h: 210 },
+  mdr: { x: 718, y: 230, w: 110, h: 66 },
+  fr: { x: 502, y: 394, w: 154, h: 56 },
+  memory: { x: 852, y: 88, w: 230, h: 360 },
+  sourceMap: { x: 250, y: 438, w: 278, h: 70 }
 } satisfies Record<string, RectLayout>;
 
 const alu = circuitLayout.alu;

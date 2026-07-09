@@ -176,8 +176,9 @@ function MemoryModule({ state, focusAddress, windowStart }: { state: CometState;
   const activeMemory = state.visualPath === VisualPathKind.LD_MemoryToMdrToGr || state.visualPath === VisualPathKind.ST_GrToMdrToMemory || state.changedMemoryAddresses.length > 0;
   return (
     <Module layout={circuitLayout.memory} title="Memory" accent={activeMemory} testId="module-memory" layer="memory">
+      <rect className="memory-target-shell" x={circuitLayout.memory.x + circuitLayout.memory.w - 88} y={circuitLayout.memory.y + 10} width="72" height="20" rx="3" />
       <text className="memory-target-badge" x={circuitLayout.memory.x + circuitLayout.memory.w - 16} y={circuitLayout.memory.y + 24} textAnchor="end">
-        target {formatWord(focusAddress)}
+        Target: {formatWord(focusAddress)}
       </text>
       {rows.map((row, index) => {
         const isPr = row.address === state.pr;
@@ -199,13 +200,13 @@ function MemoryModule({ state, focusAddress, windowStart }: { state: CometState;
           data-write={isWrite ? "true" : "false"}
         >
           <rect x={circuitLayout.memory.x + 12} y={circuitLayout.memory.y + 36 + index * 28} width={circuitLayout.memory.w - 24} height="26" rx="3" />
-          <text className="module-small module-blue" x={circuitLayout.memory.x + 36} y={circuitLayout.memory.y + 54 + index * 28} textAnchor="middle">
+          <text className="module-small module-blue" x={circuitLayout.memory.x + 42} y={circuitLayout.memory.y + 54 + index * 28} textAnchor="middle">
             {formatWord(row.address)}
           </text>
-          <text className="module-small module-green" x={circuitLayout.memory.x + 88} y={circuitLayout.memory.y + 54 + index * 28} textAnchor="middle">
+          <text className="module-small module-green" x={circuitLayout.memory.x + 104} y={circuitLayout.memory.y + 54 + index * 28} textAnchor="middle">
             {formatWord(row.value)}
           </text>
-          <text className="memory-label-text" x={circuitLayout.memory.x + 136} y={circuitLayout.memory.y + 54 + index * 28} textAnchor="middle">
+          <text className="memory-label-text" x={circuitLayout.memory.x + circuitLayout.memory.w - 38} y={circuitLayout.memory.y + 54 + index * 28} textAnchor="middle">
             {row.label ?? ""}
           </text>
           <AnchorPoint id={`memory-row-anchor-left-${formatWord(row.address)}`} x={left.x} y={left.y} />

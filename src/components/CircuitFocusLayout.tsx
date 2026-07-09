@@ -49,7 +49,7 @@ function compactInstructionText(text?: string): string | undefined {
 }
 
 function instructionMnemonic(text: string | undefined, fallback: string): string {
-  const match = /\b(NOP|LD|LAD|ST|ADDA|SUBA|ADDL|SUBL|AND|OR|XOR|CPA|CPL|JUMP|JZE|JNZ|JPL|JMI|JOV|RET)\b/i.exec(text ?? "");
+  const match = /\b(NOP|LD|LAD|ST|ADDA|SUBA|ADDL|SUBL|AND|OR|XOR|CPA|CPL|SLA|SRA|SLL|SRL|JUMP|JZE|JNZ|JPL|JMI|JOV|RET)\b/i.exec(text ?? "");
   return match?.[1]?.toUpperCase() ?? fallback;
 }
 
@@ -78,6 +78,11 @@ function instructionMeaning(text: string | undefined, fallback: string): string 
     case "CPA":
     case "CPL":
       return `FR <- compare ${register}, ${target}`;
+    case "SLA":
+    case "SRA":
+    case "SLL":
+    case "SRL":
+      return `${register} <- ${mnemonic.toUpperCase()} ${register} by ${target}`;
     case "JUMP":
       return `PR <- ${operand}`;
     case "JZE":
@@ -104,7 +109,8 @@ function timelineStageIndex(state: CometState): number {
   if (
     state.visualPath === VisualPathKind.ADDA_GrMdrToAluToGr ||
     state.visualPath === VisualPathKind.SUBA_GrMdrToAluToGr ||
-    state.visualPath === VisualPathKind.CPA_GrMdrToAluToFr
+    state.visualPath === VisualPathKind.CPA_GrMdrToAluToFr ||
+    state.visualPath === VisualPathKind.Shift_AddressToAluToGr
   ) {
     return 3;
   }
@@ -123,7 +129,7 @@ function activeVisualPath(state: CometState): VisualPathKind {
 }
 
 function isAluVisualPath(visualPath: VisualPathKind): boolean {
-  return visualPath === VisualPathKind.ADDA_GrMdrToAluToGr || visualPath === VisualPathKind.SUBA_GrMdrToAluToGr || visualPath === VisualPathKind.CPA_GrMdrToAluToFr;
+  return visualPath === VisualPathKind.ADDA_GrMdrToAluToGr || visualPath === VisualPathKind.SUBA_GrMdrToAluToGr || visualPath === VisualPathKind.CPA_GrMdrToAluToFr || visualPath === VisualPathKind.Shift_AddressToAluToGr;
 }
 
 function activeRegisterIndexFromInstruction(instructionText?: string): number | undefined {
@@ -132,6 +138,7 @@ function activeRegisterIndexFromInstruction(instructionText?: string): number | 
 }
 
 function activeMemoryAddress(state: CometState): number | undefined {
+  if (activeVisualPath(state) === VisualPathKind.Shift_AddressToAluToGr) return undefined;
   return state.lastMemoryWriteAddress ?? state.lastMemoryReadAddress ?? state.changedMemoryAddresses[0] ?? state.mar;
 }
 
@@ -353,7 +360,7 @@ function signalProbeRows(state: CometState, focus: FocusInstructionContext): Pro
       label: "MDR",
       value: formatWord(state.mdr),
       note: "memory buffer",
-      active: visualPath === VisualPathKind.LD_MemoryToMdrToGr || visualPath === VisualPathKind.ST_GrToMdrToMemory || isAluVisualPath(visualPath)
+      active: visualPath === VisualPathKind.LD_MemoryToMdrToGr || visualPath === VisualPathKind.ST_GrToMdrToMemory || visualPath === VisualPathKind.ADDA_GrMdrToAluToGr || visualPath === VisualPathKind.SUBA_GrMdrToAluToGr || visualPath === VisualPathKind.CPA_GrMdrToAluToFr
     },
     {
       label: "ALU.Y",
@@ -365,7 +372,7 @@ function signalProbeRows(state: CometState, focus: FocusInstructionContext): Pro
       label: "FR",
       value: formatFlags(state.fr),
       note: "flags",
-      active: visualPath === VisualPathKind.CPA_GrMdrToAluToFr || visualPath === VisualPathKind.ADDA_GrMdrToAluToGr || visualPath === VisualPathKind.SUBA_GrMdrToAluToGr
+      active: visualPath === VisualPathKind.CPA_GrMdrToAluToFr || visualPath === VisualPathKind.ADDA_GrMdrToAluToGr || visualPath === VisualPathKind.SUBA_GrMdrToAluToGr || visualPath === VisualPathKind.Shift_AddressToAluToGr
     },
     {
       label: memoryAddress !== undefined ? `MEM[${formatWord(memoryAddress)}]` : "MEM",

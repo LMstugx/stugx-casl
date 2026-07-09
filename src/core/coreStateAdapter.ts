@@ -74,7 +74,7 @@ function operandLabelForAddress(sourceRows: SourceRowDto[], operandAddress: numb
 }
 
 function programFromDto(sourceRows: SourceRowDto[]): AssembledInstruction[] {
-  const executable = new Set(["NOP", "LD", "LAD", "ADDA", "SUBA", "ADDL", "SUBL", "AND", "OR", "XOR", "CPA", "CPL", "ST", "JUMP", "JZE", "JNZ", "JPL", "JMI", "JOV", "RET"]);
+  const executable = new Set(["NOP", "LD", "LAD", "ADDA", "SUBA", "ADDL", "SUBL", "AND", "OR", "XOR", "CPA", "CPL", "SLA", "SRA", "SLL", "SRL", "ST", "JUMP", "JZE", "JNZ", "JPL", "JMI", "JOV", "RET"]);
   return sourceRows
     .filter((row) => row.instruction !== null && executable.has(row.instruction))
     .map((row) => {
@@ -105,6 +105,9 @@ function visualPathFromDto(dto: CometStateDto): VisualPathKind {
   if (dto.lastInstructionKind === "SUBA") return VisualPathKind.SUBA_GrMdrToAluToGr;
   if (dto.lastInstructionKind === "SUBL") return VisualPathKind.SUBA_GrMdrToAluToGr;
   if (dto.lastInstructionKind === "CPA" || dto.lastInstructionKind === "CPL") return VisualPathKind.CPA_GrMdrToAluToFr;
+  if (dto.lastInstructionKind === "SLA" || dto.lastInstructionKind === "SRA" || dto.lastInstructionKind === "SLL" || dto.lastInstructionKind === "SRL") {
+    return VisualPathKind.Shift_AddressToAluToGr;
+  }
   if (dto.lastInstructionKind === "ST") return VisualPathKind.ST_GrToMdrToMemory;
   if (dto.lastInstructionKind === "JUMP") return VisualPathKind.Jump_AddressToPr;
   if (dto.lastInstructionKind === "JZE" || dto.lastInstructionKind === "JNZ" || dto.lastInstructionKind === "JPL" || dto.lastInstructionKind === "JMI" || dto.lastInstructionKind === "JOV") {
@@ -128,6 +131,10 @@ function changedRegistersFromDto(dto: CometStateDto): string[] {
     if (dto.lastInstructionKind === "ADDA" || dto.lastInstructionKind === "SUBA" || dto.lastInstructionKind === "ADDL" ||
       dto.lastInstructionKind === "SUBL" || dto.lastInstructionKind === "AND" || dto.lastInstructionKind === "OR" ||
       dto.lastInstructionKind === "XOR") changed.push("FR");
+  }
+  if (dto.lastInstructionKind === "SLA" || dto.lastInstructionKind === "SRA" || dto.lastInstructionKind === "SLL" || dto.lastInstructionKind === "SRL") {
+    if (dto.lastRegisterWriteIndex !== null) changed.push(`GR${dto.lastRegisterWriteIndex}`);
+    changed.push("MAR", "FR");
   }
   if (dto.lastInstructionKind === "CPA" || dto.lastInstructionKind === "CPL") {
     changed.push("MAR", "MDR", "FR");
@@ -197,6 +204,9 @@ function traceDetail(dto: CometStateDto): string {
   }
   if (dto.lastInstructionKind === "CPA") return `GR${register} - MDR -> ALU -> FR`;
   if (dto.lastInstructionKind === "CPL") return `GR${register} compared with MDR (unsigned) -> FR`;
+  if (dto.lastInstructionKind === "SLA" || dto.lastInstructionKind === "SRA" || dto.lastInstructionKind === "SLL" || dto.lastInstructionKind === "SRL") {
+    return `GR${register} shifted by ${formatWord(address)} -> Shifter -> GR${register} / FR`;
+  }
   if (dto.lastInstructionKind === "ST") return `GR${register} -> MDR -> Memory[${formatWord(address)}]`;
   if (dto.lastInstructionKind === "JUMP") return `PR <- ${formatWord(address)}`;
   if (dto.lastInstructionKind === "JZE" || dto.lastInstructionKind === "JNZ" || dto.lastInstructionKind === "JPL" || dto.lastInstructionKind === "JMI" || dto.lastInstructionKind === "JOV") {

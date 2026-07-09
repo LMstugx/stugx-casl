@@ -138,4 +138,18 @@ OVER RET
       expect.objectContaining({ kind: "conditional-false", fromAddress: 0x20, toAddress: 0x22 })
     ]));
   });
+
+  it("control_flow_does_not_create_edges_for_shift", () => {
+    const rawState = mockCaslCore.assemble(`MAIN START
+     LD    GR1,A
+     SLL   GR1,1
+     RET
+A    DC    3
+     END`);
+    const state = createCometStateFromDto(toAssembleResultDto(rawState).state);
+    const machineRows = selectMachineCodeRows(state);
+    const graph = selectControlFlowGraph(rawState.sourceMap.map((row) => row.source).join("\n"), [], machineRows, state);
+
+    expect(graph.edges).toEqual([]);
+  });
 });

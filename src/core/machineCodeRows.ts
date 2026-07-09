@@ -54,6 +54,10 @@ const EXECUTABLE_INSTRUCTIONS = new Set<InstructionKind>([
   "XOR",
   "CPA",
   "CPL",
+  "SLA",
+  "SRA",
+  "SLL",
+  "SRL",
   "ST",
   "JUMP",
   "JZE",
@@ -137,7 +141,9 @@ export function explainMachineCodeRow(row: MachineCodeRow): MachineCodeExplanati
       wordRole: row.kind,
       operandAddress: row.word,
       resolvedLabel: row.resolvedLabel,
-      meaning: `Operand address for ${row.sourceText}${row.resolvedLabel ? `; address of ${row.resolvedLabel}.` : "."}`,
+      meaning: isShiftInstruction(row.instruction)
+        ? `Shift count / effective address for ${row.sourceText}${row.resolvedLabel ? `; address of ${row.resolvedLabel}.` : "."} This word is not a memory data read.`
+        : `Operand address for ${row.sourceText}${row.resolvedLabel ? `; address of ${row.resolvedLabel}.` : "."}`,
       binaryText: row.word.toString(2).padStart(16, "0")
     };
   }
@@ -167,6 +173,7 @@ function machineRowMeaning(instruction: InstructionKind | undefined, offset: num
   if (instruction === "NOP") return "no-operation instruction word";
   if (instruction === "RET") return "instruction word";
   if (offset === 0) return "opcode/register word";
+  if (isShiftInstruction(instruction)) return "shift count / effective address";
   return "operand address";
 }
 
@@ -212,6 +219,14 @@ function instructionMeaning(row: MachineCodeRow, register?: number): string {
       return `Compare ${gr} with memory[${operand}].`;
     case "CPL":
       return `Compare ${gr} with memory[${operand}] as unsigned 16-bit values.`;
+    case "SLA":
+      return `Arithmetic left shift ${gr} by ${operand}. The shifted-out bit updates OF when available.`;
+    case "SRA":
+      return `Arithmetic right shift ${gr} by ${operand}. The sign bit is preserved and the shifted-out bit updates OF when available.`;
+    case "SLL":
+      return `Logical left shift ${gr} by ${operand}. The shifted-out bit updates OF when available.`;
+    case "SRL":
+      return `Logical right shift ${gr} by ${operand}. The shifted-out bit updates OF when available.`;
     case "JUMP":
       return `Jump to ${operand}.`;
     case "JZE":
@@ -229,4 +244,8 @@ function instructionMeaning(row: MachineCodeRow, register?: number): string {
     default:
       return row.meaning;
   }
+}
+
+function isShiftInstruction(instruction: InstructionKind | undefined): boolean {
+  return instruction === "SLA" || instruction === "SRA" || instruction === "SLL" || instruction === "SRL";
 }

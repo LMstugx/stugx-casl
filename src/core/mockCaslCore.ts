@@ -35,6 +35,10 @@ const SUPPORTED_OPS = new Set([
   "XOR",
   "CPA",
   "CPL",
+  "SLA",
+  "SRA",
+  "SLL",
+  "SRL",
   "ST",
   "JUMP",
   "JZE",
@@ -44,8 +48,9 @@ const SUPPORTED_OPS = new Set([
   "JOV",
   "RET"
 ]);
-const REGISTER_ADDRESS_OPS = new Set<InstructionKind>(["LD", "LAD", "ADDA", "SUBA", "ADDL", "SUBL", "AND", "OR", "XOR", "CPA", "CPL", "ST"]);
+const REGISTER_ADDRESS_OPS = new Set<InstructionKind>(["LD", "LAD", "ADDA", "SUBA", "ADDL", "SUBL", "AND", "OR", "XOR", "CPA", "CPL", "SLA", "SRA", "SLL", "SRL", "ST"]);
 const JUMP_OPS = new Set<InstructionKind>(["JUMP", "JZE", "JNZ", "JPL", "JMI", "JOV"]);
+const SHIFT_OPS = new Set<InstructionKind>(["SLA", "SRA", "SLL", "SRL"]);
 
 type ParsedLine = {
   line: number;
@@ -196,6 +201,14 @@ function encodeInstruction(op: AssembledInstruction["op"], gr = 0): number {
       return 0x4000 | (gr << 4);
     case "CPL":
       return 0x4100 | (gr << 4);
+    case "SLA":
+      return 0x5000 | (gr << 4);
+    case "SRA":
+      return 0x5100 | (gr << 4);
+    case "SLL":
+      return 0x5200 | (gr << 4);
+    case "SRL":
+      return 0x5300 | (gr << 4);
     case "ST":
       return 0x1100 | (gr << 4);
     case "JMI":
@@ -495,6 +508,59 @@ function flagsForLogicalCompare(lhs: number, rhs: number): FlagsState {
     n: word(lhs) < word(rhs),
     o: false
   };
+}
+
+type ShiftResult = {
+  value: number;
+  shiftedOut: boolean;
+};
+
+function flagsForShiftResult(value: number, shiftedOut: boolean): FlagsState {
+  const result = word(value);
+  return {
+    z: result === 0,
+    c: false,
+    n: (result & 0x8000) !== 0,
+    o: shiftedOut
+  };
+}
+
+function bitAt(value: number, index: number): boolean {
+  return ((word(value) >>> index) & 1) === 1;
+}
+
+function shiftValue(op: InstructionKind, value: number, count: number): ShiftResult {
+  const normalizedValue = word(value);
+  const normalizedCount = word(count);
+  if (normalizedCount === 0) return { value: normalizedValue, shiftedOut: false };
+
+  if (op === "SLA") {
+    const sign = normalizedValue & 0x8000;
+    const magnitude = normalizedValue & 0x7fff;
+    const shiftedOut = normalizedCount <= 15 ? bitAt(magnitude, 15 - normalizedCount) : false;
+    const shifted = normalizedCount >= 15 ? 0 : (magnitude << normalizedCount) & 0x7fff;
+    return { value: word(sign | shifted), shiftedOut };
+  }
+
+  if (op === "SRA") {
+    const sign = normalizedValue & 0x8000;
+    const shiftedOut = normalizedCount <= 16 ? bitAt(normalizedValue, normalizedCount - 1) : false;
+    if (normalizedCount >= 16) return { value: sign ? 0xffff : 0x0000, shiftedOut };
+    const shifted = (normalizedValue >> normalizedCount) | (sign ? (0xffff << (16 - normalizedCount)) : 0);
+    return { value: word(shifted), shiftedOut };
+  }
+
+  if (op === "SLL") {
+    const shiftedOut = normalizedCount <= 16 ? bitAt(normalizedValue, 16 - normalizedCount) : false;
+    return { value: normalizedCount >= 16 ? 0 : word(normalizedValue << normalizedCount), shiftedOut };
+  }
+
+  if (op === "SRL") {
+    const shiftedOut = normalizedCount <= 16 ? bitAt(normalizedValue, normalizedCount - 1) : false;
+    return { value: normalizedCount >= 16 ? 0 : word(normalizedValue >>> normalizedCount), shiftedOut };
+  }
+
+  return { value: normalizedValue, shiftedOut: false };
 }
 
 function instructionAt(state: CometState, address: number): AssembledInstruction | undefined {
@@ -823,6 +889,19 @@ export const mockCaslCore: CaslCore = {
       next.lastStep.visualPath = next.visualPath;
       next.changedRegisters.push("MAR", "MDR", "FR");
       prependTrace(next, traceEvent(next, instruction.address, "CPL", `GR${instruction.gr} compared with MDR (unsigned) -> FR`));
+    }
+
+    if (SHIFT_OPS.has(instruction.op)) {
+      const lhs = next.gr[instruction.gr!];
+      const count = instruction.operandAddress!;
+      const shifted = shiftValue(instruction.op, lhs, count);
+      next.gr[instruction.gr!] = shifted.value;
+      next.fr = flagsForShiftResult(shifted.value, shifted.shiftedOut);
+      next.pr = word(next.pr + 2);
+      next.visualPath = VisualPathKind.Shift_AddressToAluToGr;
+      next.lastStep.visualPath = next.visualPath;
+      next.changedRegisters.push(`GR${instruction.gr}`, "MAR", "FR");
+      prependTrace(next, traceEvent(next, instruction.address, instruction.op, `GR${instruction.gr} shifted by ${formatWord(count)} -> Shifter -> GR${instruction.gr} / FR`));
     }
 
     if (instruction.op === "ST") {

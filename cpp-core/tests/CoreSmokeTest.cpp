@@ -571,6 +571,143 @@ RESULT DS  1
     require(vm.state().visualPath == casl::VisualPathKind::ConditionalJump_NotTaken, "JOV not taken visual path");
 }
 
+void AssembleShiftInstructions() {
+    const auto output = assembleOrExit(R"(MAIN START
+     LD    GR1,A
+     SLL   GR1,1
+     SRL   GR1,1
+     SLA   GR1,1
+     SRA   GR1,1
+     RET
+A    DC    3
+     END)");
+    require(output.state.memory[0x22] == 0x5210, "SLL machine word");
+    require(output.state.memory[0x24] == 0x5310, "SRL machine word");
+    require(output.state.memory[0x26] == 0x5010, "SLA machine word");
+    require(output.state.memory[0x28] == 0x5110, "SRA machine word");
+}
+
+void ExecuteSllBasic() {
+    const auto output = assembleOrExit(R"(MAIN START
+     LD    GR1,A
+     SLL   GR1,1
+     RET
+A    DC    3
+     END)");
+    casl::CometVm vm;
+    vm.load(output);
+    (void)vm.step();
+    const auto step = vm.step();
+    require(step.ok, "SLL step should succeed");
+    require(vm.state().gr[1] == 0x0006, "SLL result");
+    require(!vm.state().fr.z && !vm.state().fr.c && !vm.state().fr.n && !vm.state().fr.o, "SLL flags");
+    require(vm.state().lastRegisterWriteIndex.has_value() && *vm.state().lastRegisterWriteIndex == 1, "SLL write register");
+    require(!vm.state().lastMemoryReadAddress.has_value(), "SLL should not read memory");
+    require(vm.state().visualPath == casl::VisualPathKind::Shift_AddressToAluToGr, "SLL visual path");
+}
+
+void ExecuteSrlBasic() {
+    const auto output = assembleOrExit(R"(MAIN START
+     LD    GR1,A
+     SRL   GR1,1
+     RET
+A    DC    6
+     END)");
+    casl::CometVm vm;
+    vm.load(output);
+    (void)vm.step();
+    (void)vm.step();
+    require(vm.state().gr[1] == 0x0003, "SRL result");
+}
+
+void ExecuteSlaBasic() {
+    const auto output = assembleOrExit(R"(MAIN START
+     LD    GR1,A
+     SLA   GR1,1
+     RET
+A    DC    #8001
+     END)");
+    casl::CometVm vm;
+    vm.load(output);
+    (void)vm.step();
+    (void)vm.step();
+    require(vm.state().gr[1] == 0x8002, "SLA should preserve sign bit");
+    require(!vm.state().fr.z && !vm.state().fr.c && vm.state().fr.n && !vm.state().fr.o, "SLA flags");
+}
+
+void ExecuteSraPreservesSign() {
+    const auto output = assembleOrExit(R"(MAIN START
+     LD    GR1,A
+     SRA   GR1,1
+     RET
+A    DC    #8002
+     END)");
+    casl::CometVm vm;
+    vm.load(output);
+    (void)vm.step();
+    (void)vm.step();
+    require(vm.state().gr[1] == 0xc001, "SRA should preserve sign bit");
+    require(!vm.state().fr.z && !vm.state().fr.c && vm.state().fr.n && !vm.state().fr.o, "SRA flags");
+}
+
+void ShiftUpdatesOverflowWhenBitShiftedOut() {
+    const auto output = assembleOrExit(R"(MAIN START
+     LD    GR1,A
+     SLL   GR1,1
+     RET
+A    DC    #8000
+     END)");
+    casl::CometVm vm;
+    vm.load(output);
+    (void)vm.step();
+    (void)vm.step();
+    require(vm.state().gr[1] == 0x0000, "SLL shifted out result");
+    require(vm.state().fr.z && !vm.state().fr.c && !vm.state().fr.n && vm.state().fr.o, "SLL should set OF");
+}
+
+void ShiftCountZeroNoChange() {
+    const auto output = assembleOrExit(R"(MAIN START
+     LD    GR1,A
+     SLL   GR1,0
+     RET
+A    DC    #8001
+     END)");
+    casl::CometVm vm;
+    vm.load(output);
+    (void)vm.step();
+    (void)vm.step();
+    require(vm.state().gr[1] == 0x8001, "SLL count zero no value change");
+    require(!vm.state().fr.z && !vm.state().fr.c && vm.state().fr.n && !vm.state().fr.o, "SLL count zero flags");
+}
+
+void ShiftCountLargeLogicalStableBehavior() {
+    const auto logical = assembleOrExit(R"(MAIN START
+     LD    GR1,A
+     SLL   GR1,16
+     RET
+A    DC    #0001
+     END)");
+    casl::CometVm logicalVm;
+    logicalVm.load(logical);
+    (void)logicalVm.step();
+    (void)logicalVm.step();
+    require(logicalVm.state().gr[1] == 0x0000, "SLL count 16 should be stable zero");
+}
+
+void ShiftCountLargeArithmeticStableBehavior() {
+    const auto arithmetic = assembleOrExit(R"(MAIN START
+     LD    GR1,A
+     SRA   GR1,16
+     RET
+A    DC    #8000
+     END)");
+    casl::CometVm arithmeticVm;
+    arithmeticVm.load(arithmetic);
+    (void)arithmeticVm.step();
+    (void)arithmeticVm.step();
+    require(arithmeticVm.state().gr[1] == 0xffff, "SRA count 16 should preserve sign");
+}
+
 void StepStore() {
     casl::CometVm vm;
     vm.load(assembleSample());
@@ -682,6 +819,15 @@ const std::vector<std::pair<std::string_view, TestFunction>>& tests() {
         {"ExecuteCplGreater", ExecuteCplGreater},
         {"ExecuteJovTaken", ExecuteJovTaken},
         {"ExecuteJovNotTaken", ExecuteJovNotTaken},
+        {"AssembleShiftInstructions", AssembleShiftInstructions},
+        {"ExecuteSllBasic", ExecuteSllBasic},
+        {"ExecuteSrlBasic", ExecuteSrlBasic},
+        {"ExecuteSlaBasic", ExecuteSlaBasic},
+        {"ExecuteSraPreservesSign", ExecuteSraPreservesSign},
+        {"ShiftUpdatesOverflowWhenBitShiftedOut", ShiftUpdatesOverflowWhenBitShiftedOut},
+        {"ShiftCountZeroNoChange", ShiftCountZeroNoChange},
+        {"ShiftCountLargeLogicalStableBehavior", ShiftCountLargeLogicalStableBehavior},
+        {"ShiftCountLargeArithmeticStableBehavior", ShiftCountLargeArithmeticStableBehavior},
         {"StepStore", StepStore},
         {"StepRetFinished", StepRetFinished},
         {"ExecuteGr2Program", ExecuteGr2Program},

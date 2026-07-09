@@ -1138,6 +1138,12 @@ button {
   filter: none;
 }
 
+.alu-operation-badge {
+  fill: #e8f1fb;
+  stroke: #9db5cf;
+  stroke-width: 1;
+}
+
 .module-title {
   fill: #142b55;
   font-weight: 800;

@@ -84,6 +84,55 @@ Flags flagsForLogicalCompare(std::uint16_t lhs, std::uint16_t rhs) {
     };
 }
 
+struct ShiftResult {
+    std::uint16_t value = 0;
+    bool shiftedOut = false;
+};
+
+Flags flagsForShift(std::uint16_t value, bool shiftedOut) {
+    return {
+        value == 0,
+        false,
+        (value & 0x8000) != 0,
+        shiftedOut
+    };
+}
+
+bool bitAt(std::uint16_t value, std::uint16_t index) {
+    return ((static_cast<std::uint32_t>(value) >> index) & 1U) == 1U;
+}
+
+ShiftResult shiftValue(Opcode opcode, std::uint16_t value, std::uint16_t count) {
+    if (count == 0) return {value, false};
+
+    switch (opcode) {
+        case Opcode::SLA: {
+            const auto sign = static_cast<std::uint16_t>(value & 0x8000);
+            const auto magnitude = static_cast<std::uint16_t>(value & 0x7fff);
+            const auto shiftedOut = count <= 15 ? bitAt(magnitude, static_cast<std::uint16_t>(15 - count)) : false;
+            const auto shifted = count >= 15 ? 0U : ((static_cast<std::uint32_t>(magnitude) << count) & 0x7fffU);
+            return {static_cast<std::uint16_t>(sign | shifted), shiftedOut};
+        }
+        case Opcode::SRA: {
+            const auto sign = static_cast<std::uint16_t>(value & 0x8000);
+            const auto shiftedOut = count <= 16 ? bitAt(value, static_cast<std::uint16_t>(count - 1)) : false;
+            if (count >= 16) return {static_cast<std::uint16_t>(sign ? 0xffff : 0x0000), shiftedOut};
+            const auto fill = sign ? (0xffffU << (16 - count)) : 0U;
+            return {static_cast<std::uint16_t>((static_cast<std::uint32_t>(value) >> count) | fill), shiftedOut};
+        }
+        case Opcode::SLL: {
+            const auto shiftedOut = count <= 16 ? bitAt(value, static_cast<std::uint16_t>(16 - count)) : false;
+            return {static_cast<std::uint16_t>(count >= 16 ? 0 : ((static_cast<std::uint32_t>(value) << count) & 0xffffU)), shiftedOut};
+        }
+        case Opcode::SRL: {
+            const auto shiftedOut = count <= 16 ? bitAt(value, static_cast<std::uint16_t>(count - 1)) : false;
+            return {static_cast<std::uint16_t>(count >= 16 ? 0 : (static_cast<std::uint32_t>(value) >> count)), shiftedOut};
+        }
+        default:
+            return {value, false};
+    }
+}
+
 bool isJumpTaken(Opcode opcode, const Flags& flags) {
     switch (opcode) {
         case Opcode::JUMP: return true;
@@ -317,6 +366,26 @@ StepResult CometVm::step() {
             result.visualPath = state_.visualPath;
             result.ok = true;
             pushTrace("CPL");
+            break;
+        }
+        case Opcode::SLA:
+        case Opcode::SRA:
+        case Opcode::SLL:
+        case Opcode::SRL: {
+            const auto gr = instruction->gr;
+            if (gr >= kGeneralRegisterCount || !instruction->operandAddress.has_value()) {
+                fail(result, "Invalid shift operands");
+                return result;
+            }
+            const auto shifted = shiftValue(instruction->opcode, state_.gr[gr], *instruction->operandAddress);
+            state_.gr[gr] = shifted.value;
+            state_.lastRegisterWriteIndex = gr;
+            state_.fr = flagsForShift(shifted.value, shifted.shiftedOut);
+            state_.pr = static_cast<std::uint16_t>(state_.pr + 2);
+            state_.visualPath = VisualPathKind::Shift_AddressToAluToGr;
+            result.visualPath = state_.visualPath;
+            result.ok = true;
+            pushTrace(opcodeName(instruction->opcode));
             break;
         }
         case Opcode::ST: {

@@ -81,6 +81,25 @@ Expected observation:
 - `JOV OVER` should fall through because OF is not set.
 - Memory[RESULT] should be `0003`.
 
+### Task 5A. Observe shift instructions
+
+Start from `CASL: Shift Operations`.
+
+Step through:
+
+- `SLL GR1,1`
+- `SRL GR1,1`
+- `SLA GR1,1`
+- `SRA GR1,1`
+
+Expected observation:
+
+- Machine Code should show shift opcodes `50`, `51`, `52`, and `53`.
+- Circuit Focus Mode should route GR1 and the shift count into the ALU/Shifter path.
+- The shift count operand should not appear as a Memory data read.
+- FR may update from the shifted result and shifted-out bit.
+- The final Memory[RESULT] should be `0003`.
+
 ## Level 2: C++ to CASL
 
 ### Task 6. Change addition to subtraction

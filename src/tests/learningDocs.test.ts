@@ -9,6 +9,7 @@ import phase8k from "../../docs/phase8k-layered-study-mode-density-refinement.md
 import phase8l from "../../docs/phase8l-circuit-arrow-routing.md?raw";
 import phase8m from "../../docs/phase8m-lightweight-signal-flow-animation.md?raw";
 import phase9a from "../../docs/phase9a-casl-instruction-coverage.md?raw";
+import phase9b from "../../docs/phase9b-shift-instructions-and-path-templates.md?raw";
 import futureCustomCircuit from "../../docs/future-custom-circuit-design.md?raw";
 import practiceTasks from "../../docs/practice-tasks.md?raw";
 import projectOverview from "../../docs/project-overview.md?raw";
@@ -25,6 +26,7 @@ describe("learning use documentation", () => {
     expect(learningGuide).toContain("Step 1: CASL Direct Execution");
     expect(learningGuide).toContain("CASL: Logic Operations");
     expect(learningGuide).toContain("CASL: Logical Add Compare");
+    expect(learningGuide).toContain("CASL: Shift Operations");
     expect(learningGuide).toContain("Step 2: C++ to CASL");
     expect(learningGuide).toContain("Step 6: break / continue");
   });
@@ -77,6 +79,7 @@ describe("learning use documentation", () => {
     expect(practiceTasks).toContain("Level 1: CASL Basics");
     expect(practiceTasks).toContain("Inspect bitwise logic instructions");
     expect(practiceTasks).toContain("Observe ADDL / CPL / JOV");
+    expect(practiceTasks).toContain("Observe shift instructions");
     expect(practiceTasks).toContain("Level 5: break / continue");
   });
 
@@ -85,6 +88,17 @@ describe("learning use documentation", () => {
     expect(phase9a).toContain("ADDL");
     expect(phase9a).toContain("JOV");
     expect(phase9a).toContain("No index addressing");
+  });
+
+  it("phase9b_shift_instruction_doc_exists", () => {
+    expect(phase9b).toContain("Phase 9B: Shift Instructions and Path Templates");
+    expect(phase9b).toContain("SLA");
+    expect(phase9b).toContain("SRA");
+    expect(phase9b).toContain("SLL");
+    expect(phase9b).toContain("SRL");
+    expect(phase9b).toContain("shift count / effective address");
+    expect(phase9b).toContain("InstructionPathTemplate");
+    expect(phase9b).toContain("not a memory data read");
   });
 
   it("phase8e_circuit_focus_doc_exists", () => {
@@ -137,6 +151,8 @@ describe("learning use documentation", () => {
     expect(futureCustomCircuit).toContain("outputs");
     expect(futureCustomCircuit).toContain("anchors");
     expect(futureCustomCircuit).toContain("current phase does not implement");
+    expect(futureCustomCircuit).toContain("InstructionPathTemplate");
+    expect(futureCustomCircuit).toContain("shift template");
   });
 
   it("practice_tasks_do_not_use_unsupported_syntax", () => {
@@ -165,6 +181,7 @@ describe("learning use documentation", () => {
     expect(readme).toContain("docs/phase8j-lab-style-schematic-polish.md");
     expect(readme).toContain("docs/phase8k-layered-study-mode-density-refinement.md");
     expect(readme).toContain("docs/phase8l-circuit-arrow-routing.md");
+    expect(readme).toContain("docs/phase9b-shift-instructions-and-path-templates.md");
     expect(readme).toContain("docs/future-custom-circuit-design.md");
     expect(normalized).not.toContain("hackathon");
     expect(normalized).not.toContain("contest submission");

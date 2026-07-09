@@ -147,6 +147,31 @@ async function captureLogicalAddCompareJov(page: Page, viewport: Viewport) {
   await capture(page, viewport, "logical-add-compare-jov.png");
 }
 
+async function captureShiftOperationsCircuit(page: Page, viewport: Viewport) {
+  await openStudio(page, "Mock Core");
+  await selectDemoProgram(page, "casl-shift-operations");
+  await enterCircuitFocusMode(page);
+  await assemble(page);
+  await step(page);
+  await step(page);
+  await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("SLL");
+  await expect(page.getByTestId("comet-circuit-svg").locator("[data-testid='module-alu']")).toHaveAttribute("data-active", "true");
+  await expect(page.getByTestId("comet-circuit-svg").locator("[data-testid='alu-shift-badge']")).toContainText("SLL");
+  await expect(page.getByTestId("comet-circuit-svg").locator("[data-testid='wire-shift-count-to-alu']")).toBeVisible();
+  await capture(page, viewport, "shift-operations-circuit.png");
+}
+
+async function captureShiftOperationsMachineCode(page: Page, viewport: Viewport) {
+  await openStudio(page, "Mock Core");
+  await selectDemoProgram(page, "casl-shift-operations");
+  await assemble(page);
+  await openOutputTab(page, "Machine Code");
+  await expect(page.getByTestId("machine-code-output")).toContainText("SLL GR1,1");
+  await page.getByTestId("machine-code-row-0022").click();
+  await expect(page.getByTestId("machine-code-explanation")).toContainText("Logical left shift");
+  await capture(page, viewport, "shift-operations-machine-code.png");
+}
+
 test.describe("visual review screenshot gallery", () => {
   for (const viewport of viewports) {
     test(`captures visual review gallery at ${viewport.name}`, async ({ page }) => {
@@ -161,6 +186,8 @@ test.describe("visual review screenshot gallery", () => {
       await captureBreakContinueTrace(page, viewport);
       await captureLogicOperationsMachineCode(page, viewport);
       await captureLogicalAddCompareJov(page, viewport);
+      await captureShiftOperationsCircuit(page, viewport);
+      await captureShiftOperationsMachineCode(page, viewport);
     });
   }
 });

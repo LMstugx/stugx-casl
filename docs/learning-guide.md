@@ -25,14 +25,16 @@ The purpose is not to replace a full compiler. The purpose is to make each trans
 
 Example: `CASL: GR2 Addition`
 
-Follow-up examples: `CASL: Logic Operations`, `CASL: Logical Add Compare`
+Follow-up examples: `CASL: Logic Operations`, `CASL: Logical Add Compare`, `CASL: Shift Operations`
 
 Learn:
 
 - `LD`, `ADDA`, `ST`, `RET`
 - `AND`, `OR`, `XOR` for bitwise ALU operations
 - `ADDL`, `CPL`, `JOV` for unsigned arithmetic, unsigned compare, and overflow-flag jump
+- `SLL`, `SRL`, `SLA`, `SRA` for shift operations
 - how GR registers change
+- how shift instructions update GR and FR without reading memory as shift data
 - how a memory write appears in the Memory Viewer
 - how PR advances through instruction words
 
@@ -44,6 +46,7 @@ Suggested actions:
 4. Open `Memory` and confirm label `C` is written.
 5. Load `CASL: Logic Operations` and inspect the `AND` / `OR` / `XOR` opcodes.
 6. Load `CASL: Logical Add Compare` and observe how `JOV` falls through when OF is not set.
+7. Load `CASL: Shift Operations` and confirm the shift count operand is not shown as a memory data read.
 
 ### Step 2: C++ to CASL
 
@@ -208,12 +211,13 @@ Use the examples in this order:
 1. `CASL: GR2 Addition`: learn direct CASL execution.
 2. `CASL: Logic Operations`: learn bitwise ALU operations and memory write.
 3. `CASL: Logical Add Compare`: learn unsigned ADDL / CPL and JOV fallthrough.
-4. `C++: Addition`: learn C++ to CASL and machine-code rows.
-5. `C++: If Else`: learn compare, flags, conditional jump, and target labels.
-6. `C++: While Sum`: learn repeated execution with Trace.
-7. `C++: For Sum`: learn initializer, condition, increment, and loop exit.
-8. `C++: For Sum Sugar`: learn `i++` and `+=` lowering.
-9. `C++: Break Continue`: learn jump targets for loop control.
+4. `CASL: Shift Operations`: learn logical and arithmetic shifts, shift counts, and FR / OF updates.
+5. `C++: Addition`: learn C++ to CASL and machine-code rows.
+6. `C++: If Else`: learn compare, flags, conditional jump, and target labels.
+7. `C++: While Sum`: learn repeated execution with Trace.
+8. `C++: For Sum`: learn initializer, condition, increment, and loop exit.
+9. `C++: For Sum Sugar`: learn `i++` and `+=` lowering.
+10. `C++: Break Continue`: learn jump targets for loop control.
 
 ## 8. How To Verify Your Understanding
 
@@ -303,7 +307,9 @@ Circuit Focus Mode uses a deliberate current/next split. The main teaching targe
 
 Machine state and pipeline stage are also separate. `Machine: Ready` describes the VM state, while the Current Instruction card and Step Timeline show the teaching stage such as `Operand Read`, `Execute`, or `Write Back`.
 
-The schematic separates `DATA BUS`, `ADDR BUS`, and `CTRL` lanes. `LD` and `ST` use a data-bypass lane between Memory, `MDR`, and the selected GR row without activating the ALU. Arithmetic, logic, and compare instructions are the paths that enter the ALU lane.
+The schematic separates `DATA BUS`, `ADDR BUS`, and `CTRL` lanes. `LD` and `ST` use a data-bypass lane between Memory, `MDR`, and the selected GR row without activating the ALU. Arithmetic, logic, compare, and shift instructions are the paths that enter the ALU / Shifter lane.
+
+Shift instructions use the ALU/Shifter path. The operand word is a shift count / effective address value, so Circuit Focus Mode routes the count into the ALU/Shifter input and does not show `Memory[addr] -> MDR` as shift data.
 
 Active wires have a lightweight signal-flow animation in the live app. The animation is only a direction cue for the current active path; it does not represent extra VM micro-cycles, and it is disabled when the operating system asks for reduced motion.
 

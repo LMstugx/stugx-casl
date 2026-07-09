@@ -280,4 +280,23 @@ TARGET RET
     expect(wireById(doc, "alu-to-gr")?.classList.contains("circuit-wire--data-flow")).toBe(true);
     expect(wireById(doc, "alu-to-fr")?.classList.contains("circuit-wire--flag-flow")).toBe(true);
   });
+
+  it("shift_path_uses_shifter_badge_without_memory_read", () => {
+    const source = `MAIN START
+     LD    GR1,A
+     SLL   GR1,1
+     RET
+A    DC    3
+     END`;
+    const afterLd = mockCaslCore.step(mockCaslCore.assemble(source));
+    const afterShift = mockCaslCore.step(afterLd);
+    const doc = renderCircuit(afterShift);
+
+    expect(doc.querySelector("[data-testid='module-alu']")?.getAttribute("data-active")).toBe("true");
+    expect(doc.querySelector("[data-testid='alu-shift-badge']")?.textContent).toContain("SLL");
+    expect(activeWireIds(doc)).toEqual(["gr-to-alu", "shift-count-to-alu", "alu-to-gr", "alu-to-fr"]);
+    expect(wireById(doc, "shift-count-to-alu")?.dataset.semanticType).toBe("address");
+    expect(activeWireIds(doc)).not.toContain("memory-to-mdr");
+    expect(doc.querySelector("[data-testid='module-mdr']")?.getAttribute("data-active")).toBe("false");
+  });
 });

@@ -79,6 +79,18 @@ A    DC    #FFFF
 B    DC    1
      END`;
 
+const shiftOperationsSource = `MAIN START
+     LD    GR1,A
+     SLL   GR1,1
+     SRL   GR1,1
+     SLA   GR1,1
+     SRA   GR1,1
+     ST    GR1,RESULT
+     RET
+A    DC    3
+RESULT DS  1
+     END`;
+
 const whileSumCppSource = `int main() {
     int i = 3;
     int sum = 0;
@@ -223,6 +235,22 @@ describeWasm("WasmCoreAdapter golden parity", () => {
     expect(jump.state.lastInstructionKind).toBe("JOV");
     expect(jump.state.pr).toBe(jump.state.sourceRows.find((row) => row.label === "OVER")?.address);
     expect(afterTarget.state.gr[2]).toBe(0x0001);
+    await adapter.dispose();
+  });
+
+  it("wasm shift operations run to expected result", async () => {
+    const adapter = new WasmCoreAdapter();
+    await adapter.assemble(shiftOperationsSource);
+    const afterStore = await adapter.run(6);
+
+    expect(afterStore.gr[1]).toBe(0x0003);
+    const resultRow = afterStore.sourceRows.find((row) => row.label === "RESULT");
+    expect(resultRow).toBeDefined();
+    expect(afterStore.lastMemoryWriteAddress).toBe(resultRow!.address);
+    expect(afterStore.mdr).toBe(0x0003);
+
+    const result = await adapter.run(5);
+    expect(result.runState).toBe("Finished");
     await adapter.dispose();
   });
 });

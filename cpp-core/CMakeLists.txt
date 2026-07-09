@@ -85,6 +85,15 @@ else()
     ExecuteCplGreater
     ExecuteJovTaken
     ExecuteJovNotTaken
+    AssembleShiftInstructions
+    ExecuteSllBasic
+    ExecuteSrlBasic
+    ExecuteSlaBasic
+    ExecuteSraPreservesSign
+    ShiftUpdatesOverflowWhenBitShiftedOut
+    ShiftCountZeroNoChange
+    ShiftCountLargeLogicalStableBehavior
+    ShiftCountLargeArithmeticStableBehavior
     StepStore
     StepRetFinished
     ExecuteGr2Program

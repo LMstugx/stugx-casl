@@ -139,6 +139,18 @@ B    DC    2
 RESULT DS  1
      END`;
 
+const shiftSource = `MAIN START
+     LD    GR1,A
+     SLL   GR1,1
+     SRL   GR1,1
+     SLA   GR1,1
+     SRA   GR1,1
+     ST    GR1,RESULT
+     RET
+A    DC    3
+RESULT DS  1
+     END`;
+
 function stepTimes(source: string, count: number) {
   let state = mockCaslCore.assemble(source);
   for (let index = 0; index < count; index += 1) {
@@ -355,6 +367,140 @@ B    DC    2
     expect(afterStore.memory[afterStore.symbols.RESULT]).toBe(0x0003);
   });
 
+  it("assemble_sla_sra_sll_srl", () => {
+    const state = mockCaslCore.assemble(shiftSource);
+
+    expect(state.runState).toBe("Ready");
+    expect(state.memory[0x22]).toBe(0x5210);
+    expect(state.memory[0x24]).toBe(0x5310);
+    expect(state.memory[0x26]).toBe(0x5010);
+    expect(state.memory[0x28]).toBe(0x5110);
+    expect(state.sourceMap.find((row) => row.address === 0x22)?.instruction).toBe("SLL");
+  });
+
+  it("execute_sll_basic", () => {
+    const state = stepTimes(`MAIN START
+     LD    GR1,A
+     SLL   GR1,1
+     RET
+A    DC    3
+     END`, 2);
+
+    expect(state.gr[1]).toBe(0x0006);
+    expect(state.fr).toEqual({ z: false, c: false, n: false, o: false });
+    expect(state.visualPath).toBe(VisualPathKind.Shift_AddressToAluToGr);
+  });
+
+  it("execute_srl_basic", () => {
+    const state = stepTimes(`MAIN START
+     LD    GR1,A
+     SRL   GR1,1
+     RET
+A    DC    6
+     END`, 2);
+
+    expect(state.gr[1]).toBe(0x0003);
+    expect(state.fr).toEqual({ z: false, c: false, n: false, o: false });
+  });
+
+  it("execute_sla_basic", () => {
+    const state = stepTimes(`MAIN START
+     LD    GR1,A
+     SLA   GR1,1
+     RET
+A    DC    #8001
+     END`, 2);
+
+    expect(state.gr[1]).toBe(0x8002);
+    expect(state.fr).toEqual({ z: false, c: false, n: true, o: false });
+  });
+
+  it("execute_sra_preserves_sign", () => {
+    const state = stepTimes(`MAIN START
+     LD    GR1,A
+     SRA   GR1,1
+     RET
+A    DC    #8002
+     END`, 2);
+
+    expect(state.gr[1]).toBe(0xc001);
+    expect(state.fr).toEqual({ z: false, c: false, n: true, o: false });
+  });
+
+  it("shift_updates_gr", () => {
+    const state = stepTimes(shiftSource, 2);
+
+    expect(state.gr[1]).toBe(0x0006);
+    expect(state.changedRegisters).toEqual(expect.arrayContaining(["GR1", "FR"]));
+  });
+
+  it("shift_updates_fr_zero", () => {
+    const state = stepTimes(`MAIN START
+     LD    GR1,A
+     SRL   GR1,1
+     RET
+A    DC    1
+     END`, 2);
+
+    expect(state.gr[1]).toBe(0x0000);
+    expect(state.fr).toEqual({ z: true, c: false, n: false, o: true });
+  });
+
+  it("shift_updates_fr_overflow_when_bit_shifted_out", () => {
+    const state = stepTimes(`MAIN START
+     LD    GR1,A
+     SLL   GR1,1
+     RET
+A    DC    #8000
+     END`, 2);
+
+    expect(state.gr[1]).toBe(0x0000);
+    expect(state.fr.o).toBe(true);
+  });
+
+  it("shift_count_zero_no_change_except_fr_consistent", () => {
+    const state = stepTimes(`MAIN START
+     LD    GR1,A
+     SLL   GR1,0
+     RET
+A    DC    #8001
+     END`, 2);
+
+    expect(state.gr[1]).toBe(0x8001);
+    expect(state.fr).toEqual({ z: false, c: false, n: true, o: false });
+  });
+
+  it("shift_count_large_is_stable", () => {
+    const logical = stepTimes(`MAIN START
+     LD    GR1,A
+     SLL   GR1,16
+     RET
+A    DC    #0001
+     END`, 2);
+    const arithmetic = stepTimes(`MAIN START
+     LD    GR1,A
+     SRA   GR1,16
+     RET
+A    DC    #8000
+     END`, 2);
+
+    expect(logical.gr[1]).toBe(0x0000);
+    expect(arithmetic.gr[1]).toBe(0xffff);
+  });
+
+  it("shift_does_not_read_memory_as_data", () => {
+    const state = stepTimes(`MAIN START
+     LD    GR1,A
+     SLL   GR1,1
+     RET
+A    DC    3
+     END`, 2);
+
+    expect(state.lastMemoryReadAddress).toBeUndefined();
+    expect(state.changedRegisters).not.toContain("MDR");
+    expect(state.mdr).toBe(0x0003);
+  });
+
   it("trace_records_logic_instruction", () => {
     const state = stepTimes(logicSource, 2);
 
@@ -388,5 +534,27 @@ B    DC    2
     expect(state.runState).toBe("Finished");
     expect(state.memory[state.symbols.RESULT]).toBe(0x0003);
     expect(state.gr[1]).toBe(0x0003);
+  });
+
+  it("trace_records_shift_instruction", () => {
+    const state = stepTimes(shiftSource, 2);
+
+    expect(state.trace[0]).toEqual(expect.objectContaining({
+      instruction: "SLL",
+      detail: expect.stringContaining("shifted by")
+    }));
+  });
+
+  it("demo_shift_operations_runs", () => {
+    const program = getDemoProgram("casl-shift-operations");
+    expect(program).toBeDefined();
+    let state = mockCaslCore.assemble(program!.source);
+    for (let step = 0; step < 12 && state.runState !== "Finished"; step += 1) {
+      state = mockCaslCore.step(state);
+    }
+
+    expect(state.runState).toBe("Finished");
+    expect(state.gr[1]).toBe(0x0003);
+    expect(state.memory[state.symbols.RESULT]).toBe(0x0003);
   });
 });

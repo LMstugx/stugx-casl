@@ -55,6 +55,17 @@ describe("guided learning lessons", () => {
     expect(text).toContain("OF");
   });
 
+  it("lesson_for_shift_operations_mentions_shift_count_and_fr", () => {
+    const lesson = getLearningLesson("casl-shift-operations");
+    const text = JSON.stringify(lesson);
+
+    expect(text).toContain("SLL");
+    expect(text).toContain("SRA");
+    expect(text).toContain("shift count");
+    expect(text).toContain("FR");
+    expect(text).toContain("not a memory data read");
+  });
+
   it("lesson_for_break_continue_mentions_for_continue_and_for_end", () => {
     const lesson = getLearningLesson("cpp-break-continue");
     const text = JSON.stringify(lesson);

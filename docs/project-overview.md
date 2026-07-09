@@ -49,19 +49,22 @@ The same workflow works with the TypeScript Mock backend and the experimental WA
 3. `CASL: Logical Add Compare`
    Unsigned `ADDL`, `CPL`, and `JOV` fallthrough based on OF.
 
-4. `C++: Addition`
+4. `CASL: Shift Operations`
+   `SLL`, `SRL`, `SLA`, and `SRA` with GR / FR updates and a shifter circuit path.
+
+5. `C++: Addition`
    C++ assignment and addition lowered to CASL and machine code.
 
-5. `C++: If Else`
+6. `C++: If Else`
    Compare instruction, conditional jump, and branch target.
 
-6. `C++: While Sum`
+7. `C++: While Sum`
    Loop labels, loop-back jump, Trace, and Memory Viewer.
 
-7. `C++: For Sum Sugar`
+8. `C++: For Sum Sugar`
    Natural loop syntax lowered into labels, jumps, and increment code.
 
-8. `C++: Break Continue`
+9. `C++: Break Continue`
    `break` and `continue` lowered to ordinary CASL `JUMP` instructions.
 
 ## Technical Notes
@@ -70,6 +73,7 @@ The same workflow works with the TypeScript Mock backend and the experimental WA
 - TypeScript frontend with React, Vite, SVG, and Monaco Editor.
 - CoreAdapter boundary supports Mock and experimental WASM backends.
 - Golden parity tests keep TypeScript mock, C++ core, and WASM behavior aligned.
+- Shift instruction paths use reusable visual path templates so the operand word is shown as a shift count, not as Memory data.
 - Browser E2E tests cover the main study flows.
 
 ## Current Limitations

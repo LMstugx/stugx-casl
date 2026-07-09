@@ -111,6 +111,7 @@ Use the gallery to inspect:
 - Output Log remains available but compact in Focus Mode.
 - SP is visible but inactive for ordinary execution.
 - LD and ST do not make the ALU look active; ADDA and related ALU instructions do.
+- Shift screenshots show the ALU/Shifter path and do not mark Memory as the shift-count data source.
 - Machine Code explanation is readable.
 - Control Flow target text is readable.
 - Source Editor is not squeezed.
@@ -129,6 +130,8 @@ Use the gallery to inspect:
 - `break-continue-trace.png`
 - `logic-operations-machine-code.png`
 - `logical-add-compare-jov.png`
+- `shift-operations-circuit.png`
+- `shift-operations-machine-code.png`
 
 ## Current Limitations
 

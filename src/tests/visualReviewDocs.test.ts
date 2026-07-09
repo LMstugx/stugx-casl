@@ -13,6 +13,8 @@ describe("visual review screenshot gallery setup", () => {
     expect(visualReviewSpec).toContain("casl-gr2-ld.png");
     expect(visualReviewSpec).toContain("enterCircuitFocusMode");
     expect(visualReviewSpec).toContain("logical-add-compare-jov.png");
+    expect(visualReviewSpec).toContain("shift-operations-circuit.png");
+    expect(visualReviewSpec).toContain("shift-operations-machine-code.png");
     expect(visualReviewSpec).toContain("page.screenshot");
   });
 

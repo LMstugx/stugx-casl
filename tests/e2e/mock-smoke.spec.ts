@@ -72,6 +72,33 @@ test("Mock backend runs CASL logic operations and shows machine code", async ({ 
   await expect(page.getByTestId("memory-view-row-002F")).toContainText("0002");
 });
 
+test("Mock backend runs CASL shift operations and shows shifter path", async ({ page }) => {
+  await openStudio(page, "Mock Core");
+  await selectDemoProgram(page, "casl-shift-operations");
+  await page.getByTestId("circuit-focus-toggle").click();
+
+  await assemble(page);
+  await page.getByRole("tab", { name: "Machine Code" }).click();
+  await expect(page.getByTestId("machine-code-output")).toContainText("SLL GR1,1");
+  await expect(page.getByTestId("machine-code-output")).toContainText("SRL GR1,1");
+  await expect(page.getByTestId("machine-code-output")).toContainText("SLA GR1,1");
+  await expect(page.getByTestId("machine-code-output")).toContainText("SRA GR1,1");
+
+  const circuit = page.getByTestId("comet-circuit-svg");
+  await step(page);
+  await step(page);
+
+  await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("SLL");
+  await expect(circuit.locator("[data-testid='module-alu']")).toHaveAttribute("data-active", "true");
+  await expect(circuit.locator("[data-testid='alu-shift-badge']")).toContainText("SLL");
+  await expect(circuit.locator("[data-testid='wire-shift-count-to-alu']")).toBeVisible();
+  await expect(circuit.locator("[data-testid='wire-shift-count-to-alu']")).toHaveAttribute("data-lane", "data-compute");
+  await expect(circuit.locator("[data-testid='wire-memory-to-mdr']")).toHaveCount(0);
+  await expect(circuit.locator("[data-testid='module-memory']")).toHaveAttribute("data-active", "false");
+  await expect(circuit.locator("[data-testid='module-mdr']")).toHaveAttribute("data-active", "false");
+  await expect(page.getByTestId("focus-registers-panel").getByTestId("register-gr1")).toContainText("0006");
+});
+
 test("Mock backend keeps circuit focus paths anchored to rows", async ({ page }) => {
   await openStudio(page, "Mock Core");
   await selectDemoProgram(page, "casl-gr2-addition");

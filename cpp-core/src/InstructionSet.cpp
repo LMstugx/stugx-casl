@@ -35,6 +35,10 @@ std::optional<Opcode> parseOpcode(std::string_view text) {
     if (op == "XOR") return Opcode::XOR;
     if (op == "CPA") return Opcode::CPA;
     if (op == "CPL") return Opcode::CPL;
+    if (op == "SLA") return Opcode::SLA;
+    if (op == "SRA") return Opcode::SRA;
+    if (op == "SLL") return Opcode::SLL;
+    if (op == "SRL") return Opcode::SRL;
     if (op == "ST") return Opcode::ST;
     if (op == "JUMP") return Opcode::JUMP;
     if (op == "JZE") return Opcode::JZE;
@@ -64,6 +68,10 @@ std::string opcodeName(Opcode opcode) {
         case Opcode::XOR: return "XOR";
         case Opcode::CPA: return "CPA";
         case Opcode::CPL: return "CPL";
+        case Opcode::SLA: return "SLA";
+        case Opcode::SRA: return "SRA";
+        case Opcode::SLL: return "SLL";
+        case Opcode::SRL: return "SRL";
         case Opcode::ST: return "ST";
         case Opcode::JUMP: return "JUMP";
         case Opcode::JZE: return "JZE";
@@ -80,6 +88,7 @@ bool isExecutableOpcode(Opcode opcode) {
     return opcode == Opcode::NOP || opcode == Opcode::LD || opcode == Opcode::LAD || opcode == Opcode::ADDA ||
            opcode == Opcode::SUBA || opcode == Opcode::ADDL || opcode == Opcode::SUBL || opcode == Opcode::AND ||
            opcode == Opcode::OR || opcode == Opcode::XOR || opcode == Opcode::CPA || opcode == Opcode::CPL ||
+           opcode == Opcode::SLA || opcode == Opcode::SRA || opcode == Opcode::SLL || opcode == Opcode::SRL ||
            opcode == Opcode::ST || opcode == Opcode::JUMP || opcode == Opcode::JZE || opcode == Opcode::JNZ ||
            opcode == Opcode::JPL || opcode == Opcode::JMI || opcode == Opcode::JOV || opcode == Opcode::RET;
 }
@@ -87,7 +96,8 @@ bool isExecutableOpcode(Opcode opcode) {
 bool hasAddressOperand(Opcode opcode) {
     return opcode == Opcode::LD || opcode == Opcode::LAD || opcode == Opcode::ADDA || opcode == Opcode::SUBA ||
            opcode == Opcode::ADDL || opcode == Opcode::SUBL || opcode == Opcode::AND || opcode == Opcode::OR ||
-           opcode == Opcode::XOR || opcode == Opcode::CPA || opcode == Opcode::CPL || opcode == Opcode::ST ||
+           opcode == Opcode::XOR || opcode == Opcode::CPA || opcode == Opcode::CPL || opcode == Opcode::SLA ||
+           opcode == Opcode::SRA || opcode == Opcode::SLL || opcode == Opcode::SRL || opcode == Opcode::ST ||
            opcode == Opcode::JUMP || opcode == Opcode::JZE || opcode == Opcode::JNZ || opcode == Opcode::JPL ||
            opcode == Opcode::JMI || opcode == Opcode::JOV;
 }
@@ -106,6 +116,10 @@ std::uint16_t encodeInstruction(Opcode opcode, std::uint8_t gr) {
         case Opcode::XOR: return static_cast<std::uint16_t>(0x3200 | (gr << 4));
         case Opcode::CPA: return static_cast<std::uint16_t>(0x4000 | (gr << 4));
         case Opcode::CPL: return static_cast<std::uint16_t>(0x4100 | (gr << 4));
+        case Opcode::SLA: return static_cast<std::uint16_t>(0x5000 | (gr << 4));
+        case Opcode::SRA: return static_cast<std::uint16_t>(0x5100 | (gr << 4));
+        case Opcode::SLL: return static_cast<std::uint16_t>(0x5200 | (gr << 4));
+        case Opcode::SRL: return static_cast<std::uint16_t>(0x5300 | (gr << 4));
         case Opcode::ST: return static_cast<std::uint16_t>(0x1100 | (gr << 4));
         case Opcode::JMI: return 0x6100;
         case Opcode::JNZ: return 0x6200;

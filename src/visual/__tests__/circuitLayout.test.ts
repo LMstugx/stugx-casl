@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { VisualPathKind } from "../../core/types";
 import { circuitAnchors, circuitLayout } from "../circuitLayout";
+import { pathTemplateForInstruction } from "../instructionPathTemplates";
 import { activeWireIdsByKind, buildWirePaths, routeOrthogonal, routeViaLane, type WirePath } from "../wirePaths";
 
 function wireById(id: string) {
@@ -109,6 +110,7 @@ describe("circuit focus layout", () => {
     expect(activeWireIdsByKind[VisualPathKind.ST_GrToMdrToMemory]).toEqual(["gr-to-mdr", "mar-to-memory", "mdr-to-memory"]);
     expect(activeWireIdsByKind[VisualPathKind.ADDA_GrMdrToAluToGr]).toEqual(["gr-to-alu", "mar-to-memory", "memory-to-mdr", "mdr-to-alu", "alu-to-gr", "alu-to-fr"]);
     expect(activeWireIdsByKind[VisualPathKind.CPA_GrMdrToAluToFr]).not.toContain("alu-to-gr");
+    expect(activeWireIdsByKind[VisualPathKind.Shift_AddressToAluToGr]).toEqual(["gr-to-alu", "shift-count-to-alu", "alu-to-gr", "alu-to-fr"]);
     expect(activeWireIdsByKind[VisualPathKind.Jump_AddressToPr]).toEqual(["pr-to-mar", "address-to-pr"]);
     expect(activeWireIdsByKind[VisualPathKind.LAD_AddressToGr]).not.toContain("memory-to-mdr");
   });
@@ -197,6 +199,51 @@ describe("circuit focus layout", () => {
     expect(addaWires.some((wire) => wire.toAnchor.id === "alu.inputB")).toBe(true);
     expect(addaWires.some((wire) => wire.fromAnchor.id === "alu.outputY")).toBe(true);
     expect(addaWires.some((wire) => wire.fromAnchor.id === "alu.flagOut")).toBe(true);
+  });
+
+  it("shift_path_uses_alu_or_shifter_template", () => {
+    const shiftWires = activeWiresFor(VisualPathKind.Shift_AddressToAluToGr);
+
+    expect(ids(shiftWires)).toEqual(["gr-to-alu", "shift-count-to-alu", "alu-to-gr", "alu-to-fr"]);
+    expect(wireById("shift-count-to-alu")).toMatchObject({
+      fromAnchor: expect.objectContaining({ id: "mar.shiftCount" }),
+      toAnchor: expect.objectContaining({ id: "alu.inputB" }),
+      lane: "data-compute",
+      semanticType: "address"
+    });
+  });
+
+  it("shift_path_does_not_use_memory_read", () => {
+    const shiftWires = activeWiresFor(VisualPathKind.Shift_AddressToAluToGr);
+
+    expect(ids(shiftWires)).not.toContain("memory-to-mdr");
+    expect(ids(shiftWires)).not.toContain("mdr-to-alu");
+    expect(shiftWires.some((wire) => wire.relatedMemoryAddress !== undefined)).toBe(false);
+  });
+
+  it("shift_path_updates_gr_and_fr", () => {
+    const shiftWires = activeWiresFor(VisualPathKind.Shift_AddressToAluToGr);
+
+    expect(shiftWires.some((wire) => wire.toAnchor.id === "gr2.right")).toBe(true);
+    expect(shiftWires.some((wire) => wire.toAnchor.id === "fr.input")).toBe(true);
+  });
+
+  it("shift_route_uses_data_compute_lane", () => {
+    const shiftWires = activeWiresFor(VisualPathKind.Shift_AddressToAluToGr);
+
+    expect(shiftWires.filter((wire) => wire.semanticType !== "flag").every((wire) => wire.lane === "data-compute")).toBe(true);
+  });
+
+  it("visual_path_template_exists_for_shift_category", () => {
+    const template = pathTemplateForInstruction("SLL");
+
+    expect(template).toMatchObject({
+      category: "shift",
+      visualPath: VisualPathKind.Shift_AddressToAluToGr,
+      routeSegments: ["gr-to-alu", "shift-count-to-alu", "alu-to-gr", "alu-to-fr"],
+      usesMemory: false,
+      usesMDR: false
+    });
   });
 
   it("routes jump instructions through address/control lanes rather than data lanes", () => {

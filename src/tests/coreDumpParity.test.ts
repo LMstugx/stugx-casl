@@ -107,4 +107,15 @@ describeCoreDump("C++ core_dump golden parity", () => {
     expect(dto.currentInstructionText).toContain("OVER LAD GR2,1");
     expect(dto.frOF).toBe(true);
   });
+
+  it("dumps shift DTO without memory data read", () => {
+    const dto = dumpScenarioIfSupported("shift-sll");
+    if (!dto) return;
+
+    expect(dto.lastInstructionKind).toBe("SLL");
+    expect(dto.gr[1]).toBe(0x0006);
+    expect(dto.lastRegisterWriteIndex).toBe(1);
+    expect(dto.lastMemoryReadAddress).toBeNull();
+    expect(dto.effectiveAddress).toBe(1);
+  });
 });

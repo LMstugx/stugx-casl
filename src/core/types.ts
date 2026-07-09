@@ -11,6 +11,7 @@ export enum VisualPathKind {
   LAD_AddressToGr = "LAD_AddressToGr",
   SUBA_GrMdrToAluToGr = "SUBA_GrMdrToAluToGr",
   CPA_GrMdrToAluToFr = "CPA_GrMdrToAluToFr",
+  Shift_AddressToAluToGr = "Shift_AddressToAluToGr",
   Jump_AddressToPr = "Jump_AddressToPr",
   ConditionalJump_AddressToPr = "ConditionalJump_AddressToPr",
   ConditionalJump_NotTaken = "ConditionalJump_NotTaken",
@@ -35,6 +36,10 @@ export type InstructionKind =
   | "XOR"
   | "CPA"
   | "CPL"
+  | "SLA"
+  | "SRA"
+  | "SLL"
+  | "SRL"
   | "ST"
   | "JUMP"
   | "JZE"
@@ -105,7 +110,7 @@ export interface Diagnostic {
 export interface AssembledInstruction {
   address: number;
   line: number;
-  op: "NOP" | "LD" | "LAD" | "ADDA" | "SUBA" | "ADDL" | "SUBL" | "AND" | "OR" | "XOR" | "CPA" | "CPL" | "ST" | "JUMP" | "JZE" | "JNZ" | "JPL" | "JMI" | "JOV" | "RET";
+  op: "NOP" | "LD" | "LAD" | "ADDA" | "SUBA" | "ADDL" | "SUBL" | "AND" | "OR" | "XOR" | "CPA" | "CPL" | "SLA" | "SRA" | "SLL" | "SRL" | "ST" | "JUMP" | "JZE" | "JNZ" | "JPL" | "JMI" | "JOV" | "RET";
   source: string;
   size: number;
   gr?: number;

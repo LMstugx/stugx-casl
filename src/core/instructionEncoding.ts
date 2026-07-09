@@ -116,6 +116,38 @@ export const instructionEncodings: Partial<Record<InstructionKind, InstructionEn
     description: "Unsigned compare a general register with memory at operand address.",
     fields: ["opcode", "r", "x", "address"]
   },
+  SLA: {
+    mnemonic: "SLA",
+    opcode: 0x50,
+    format: "R_ADR",
+    wordLength: 2,
+    description: "Arithmetic left shift of a general register by the operand address value.",
+    fields: ["opcode", "r", "x", "shift-count"]
+  },
+  SRA: {
+    mnemonic: "SRA",
+    opcode: 0x51,
+    format: "R_ADR",
+    wordLength: 2,
+    description: "Arithmetic right shift of a general register by the operand address value.",
+    fields: ["opcode", "r", "x", "shift-count"]
+  },
+  SLL: {
+    mnemonic: "SLL",
+    opcode: 0x52,
+    format: "R_ADR",
+    wordLength: 2,
+    description: "Logical left shift of a general register by the operand address value.",
+    fields: ["opcode", "r", "x", "shift-count"]
+  },
+  SRL: {
+    mnemonic: "SRL",
+    opcode: 0x53,
+    format: "R_ADR",
+    wordLength: 2,
+    description: "Logical right shift of a general register by the operand address value.",
+    fields: ["opcode", "r", "x", "shift-count"]
+  },
   JMI: {
     mnemonic: "JMI",
     opcode: 0x61,

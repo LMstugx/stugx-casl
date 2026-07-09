@@ -141,7 +141,9 @@ export function toCometStateDto(state: CometState, memoryStart = 0x20, memoryEnd
   const lastMemoryWriteAddress = lastInstructionKind === "ST" ? effectiveAddress : null;
   const lastRegisterWriteIndex = lastInstructionKind === "LD" || lastInstructionKind === "LAD" || lastInstructionKind === "ADDA" ||
     lastInstructionKind === "SUBA" || lastInstructionKind === "ADDL" || lastInstructionKind === "SUBL" ||
-    lastInstructionKind === "AND" || lastInstructionKind === "OR" || lastInstructionKind === "XOR" ? lastInstruction?.gr ?? null : null;
+    lastInstructionKind === "AND" || lastInstructionKind === "OR" || lastInstructionKind === "XOR" ||
+    lastInstructionKind === "SLA" || lastInstructionKind === "SRA" || lastInstructionKind === "SLL" ||
+    lastInstructionKind === "SRL" ? lastInstruction?.gr ?? null : null;
 
   return {
     runState: state.runState,

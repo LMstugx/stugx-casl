@@ -75,7 +75,9 @@ bool isRegisterAddressOpcode(Opcode opcode) {
     return opcode == Opcode::LD || opcode == Opcode::LAD || opcode == Opcode::ADDA ||
            opcode == Opcode::SUBA || opcode == Opcode::ADDL || opcode == Opcode::SUBL ||
            opcode == Opcode::AND || opcode == Opcode::OR || opcode == Opcode::XOR ||
-           opcode == Opcode::CPA || opcode == Opcode::CPL || opcode == Opcode::ST;
+           opcode == Opcode::CPA || opcode == Opcode::CPL || opcode == Opcode::SLA ||
+           opcode == Opcode::SRA || opcode == Opcode::SLL || opcode == Opcode::SRL ||
+           opcode == Opcode::ST;
 }
 
 bool isJumpOpcode(Opcode opcode) {

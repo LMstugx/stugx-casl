@@ -45,7 +45,7 @@ function parseCaslLine(raw: string): Pick<GeneratedCaslRow, "label" | "opcode" |
   const line = raw.trim();
   if (!line) return { label: "", opcode: "", operand: "" };
 
-  const match = /^(\S+)?\s*(START|END|DC|DS|NOP|LD|LAD|ADDA|SUBA|ADDL|SUBL|AND|OR|XOR|CPA|CPL|ST|JUMP|JZE|JNZ|JPL|JMI|JOV|RET)\b\s*(.*)$/i.exec(line);
+  const match = /^(\S+)?\s*(START|END|DC|DS|NOP|LD|LAD|ADDA|SUBA|ADDL|SUBL|AND|OR|XOR|CPA|CPL|SLA|SRA|SLL|SRL|ST|JUMP|JZE|JNZ|JPL|JMI|JOV|RET)\b\s*(.*)$/i.exec(line);
   if (!match) return { label: "", opcode: "", operand: line };
 
   const maybeLabel = match[1] ?? "";

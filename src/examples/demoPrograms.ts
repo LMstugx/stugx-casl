@@ -76,6 +76,26 @@ RESULT DS  1
     suggestedActions: ["Click Assemble.", "Open Machine Code and inspect ADDL / CPL / JOV.", "Step through CPL and JOV.", "Confirm RESULT remains 0003."]
   },
   {
+    id: "casl-shift-operations",
+    name: "CASL: Shift Operations",
+    mode: "casl",
+    source: `MAIN START
+     LD    GR1,A
+     SLL   GR1,1
+     SRL   GR1,1
+     SLA   GR1,1
+     SRA   GR1,1
+     ST    GR1,RESULT
+     RET
+A    DC    3
+RESULT DS  1
+     END`,
+    description: "Shift instructions using operand words as shift counts, with GR / FR updates and a shifter path.",
+    whatThisShows: "SLL / SRL / SLA / SRA update a register and flags without reading memory as data for the shift count.",
+    expectedResult: "GR1 = 0003 and Memory[RESULT] = 0003 after ST.",
+    suggestedActions: ["Click Assemble.", "Open Machine Code and inspect SLA / SRA / SLL / SRL opcodes.", "Step through each shift in Circuit Focus Mode.", "Confirm RESULT is 0003 in Memory."]
+  },
+  {
     id: "cpp-addition",
     name: "C++: Addition",
     mode: "cpp",

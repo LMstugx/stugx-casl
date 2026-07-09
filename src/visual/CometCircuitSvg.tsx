@@ -189,6 +189,10 @@ function activeRegisterIndex(state: CometState): number {
 }
 
 function activeMemoryAddress(state: CometState): number {
+  const visualPath = state.lastStep?.visualPath ?? state.visualPath;
+  if (visualPath === VisualPathKind.Shift_AddressToAluToGr) {
+    return state.currentAddress ?? state.pr ?? 0x20;
+  }
   return state.lastMemoryWriteAddress ?? state.lastMemoryReadAddress ?? state.changedMemoryAddresses[0] ?? state.mar ?? state.currentAddress ?? state.pr ?? 0x20;
 }
 
@@ -203,7 +207,10 @@ function AluModule({ state, registerIndex, visualPath }: { state: CometState; re
   const active =
     visualPath === VisualPathKind.ADDA_GrMdrToAluToGr ||
     visualPath === VisualPathKind.SUBA_GrMdrToAluToGr ||
-    visualPath === VisualPathKind.CPA_GrMdrToAluToFr;
+    visualPath === VisualPathKind.CPA_GrMdrToAluToFr ||
+    visualPath === VisualPathKind.Shift_AddressToAluToGr;
+  const isShift = visualPath === VisualPathKind.Shift_AddressToAluToGr;
+  const shiftMnemonic = isShift ? /\b(SLA|SRA|SLL|SRL)\b/i.exec(state.lastStep?.executedInstruction ?? "")?.[1]?.toUpperCase() ?? "SHIFT" : undefined;
   const inputA = circuitAnchors.alu.inputA();
   const inputB = circuitAnchors.alu.inputB();
   const outputY = circuitAnchors.alu.outputY();
@@ -214,9 +221,17 @@ function AluModule({ state, registerIndex, visualPath }: { state: CometState; re
       <text className="module-title" x={circuitLayout.alu.x + circuitLayout.alu.w / 2} y={circuitLayout.alu.y + 30} textAnchor="middle">
         ALU
       </text>
+      {isShift ? (
+        <g data-testid="alu-shift-badge">
+          <rect className="alu-operation-badge" x={circuitLayout.alu.x + circuitLayout.alu.w - 84} y={circuitLayout.alu.y + 17} width="54" height="18" rx="3" />
+          <text className="module-small module-blue" x={circuitLayout.alu.x + circuitLayout.alu.w - 57} y={circuitLayout.alu.y + 30} textAnchor="middle">
+            {shiftMnemonic}
+          </text>
+        </g>
+      ) : null}
       {[
         ["A", formatWord(state.gr[registerIndex] ?? 0), "module-green"],
-        ["B", formatWord(state.mdr), "module-green"],
+        ["B", isShift ? formatWord(state.mar) : formatWord(state.mdr), "module-green"],
         ["Y", formatWord(state.gr[registerIndex] ?? 0), "module-green"],
         ["F", formatFlags(state.fr), active ? "module-red" : "module-muted"]
       ].map(([label, value, className], index) => {

@@ -41,19 +41,22 @@ Each built-in example includes a collapsible `Guided Lesson` in the Demo Guide. 
 3. `CASL: Logical Add Compare`
    Learn `ADDL`, `CPL`, `JOV`, unsigned comparison, and overflow-flag jumps.
 
-4. `C++: Addition`
+4. `CASL: Shift Operations`
+   Learn `SLL`, `SRL`, `SLA`, `SRA`, shift counts, GR updates, and FR / OF behavior.
+
+5. `C++: Addition`
    Learn how assignment and arithmetic become `LD`, `ADDA`, `ST`, and return through `GR0`.
 
-5. `C++: If Else`
+6. `C++: If Else`
    Learn `CPA`, conditional jumps, labels, and branch targets.
 
-6. `C++: While Sum`
+7. `C++: While Sum`
    Learn loop labels, loop-back jumps, Trace, and Memory Viewer.
 
-7. `C++: For Sum Sugar`
+8. `C++: For Sum Sugar`
    Learn for-loop initializer, condition, increment, `i++`, and `+=` lowering.
 
-8. `C++: Break Continue`
+9. `C++: Break Continue`
    Learn why `continue` jumps to the increment block and `break` jumps to the loop end.
 
 For detailed study guidance, see [docs/learning-guide.md](docs/learning-guide.md).
@@ -65,6 +68,7 @@ For the layered study-mode density pass and Signal Probe foundation, see [docs/p
 For the circuit arrow routing pass, see [docs/phase8l-circuit-arrow-routing.md](docs/phase8l-circuit-arrow-routing.md).
 For future custom-circuit design notes, see [docs/future-custom-circuit-design.md](docs/future-custom-circuit-design.md).
 For the latest CASL instruction coverage batch, see [docs/phase9a-casl-instruction-coverage.md](docs/phase9a-casl-instruction-coverage.md).
+For shift instruction coverage and path templates, see [docs/phase9b-shift-instructions-and-path-templates.md](docs/phase9b-shift-instructions-and-path-templates.md).
 
 ## Key Views
 
@@ -83,6 +87,7 @@ For the latest CASL instruction coverage batch, see [docs/phase9a-casl-instructi
 - `CASL: GR2 Addition`
 - `CASL: Logic Operations`
 - `CASL: Logical Add Compare`
+- `CASL: Shift Operations`
 - `C++: Addition`
 - `C++: If Else`
 - `C++: While Sum`
@@ -116,6 +121,10 @@ Instructions:
 - `XOR`
 - `CPA`
 - `CPL`
+- `SLA`
+- `SRA`
+- `SLL`
+- `SRL`
 - `JUMP`
 - `JZE`
 - `JNZ`

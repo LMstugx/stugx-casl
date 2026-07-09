@@ -140,6 +140,13 @@ A    DC    #FFFF
 B    DC    1
      END)";
 
+const std::string kShiftOperationsSource = R"(MAIN START
+     LD    GR1,A
+     SLL   GR1,1
+     RET
+A    DC    3
+     END)";
+
 std::string jsonEscape(const std::string& text) {
     std::string escaped;
     escaped.reserve(text.size() + 8);
@@ -377,6 +384,7 @@ std::string dumpScenario(const std::string& scenario) {
         {"logic-and", kLogicOperationsSource},
         {"logical-add-compare-jov", kLogicalAddCompareSource},
         {"jov-taken", kJovTakenSource},
+        {"shift-sll", kShiftOperationsSource},
     };
     const auto sourceEntry = sources.find(scenario);
     if (sourceEntry == sources.end()) {
@@ -407,6 +415,8 @@ std::string dumpScenario(const std::string& scenario) {
         steps = 4;
     } else if (scenario == "jov-taken") {
         steps = 3;
+    } else if (scenario == "shift-sll") {
+        steps = 2;
     } else if (scenario == "simple-finished") {
         steps = 4;
     } else {
@@ -436,7 +446,7 @@ int main(int argc, char** argv) {
             index += 1;
             continue;
         }
-        std::cerr << "Usage: core_dump --scenario <simple-ready|simple-step1|simple-step2|simple-step3|simple-finished|gr2-step1|lada-step1|suba-step1|cpa-equal|jump-taken|jze-taken|jze-not-taken|jmi-taken|logic-and|logical-add-compare-jov|jov-taken>\n";
+        std::cerr << "Usage: core_dump --scenario <simple-ready|simple-step1|simple-step2|simple-step3|simple-finished|gr2-step1|lada-step1|suba-step1|cpa-equal|jump-taken|jze-taken|jze-not-taken|jmi-taken|logic-and|logical-add-compare-jov|jov-taken|shift-sll>\n";
         return 2;
     }
 

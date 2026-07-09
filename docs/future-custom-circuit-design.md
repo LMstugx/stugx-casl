@@ -78,3 +78,14 @@ Future routing should keep the Phase 8L rules:
 - avoid unrelated module bodies
 - use one terminal arrow for active flow
 - use junction dots for merge points
+
+Phase 9B adds a first `InstructionPathTemplate` layer. Future custom-circuit work should build on that shape instead of duplicating instruction-specific if/else rendering. A template should describe the category, active modules, active anchors, route segment ids, and whether the path uses Memory, MDR, ALU/Shifter, FR, or control lanes.
+
+The shift template is the current example for a non-memory operand path:
+
+- GR row -> ALU/Shifter input
+- shift count / effective address -> ALU/Shifter input
+- ALU/Shifter output -> GR row
+- flag output -> FR
+
+This distinction matters for future templates such as index addressing and stack paths, where the visual route must explain the addressing source without pretending that every operand word is a Memory data read.

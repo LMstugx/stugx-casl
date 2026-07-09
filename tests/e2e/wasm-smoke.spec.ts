@@ -118,3 +118,17 @@ test("WASM backend runs CASL logical add compare in the browser UI", async ({ pa
   await expect(page.getByTestId("run-state")).toHaveText("Finished");
   await expectRegister(page, "register-gr1", "0003");
 });
+
+test("WASM backend runs CASL shift operations in the browser UI", async ({ page }) => {
+  await openStudio(page, "WASM Core");
+  await selectDemoProgram(page, "casl-shift-operations");
+
+  await assemble(page);
+  await page.getByRole("tab", { name: "Machine Code" }).click();
+  await expect(page.getByTestId("machine-code-output")).toContainText("SLL GR1,1");
+  await expect(page.getByTestId("machine-code-output")).toContainText("SRA GR1,1");
+  await run(page);
+
+  await expect(page.getByTestId("run-state")).toHaveText("Finished");
+  await expectRegister(page, "register-gr1", "0003");
+});

@@ -342,6 +342,41 @@ describe("machine code rows", () => {
     expect(xorExplanation.meaning).toContain("Bitwise XOR");
   });
 
+  it("machine_code_rows_shift_instructions", () => {
+    const program = getDemoProgram("casl-shift-operations");
+    expect(program).toBeDefined();
+    const state = stateFromRaw(mockCaslCore.assemble(program!.source));
+    const rows = selectMachineCodeRows(state);
+
+    expect(rows).toEqual(expect.arrayContaining([
+      expect.objectContaining({ sourceText: "SLL GR1,1", word: 0x5210, kind: "instruction" }),
+      expect.objectContaining({ sourceText: "SRL GR1,1", word: 0x5310, kind: "instruction" }),
+      expect.objectContaining({ sourceText: "SLA GR1,1", word: 0x5010, kind: "instruction" }),
+      expect.objectContaining({ sourceText: "SRA GR1,1", word: 0x5110, kind: "instruction" }),
+      expect.objectContaining({ sourceText: "SLL GR1,1", word: 0x0001, kind: "operand", meaning: "shift count / effective address" })
+    ]));
+  });
+
+  it("machine_code_explanation_shift_instruction", () => {
+    const program = getDemoProgram("casl-shift-operations");
+    expect(program).toBeDefined();
+    const state = stateFromRaw(mockCaslCore.assemble(program!.source));
+    const rows = selectMachineCodeRows(state);
+    const sllRow = rows.find((row) => row.sourceText === "SLL GR1,1" && row.kind === "instruction");
+    const operandRow = rows.find((row) => row.sourceText === "SLL GR1,1" && row.kind === "operand");
+
+    expect(sllRow).toBeDefined();
+    const explanation = explainMachineCodeRow(sllRow!);
+    expect(explanation.mnemonic).toBe("SLL");
+    expect(explanation.opcode).toBe(0x52);
+    expect(explanation.register).toBe(1);
+    expect(explanation.meaning).toContain("Logical left shift");
+    expect(explanation.meaning).toContain("shifted-out bit");
+
+    expect(operandRow).toBeDefined();
+    expect(explainMachineCodeRow(operandRow!).meaning).toContain("not a memory data read");
+  });
+
   it("machine_code_jump_explanation_shows_target", async () => {
     const program = getDemoProgram("cpp-break-continue");
     expect(program).toBeDefined();

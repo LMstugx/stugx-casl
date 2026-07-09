@@ -41,6 +41,14 @@ function stepTimes(count: number): CometState {
   return state;
 }
 
+function stepSource(source: string, count: number): CometState {
+  let state = mockCaslCore.assemble(source);
+  for (let index = 0; index < count; index += 1) {
+    state = mockCaslCore.step(state);
+  }
+  return state;
+}
+
 function currentPanel(markup: string): string {
   return /data-testid="focus-current-instruction-panel"[\s\S]*?<\/section>/.exec(markup)?.[0] ?? "";
 }
@@ -340,6 +348,24 @@ describe("Circuit Focus Mode layout", () => {
     expect(addaMarkup).toContain('data-testid="signal-probe-row" data-active="true"');
     expect(stMarkup).toContain("MEM[0029]");
     expect(stMarkup).toContain("0007");
+  });
+
+  it("signal_probe_shows_shift_result", () => {
+    const source = `MAIN START
+     LD    GR1,A
+     SLL   GR1,1
+     RET
+A    DC    3
+     END`;
+    const markup = renderFocus(stepSource(source, 2), source);
+
+    expect(markup).toContain('data-testid="module-alu" data-active="true"');
+    expect(markup).toContain('data-testid="alu-shift-badge"');
+    expect(markup).toContain("SLL");
+    expect(markup).toContain("ALU.Y");
+    expect(markup).toContain("0006");
+    expect(markup).toContain('data-testid="module-mdr" data-active="false"');
+    expect(markup).toContain('data-testid="module-memory" data-active="false"');
   });
 
   it("focus_mode_memory_target_badge_not_overlapping_title", () => {

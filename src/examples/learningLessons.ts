@@ -230,6 +230,74 @@ export const learningLessons: LearningLesson[] = [
     ]
   },
   {
+    exampleId: "casl-shift-operations",
+    title: "Shift instructions and shifter path",
+    level: "CASL basics",
+    concepts: ["SLL", "SRL", "SLA", "SRA", "shift count operand", "shifted-out bit / OF", "FR update"],
+    learningGoals: [
+      "Understand that shift instructions use the operand word as a shift count / effective address value.",
+      "See that shifts update GR and FR without reading Memory[operand] as data."
+    ],
+    observe: ["SLL / SRL / SLA / SRA machine opcodes", "GR1 after each shift Step", "FR after shifted-out bits"],
+    suggestedSteps: [
+      {
+        id: "assemble",
+        label: "Assemble shift program",
+        action: "Click Assemble.",
+        expectedObservation: "Machine Code shows SLA, SRA, SLL, and SRL instruction words with operand words.",
+        recommendedTab: "Machine Code"
+      },
+      {
+        id: "step-shifts",
+        label: "Step through shifts",
+        action: "Step through SLL, SRL, SLA, and SRA.",
+        expectedObservation: "GR1 changes through the shifter path and Trace records each shift.",
+        recommendedTab: "Trace"
+      },
+      {
+        id: "circuit-focus",
+        label: "Observe shifter path",
+        action: "Open Circuit Focus Mode while stepping a shift instruction.",
+        expectedObservation: "GR1 and the shift count flow into the ALU/Shifter path; Memory is not used as shift data.",
+        recommendedTab: "Trace"
+      },
+      {
+        id: "check-result",
+        label: "Check RESULT",
+        action: "Open Memory after ST.",
+        expectedObservation: "RESULT contains 0003.",
+        recommendedTab: "Memory"
+      }
+    ],
+    checkpoints: [
+      {
+        id: "shift-opcodes",
+        label: "Shift opcodes",
+        expected: "Machine Code should contain opcodes 50 / 51 / 52 / 53 for SLA / SRA / SLL / SRL.",
+        whereToLook: "Machine Code tab",
+        note: "Each shift is a register/address-format instruction with a separate operand word."
+      },
+      {
+        id: "shift-no-memory-read",
+        label: "Shift count is not memory data",
+        expected: "Shift steps should not mark a Memory row as a data read for the count.",
+        whereToLook: "Circuit Focus Mode / Trace",
+        note: "The operand word is used as the count / effective address value; it is not a memory data read."
+      },
+      {
+        id: "shift-final-result",
+        label: "Final result",
+        expected: "GR1 and Memory[RESULT] should be 0003.",
+        whereToLook: "Registers and Memory tabs",
+        note: "The sample shifts 3 left and right and returns to the original value."
+      }
+    ],
+    commonQuestions: [
+      "Why does a shift instruction have an operand word?",
+      "Why is Memory[0001] not read for SLL GR1,1?"
+    ]
+  },
+  {
     exampleId: "cpp-addition",
     title: "C++ addition lowered to CASL",
     level: "C++ to CASL",

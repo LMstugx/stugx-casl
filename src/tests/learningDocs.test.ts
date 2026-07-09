@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import readme from "../../README.md?raw";
 import demoScript from "../../docs/demo-script.md?raw";
 import learningGuide from "../../docs/learning-guide.md?raw";
+import phase8e from "../../docs/phase8e-circuit-focus-final-layout.md?raw";
 import phase9a from "../../docs/phase9a-casl-instruction-coverage.md?raw";
 import practiceTasks from "../../docs/practice-tasks.md?raw";
 import projectOverview from "../../docs/project-overview.md?raw";
@@ -34,6 +35,7 @@ describe("learning use documentation", () => {
 
   it("learning_guide_mentions_memory_trace_control_flow", () => {
     expect(learningGuide).toContain("How To Use Memory Viewer");
+    expect(learningGuide).toContain("How To Read Circuit Focus Mode");
     expect(learningGuide).toContain("How To Use Trace");
     expect(learningGuide).toContain("How To Use Control Flow Badges");
   });
@@ -79,6 +81,13 @@ describe("learning use documentation", () => {
     expect(phase9a).toContain("No index addressing");
   });
 
+  it("phase8e_circuit_focus_doc_exists", () => {
+    expect(phase8e).toContain("Phase 8E: Circuit Focus Final Layout");
+    expect(phase8e).toContain("SP Semantic Rule");
+    expect(phase8e).toContain("Memory Row Anchors");
+    expect(phase8e).toContain("Register Row Anchors");
+  });
+
   it("practice_tasks_do_not_use_unsupported_syntax", () => {
     expect(practiceTasks).not.toContain("std::");
     expect(practiceTasks).not.toContain("cout");
@@ -100,6 +109,7 @@ describe("learning use documentation", () => {
 
     expect(readme).toContain("learning studio");
     expect(readme).toContain("docs/learning-guide.md");
+    expect(readme).toContain("docs/phase8e-circuit-focus-final-layout.md");
     expect(normalized).not.toContain("hackathon");
     expect(normalized).not.toContain("contest submission");
     expect(normalized).not.toContain("submission-oriented");

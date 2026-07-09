@@ -702,6 +702,16 @@ button {
   animation: rowFlash var(--motion-slow) var(--ease-standard);
 }
 
+.memory-svg-row.read rect {
+  fill: #f0fdf4;
+  stroke: #86efac;
+}
+
+.memory-svg-row.write rect {
+  fill: #fff1f2;
+  stroke: #fda4af;
+}
+
 .alu-module polygon {
   fill: #fbfcfe;
   stroke-width: 1.4;
@@ -747,6 +757,20 @@ button {
   fill: var(--color-danger);
 }
 
+.memory-target-badge,
+.memory-label-text {
+  fill: var(--color-muted);
+  font-family: "Cascadia Mono", Consolas, monospace;
+  font-size: 10px;
+  letter-spacing: 0;
+}
+
+.anchor-point {
+  fill: transparent;
+  stroke: transparent;
+  pointer-events: none;
+}
+
 .display-text {
   fill: var(--color-muted);
   font-size: 13px;
@@ -762,7 +786,7 @@ button {
 
 .wire {
   fill: none;
-  stroke-width: 1.45;
+  stroke-width: 1.25;
   stroke-linecap: round;
   stroke-linejoin: round;
   opacity: 0.34;
@@ -792,8 +816,8 @@ button {
 
 .wire-active {
   stroke: var(--color-active-red);
-  stroke-width: 2.2;
-  opacity: 0.88;
+  stroke-width: 2.4;
+  opacity: 0.82;
   filter: none;
 }
 

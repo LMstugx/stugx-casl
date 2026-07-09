@@ -1,4 +1,5 @@
 export const CIRCUIT_VIEWBOX = { width: 1100, height: 536 };
+export const CIRCUIT_MEMORY_ROW_COUNT = 11;
 
 export type RectLayout = {
   x: number;
@@ -12,15 +13,15 @@ export const circuitLayout = {
   decoder: { x: 36, y: 114, w: 144, h: 106 },
   controller: { x: 36, y: 240, w: 144, h: 84 },
   display: { x: 36, y: 350, w: 186, h: 72 },
-  pr: { x: 316, y: 36, w: 116, h: 60 },
-  addressResult: { x: 456, y: 43, w: 90, h: 46 },
-  sp: { x: 572, y: 106, w: 110, h: 54 },
+  pr: { x: 294, y: 36, w: 116, h: 60 },
+  addressResult: { x: 438, y: 43, w: 90, h: 46 },
+  sp: { x: 560, y: 112, w: 110, h: 54 },
   mar: { x: 690, y: 36, w: 126, h: 60 },
-  gr: { x: 266, y: 142, w: 190, h: 266 },
-  alu: { x: 488, y: 158, w: 226, h: 206 },
-  mdr: { x: 742, y: 230, w: 106, h: 66 },
-  fr: { x: 548, y: 394, w: 138, h: 56 },
-  memory: { x: 880, y: 88, w: 160, h: 360 },
+  gr: { x: 252, y: 144, w: 190, h: 266 },
+  alu: { x: 474, y: 156, w: 226, h: 206 },
+  mdr: { x: 726, y: 230, w: 106, h: 66 },
+  fr: { x: 518, y: 394, w: 138, h: 56 },
+  memory: { x: 858, y: 88, w: 182, h: 360 },
   sourceMap: { x: 266, y: 438, w: 262, h: 70 }
 } satisfies Record<string, RectLayout>;
 
@@ -43,12 +44,12 @@ function rectPoint(layout: RectLayout, side: "left" | "right" | "top" | "bottom"
   return { x: layout.x + layout.w * normalizedOffset, y: layout.y + layout.h };
 }
 
-function registerRowY(index: number): number {
+export function registerRowY(index: number): number {
   return circuitLayout.gr.y + 50.5 + clamp(index, 0, 7) * 27;
 }
 
-function memoryRowY(address: number): number {
-  const index = clamp(address - 0x20, 0, 10);
+export function memoryRowY(address: number, windowStart = 0x20): number {
+  const index = clamp(address - windowStart, 0, CIRCUIT_MEMORY_ROW_COUNT - 1);
   return circuitLayout.memory.y + 49 + index * 28;
 }
 
@@ -57,6 +58,14 @@ export const circuitAnchors = {
     right: () => rectPoint(circuitLayout.pr, "right"),
     left: () => rectPoint(circuitLayout.pr, "left"),
     top: () => rectPoint(circuitLayout.pr, "top")
+  },
+  addressResult: {
+    left: () => rectPoint(circuitLayout.addressResult, "left"),
+    right: () => rectPoint(circuitLayout.addressResult, "right")
+  },
+  sp: {
+    left: () => rectPoint(circuitLayout.sp, "left"),
+    right: () => rectPoint(circuitLayout.sp, "right")
   },
   mar: {
     left: () => rectPoint(circuitLayout.mar, "left"),
@@ -80,8 +89,8 @@ export const circuitAnchors = {
     inputFromMemory: () => rectPoint(circuitLayout.mdr, "right", 0.45)
   },
   memory: {
-    rowLeft: (address: number) => ({ x: circuitLayout.memory.x + 12, y: memoryRowY(address) }),
-    rowRight: (address: number) => ({ x: circuitLayout.memory.x + circuitLayout.memory.w - 12, y: memoryRowY(address) })
+    rowLeft: (address: number, windowStart = 0x20) => ({ x: circuitLayout.memory.x + 12, y: memoryRowY(address, windowStart) }),
+    rowRight: (address: number, windowStart = 0x20) => ({ x: circuitLayout.memory.x + circuitLayout.memory.w - 12, y: memoryRowY(address, windowStart) })
   },
   fr: {
     input: () => rectPoint(circuitLayout.fr, "top")
@@ -89,14 +98,14 @@ export const circuitAnchors = {
 };
 
 export const aluPolygonPoints = [
-  [alu.x + 10, alu.y],
-  [alu.x + alu.w - 16, alu.y],
-  [alu.x + alu.w, alu.y + 16],
-  [alu.x + alu.w, alu.y + alu.h - 16],
-  [alu.x + alu.w - 16, alu.y + alu.h],
-  [alu.x + 10, alu.y + alu.h],
-  [alu.x, alu.y + alu.h - 10],
-  [alu.x, alu.y + 10]
+  [alu.x + 18, alu.y],
+  [alu.x + alu.w - 18, alu.y],
+  [alu.x + alu.w, alu.y + 38],
+  [alu.x + alu.w, alu.y + alu.h - 38],
+  [alu.x + alu.w - 18, alu.y + alu.h],
+  [alu.x + 18, alu.y + alu.h],
+  [alu.x, alu.y + alu.h - 24],
+  [alu.x, alu.y + 24]
 ]
   .map(([x, y]) => `${x},${y}`)
   .join(" ");

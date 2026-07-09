@@ -72,6 +72,29 @@ test("Mock backend runs CASL logic operations and shows machine code", async ({ 
   await expect(page.getByTestId("memory-view-row-002F")).toContainText("0002");
 });
 
+test("Mock backend keeps circuit focus paths anchored to rows", async ({ page }) => {
+  await openStudio(page, "Mock Core");
+  await selectDemoProgram(page, "casl-gr2-addition");
+  await assemble(page);
+
+  const circuit = page.getByTestId("comet-circuit-svg");
+  await step(page);
+  await expect(circuit.locator("[data-testid='register-gr2']")).toHaveAttribute("data-active", "true");
+  await expect(circuit.locator("[data-testid='memory-row-0027']")).toHaveAttribute("data-read", "true");
+  await expect(circuit.locator("[data-testid='wire-memory-to-mdr']")).toBeVisible();
+  await expect(circuit.locator("[data-testid='module-sp']")).toHaveAttribute("data-active", "false");
+
+  await step(page);
+  await expect(circuit.locator("[data-testid='wire-gr-to-alu']")).toBeVisible();
+  await expect(circuit.locator("[data-testid='wire-mdr-to-alu']")).toBeVisible();
+  await expect(circuit.locator("[data-testid='module-alu']")).toHaveAttribute("data-active", "true");
+
+  await step(page);
+  await expect(circuit.locator("[data-testid='memory-row-0029']")).toHaveAttribute("data-write", "true");
+  await expect(circuit.locator("[data-testid='wire-mdr-to-memory']")).toBeVisible();
+  await expect(circuit.locator("[data-testid='module-sp']")).toHaveAttribute("data-active", "false");
+});
+
 test("Mock backend executes C++ subset if else lowering in the browser UI", async ({ page }) => {
   await openStudio(page, "Mock Core");
   await page.getByTestId("source-mode-cpp").click();

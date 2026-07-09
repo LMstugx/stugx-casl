@@ -281,7 +281,21 @@ Use it to:
 
 The viewer does not render all 65536 memory words at once.
 
-## 12. How To Use Trace
+## 12. How To Read Circuit Focus Mode
+
+Circuit Focus Mode is the compact hardware view in the center of the app.
+
+Read it by layers:
+
+- Top control/address layer: `IR`, `PR`, `+2`, `SP`, and `MAR`.
+- Middle execution/data layer: General Registers, `ALU`, `MDR`, and Memory.
+- Bottom flag layer: `FR`.
+
+The active data path targets specific rows where possible. For example, `LD GR2,A` highlights the Memory row for `A`, routes it through `MDR`, and lands on the `GR2` row. Arithmetic and compare instructions route the selected GR row and `MDR` into the ALU, then update either the GR row and `FR` or only `FR`.
+
+`SP` is visible as an independent register. Since stack instructions are not implemented yet, it is not part of the default `PR -> MAR` fetch path and should not become active during ordinary arithmetic or memory instructions.
+
+## 13. How To Use Trace
 
 Trace records recent execution steps.
 
@@ -298,7 +312,7 @@ Each entry shows:
 
 Use Trace for loops. It is easier to understand repeated execution from Trace than from Output, because Output is intentionally a summary log.
 
-## 13. How To Use Control Flow Badges
+## 14. How To Use Control Flow Badges
 
 Control Flow hints appear in Generated CASL, Machine Code, Learning Flow, and Trace.
 
@@ -314,7 +328,7 @@ For `break` / `continue`, pay attention to:
 - `continue -> FOR_CONTINUE_0`
 - `break -> FOR_END_0`
 
-## 14. Current Limitations
+## 15. Current Limitations
 
 - C++ support is a learning subset, not a complete compiler.
 - CASL II support is a teaching subset, not the full instruction set.
@@ -323,7 +337,7 @@ For `break` / `continue`, pay attention to:
 - Complex boolean expressions such as `&&`, `||`, and `!` are not supported.
 - Control Flow is currently text and badge based, not a graph layout.
 
-## 15. Suggested Next Study Topics
+## 16. Suggested Next Study Topics
 
 - Compare CASL source rows with machine-code instruction and operand words.
 - Step through `CPA` and observe FR changes.

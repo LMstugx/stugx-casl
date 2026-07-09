@@ -13,6 +13,7 @@ export type WirePath = {
 export type WirePathOptions = {
   grIndex?: number;
   memoryAddress?: number;
+  memoryWindowStart?: number;
 };
 
 function point({ x, y }: CircuitPoint): string {
@@ -36,11 +37,12 @@ function clampRegisterIndex(index = 1): number {
   return Math.max(0, Math.min(7, index));
 }
 
-export function buildWirePaths({ grIndex = 1, memoryAddress = 0x27 }: WirePathOptions = {}): readonly WirePath[] {
+export function buildWirePaths({ grIndex = 1, memoryAddress = 0x27, memoryWindowStart = 0x20 }: WirePathOptions = {}): readonly WirePath[] {
   const gr = clampRegisterIndex(grIndex);
   const grLeft = circuitAnchors.gr.rowLeft(gr);
   const grRight = circuitAnchors.gr.rowRight(gr);
-  const memoryLeft = circuitAnchors.memory.rowLeft(memoryAddress);
+  const memoryLeft = circuitAnchors.memory.rowLeft(memoryAddress, memoryWindowStart);
+  const memoryRight = circuitAnchors.memory.rowRight(memoryAddress, memoryWindowStart);
   const mdrLeft = circuitAnchors.mdr.left();
   const mdrRight = circuitAnchors.mdr.right();
   const mdrToAlu = circuitAnchors.mdr.outputToAlu();
@@ -54,10 +56,10 @@ export function buildWirePaths({ grIndex = 1, memoryAddress = 0x27 }: WirePathOp
   const marLeft = circuitAnchors.mar.left();
   const marRight = circuitAnchors.mar.right();
   const addressBusY = 24;
-  const dataBusY = circuitLayout.alu.y + circuitLayout.alu.h + 14;
-  const grBusX = circuitLayout.gr.x + circuitLayout.gr.w + 24;
-  const aluBusLeftX = circuitLayout.alu.x - 16;
-  const aluBusRightX = circuitLayout.alu.x + circuitLayout.alu.w + 14;
+  const dataBusY = circuitLayout.alu.y + circuitLayout.alu.h + 18;
+  const grBusX = circuitLayout.gr.x + circuitLayout.gr.w + 18;
+  const aluBusLeftX = circuitLayout.alu.x - 14;
+  const aluBusRightX = circuitLayout.alu.x + circuitLayout.alu.w + 16;
   const memoryBusX = circuitLayout.memory.x - 18;
 
   return Object.freeze([
@@ -78,7 +80,7 @@ export function buildWirePaths({ grIndex = 1, memoryAddress = 0x27 }: WirePathOp
     { id: "memory-to-mdr", role: "data", d: pathThrough([memoryLeft, { x: memoryBusX, y: memoryLeft.y }, { x: memoryBusX, y: mdrRight.y }, mdrRight]) },
     { id: "mdr-to-gr", role: "data", d: pathThrough([mdrLeft, { x: aluBusRightX, y: mdrLeft.y }, { x: aluBusRightX, y: dataBusY }, { x: grBusX, y: dataBusY }, { x: grBusX, y: grRight.y }, grRight]) },
     { id: "gr-to-mdr", role: "data", d: pathThrough([grRight, { x: grBusX, y: grRight.y }, { x: grBusX, y: dataBusY }, { x: aluBusRightX, y: dataBusY }, { x: aluBusRightX, y: mdrLeft.y }, mdrLeft]) },
-    { id: "mdr-to-memory", role: "data", d: pathThrough([mdrRight, { x: memoryBusX, y: mdrRight.y }, { x: memoryBusX, y: memoryLeft.y }, memoryLeft]) },
+    { id: "mdr-to-memory", role: "data", d: pathThrough([mdrRight, { x: memoryBusX, y: mdrRight.y }, { x: memoryBusX, y: memoryRight.y }, memoryRight]) },
     { id: "gr-to-alu", role: "data", d: pathThrough([grRight, { x: grBusX, y: grRight.y }, { x: grBusX, y: aluInputA.y }, aluInputA]) },
     { id: "mdr-to-alu", role: "data", d: pathThrough([mdrToAlu, { x: aluBusRightX, y: mdrToAlu.y }, { x: aluBusRightX, y: aluInputB.y }, aluInputB]) },
     { id: "alu-to-gr", role: "data", d: pathThrough([aluOutputY, { x: aluBusLeftX, y: aluOutputY.y }, { x: aluBusLeftX, y: grRight.y }, grRight]) },
@@ -96,12 +98,12 @@ export const wirePaths: readonly WirePath[] = buildWirePaths();
 export const activeWireIdsByKind: Record<VisualPathKind, string[]> = {
   [VisualPathKind.None]: [],
   [VisualPathKind.Ready_PrToMar]: ["pr-to-mar"],
-  [VisualPathKind.LD_MemoryToMdrToGr]: ["memory-to-mdr", "mdr-to-gr"],
-  [VisualPathKind.ST_GrToMdrToMemory]: ["gr-to-mdr", "mdr-to-memory"],
-  [VisualPathKind.ADDA_GrMdrToAluToGr]: ["gr-to-alu", "mdr-to-alu", "alu-to-gr", "alu-to-fr"],
+  [VisualPathKind.LD_MemoryToMdrToGr]: ["mar-to-memory", "memory-to-mdr", "mdr-to-gr"],
+  [VisualPathKind.ST_GrToMdrToMemory]: ["gr-to-mdr", "mar-to-memory", "mdr-to-memory"],
+  [VisualPathKind.ADDA_GrMdrToAluToGr]: ["gr-to-alu", "mar-to-memory", "memory-to-mdr", "mdr-to-alu", "alu-to-gr", "alu-to-fr"],
   [VisualPathKind.LAD_AddressToGr]: ["pr-to-mar", "address-to-gr"],
-  [VisualPathKind.SUBA_GrMdrToAluToGr]: ["gr-to-alu", "mdr-to-alu", "alu-to-gr", "alu-to-fr"],
-  [VisualPathKind.CPA_GrMdrToAluToFr]: ["gr-to-alu", "mdr-to-alu", "alu-to-fr"],
+  [VisualPathKind.SUBA_GrMdrToAluToGr]: ["gr-to-alu", "mar-to-memory", "memory-to-mdr", "mdr-to-alu", "alu-to-gr", "alu-to-fr"],
+  [VisualPathKind.CPA_GrMdrToAluToFr]: ["gr-to-alu", "mar-to-memory", "memory-to-mdr", "mdr-to-alu", "alu-to-fr"],
   [VisualPathKind.Jump_AddressToPr]: ["pr-to-mar", "address-to-pr"],
   [VisualPathKind.ConditionalJump_AddressToPr]: ["pr-to-mar", "address-to-pr"],
   [VisualPathKind.ConditionalJump_NotTaken]: ["pr-to-plus2"],

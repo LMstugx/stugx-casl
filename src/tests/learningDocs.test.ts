@@ -41,6 +41,13 @@ describe("learning use documentation", () => {
     expect(learningGuide).toContain("No guided lesson for custom source.");
   });
 
+  it("learning_guide_mentions_study_mode", () => {
+    expect(learningGuide).toContain("How To Use Study Mode");
+    expect(learningGuide).toContain("manual, not automatic grading");
+    expect(learningGuide).toContain("recommended tab hints");
+    expect(learningGuide).toContain("Reset lesson progress");
+  });
+
   it("demo_script_uses_learning_demo_wording", () => {
     expect(demoScript).toContain("学習");
     expect(demoScript).toContain("前輩や先生");

@@ -3,7 +3,7 @@ import React from "react";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import DemoGuidePanel from "../components/DemoGuidePanel";
 import OutputPanel from "../components/OutputPanel";
 import { mockCaslCore } from "../core/mockCaslCore";
@@ -182,6 +182,89 @@ describe("demo recording experience", () => {
     expect(markup).toContain("FOR_END");
   });
 
+  it("study_mode_shows_lesson_progress", () => {
+    const program = getDemoProgram("cpp-addition");
+    const lesson = getLearningLesson("cpp-addition");
+    expect(program).toBeDefined();
+    expect(lesson).toBeDefined();
+
+    const markup = renderToStaticMarkup(
+      <DemoGuidePanel
+        program={program!}
+        lesson={lesson}
+        lessonProgress={{ assemble: true, "machine-code": true }}
+      />
+    );
+
+    expect(markup).toContain('data-testid="study-mode-progress"');
+    expect(markup).toContain("2 / 3 steps completed");
+  });
+
+  it("study_mode_toggles_step_checkbox", async () => {
+    const program = getDemoProgram("cpp-addition");
+    const lesson = getLearningLesson("cpp-addition");
+    const onToggle = vi.fn();
+    expect(program).toBeDefined();
+    expect(lesson).toBeDefined();
+
+    await renderOutputPanel(<DemoGuidePanel program={program!} lesson={lesson} onToggleLessonStep={onToggle} />);
+
+    const checkbox = container?.querySelector('[data-testid="study-mode-step-checkbox"]') as HTMLInputElement;
+    expect(checkbox).toBeTruthy();
+
+    await act(async () => {
+      checkbox.click();
+    });
+
+    expect(onToggle).toHaveBeenCalledWith("cpp-addition", "assemble");
+  });
+
+  it("study_mode_reset_clears_progress", () => {
+    const initial = createInitialAppState();
+    const withProgress = appStoreReducer(initial, { type: "lessonStepToggled", exampleId: "cpp-addition", stepId: "assemble" });
+    const reset = appStoreReducer(withProgress, { type: "lessonProgressReset", exampleId: "cpp-addition" });
+
+    expect(withProgress.lessonProgress["cpp-addition"].assemble).toBe(true);
+    expect(reset.lessonProgress["cpp-addition"]).toBeUndefined();
+  });
+
+  it("study_mode_progress_is_per_example", () => {
+    let state = createInitialAppState();
+    state = appStoreReducer(state, { type: "lessonStepToggled", exampleId: "cpp-addition", stepId: "assemble" });
+    state = appStoreReducer(state, { type: "lessonStepToggled", exampleId: "cpp-break-continue", stepId: "open-generated" });
+
+    expect(state.lessonProgress["cpp-addition"].assemble).toBe(true);
+    expect(state.lessonProgress["cpp-break-continue"]["open-generated"]).toBe(true);
+    expect(state.lessonProgress["cpp-addition"]["open-generated"]).toBeUndefined();
+  });
+
+  it("study_mode_shows_recommended_tab", () => {
+    const program = getDemoProgram("cpp-break-continue");
+    const lesson = getLearningLesson("cpp-break-continue");
+    expect(program).toBeDefined();
+    expect(lesson).toBeDefined();
+
+    const markup = renderToStaticMarkup(<DemoGuidePanel program={program!} lesson={lesson} />);
+
+    expect(markup).toContain("Recommended tab: Generated CASL");
+    expect(markup).toContain("Recommended tab: Machine Code");
+    expect(markup).toContain("Recommended tab: Trace");
+  });
+
+  it("checkpoint_section_shows_expected_and_where_to_look", () => {
+    const program = getDemoProgram("cpp-break-continue");
+    const lesson = getLearningLesson("cpp-break-continue");
+    expect(program).toBeDefined();
+    expect(lesson).toBeDefined();
+
+    const markup = renderToStaticMarkup(<DemoGuidePanel program={program!} lesson={lesson} />);
+
+    expect(markup).toContain("Expected");
+    expect(markup).toContain("Where to look");
+    expect(markup).toContain("continue should jump to FOR_CONTINUE");
+    expect(markup).toContain("break should jump to FOR_END");
+  });
+
   it("demo_guide_shows_no_lesson_for_custom_source", () => {
     const program = getDemoProgram("cpp-addition");
     expect(program).toBeDefined();
@@ -189,6 +272,19 @@ describe("demo recording experience", () => {
     const markup = renderToStaticMarkup(<DemoGuidePanel program={program!} />);
 
     expect(markup).toContain("No guided lesson for custom source.");
+  });
+
+  it("custom_source_shows_no_guided_lesson_and_no_progress", () => {
+    const program = getDemoProgram("cpp-addition");
+    expect(program).toBeDefined();
+
+    const markup = renderToStaticMarkup(
+      <DemoGuidePanel program={program!} lessonProgress={{ assemble: true }} />
+    );
+
+    expect(markup).toContain("No guided lesson for custom source.");
+    expect(markup).not.toContain("steps completed");
+    expect(markup).not.toContain('data-testid="study-mode-step-checkbox"');
   });
 
   it("about_panel_renders_project_summary", () => {

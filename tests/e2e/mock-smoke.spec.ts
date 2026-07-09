@@ -25,10 +25,19 @@ test("Mock backend shows project overview and keeps learning demo views working"
   await expect(page.getByTestId("project-overview")).not.toContainText(/contest|hackathon/i);
 
   await expect(page.getByTestId("guided-lesson")).toBeVisible();
-  await selectDemoProgram(page, "cpp-break-continue");
   await page.getByTestId("guided-lesson-summary").click();
+  await expect(page.getByTestId("study-mode-progress")).toContainText("0 /");
+  await page.getByTestId("study-mode-step-checkbox").first().check();
+  await expect(page.getByTestId("study-mode-progress")).toContainText("1 /");
+
+  await selectDemoProgram(page, "cpp-break-continue");
   await expect(page.getByTestId("guided-lesson")).toContainText("FOR_CONTINUE");
   await expect(page.getByTestId("guided-lesson")).toContainText("FOR_END");
+  await expect(page.getByTestId("study-mode-progress")).toContainText("0 /");
+  await page.getByTestId("study-mode-step-checkbox").first().check();
+  await expect(page.getByTestId("study-mode-progress")).toContainText("1 /");
+  await page.getByTestId("study-mode-reset").click();
+  await expect(page.getByTestId("study-mode-progress")).toContainText("0 /");
 
   await selectDemoProgram(page, "cpp-addition");
   await expect(page.getByTestId("guided-lesson")).toContainText("Generated CASL");

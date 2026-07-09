@@ -1,4 +1,4 @@
-# stugx.CASL Learning Guide
+﻿# stugx.CASL Learning Guide
 
 ## 1. What This Tool Is
 
@@ -7,7 +7,7 @@ stugx.CASL is a CASL II / COMET II learning studio. It helps you study how sever
 ```text
 C++ subset
 -> CASL II assembly
--> COMET II machine code
+-> COMET II Machine Code
 -> runtime memory and registers
 -> trace, control flow, and circuit state
 ```
@@ -152,7 +152,39 @@ The checkpoints are not automatic grading. They are prompts for manual observati
 - `Generated CASL should contain LD / ADDA / ST.`
 - `continue should jump to FOR_CONTINUE.`
 
-## 4. How To Use Checkpoints
+## 4. How To Use Study Mode
+
+Study Mode turns the suggested steps into a manual checklist for the current example.
+
+Use it this way:
+
+1. Open `Guided Lesson`.
+2. Follow the suggested steps from top to bottom.
+3. Check a step when you have done it.
+4. Read the `Recommended tab` hint beside the step.
+5. Compare your observation with the checkpoints.
+
+The checklist is manual, not automatic grading. It does not inspect your answer or decide whether the program is correct. It only helps you keep your place during one study session.
+
+Progress is stored only while the app is open. Switching examples keeps separate progress for each built-in example during the session. Editing custom source hides the lesson and shows `No guided lesson for custom source.`
+
+To start over, click `Reset lesson progress` in the Guided Lesson section.
+
+## 5. How To Use Recommended Tab Hints
+
+Each suggested step can point to the most useful tab:
+
+These recommended tab hints are there to reduce guessing during study.
+
+- `Generated CASL`: read the assembly produced from C++ subset.
+- `Machine Code`: inspect instruction words, operand words, and opcode explanation.
+- `Trace`: follow repeated execution and jumps.
+- `Memory`: inspect variables, labels, and writes.
+- `Output`: read summary messages such as assemble and run results.
+
+The hint is intentionally simple. It tells you where to look next; it does not switch tabs automatically.
+
+## 6. How To Use Checkpoints
 
 Treat checkpoints as questions to answer while stepping or running:
 
@@ -163,7 +195,7 @@ Treat checkpoints as questions to answer while stepping or running:
 
 The checkbox in the UI is only local and temporary. It is meant to help you follow a lesson during one study session.
 
-## 5. Example-Specific Study Order
+## 7. Example-Specific Study Order
 
 Use the examples in this order:
 
@@ -175,7 +207,7 @@ Use the examples in this order:
 6. `C++: For Sum Sugar`: learn `i++` and `+=` lowering.
 7. `C++: Break Continue`: learn jump targets for loop control.
 
-## 6. How To Verify Your Understanding
+## 8. How To Verify Your Understanding
 
 After each lesson, try one small change:
 
@@ -188,7 +220,7 @@ After each lesson, try one small change:
 
 For structured exercises, see [practice-tasks.md](practice-tasks.md).
 
-## 7. How To Read Generated CASL
+## 9. How To Read Generated CASL
 
 Generated CASL is the CASL II source produced from C++ subset input.
 
@@ -204,7 +236,7 @@ Useful columns:
 
 If the source mode is CASL, this tab still shows CASL rows, but it is not generated from C++.
 
-## 8. How To Read Machine Code
+## 10. How To Read Machine Code
 
 Machine Code shows the COMET II memory words produced by assembly.
 
@@ -227,7 +259,7 @@ Click a row to see:
 
 This is useful for connecting CASL source to actual COMET II words.
 
-## 9. How To Use Memory Viewer
+## 11. How To Use Memory Viewer
 
 The circuit view includes a small memory window for execution context. The Inspector `Memory` tab is the detailed viewer.
 
@@ -241,7 +273,7 @@ Use it to:
 
 The viewer does not render all 65536 memory words at once.
 
-## 10. How To Use Trace
+## 12. How To Use Trace
 
 Trace records recent execution steps.
 
@@ -258,7 +290,7 @@ Each entry shows:
 
 Use Trace for loops. It is easier to understand repeated execution from Trace than from Output, because Output is intentionally a summary log.
 
-## 11. How To Use Control Flow Badges
+## 13. How To Use Control Flow Badges
 
 Control Flow hints appear in Generated CASL, Machine Code, Learning Flow, and Trace.
 
@@ -274,7 +306,7 @@ For `break` / `continue`, pay attention to:
 - `continue -> FOR_CONTINUE_0`
 - `break -> FOR_END_0`
 
-## 12. Current Limitations
+## 14. Current Limitations
 
 - C++ support is a learning subset, not a complete compiler.
 - CASL II support is a teaching subset, not the full instruction set.
@@ -283,7 +315,7 @@ For `break` / `continue`, pay attention to:
 - Complex boolean expressions such as `&&`, `||`, and `!` are not supported.
 - Control Flow is currently text and badge based, not a graph layout.
 
-## 13. Suggested Next Study Topics
+## 15. Suggested Next Study Topics
 
 - Compare CASL source rows with machine-code instruction and operand words.
 - Step through `CPA` and observe FR changes.
@@ -293,5 +325,6 @@ For `break` / `continue`, pay attention to:
 
 ## Japanese Summary
 
-stugx.CASL は、CASL II / COMET II を学ぶためのツールです。C++ subset、Generated CASL II Assembly、COMET II Machine Code、Opcode explanation、Memory、Trace、Control Flow、Circuit を一つの流れとして観察できます�?
-おすすめの学習順序は、CASL 直接実行、C++ から CASL、if / else、while、for、break / continue です。完全な C++ compiler ではなく、CASL II / COMET II の理解を助けるための学習�?subset です�?
+stugx.CASL 銇€丆ASL II / COMET II 銈掑銇躲仧銈併伄銉勩兗銉仹銇欍€侰++ subset銆丟enerated CASL II Assembly銆丆OMET II Machine Code銆丱pcode explanation銆丮emory銆乀race銆丆ontrol Flow銆丆ircuit 銈掍竴銇ゃ伄娴併倢銇ㄣ仐銇﹁Τ瀵熴仹銇嶃伨銇欍€?
+銇娿仚銇欍倎銇缈掗爢搴忋伅銆丆ASL 鐩存帴瀹熻銆丆++ 銇嬨倝 CASL銆乮f / else銆亀hile銆乫or銆乥reak / continue 銇с仚銆傚畬鍏ㄣ仾 C++ compiler 銇с伅銇亸銆丆ASL II / COMET II 銇悊瑙ｃ倰鍔┿亼銈嬨仧銈併伄瀛︾繏鐢?subset 銇с仚銆?
+

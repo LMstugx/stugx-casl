@@ -2,6 +2,8 @@
 
 These tasks are for studying stugx.CASL manually. They do not require automatic grading. Use the Source Editor, Generated CASL, Machine Code, Memory Viewer, Trace, and Registers to check your understanding.
 
+Use Study Mode checkpoints to compare your observation with expected behavior while you work through the built-in examples.
+
 ## Level 1: CASL Basics
 
 ### Task 1. Change A / B constants

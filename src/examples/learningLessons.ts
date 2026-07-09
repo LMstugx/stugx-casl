@@ -54,13 +54,15 @@ export const learningLessons: LearningLesson[] = [
         id: "step-ld",
         label: "Step LD",
         action: "Click Step once.",
-        expectedObservation: "GR2 becomes 0003 after loading A."
+        expectedObservation: "GR2 becomes 0003 after loading A.",
+        recommendedTab: "Trace"
       },
       {
         id: "step-adda",
         label: "Step ADDA",
         action: "Click Step again.",
-        expectedObservation: "GR2 becomes 0007 after adding B."
+        expectedObservation: "GR2 becomes 0007 after adding B.",
+        recommendedTab: "Trace"
       },
       {
         id: "step-st",
@@ -127,7 +129,8 @@ export const learningLessons: LearningLesson[] = [
         id: "run",
         label: "Run",
         action: "Click Run.",
-        expectedObservation: "The program finishes with GR0 = 001E."
+        expectedObservation: "The program finishes with GR0 = 001E.",
+        recommendedTab: "Trace"
       }
     ],
     checkpoints: [
@@ -184,7 +187,8 @@ export const learningLessons: LearningLesson[] = [
         id: "run",
         label: "Run",
         action: "Click Run.",
-        expectedObservation: "The equality branch is taken and GR0 becomes 0001."
+        expectedObservation: "The equality branch is taken and GR0 becomes 0001.",
+        recommendedTab: "Trace"
       }
     ],
     checkpoints: [
@@ -299,7 +303,8 @@ export const learningLessons: LearningLesson[] = [
         id: "run",
         label: "Run",
         action: "Click Run.",
-        expectedObservation: "GR0 becomes 0006."
+        expectedObservation: "GR0 becomes 0006.",
+        recommendedTab: "Trace"
       }
     ],
     checkpoints: [
@@ -349,7 +354,8 @@ export const learningLessons: LearningLesson[] = [
         id: "run",
         label: "Run",
         action: "Click Run.",
-        expectedObservation: "GR0 becomes 0006."
+        expectedObservation: "GR0 becomes 0006.",
+        recommendedTab: "Trace"
       }
     ],
     checkpoints: [

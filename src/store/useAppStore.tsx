@@ -12,6 +12,7 @@ import { CppToCaslMap, transpileCppToCasl } from "../transpiler/cppTranspiler";
 type AssembleStatus = "default" | "running" | "success" | "error";
 export type SourceMode = "casl" | "cpp";
 type RunStopReason = "manual" | "maxSteps" | "finished" | "error" | null;
+export type LessonProgress = Record<string, Record<string, boolean>>;
 
 const DEFAULT_RUN_MAX_STEPS = 1000;
 const RUN_BATCH_SIZE = 20;
@@ -48,6 +49,7 @@ type AppStoreState = {
   generatedCaslSource: string;
   cppToCaslMapping: CppToCaslMap[];
   selectedDemoProgramId: string;
+  lessonProgress: LessonProgress;
 };
 
 type AppStoreActions = {
@@ -60,6 +62,8 @@ type AppStoreActions = {
   reset: () => void;
   stop: () => void;
   clearOutput: () => void;
+  toggleLessonStep: (exampleId: string, stepId: string) => void;
+  resetLessonProgress: (exampleId: string) => void;
 };
 
 type AppStore = AppStoreState & AppStoreActions;
@@ -76,7 +80,9 @@ export type AppStoreAction =
   | { type: "stepped"; cometState: CometState }
   | { type: "reset"; cometState: CometState }
   | { type: "coreError"; message: string }
-  | { type: "clearOutput" };
+  | { type: "clearOutput" }
+  | { type: "lessonStepToggled"; exampleId: string; stepId: string }
+  | { type: "lessonProgressReset"; exampleId: string };
 
 type AppStoreProviderProps = {
   children: ReactNode;
@@ -101,7 +107,8 @@ export function createInitialAppState(): AppStoreState {
     backendInfo: getCoreBackendInfo(),
     generatedCaslSource: "",
     cppToCaslMapping: [],
-    selectedDemoProgramId: initialDemo.id
+    selectedDemoProgramId: initialDemo.id,
+    lessonProgress: {}
   };
 }
 
@@ -276,6 +283,30 @@ export function appStoreReducer(state: AppStoreState, action: AppStoreAction): A
     return {
       ...state,
       cometState: { ...state.cometState, output: [] }
+    };
+  }
+
+  if (action.type === "lessonStepToggled") {
+    const currentExampleProgress = state.lessonProgress[action.exampleId] ?? {};
+    return {
+      ...state,
+      lessonProgress: {
+        ...state.lessonProgress,
+        [action.exampleId]: {
+          ...currentExampleProgress,
+          [action.stepId]: !currentExampleProgress[action.stepId]
+        }
+      }
+    };
+  }
+
+  if (action.type === "lessonProgressReset") {
+    if (!state.lessonProgress[action.exampleId]) return state;
+    const nextProgress = { ...state.lessonProgress };
+    delete nextProgress[action.exampleId];
+    return {
+      ...state,
+      lessonProgress: nextProgress
     };
   }
 
@@ -473,7 +504,9 @@ export function AppStoreProvider({ children, eventBus: providedEventBus }: AppSt
         if (state.cometState.runState !== "Running") return;
         runControlRef.current.stopRequested = true;
       },
-      clearOutput: () => dispatch({ type: "clearOutput" })
+      clearOutput: () => dispatch({ type: "clearOutput" }),
+      toggleLessonStep: (exampleId, stepId) => dispatch({ type: "lessonStepToggled", exampleId, stepId }),
+      resetLessonProgress: (exampleId) => dispatch({ type: "lessonProgressReset", exampleId })
     }),
     [eventBus, state.assembleResult, state.cometState, state.isSourceDirty, state.runStopReason, state.sourceMode, state.sourceText]
   );

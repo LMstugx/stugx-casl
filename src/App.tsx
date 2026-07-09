@@ -35,6 +35,7 @@ function StudioShell() {
     generatedCaslSource,
     cppToCaslMapping,
     selectedDemoProgramId,
+    lessonProgress,
     setSourceText,
     setSourceMode,
     selectDemoProgram,
@@ -43,7 +44,9 @@ function StudioShell() {
     step,
     reset,
     stop,
-    clearOutput
+    clearOutput,
+    toggleLessonStep,
+    resetLessonProgress
   } = useAppStore();
   const isRunning = state.runState === "Running";
   const canExecute = state.runState === "Ready" || (state.runState === "Stopped" && runStopReason === "manual");
@@ -55,6 +58,7 @@ function StudioShell() {
   const selectedDemoProgram = getDemoProgram(selectedDemoProgramId) ?? getDefaultDemoProgram();
   const selectedDemoMatchesSource = selectedDemoProgram.source === sourceText && selectedDemoProgram.mode === sourceMode;
   const selectedLesson = selectedDemoMatchesSource ? getLearningLesson(selectedDemoProgram.id) : undefined;
+  const selectedLessonProgress = selectedLesson ? (lessonProgress[selectedDemoProgram.id] ?? {}) : {};
   const timelineItems = useMemo(() => {
     const compactProgram = state.program && state.program.length > 0 && state.program.length <= 4 ? ["Ready", ...state.program.map((instruction) => instruction.op)] : [];
     if (compactProgram.length > 0 || state.trace.length === 0) {
@@ -121,7 +125,13 @@ function StudioShell() {
             </div>
           </section>
 
-          <DemoGuidePanel program={selectedDemoProgram} lesson={selectedLesson} />
+          <DemoGuidePanel
+            program={selectedDemoProgram}
+            lesson={selectedLesson}
+            lessonProgress={selectedLessonProgress}
+            onToggleLessonStep={toggleLessonStep}
+            onResetLessonProgress={resetLessonProgress}
+          />
 
           <section className="panel errors-panel">
             <header className="panel-header">

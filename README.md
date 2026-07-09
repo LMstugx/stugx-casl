@@ -30,7 +30,7 @@ CASL mode starts from CASL II source and then uses the same machine-code, runtim
 
 ## Recommended Learning Order
 
-Each built-in example includes a collapsible `Guided Lesson` in the Demo Guide. Use it as a manual checklist: read the concepts, assemble the example, open the recommended tab, then confirm each checkpoint.
+Each built-in example includes a collapsible `Guided Lesson` in the Demo Guide. Study Mode turns the lesson into a manual per-example checklist: read the concepts, assemble the example, open the recommended tab, confirm each checkpoint, and reset session-only progress when you want to repeat the lesson.
 
 1. `CASL: GR2 Addition`
    Learn direct CASL execution, `LD`, `ADDA`, `ST`, `RET`, GR changes, and memory write.

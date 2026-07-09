@@ -44,4 +44,10 @@ describe("guided learning lessons", () => {
     expect(text).toContain("continue");
     expect(text).toContain("break");
   });
+
+  it("learning_lessons_have_recommended_tabs", () => {
+    for (const lesson of learningLessons) {
+      expect(lesson.suggestedSteps.every((step) => step.recommendedTab)).toBe(true);
+    }
+  });
 });

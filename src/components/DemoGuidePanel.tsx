@@ -4,9 +4,21 @@ import type { LearningLesson } from "../examples/learningLessons";
 type DemoGuidePanelProps = {
   program: DemoProgram;
   lesson?: LearningLesson;
+  lessonProgress?: Record<string, boolean>;
+  onToggleLessonStep?: (exampleId: string, stepId: string) => void;
+  onResetLessonProgress?: (exampleId: string) => void;
 };
 
-export default function DemoGuidePanel({ program, lesson }: DemoGuidePanelProps) {
+export default function DemoGuidePanel({
+  program,
+  lesson,
+  lessonProgress = {},
+  onToggleLessonStep,
+  onResetLessonProgress
+}: DemoGuidePanelProps) {
+  const completedSteps = lesson ? lesson.suggestedSteps.filter((step) => lessonProgress[step.id]).length : 0;
+  const totalSteps = lesson?.suggestedSteps.length ?? 0;
+
   return (
     <section className="panel demo-guide-panel" data-testid="demo-guide">
       <details open>
@@ -41,6 +53,24 @@ export default function DemoGuidePanel({ program, lesson }: DemoGuidePanelProps)
         {lesson ? (
           <div className="demo-guide-body guided-lesson-body">
             <div>
+              <h3>Study Mode</h3>
+              <div className="study-mode-progress">
+                <span data-testid="study-mode-progress">
+                  {completedSteps} / {totalSteps} steps completed
+                </span>
+                <button
+                  type="button"
+                  className="text-button study-mode-reset"
+                  data-testid="study-mode-reset"
+                  onClick={() => onResetLessonProgress?.(lesson.exampleId)}
+                  disabled={completedSteps === 0}
+                >
+                  Reset lesson progress
+                </button>
+              </div>
+              <p className="study-mode-note">Manual checklist only. Use it to follow the lesson; it does not grade your result.</p>
+            </div>
+            <div>
               <h3>Level</h3>
               <p data-testid="guided-lesson-level">{lesson.level}</p>
             </div>
@@ -65,12 +95,25 @@ export default function DemoGuidePanel({ program, lesson }: DemoGuidePanelProps)
               </ul>
             </div>
             <div>
-              <h3>Suggested steps</h3>
-              <ol>
+              <h3>Suggested steps checklist</h3>
+              <ol className="study-step-list">
                 {lesson.suggestedSteps.map((step) => (
-                  <li key={step.id} data-testid="guided-lesson-step">
-                    <strong>{step.label}:</strong> {step.action} <span>{step.expectedObservation}</span>
-                    {step.recommendedTab ? <em> ({step.recommendedTab})</em> : null}
+                  <li key={step.id} data-testid="guided-lesson-step" data-completed={lessonProgress[step.id] ? "true" : "false"}>
+                    <label className="study-step">
+                      <input
+                        type="checkbox"
+                        checked={Boolean(lessonProgress[step.id])}
+                        data-testid="study-mode-step-checkbox"
+                        onChange={() => onToggleLessonStep?.(lesson.exampleId, step.id)}
+                      />
+                      <span>
+                        <strong>{step.label}:</strong> {step.action}
+                      </span>
+                    </label>
+                    <p>{step.expectedObservation}</p>
+                    {step.recommendedTab ? (
+                      <em data-testid="study-mode-recommended-tab">Recommended tab: {step.recommendedTab}</em>
+                    ) : null}
                   </li>
                 ))}
               </ol>
@@ -80,15 +123,21 @@ export default function DemoGuidePanel({ program, lesson }: DemoGuidePanelProps)
               <ul className="lesson-checkpoints">
                 {lesson.checkpoints.map((checkpoint) => (
                   <li key={checkpoint.id} data-testid="guided-lesson-checkpoint">
-                    <label>
-                      <input type="checkbox" />
-                      <span>
-                        <strong>{checkpoint.label}:</strong> {checkpoint.expected}
-                      </span>
-                    </label>
-                    <p>
-                      Look at {checkpoint.whereToLook}. {checkpoint.note}
-                    </p>
+                    <strong>{checkpoint.label}</strong>
+                    <dl>
+                      <div>
+                        <dt>Expected</dt>
+                        <dd>{checkpoint.expected}</dd>
+                      </div>
+                      <div>
+                        <dt>Where to look</dt>
+                        <dd>{checkpoint.whereToLook}</dd>
+                      </div>
+                      <div>
+                        <dt>Note</dt>
+                        <dd>{checkpoint.note}</dd>
+                      </div>
+                    </dl>
                   </li>
                 ))}
               </ul>

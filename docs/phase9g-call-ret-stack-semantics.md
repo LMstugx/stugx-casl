@@ -102,7 +102,7 @@ Signal Probe stays compact and adds:
 Phase 9H keeps the same execution semantics and adds clearer subroutine teaching views:
 
 - a compact Call Stack card for `callDepth`, top return address, stored stack row, and `RET` mode
-- explicit return-edge text such as `CALL -> SUB; return 0024` and `RET -> 0024 from MEM[FFFD]`
+- explicit return-edge text such as `Call target SUB; return 0024` and `Return to 0024 from MEM[FFFD]`
 - Machine Code explanation fields for return address, stack address, and call-depth transition
 - Trace wording that distinguishes stack `RET` from top-level finish
 - `CASL: Nested Call Return` for last-in-first-out return order

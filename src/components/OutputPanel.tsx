@@ -260,6 +260,16 @@ export default function OutputPanel({
                           <div className="machine-code-explanation-title">
                             Selected Word Explanation
                           </div>
+                          <dl className="machine-code-explanation-summary" data-testid="machine-code-explanation-summary">
+                            <div>
+                              <dt>Source</dt>
+                              <dd className="nowrap-symbol" title={machineExplanation.sourceText || "-"}>{machineExplanation.sourceText || "-"}</dd>
+                            </div>
+                            <div>
+                              <dt>Meaning</dt>
+                              <dd className="wrap-explanation" title={selectedMachineEdge ? controlFlowMeaning(selectedMachineEdge) : machineExplanation.meaning}>{selectedMachineEdge ? controlFlowMeaning(selectedMachineEdge) : machineExplanation.meaning}</dd>
+                            </div>
+                          </dl>
                           <dl>
                             <div>
                               <dt>Address</dt>
@@ -349,14 +359,6 @@ export default function OutputPanel({
                             <div className="machine-code-explanation-wide">
                               <dt>Edge Kind</dt>
                               <dd className="text-ellipsis">{selectedMachineEdge?.kind ?? "-"}</dd>
-                            </div>
-                            <div className="machine-code-explanation-wide">
-                              <dt>Source</dt>
-                              <dd className="nowrap-symbol" title={machineExplanation.sourceText || "-"}>{machineExplanation.sourceText || "-"}</dd>
-                            </div>
-                            <div className="machine-code-explanation-wide">
-                              <dt>Meaning</dt>
-                              <dd className="wrap-explanation" title={selectedMachineEdge ? controlFlowMeaning(selectedMachineEdge) : machineExplanation.meaning}>{selectedMachineEdge ? controlFlowMeaning(selectedMachineEdge) : machineExplanation.meaning}</dd>
                             </div>
                           </dl>
                         </section>

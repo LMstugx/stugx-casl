@@ -37,14 +37,14 @@ Instruction / symbol / label:
 
 Explanation text:
 
-- examples: `Final RET finishes program`, `base + index`, `Push return address`
+- examples: `Program finish`, `base + index`, `Return address write`
 - can wrap
 - secondary color
 - does not sit in the same column as a primary numeric value unless space is reserved
 
 Metadata label:
 
-- examples: `Top return`, `RET mode`, `Effective address`
+- examples: `Return`, `RET mode`, `Effective address`
 - short by default
 - uppercase compact labels are acceptable
 - must not push the primary value out of the card
@@ -100,9 +100,10 @@ Call Stack
 Depth 1
 Mode Stack return
 
-Top return  0024       MEM[FFFD]
+Return      0024       Return address read
+Stored at   MEM[FFFD]  Return to 0024 from MEM[FFFD]
 Routine     SUB        current / target
-Return edge RET -> 0024 from MEM[FFFD]
+Depth change 1 -> 0
 ```
 
 Default shape at top level:
@@ -112,15 +113,16 @@ Call Stack
 Depth 0
 Mode Top-level finish
 
-Top return  none       none
+Return      none       Stack activity: none
+Stored at   none       Program finish
 Routine     MAIN       current / target
-Return edge Final RET finishes program
+Depth change none
 ```
 
 Rules:
 
 - depth and mode are the summary
-- top return, storage row, routine, and edge are detail rows
+- return, storage row, routine, and depth change are detail rows
 - top-level RET does not imply stack access
 - long routine labels use ellipsis
 - stack return vs top-level finish remains visible

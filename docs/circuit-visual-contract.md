@@ -119,6 +119,7 @@ EAU:
 - Use EAU for index addressing, stack target preparation when needed, and CALL/JUMP indexed targets.
 - Active EAU display uses separate BASE, INDEX, and EA rows. Do not compress those values into one packed formula when the module is active.
 - BASE and INDEX routes terminate at separate input anchors so students can see address operand and index register as different inputs.
+- Active EAU rows must remain readable. Subtle BASE, INDEX, and EA wire labels may appear near the route endpoints, but they must not compete with the active path.
 
 SP:
 
@@ -318,6 +319,11 @@ Text must never break the circuit layout.
 - Phase 10K keeps Signal Probe default view to at most three primary rows. Index scenes prioritize EA while BASE / INDEX detail stays collapsed by default. Stack and CALL scenes prioritize SP or return-address activity before lower-priority details.
 - Trace history rows stay compact. The latest row may be more prominent, but it should not expand into a paragraph-like log card.
 - Code / Machine tables separate primary columns from secondary columns: Generated CASL line / label / opcode / operand and Machine Code address / word / source are primary; mapping and meaning are secondary.
+- Phase 10L refines final compact wording: Signal Probe labels use short stable names such as Return, SP, MEM[SP], EA, Base, Index, MDR, ALU.Y, and concrete GR names. Longer meaning belongs in the note column and `title` text instead of being visibly truncated into fragments.
+- Call Stack details use natural labels: Return, Stored at, Routine, and Depth change. Avoid shorthand such as "last 0 -> 1" in visible UI.
+- The Current Instruction card may use the shorter visible title "Instruction" to avoid useless truncation, while preserving the full meaning in `title` text.
+- Machine Code selected-word explanations should surface Source and Meaning in the compact panel before lower-level decode fields.
+- Latest Trace secondary notes may wrap to two lines; history rows stay one-line ellipsis with full `title` text.
 
 Observation Mode density rules:
 
@@ -410,6 +416,7 @@ Stack:
 - CALL writes return address and updates PR target.
 - stack RET reads Memory[SP] to PR.
 - top-level RET does not activate stack.
+- Use consistent visible terminology: PUSH is Stack write, POP is Stack read, CALL is Return address write, stack RET is Return address read, and top-level RET is Program finish.
 
 C++ function calls:
 

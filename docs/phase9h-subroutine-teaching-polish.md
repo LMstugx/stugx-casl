@@ -69,9 +69,9 @@ The card does not infer arguments, local variables, or full call frames. It is a
 
 The return edge is shown differently depending on the instruction:
 
-- `CALL`: `CALL -> SUB; return 0024`
-- stack `RET`: `RET -> 0024 from MEM[FFFD]`
-- top-level `RET`: `Final RET finishes program`
+- `CALL`: `Call target SUB; return 0024`
+- stack `RET`: `Return to 0024 from MEM[FFFD]`
+- top-level `RET`: `Program finish`
 
 This avoids implying that every `RET` reads the stack.
 

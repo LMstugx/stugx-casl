@@ -2,11 +2,8 @@ import { describe, expect, it } from "vitest";
 
 describe("circuit signal flow animation styles", () => {
   async function readRepoFile(relativePath: string): Promise<string> {
-    // @ts-expect-error The app tsconfig intentionally omits Node types; this test reads static files only.
     const { readFileSync } = await import("node:fs");
-    // @ts-expect-error The app tsconfig intentionally omits Node types; this test reads static files only.
     const { dirname, resolve } = await import("node:path");
-    // @ts-expect-error The app tsconfig intentionally omits Node types; this test reads static files only.
     const { fileURLToPath } = await import("node:url");
     const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 

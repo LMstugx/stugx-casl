@@ -274,8 +274,8 @@ async function capturePushPopStackCircuit(page: Page, viewport: Viewport) {
   await expect(page.getByTestId("comet-circuit-svg").locator("[data-testid='module-sp']")).toHaveAttribute("data-active", "true");
   await expect(page.getByTestId("comet-circuit-svg").locator("[data-testid='memory-row-FFFD']")).toHaveAttribute("data-write", "true");
   await selectObservationMode(page, "register-stack");
-  await expect(page.getByTestId("focus-stack-preview")).toContainText("WRITE");
-  await expect(page.getByTestId("focus-signal-probe")).toContainText("STACK");
+  await expect(page.getByTestId("focus-stack-preview")).toContainText("Stack write");
+  await expect(page.getByTestId("focus-signal-probe")).toContainText("Stack");
   await capture(page, viewport, "push-pop-stack-circuit.png");
 }
 
@@ -303,11 +303,11 @@ async function captureCallReturnCall(page: Page, viewport: Viewport) {
   await expect(page.getByTestId("comet-circuit-svg").locator("[data-testid='module-sp']")).toHaveAttribute("data-active", "true");
   await expect(page.getByTestId("comet-circuit-svg").locator("[data-testid='wire-return-address-to-mdr']")).toHaveAttribute("data-active", "true");
   await expect(page.getByTestId("comet-circuit-svg").locator("[data-testid='wire-eau-to-pr']")).toHaveAttribute("data-active", "true");
-  await expect(page.getByTestId("focus-signal-probe")).toContainText("RETADDR");
+  await expect(page.getByTestId("focus-signal-probe")).toContainText("Return");
   await selectObservationMode(page, "register-stack");
   await expect(page.getByTestId("focus-call-stack")).toContainText("Depth 1");
   await expect(page.getByTestId("focus-call-stack")).toContainText("0024");
-  await expect(page.getByTestId("focus-call-stack")).toContainText("CALL -> SUB");
+  await expect(page.getByTestId("focus-call-stack")).toContainText("Call target SUB");
   await capture(page, viewport, "call-return-call.png");
 }
 
@@ -325,7 +325,7 @@ async function captureCallReturnRetStack(page: Page, viewport: Viewport) {
   await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("Next");
   await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("ST GR1,RESULT");
   await selectObservationMode(page, "register-stack");
-  await expect(page.getByTestId("focus-call-stack")).toContainText("RET -> 0024 from MEM[FFFD]");
+  await expect(page.getByTestId("focus-call-stack")).toContainText("Return to 0024 from MEM[FFFD]");
   await capture(page, viewport, "call-return-ret-stack.png");
 }
 

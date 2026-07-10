@@ -578,7 +578,7 @@ button {
 
 .focus-current-runtime {
   display: grid;
-  grid-template-columns: 54px minmax(0, 1fr) 42px minmax(0, 1fr);
+  grid-template-columns: 66px minmax(0, 1fr) 44px minmax(0, 1fr);
   gap: 3px 7px;
   align-items: center;
   padding-top: 2px;
@@ -877,7 +877,7 @@ button {
 .signal-probe-row {
   min-width: 0;
   display: grid;
-  grid-template-columns: 56px minmax(64px, 0.72fr) minmax(0, 1fr);
+  grid-template-columns: 52px minmax(64px, 0.72fr) minmax(0, 1fr);
   gap: 6px;
   align-items: center;
   min-height: 20px;
@@ -906,6 +906,10 @@ button {
   overflow: hidden;
   font-size: 11px;
   text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.signal-probe-label {
   white-space: nowrap;
 }
 
@@ -1224,6 +1228,13 @@ button {
   opacity: 0.82;
 }
 
+.focus-trace-item.latest .trace-note {
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
 .focus-trace-item:not(.latest) .trace-note {
   opacity: 0.52;
 }
@@ -1233,6 +1244,16 @@ button {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   opacity: 0.76;
+}
+
+.circuit-focus-workspace[data-observation-mode="cpu-flow"] .focus-source-context {
+  grid-template-rows: minmax(0, 1fr);
+  align-items: stretch;
+  opacity: 0.68;
+}
+
+.circuit-focus-workspace[data-observation-mode="cpu-flow"] .focus-source-context .panel-header {
+  display: none;
 }
 
 .focus-source-context code {
@@ -1245,6 +1266,14 @@ button {
   text-overflow: ellipsis;
   white-space: nowrap;
   background: #fbfcfe;
+}
+
+.circuit-focus-workspace[data-observation-mode="cpu-flow"] .focus-source-context code {
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  border-top: 0;
+  font-size: 10.5px;
 }
 
 .left-column,
@@ -1832,11 +1861,11 @@ button {
 }
 
 .eau-module .module-title {
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .eau-module .module-small {
-  font-size: 9.4px;
+  font-size: 10px;
 }
 
 .effective-address-row rect {
@@ -1847,13 +1876,27 @@ button {
 
 .effective-address-row .eau-row-label {
   fill: #5d6c7e;
-  font-size: 8.8px;
+  font-size: 9.2px;
   font-weight: 850;
 }
 
 .effective-address-row .eau-row-value {
-  font-size: 9.4px;
+  font-size: 10.2px;
   font-weight: 850;
+}
+
+.eau-wire-label {
+  fill: #4f6f9d;
+  font-family: "Cascadia Mono", Consolas, monospace;
+  font-size: 7.6px;
+  font-weight: 850;
+  letter-spacing: 0.3px;
+  opacity: 0.62;
+  pointer-events: none;
+}
+
+.eau-wire-label-index {
+  fill: #6650b8;
 }
 
 .module-red {
@@ -2811,6 +2854,18 @@ button {
   grid-template-columns: 1fr 1fr;
   gap: 6px 10px;
   margin: 0;
+}
+
+.machine-code-explanation-summary {
+  grid-template-columns: minmax(0, 0.86fr) minmax(0, 1.14fr) !important;
+  gap: 5px 8px !important;
+  margin-bottom: 6px !important;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #dbe3ee;
+}
+
+.machine-code-explanation-summary dd.wrap-explanation {
+  -webkit-line-clamp: 2;
 }
 
 .machine-code-explanation dl > div {

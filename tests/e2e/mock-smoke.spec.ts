@@ -125,7 +125,7 @@ test("Mock backend runs CASL index addressing and explains effective address", a
   await expect(circuit.locator("[data-testid='wire-base-to-eau']")).toHaveAttribute("data-active", "true");
   await expect(circuit.locator("[data-testid='wire-index-to-eau']")).toHaveAttribute("data-active", "true");
   await expect(circuit.locator("[data-testid='wire-eau-to-mar']")).toHaveAttribute("data-active", "true");
-  await expect(page.getByTestId("focus-signal-probe")).toContainText("BASE");
+  await expect(page.getByTestId("focus-signal-probe")).toContainText("Base");
   await expect(page.getByTestId("focus-signal-probe")).toContainText("EA");
   await switchObservationMode(page, "register-stack");
   await expect(page.getByTestId("focus-register-bank").getByTestId("register-gr1")).toContainText("0014");
@@ -161,7 +161,7 @@ test("Mock backend runs CASL PUSH POP stack demo and shows stack path", async ({
   await switchObservationMode(page, "register-stack");
   await expect(page.getByTestId("focus-stack-preview").locator("[data-testid='stack-preview-row'][data-address='FFFD']")).toHaveAttribute("data-write", "true");
   await expect(page.getByTestId("focus-signal-probe")).toContainText("SP");
-  await expect(page.getByTestId("focus-signal-probe")).toContainText("STACK");
+  await expect(page.getByTestId("focus-signal-probe")).toContainText("Stack");
 
   await switchObservationMode(page, "cpu-flow");
   await step(page);
@@ -196,15 +196,15 @@ test("Mock backend runs CASL CALL RETURN demo and shows stack-aware RET", async 
   await expect(circuit.locator("[data-testid='wire-return-address-to-mdr']")).toHaveAttribute("data-active", "true");
   await expect(circuit.locator("[data-testid='wire-eau-to-pr']")).toHaveAttribute("data-active", "true");
   await expect(circuit.locator("[data-testid='memory-row-FFFD']")).toHaveAttribute("data-write", "true");
-  await expect(page.getByTestId("focus-signal-probe")).toContainText("RETADDR");
-  await expect(page.getByTestId("focus-signal-probe")).toContainText("CALLDEPTH");
+  await expect(page.getByTestId("focus-signal-probe")).toContainText("Return");
+  await expect(page.getByTestId("focus-signal-probe")).toContainText("Depth");
   await switchObservationMode(page, "register-stack");
   await expect(page.getByTestId("focus-call-stack")).toBeVisible();
   await expect(page.getByTestId("call-stack-depth")).toHaveText("1");
   await expect(page.getByTestId("call-stack-return-address")).toHaveText("0024");
   await expect(page.getByTestId("call-stack-routine")).toHaveText("SUB");
   await expect(page.getByTestId("call-stack-ret-mode")).toHaveText("Stack return");
-  await expect(page.getByTestId("focus-call-stack")).toContainText("CALL -> SUB; return 0024");
+  await expect(page.getByTestId("focus-call-stack")).toContainText("Call target SUB; return 0024");
 
   await switchObservationMode(page, "cpu-flow");
   await step(page);
@@ -220,7 +220,7 @@ test("Mock backend runs CASL CALL RETURN demo and shows stack-aware RET", async 
   await expect(page.getByTestId("call-stack-depth")).toHaveText("0");
   await expect(page.getByTestId("call-stack-return-address")).toHaveText("0024");
   await expect(page.getByTestId("call-stack-ret-mode")).toHaveText("Stack return");
-  await expect(page.getByTestId("focus-call-stack")).toContainText("RET -> 0024 from MEM[FFFD]");
+  await expect(page.getByTestId("focus-call-stack")).toContainText("Return to 0024 from MEM[FFFD]");
 
   await run(page);
   await expect(page.getByTestId("run-state")).toHaveText("Finished");
@@ -302,7 +302,7 @@ test("Mock backend presents Circuit Focus Mode as a teaching layout", async ({ p
   await expect(circuit).toContainText("CTRL");
   await expect(page.getByTestId("focus-program-current-line")).toContainText(/LD\s+GR2,A/);
   await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("LD");
-  await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("Current");
+  await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("Cur PR");
   await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("0020");
   await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("Next PR");
   await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("0022");
@@ -330,7 +330,7 @@ test("Mock backend presents Circuit Focus Mode as a teaching layout", async ({ p
   await expect(circuit.locator("[data-testid='module-sp']")).toHaveAttribute("data-active", "false");
   await expect(page.getByTestId("focus-program-current-line")).toContainText(/ADDA\s+GR2,B/);
   await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("ADDA");
-  await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("Current");
+  await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("Cur PR");
   await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("0022");
   await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("Next PR");
   await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("0024");
@@ -357,7 +357,7 @@ test("Mock backend presents Circuit Focus Mode as a teaching layout", async ({ p
   await expect(circuit.locator("[data-testid='module-sp']")).toHaveAttribute("data-active", "false");
   await expect(page.getByTestId("focus-program-current-line")).toContainText(/ST\s+GR2,C/);
   await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("ST");
-  await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("Current");
+  await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("Cur PR");
   await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("0024");
   await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("Next PR");
   await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("0026");

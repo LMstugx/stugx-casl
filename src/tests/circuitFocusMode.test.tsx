@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { readFileSync } from "node:fs";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import CircuitFocusLayout from "../components/CircuitFocusLayout";
@@ -18,6 +19,7 @@ const gr2Source = getDemoProgram("casl-gr2-addition")!.source;
 const pushPopSource = getDemoProgram("casl-push-pop-stack")!.source;
 const callReturnSource = getDemoProgram("casl-call-return")!.source;
 const nestedCallReturnSource = getDemoProgram("casl-nested-call-return")!.source;
+const appCss = readFileSync("src/styles/app.css", "utf8");
 const timelineItems = [
   { key: "ready", index: 0, label: "Ready", phase: "completed" },
   { key: "ld", index: 1, label: "LD", phase: "current" },
@@ -373,7 +375,7 @@ describe("Circuit Focus Mode layout", () => {
     expect(markup).toContain('data-testid="memory-row-FFFD"');
     expect(markup).toContain('data-write="true"');
     expect(markup).toContain("return 0024");
-    expect(markup).toContain("CALLDEPTH");
+    expect(markup).toContain("Call depth");
   });
 
   it("call_stack_view_shows_call_depth_and_top_return_address", () => {
@@ -386,7 +388,7 @@ describe("Circuit Focus Mode layout", () => {
     expect(markup).toContain("MEM[FFFD]");
     expect(markup).toContain('data-testid="call-stack-routine">SUB</code>');
     expect(markup).toContain('data-testid="call-stack-ret-mode">Stack return</code>');
-    expect(markup).toContain("CALL -&gt; SUB; return 0024");
+    expect(markup).toContain("Call target SUB; return 0024");
   });
 
   it("call_stack_view_updates_for_cpp_function_call", () => {
@@ -401,7 +403,7 @@ describe("Circuit Focus Mode layout", () => {
 
     expect(markup).toContain('data-testid="call-stack-depth">1</code>');
     expect(markup).toContain('data-testid="call-stack-routine">FUNC_ADDONE</code>');
-    expect(markup).toContain("CALL -&gt; FUNC_ADDONE");
+    expect(markup).toContain("Call target FUNC_ADDONE");
   });
 
   it("call_stack_view_updates_for_single_argument_function", () => {
@@ -417,7 +419,7 @@ describe("Circuit Focus Mode layout", () => {
 
     expect(markup).toContain('data-testid="call-stack-depth">1</code>');
     expect(markup).toContain('data-testid="call-stack-routine">FUNC_ADDONE</code>');
-    expect(markup).toContain("CALL -&gt; FUNC_ADDONE");
+    expect(markup).toContain("Call target FUNC_ADDONE");
   });
 
   it("call_stack_view_updates_for_multi_argument_call", () => {
@@ -434,7 +436,7 @@ describe("Circuit Focus Mode layout", () => {
 
     expect(markup).toContain('data-testid="call-stack-depth">1</code>');
     expect(markup).toContain('data-testid="call-stack-routine">FUNC_ADD</code>');
-    expect(markup).toContain("CALL -&gt; FUNC_ADD");
+    expect(markup).toContain("Call target FUNC_ADD");
   });
 
   it("call_stack_view_shows_top_level_ret_mode", () => {
@@ -445,7 +447,7 @@ describe("Circuit Focus Mode layout", () => {
     expect(markup).toContain('data-testid="call-stack-depth">0</code>');
     expect(markup).toContain('data-testid="call-stack-return-address">none</code>');
     expect(markup).toContain('data-testid="call-stack-ret-mode">Top-level finish</code>');
-    expect(markup).toContain("Final RET finishes program");
+    expect(markup).toContain("Program finish");
   });
 
   it("call_stack_view_shows_stack_return_mode", () => {
@@ -455,7 +457,7 @@ describe("Circuit Focus Mode layout", () => {
     expect(markup).toContain('data-testid="call-stack-depth">0</code>');
     expect(markup).toContain('data-testid="call-stack-return-address">0024</code>');
     expect(markup).toContain('data-testid="call-stack-ret-mode">Stack return</code>');
-    expect(markup).toContain("RET -&gt; 0024 from MEM[FFFD]");
+    expect(markup).toContain("Return to 0024 from MEM[FFFD]");
   });
 
   it("nested_call_demo_shows_depth_two_and_lifo_return_order", () => {
@@ -468,7 +470,7 @@ describe("Circuit Focus Mode layout", () => {
     expect(depthMarkup).toContain('data-testid="call-stack-return-address">0029</code>');
     expect(depthMarkup).toContain('data-testid="call-stack-routine">SUB2</code>');
     expect(retMarkup).toContain('data-testid="call-stack-depth">1</code>');
-    expect(retMarkup).toContain("RET -&gt; 0029 from MEM[FFFC]");
+    expect(retMarkup).toContain("Return to 0029 from MEM[FFFC]");
   });
 
   it("circuit_stack_ret_activates_sp_memory_read_pr", () => {
@@ -481,7 +483,7 @@ describe("Circuit Focus Mode layout", () => {
     expect(markup).toContain('data-testid="memory-row-FFFD"');
     expect(markup).toContain('data-read="true"');
     expect(markup).toContain("RET stack return");
-    expect(markup).toContain("RETADDR");
+    expect(markup).toContain("Return address");
   });
 
   it("circuit_top_level_ret_does_not_activate_sp", () => {
@@ -607,6 +609,49 @@ describe("Circuit Focus Mode layout", () => {
     expect(activeWireIds(markup)).not.toContain("base-to-eau");
     expect(activeWireIds(markup)).not.toContain("index-to-eau");
     expect(activeWireIds(markup)).not.toContain("eau-to-mar");
+  });
+
+  it("eau_rows_are_readable", () => {
+    const source = getDemoProgram("casl-index-addressing")!.source;
+    const markup = renderFocus(stepSource(source, 2), source);
+
+    expect(markup).toContain('data-testid="effective-address-base-row"');
+    expect(markup).toContain('data-testid="effective-address-index-row"');
+    expect(markup).toContain('data-testid="effective-address-ea-row"');
+    expect(appCss).toContain(".effective-address-row .eau-row-value");
+    expect(appCss).toContain("font-size: 10.2px");
+  });
+
+  it("eau_index_input_label_visible", () => {
+    const source = getDemoProgram("casl-index-addressing")!.source;
+    const markup = renderFocus(stepSource(source, 2), source);
+
+    expect(markup).toContain('data-testid="eau-index-input-label"');
+    expect(markup).toContain(">INDEX</text>");
+  });
+
+  it("eau_base_input_label_visible", () => {
+    const source = getDemoProgram("casl-index-addressing")!.source;
+    const markup = renderFocus(stepSource(source, 2), source);
+
+    expect(markup).toContain('data-testid="eau-base-input-label"');
+    expect(markup).toContain(">BASE</text>");
+  });
+
+  it("eau_output_label_visible", () => {
+    const source = getDemoProgram("casl-index-addressing")!.source;
+    const markup = renderFocus(stepSource(source, 2), source);
+
+    expect(markup).toContain('data-testid="eau-output-label"');
+    expect(markup).toContain(">EA</text>");
+  });
+
+  it("non_index_eau_remains_inactive", () => {
+    const markup = renderFocus(stepTimes(1));
+
+    expect(markup).toContain('data-testid="effective-address-unit" data-active="false"');
+    expect(markup).toContain("bypass");
+    expect(markup).not.toContain('data-testid="eau-index-input-label"');
   });
 
   it("index_lad_uses_eau_without_memory_read", () => {
@@ -740,6 +785,11 @@ DONE RET
     expect(outputMarkup).toContain("Run finished after 4 steps.");
   });
 
+  it("output_log_compact_height_unchanged", () => {
+    expect(appCss).toContain(".output-panel");
+    expect(appCss).toContain("grid-template-rows: 34px minmax(0, 1fr)");
+  });
+
   it("focus_mode_out_display_is_low_emphasis_when_empty", () => {
     const markup = renderFocus(mockCaslCore.assemble(gr2Source));
     const displayMatch = /data-testid="focus-display-panel"[\s\S]*?<\/section>/.exec(markup)?.[0] ?? "";
@@ -792,6 +842,23 @@ DONE RET
     expect(markup).toContain('title="#2 CALL SUB"');
   });
 
+  it("trace_latest_secondary_note_allows_two_lines", () => {
+    expect(appCss).toContain(".focus-trace-item.latest .trace-note");
+    expect(appCss).toContain("-webkit-line-clamp: 2");
+  });
+
+  it("trace_history_secondary_note_ellipsis", () => {
+    expect(appCss).toContain(".focus-trace-item:not(.latest) .trace-note");
+    expect(appCss).toContain("opacity: 0.52");
+  });
+
+  it("trace_call_ret_key_note_readable", () => {
+    const markup = renderFocus(stepSource(callReturnSource, 2), callReturnSource);
+
+    expect(markup).toContain("SP: FFFE -&gt; FFFD");
+    expect(markup).toContain("callDepth: 0 -&gt; 1");
+  });
+
   it("signal_probe_card_renders_compact", () => {
     const markup = renderFocus(stepTimes(1));
 
@@ -806,7 +873,7 @@ DONE RET
 
     expect(markup).toContain('data-testid="signal-probe-compact-rows"');
     expect(markup).toContain("signal-probe-row compact-grid");
-    expect(markup).toContain("compact-label text-ellipsis");
+    expect(markup).toContain("compact-label signal-probe-label");
     expect(markup).toContain("mono-value");
     expect(markup).toContain("secondary-note text-ellipsis");
     expect(markup).not.toContain("signal-probe-grid");
@@ -818,7 +885,31 @@ DONE RET
 
     expect(markup).toContain('data-testid="signal-probe-details"');
     expect(markup).toContain("+ ");
-    expect(markup).toContain("CALLDEPTH");
+    expect(markup).toContain("Call depth");
+  });
+
+  it("signal_probe_does_not_show_unhelpful_truncated_labels", () => {
+    const markup = renderFocus(stepSource(callReturnSource, 2), callReturnSource, "register-stack");
+
+    expect(markup).not.toContain(">RETADDR<");
+    expect(markup).not.toContain(">CALLDEPTH<");
+    expect(markup).not.toContain(">MEMIF");
+  });
+
+  it("signal_probe_uses_short_stable_labels", () => {
+    const markup = renderFocus(stepSource(callReturnSource, 2), callReturnSource, "register-stack");
+
+    expect(markup).toContain(">Return</span>");
+    expect(markup).toContain(">Depth</span>");
+    expect(markup).toContain(">SP</span>");
+  });
+
+  it("signal_probe_details_keep_title_for_full_meaning", () => {
+    const markup = renderFocus(stepSource(callReturnSource, 2), callReturnSource, "register-stack");
+
+    expect(markup).toContain('title="Return address"');
+    expect(markup).toContain('title="Call depth"');
+    expect(markup).toContain('title="Stack write"');
   });
 
   it("signal_probe_defaults_to_three_primary_rows", () => {
@@ -829,7 +920,7 @@ DONE RET
     expect(compactRows.match(/data-testid="signal-probe-row"/g)?.length).toBe(3);
     expect(compactRows).toContain(">GR1<");
     expect(compactRows).toContain(">EA<");
-    expect(compactRows).not.toContain(">BASE<");
+    expect(compactRows).not.toContain(">Base<");
   });
 
   it("signal_probe_index_details_collapsed_by_default", () => {
@@ -838,8 +929,8 @@ DONE RET
 
     expect(markup).toContain('data-testid="signal-probe-details"');
     expect(markup).toContain('aria-expanded="false"');
-    expect(markup).toContain(">BASE<");
-    expect(markup).toContain("index value");
+    expect(markup).toContain(">Base<");
+    expect(markup).toContain("index register");
   });
 
   it("signal_probe_stack_details_collapsed_by_default", () => {
@@ -847,7 +938,7 @@ DONE RET
     const compactRows = /data-testid="signal-probe-compact-rows"[\s\S]*?<details/.exec(markup)?.[0] ?? "";
 
     expect(compactRows.match(/data-testid="signal-probe-row"/g)?.length).toBe(3);
-    expect(compactRows).toContain(">RETADDR<");
+    expect(compactRows).toContain(">Return<");
     expect(compactRows).toContain(">SP<");
     expect(markup).toContain('aria-expanded="false"');
   });
@@ -856,7 +947,7 @@ DONE RET
     const markup = renderFocus(stepSource(callReturnSource, 2), callReturnSource, "register-stack");
 
     expect(markup).toContain("signal-probe-row compact-grid");
-    expect(markup).toContain("compact-label text-ellipsis");
+    expect(markup).toContain("compact-label signal-probe-label");
     expect(markup).toContain("secondary-note text-ellipsis");
   });
 
@@ -897,7 +988,39 @@ DONE RET
     expect(markup).toContain('data-testid="call-stack-details"');
     expect(markup).toContain('data-testid="call-stack-details-summary"');
     expect(markup).toContain("call-stack-row call-stack-row-wide");
-    expect(markup).toContain("Return edge");
+    expect(markup).toContain("Depth change");
+  });
+
+  it("call_stack_uses_human_readable_depth_change", () => {
+    const markup = renderFocus(stepSource(callReturnSource, 2), callReturnSource, "register-stack");
+
+    expect(markup).toContain("Depth change");
+    expect(markup).toContain('title="0 -&gt; 1"');
+    expect(markup).not.toContain("last 0 -&gt; 1");
+  });
+
+  it("call_stack_top_level_finish_wording_clear", () => {
+    const markup = renderFocus(mockCaslCore.assemble(gr2Source), gr2Source, "register-stack");
+
+    expect(markup).toContain("Top-level finish");
+    expect(markup).toContain("Program finish");
+    expect(markup).toContain("Stack activity: none");
+  });
+
+  it("call_stack_stack_return_wording_clear", () => {
+    const markup = renderFocus(stepSource(callReturnSource, 4), callReturnSource, "register-stack");
+
+    expect(markup).toContain("Stack return");
+    expect(markup).toContain("Return address read");
+    expect(markup).toContain("Return to 0024 from MEM[FFFD]");
+  });
+
+  it("call_stack_details_do_not_overflow", () => {
+    const markup = renderFocus(stepSource(callReturnSource, 2), callReturnSource, "register-stack");
+
+    expect(markup).toContain("call-stack-row");
+    expect(markup).toContain("secondary-note text-ellipsis");
+    expect(markup).toContain("nowrap-symbol");
   });
 
   it("call_stack_details_has_aria_expanded", () => {
@@ -914,7 +1037,7 @@ DONE RET
 
     expect(markup).toContain('class="call-stack-body card-overflow-safe" data-active="true" data-density="compact"');
     expect(markup).toContain('class="signal-probe-body card-overflow-safe" data-density="compact"');
-    expect(markup).toContain('title="CALL -&gt; SUB; return 0024"');
+    expect(markup).toContain('title="Call target SUB; return 0024"');
   });
 
   it("call_stack_top_level_mode_does_not_overflow", () => {
@@ -1107,6 +1230,45 @@ A    DC    3
     expect(markup).toContain("machine-code-explanation");
   });
 
+  it("machine_code_selected_explanation_shows_meaning", () => {
+    const state = mockCaslCore.assemble(gr2Source);
+    const markup = renderToStaticMarkup(
+      <OutputPanel lines={[]} state={state} sourceMode="casl" initialTab="machine" onClear={() => undefined} />
+    );
+
+    expect(markup).toContain('data-testid="machine-code-explanation-summary"');
+    expect(markup).toContain("<dt>Source</dt>");
+    expect(markup).toContain("<dt>Meaning</dt>");
+  });
+
+  it("machine_code_selected_explanation_not_too_short", () => {
+    expect(appCss).toContain(".machine-code-explanation-summary");
+    expect(appCss).toContain("grid-template-columns: minmax(0, 0.86fr) minmax(0, 1.14fr)");
+  });
+
+  it("machine_code_call_explanation_remains_visible", () => {
+    const program = getDemoProgram("cpp-function-arguments");
+    expect(program).toBeDefined();
+    const prepared = prepareSourceForCoreAssembly(program!.source, "cpp");
+    expect(prepared.ok).toBe(true);
+    const state = mockCaslCore.assemble(prepared.coreSourceText);
+    const markup = renderToStaticMarkup(
+      <OutputPanel
+        lines={[]}
+        state={state}
+        generatedCaslSource={prepared.generatedCaslSource}
+        cppToCaslMapping={prepared.mapping}
+        sourceMode="cpp"
+        initialTab="machine"
+        onClear={() => undefined}
+      />
+    );
+
+    expect(markup).toContain("CALL FUNC_ADD");
+    expect(markup).toContain("subroutine target address");
+    expect(markup).toContain('data-testid="machine-code-explanation-summary"');
+  });
+
   it("machine_code_long_cells_have_title", () => {
     const program = getDemoProgram("cpp-function-arguments");
     expect(program).toBeDefined();
@@ -1205,8 +1367,70 @@ A    DC    3
     const markup = renderFocus(stepSource(callReturnSource, 2), callReturnSource, "register-stack");
 
     expect(markup).toContain('title="#2 CALL SUB"');
-    expect(markup).toContain('title="RETADDR"');
-    expect(markup).toContain('title="CALL -&gt; SUB; return 0024"');
+    expect(markup).toContain('title="Return address"');
+    expect(markup).toContain('title="Call target SUB; return 0024"');
+  });
+
+  it("current_instruction_title_not_uselessly_truncated", () => {
+    const markup = renderFocus(stepSource(callReturnSource, 2), callReturnSource);
+
+    expect(markup).toContain('<h2 title="Current Instruction">Instruction</h2>');
+    expect(markup).not.toContain(">Current Instruction</h2>");
+  });
+
+  it("current_instruction_runtime_summary_uses_stable_rows", () => {
+    const markup = renderFocus(stepSource(callReturnSource, 2), callReturnSource);
+
+    expect(markup).toContain("Current PR");
+    expect(markup).toContain("Next PR");
+    expect(markup).toContain("MAR");
+    expect(markup).toContain("FR");
+  });
+
+  it("current_instruction_next_instruction_has_title", () => {
+    const markup = renderFocus(stepSource(callReturnSource, 2), callReturnSource);
+
+    expect(markup).toContain('title="SUB ADDA GR1,ONE"');
+  });
+
+  it("cpu_flow_source_context_does_not_clip_at_bottom", () => {
+    expect(appCss).toContain('.circuit-focus-workspace[data-observation-mode="cpu-flow"] .focus-source-context');
+    expect(appCss).toContain("grid-template-rows: minmax(0, 1fr)");
+  });
+
+  it("right_column_scroll_safe_when_content_exceeds_height", () => {
+    expect(appCss).toContain(".focus-right-column");
+    expect(appCss).toContain("overflow-y: auto");
+  });
+
+  it("source_context_compact_in_cpu_flow", () => {
+    const markup = renderFocus(stepTimes(1));
+
+    expect(markup).toContain('data-testid="focus-source-context"');
+    expect(appCss).toContain('.circuit-focus-workspace[data-observation-mode="cpu-flow"] .focus-source-context .panel-header');
+    expect(appCss).toContain("display: none");
+  });
+
+  it("push_stack_terms_are_clear", () => {
+    const markup = renderFocus(stepSource(pushPopSource, 2), pushPopSource, "register-stack");
+
+    expect(markup).toContain("Stack write");
+  });
+
+  it("pop_stack_terms_are_clear", () => {
+    const markup = renderFocus(stepSource(pushPopSource, 3), pushPopSource, "register-stack");
+
+    expect(markup).toContain("Stack read");
+  });
+
+  it("call_ret_stack_terms_are_clear", () => {
+    const callMarkup = renderFocus(stepSource(callReturnSource, 2), callReturnSource, "register-stack");
+    const retMarkup = renderFocus(stepSource(callReturnSource, 4), callReturnSource, "register-stack");
+    const finishMarkup = renderFocus(stepSource(callReturnSource, 6), callReturnSource, "register-stack");
+
+    expect(callMarkup).toContain("Return address write");
+    expect(retMarkup).toContain("Return address read");
+    expect(finishMarkup).toContain("Program finish");
   });
 
   it("trace_secondary_note_has_title_when_truncated", () => {

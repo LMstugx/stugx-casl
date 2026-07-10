@@ -217,31 +217,40 @@ function EffectiveAddressUnitModule({ state, active }: { state: CometState; acti
       data-layer="control"
     >
       <rect x={circuitLayout.eau.x} y={circuitLayout.eau.y} width={circuitLayout.eau.w} height={circuitLayout.eau.h} rx="5" />
-      <text className="module-title" x={circuitLayout.eau.x + 12} y={circuitLayout.eau.y + 15}>
+      <text className="module-title" x={circuitLayout.eau.x + 12} y={circuitLayout.eau.y + 16}>
         EAU
       </text>
-      <text className="module-small module-muted" x={circuitLayout.eau.x + 48} y={circuitLayout.eau.y + 15}>
+      <text className="module-small module-muted" x={circuitLayout.eau.x + 50} y={circuitLayout.eau.y + 16}>
         Address Unit
       </text>
       {active ? (
         <g data-testid="effective-address-chip">
           {rows.map((row, index) => {
-            const y = circuitLayout.eau.y + 21 + index * 11;
+            const y = circuitLayout.eau.y + 24 + index * 13;
             return (
               <g key={row.label} className="effective-address-row" data-testid={row.testId}>
-                <rect x={circuitLayout.eau.x + 9} y={y} width={circuitLayout.eau.w - 18} height="10" rx="2" />
-                <text className="module-small eau-row-label" x={circuitLayout.eau.x + 15} y={y + 7}>
+                <rect x={circuitLayout.eau.x + 9} y={y} width={circuitLayout.eau.w - 18} height="12" rx="2" />
+                <text className="module-small eau-row-label" x={circuitLayout.eau.x + 16} y={y + 8.5}>
                   {row.label}
                 </text>
-                <text className="module-small module-green eau-row-value" x={circuitLayout.eau.x + circuitLayout.eau.w - 12} y={y + 7} textAnchor="end">
+                <text className="module-small module-green eau-row-value" x={circuitLayout.eau.x + circuitLayout.eau.w - 12} y={y + 8.5} textAnchor="end">
                   {row.value}
                 </text>
               </g>
             );
           })}
+          <text className="eau-wire-label eau-wire-label-base" data-testid="eau-base-input-label" x={baseInput.x - 8} y={baseInput.y - 4} textAnchor="end">
+            BASE
+          </text>
+          <text className="eau-wire-label eau-wire-label-index" data-testid="eau-index-input-label" x={indexInput.x - 8} y={indexInput.y + 4} textAnchor="end">
+            INDEX
+          </text>
+          <text className="eau-wire-label eau-wire-label-ea" data-testid="eau-output-label" x={sumOutput.x + 8} y={sumOutput.y + 4}>
+            EA
+          </text>
         </g>
       ) : (
-        <text className="module-small module-muted" x={circuitLayout.eau.x + 12} y={circuitLayout.eau.y + 38}>
+        <text className="module-small module-muted" x={circuitLayout.eau.x + 12} y={circuitLayout.eau.y + 42}>
           bypass
         </text>
       )}

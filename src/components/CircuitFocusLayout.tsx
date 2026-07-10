@@ -350,7 +350,7 @@ function FocusCurrentInstructionPanel({ state, isSourceDirty, focus }: { state: 
   return (
     <section className="panel focus-current-panel" data-testid="focus-current-instruction-panel">
       <header className="panel-header">
-        <h2>Current Instruction</h2>
+        <h2 title="Current Instruction">Instruction</h2>
         <span className="pipeline-pill">{isSourceDirty ? "Dirty" : focus.pipelineStage}</span>
       </header>
       <div className="focus-current-body card-overflow-safe">
@@ -366,7 +366,7 @@ function FocusCurrentInstructionPanel({ state, isSourceDirty, focus }: { state: 
           data-testid="focus-current-runtime-summary"
           aria-label={`Current ${focus.address !== undefined ? formatWord(focus.address) : "----"} / Next PR ${formatWord(state.pr)}${focus.nextInstructionText ? ` / Next ${focus.nextInstructionText}` : ""} / MAR ${formatWord(state.mar)} / FR ${formatFlags(state.fr)}`}
         >
-          <span className="compact-label">Current</span>
+          <span className="compact-label" title="Current PR">Cur PR</span>
           <code className="mono-value">{focus.address !== undefined ? formatWord(focus.address) : "----"}</code>
           <span className="compact-label">MAR</span>
           <code className="mono-value">{formatWord(state.mar)}</code>
@@ -638,6 +638,8 @@ function FocusSourceMappingPanel({ focus, sourceMode }: { focus: FocusInstructio
 
 type ProbeRow = {
   label: string;
+  displayLabel?: string;
+  title?: string;
   value: string;
   note: string;
   active: boolean;
@@ -659,6 +661,7 @@ type CallStackInfo = {
   routineText: string;
   retModeText: string;
   edgeText: string;
+  stackActivityText: string;
   active: boolean;
 };
 
@@ -716,12 +719,20 @@ function callStackInfo(state: CometState, focus: FocusInstructionContext): CallS
         : "Top-level finish";
   const edgeText =
     visualPath === VisualPathKind.CALL_ReturnAddressToStackAndPr
-      ? `CALL -> ${targetLabel ?? (latest?.effectiveAddress !== undefined ? formatWord(latest.effectiveAddress) : "target")}; return ${latest?.returnAddress !== undefined ? formatWord(latest.returnAddress) : "----"}`
+      ? `Call target ${targetLabel ?? (latest?.effectiveAddress !== undefined ? formatWord(latest.effectiveAddress) : "target")}; return ${latest?.returnAddress !== undefined ? formatWord(latest.returnAddress) : "----"}`
       : visualPath === VisualPathKind.RET_StackToPr
-        ? `RET -> ${latest?.returnAddress !== undefined ? formatWord(latest.returnAddress) : "return address"} from MEM[${latest?.stackAddress !== undefined ? formatWord(latest.stackAddress) : "SP"}]`
+        ? `Return to ${latest?.returnAddress !== undefined ? formatWord(latest.returnAddress) : "caller"} from MEM[${latest?.stackAddress !== undefined ? formatWord(latest.stackAddress) : "SP"}]`
         : state.callDepth === 0
-          ? "Final RET finishes program"
+          ? "Program finish"
           : "Waiting for subroutine RET";
+  const stackActivityText =
+    visualPath === VisualPathKind.CALL_ReturnAddressToStackAndPr
+      ? "Return address write"
+      : visualPath === VisualPathKind.RET_StackToPr
+        ? "Return address read"
+        : state.callDepth === 0
+          ? "Stack activity: none"
+          : "waiting";
 
   return {
     depthText: String(state.callDepth),
@@ -731,6 +742,7 @@ function callStackInfo(state: CometState, focus: FocusInstructionContext): CallS
     routineText: currentRoutine,
     retModeText,
     edgeText,
+    stackActivityText,
     active: stackActive || state.callDepth > 0
   };
 }
@@ -761,6 +773,7 @@ function signalProbePriority(row: ProbeRow, visualPath: VisualPathKind): number 
   if (row.label === "ALU.Y" && row.active) return 16;
   if (row.label === "MDR" && row.active) return 18;
   if (row.label.startsWith("MEM[") && row.active) return 20;
+  if (row.label === "MEM" && row.active) return 20;
   if (row.label === "FR" && row.active) return 24;
   if (row.label === "BASE") return 56;
   if (row.note === "index value") return 58;
@@ -799,36 +812,42 @@ function signalProbeRows(state: CometState, focus: FocusInstructionContext): Pro
   const rows: ProbeRow[] = [
     {
       label: registerLabel,
+      title: `${registerLabel} selected register`,
       value: registerValue,
       note: "selected register",
       active: registerIndex !== undefined || latest?.changedRegister === registerLabel
     },
     {
       label: "MDR",
+      title: "Memory data register",
       value: formatWord(state.mdr),
-      note: "memory buffer",
+      note: "memory data register",
       active: visualPath === VisualPathKind.LD_MemoryToMdrToGr || visualPath === VisualPathKind.ST_GrToMdrToMemory || visualPath === VisualPathKind.ADDA_GrMdrToAluToGr || visualPath === VisualPathKind.SUBA_GrMdrToAluToGr || visualPath === VisualPathKind.CPA_GrMdrToAluToFr || visualPath === VisualPathKind.PUSH_EffectiveAddressToStack || visualPath === VisualPathKind.POP_StackToGr || visualPath === VisualPathKind.CALL_ReturnAddressToStackAndPr || visualPath === VisualPathKind.RET_StackToPr
     },
     {
       label: "ALU.Y",
+      title: "ALU output Y",
       value: isAluVisualPath(visualPath) ? formatWord(state.gr[probeRegisterIndex] ?? 0) : "inactive",
       note: "ALU result",
       active: isAluVisualPath(visualPath)
     },
     {
       label: "FR",
+      title: "Flag register",
       value: formatFlags(state.fr),
       note: "flags",
       active: visualPath === VisualPathKind.CPA_GrMdrToAluToFr || visualPath === VisualPathKind.ADDA_GrMdrToAluToGr || visualPath === VisualPathKind.SUBA_GrMdrToAluToGr || visualPath === VisualPathKind.Shift_AddressToAluToGr
     },
     {
-      label: memoryAddress !== undefined ? `MEM[${formatWord(memoryAddress)}]` : "MEM",
+      label: "MEM",
+      title: memoryAddress !== undefined ? `Memory target MEM[${formatWord(memoryAddress)}]` : "Memory target",
       value: memoryValue,
-      note: "target memory",
+      note: memoryAddress !== undefined ? `target MEM[${formatWord(memoryAddress)}]` : "target memory",
       active: memoryAddress !== undefined && (state.lastMemoryReadAddress === memoryAddress || state.lastMemoryWriteAddress === memoryAddress || state.changedMemoryAddresses.includes(memoryAddress))
     },
     {
       label: "SP",
+      title: "Stack pointer",
       value: stackPointerValue,
       note: visualPath === VisualPathKind.PUSH_EffectiveAddressToStack || visualPath === VisualPathKind.POP_StackToGr || visualPath === VisualPathKind.CALL_ReturnAddressToStackAndPr || visualPath === VisualPathKind.RET_StackToPr ? "stack pointer" : "stack preview only",
       active: visualPath === VisualPathKind.PUSH_EffectiveAddressToStack || visualPath === VisualPathKind.POP_StackToGr || visualPath === VisualPathKind.CALL_ReturnAddressToStackAndPr || visualPath === VisualPathKind.RET_StackToPr
@@ -838,8 +857,16 @@ function signalProbeRows(state: CometState, focus: FocusInstructionContext): Pro
   if (visualPath === VisualPathKind.PUSH_EffectiveAddressToStack || visualPath === VisualPathKind.POP_StackToGr || visualPath === VisualPathKind.CALL_ReturnAddressToStackAndPr || visualPath === VisualPathKind.RET_StackToPr) {
     rows.push({
       label: "STACK",
+      displayLabel: "Stack",
+      title: visualPath === VisualPathKind.PUSH_EffectiveAddressToStack || visualPath === VisualPathKind.CALL_ReturnAddressToStackAndPr ? "Stack write" : "Stack read",
       value: memoryAddress !== undefined ? `MEM[${formatWord(memoryAddress)}]` : "inactive",
-      note: visualPath === VisualPathKind.PUSH_EffectiveAddressToStack || visualPath === VisualPathKind.CALL_ReturnAddressToStackAndPr ? "stack write" : "stack read",
+      note: visualPath === VisualPathKind.PUSH_EffectiveAddressToStack
+        ? "Stack write"
+        : visualPath === VisualPathKind.CALL_ReturnAddressToStackAndPr
+          ? "Return address write"
+          : visualPath === VisualPathKind.RET_StackToPr
+            ? "Return address read"
+            : "Stack read",
       active: true
     });
   }
@@ -848,12 +875,16 @@ function signalProbeRows(state: CometState, focus: FocusInstructionContext): Pro
     rows.push(
       {
         label: "RETADDR",
+        displayLabel: "Return",
+        title: "Return address",
         value: latest?.returnAddress !== undefined ? formatWord(latest.returnAddress) : formatWord(state.pr),
         note: visualPath === VisualPathKind.CALL_ReturnAddressToStackAndPr ? "return address" : "return target",
         active: true
       },
       {
         label: "CALLDEPTH",
+        displayLabel: "Depth",
+        title: "Call depth",
         value:
           latest?.callDepthBefore !== undefined && latest.callDepthAfter !== undefined
             ? `${latest.callDepthBefore} -> ${latest.callDepthAfter}`
@@ -870,18 +901,23 @@ function signalProbeRows(state: CometState, focus: FocusInstructionContext): Pro
       0,
       {
         label: "BASE",
+        displayLabel: "Base",
+        title: "Base address operand",
         value: formatWord(state.lastBaseAddress ?? 0),
         note: "address operand",
         active: true
       },
       {
-        label: `GR${state.lastIndexRegister}`,
-        value: formatWord(state.lastIndexValue ?? 0),
-        note: "index value",
+        label: "INDEX",
+        displayLabel: "Index",
+        title: `Index register GR${state.lastIndexRegister}`,
+        value: `GR${state.lastIndexRegister}=${formatWord(state.lastIndexValue ?? 0)}`,
+        note: "index register",
         active: true
       },
       {
         label: "EA",
+        title: "Effective address",
         value: formatWord(state.lastEffectiveAddress),
         note: "base + index",
         active: true
@@ -907,7 +943,7 @@ function FocusCallStackPanel({ state, focus, density = "normal" }: { state: Come
       <header className="panel-header">
         <div>
           <h2>Call Stack</h2>
-          <span>{info.active ? "Return edge active" : "Subroutine context"}</span>
+          <span>{info.active ? "Return activity" : "Subroutine context"}</span>
         </div>
         <span>Depth {info.depthText}</span>
       </header>
@@ -916,7 +952,7 @@ function FocusCallStackPanel({ state, focus, density = "normal" }: { state: Come
           <div>
             <span className="compact-label">Depth</span>
             <code data-testid="call-stack-depth">{info.depthText}</code>
-            <small className="secondary-note">{info.transitionText ? `last ${info.transitionText}` : "current"}</small>
+            <small className="secondary-note">{info.transitionText ? "changed" : "current"}</small>
           </div>
           <div>
             <span className="compact-label">Mode</span>
@@ -940,9 +976,14 @@ function FocusCallStackPanel({ state, focus, density = "normal" }: { state: Come
           </summary>
           <div id="call-stack-detail-rows" className="call-stack-detail-rows">
           <div className="call-stack-row">
-            <span className="compact-label">Top return</span>
+            <span className="compact-label">Return</span>
             <code data-testid="call-stack-return-address">{info.topReturnText}</code>
-            <small className="secondary-note text-ellipsis" title={info.storedAtText}>{info.storedAtText}</small>
+            <small className="secondary-note text-ellipsis" title={info.stackActivityText}>{info.stackActivityText}</small>
+          </div>
+          <div className="call-stack-row">
+            <span className="compact-label">Stored at</span>
+            <code className="nowrap-symbol" title={info.storedAtText}>{info.storedAtText}</code>
+            <small className="secondary-note text-ellipsis" title={info.edgeText}>{info.edgeText}</small>
           </div>
           <div className="call-stack-row">
             <span className="compact-label">Routine</span>
@@ -950,8 +991,8 @@ function FocusCallStackPanel({ state, focus, density = "normal" }: { state: Come
             <small className="secondary-note">current / target</small>
           </div>
           <div className="call-stack-row call-stack-row-wide">
-            <span className="compact-label">Return edge</span>
-            <code className="nowrap-symbol" title={info.edgeText}>{info.edgeText}</code>
+            <span className="compact-label">Depth change</span>
+            <code className="nowrap-symbol" title={info.transitionText ?? "none"}>{info.transitionText ?? "none"}</code>
           </div>
           </div>
         </details>
@@ -983,7 +1024,7 @@ function FocusSignalProbePanel({ state, focus, density = "normal" }: { state: Co
         <div className="signal-probe-rows" data-testid="signal-probe-compact-rows">
           {primaryRows.map((row) => (
             <div key={row.label} className="signal-probe-row compact-grid" data-testid="signal-probe-row" data-active={row.active ? "true" : "false"}>
-              <span className="compact-label text-ellipsis" title={row.label}>{row.label}</span>
+              <span className="compact-label signal-probe-label" title={row.title ?? row.label}>{row.displayLabel ?? row.label}</span>
               <code className="mono-value" title={row.value}>{row.value}</code>
               <small className="secondary-note text-ellipsis" title={row.note}>{row.note}</small>
             </div>
@@ -1007,7 +1048,7 @@ function FocusSignalProbePanel({ state, focus, density = "normal" }: { state: Co
             <div id="signal-probe-detail-rows" className="signal-probe-rows detail-rows">
               {detailRows.map((row) => (
                 <div key={row.label} className="signal-probe-row compact-grid" data-testid="signal-probe-row" data-active={row.active ? "true" : "false"}>
-                  <span className="compact-label text-ellipsis" title={row.label}>{row.label}</span>
+                  <span className="compact-label signal-probe-label" title={row.title ?? row.label}>{row.displayLabel ?? row.label}</span>
                   <code className="mono-value" title={row.value}>{row.value}</code>
                   <small className="secondary-note text-ellipsis" title={row.note}>{row.note}</small>
                 </div>
@@ -1039,6 +1080,18 @@ function FocusStackPreviewPanel({ state }: { state: CometState }) {
     visualPath === VisualPathKind.POP_StackToGr ||
     visualPath === VisualPathKind.CALL_ReturnAddressToStackAndPr ||
     visualPath === VisualPathKind.RET_StackToPr;
+  const writeNote =
+    visualPath === VisualPathKind.CALL_ReturnAddressToStackAndPr
+      ? "Return address write"
+      : visualPath === VisualPathKind.PUSH_EffectiveAddressToStack
+        ? "Stack write"
+        : "WRITE";
+  const readNote =
+    visualPath === VisualPathKind.RET_StackToPr
+      ? "Return address read"
+      : visualPath === VisualPathKind.POP_StackToGr
+        ? "Stack read"
+        : "READ";
 
   return (
     <section className="panel focus-stack-preview" data-testid="focus-stack-preview">
@@ -1067,7 +1120,9 @@ function FocusStackPreviewPanel({ state }: { state: CometState }) {
           >
             <code className="mono-value">{formatWord(row.address)}</code>
             <code className="mono-value">{formatWord(row.value)}</code>
-            <span className="text-ellipsis">{row.isWrite ? (row.isSp ? "WRITE / SP" : "WRITE") : row.isRead ? "READ" : row.isSp ? "<- SP" : ""}</span>
+            <span className="text-ellipsis" title={row.isWrite ? (row.isSp ? `${writeNote} / SP` : writeNote) : row.isRead ? readNote : row.isSp ? "SP" : ""}>
+              {row.isWrite ? (row.isSp ? `${writeNote} / SP` : writeNote) : row.isRead ? readNote : row.isSp ? "SP" : ""}
+            </span>
           </div>
         ))}
       </div>

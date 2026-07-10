@@ -317,6 +317,7 @@ The current backend is shown in the status bar as `Mock Core`, `WASM Core`, or `
 - [docs/phase10i-release-hardening-stress-audit.md](docs/phase10i-release-hardening-stress-audit.md): deterministic malformed-input corpus, stress checks, WASM lifecycle checks, and sanitizer/toolchain notes.
 - [docs/phase10j-observation-mode-split.md](docs/phase10j-observation-mode-split.md): Focus Mode observation modes for CPU flow, register/stack values, and code/machine mapping.
 - [docs/phase10k-observation-visual-defect-cleanup.md](docs/phase10k-observation-visual-defect-cleanup.md): EAU visual cleanup, compact Signal Probe rows, Trace compacting, and Code / Machine table hierarchy.
+- [docs/phase10l-final-ui-detail-polish.md](docs/phase10l-final-ui-detail-polish.md): final EAU readability, Signal Probe labels, Call Stack wording, Trace notes, and compact Machine Code explanation polish.
 
 ## Current Limitations
 

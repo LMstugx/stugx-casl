@@ -25,6 +25,7 @@ import phase10h from "../../docs/phase10h-robustness-audit.md?raw";
 import phase10i from "../../docs/phase10i-release-hardening-stress-audit.md?raw";
 import phase10j from "../../docs/phase10j-observation-mode-split.md?raw";
 import phase10k from "../../docs/phase10k-observation-visual-defect-cleanup.md?raw";
+import phase10l from "../../docs/phase10l-final-ui-detail-polish.md?raw";
 import circuitVisualContract from "../../docs/circuit-visual-contract.md?raw";
 import futureCustomCircuit from "../../docs/future-custom-circuit-design.md?raw";
 import manualQaChecklist from "../../docs/manual-qa-checklist.md?raw";
@@ -247,6 +248,21 @@ describe("learning use documentation", () => {
     expect(phase10k).toContain("Route Spacing Fixes");
     expect(readme).toContain("docs/phase10k-observation-visual-defect-cleanup.md");
     expect(circuitVisualContract).toContain("BASE, INDEX, and EA rows");
+  });
+
+  it("phase10l_final_ui_detail_polish_doc_exists", () => {
+    expect(phase10l).toContain("Phase 10L: Final UI Detail Polish");
+    expect(phase10l).toContain("EAU Readability Polish");
+    expect(phase10l).toContain("Signal Probe Label Cleanup");
+    expect(phase10l).toContain("Call Stack Wording Cleanup");
+    expect(phase10l).toContain("Current Instruction Naming");
+    expect(phase10l).toContain("Machine Code Explanation Height Fix");
+    expect(phase10l).toContain("Trace Secondary-Note Rule");
+    expect(phase10l).toContain("Stack Terminology Rule");
+    expect(readme).toContain("docs/phase10l-final-ui-detail-polish.md");
+    expect(circuitVisualContract).toContain("Signal Probe labels use short stable names");
+    expect(circuitVisualContract).toContain("Machine Code selected-word explanations");
+    expect(circuitVisualContract).toContain("PUSH is Stack write");
   });
 
   it("phase10e_focus_text_overflow_cleanup_doc_exists", () => {
@@ -485,6 +501,7 @@ describe("learning use documentation", () => {
     expect(readme).toContain("docs/phase10f-small-viewport-accessibility.md");
     expect(readme).toContain("docs/phase10j-observation-mode-split.md");
     expect(readme).toContain("docs/phase10k-observation-visual-defect-cleanup.md");
+    expect(readme).toContain("docs/phase10l-final-ui-detail-polish.md");
     expect(readme).toContain("docs/manual-qa-checklist.md");
     expect(readme).toContain("docs/release-candidate-notes.md");
     expect(readme).toContain("docs/future-custom-circuit-design.md");

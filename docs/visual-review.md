@@ -118,6 +118,7 @@ Use the gallery to inspect:
 - Shift screenshots show the ALU/Shifter path and do not mark Memory as the shift-count data source.
 - Index addressing screenshots show the `IDX` register badge, Effective Address Unit, base/index/effective calculation, and effective Memory row highlight.
 - Effective Address Unit screenshots should show separate `BASE`, `INDEX`, and `EA` rows, with BASE and INDEX lines landing on different input anchors.
+- Effective Address Unit active rows should be readable, and subtle `BASE`, `INDEX`, and `EA` route labels should clarify the input/output meaning without dominating the active path.
 - PUSH / POP screenshots show `SP`, Stack Preview, stack row write/read, and Machine Code explanations that distinguish effective address values from memory data.
 - CALL / RET screenshots show return-address stack writes, stack return reads, PR target changes, Call Stack depth, return edge text, and the final top-level `RET` finish.
 - Nested CALL screenshot shows `callDepth` greater than 1 and last-in-first-out return order context.
@@ -126,16 +127,19 @@ Use the gallery to inspect:
 - C++ function-arguments screenshots show `LAD GR1,2`, `LAD GR2,3`, `ST GR1,FUNC_ADD_A`, `ST GR2,FUNC_ADD_B`, and final `GR0 = 0005`.
 - Signal Probe uses compact label / value / note rows; extra values appear in details instead of overlapping.
 - Signal Probe should show no more than three primary rows by default; index BASE / INDEX details and lower-priority stack/call details should stay collapsed.
+- Signal Probe labels should be meaningful short names such as `Return`, `SP`, `MEM[SP]`, `EA`, `Base`, `Index`, `MDR`, or `ALU.Y`; avoid visible fragments such as `RETAD...`.
 - Call Stack uses summary and detail rows; depth, RET mode, return address, and routine remain readable.
+- Call Stack details should use readable wording such as `Return`, `Stored at`, `Routine`, and `Depth change` instead of terse internal abbreviations.
 - Signal Probe and Call Stack details can be focused and opened with the keyboard.
 - Focus rings are visible on toolbar buttons, tabs, details summaries, and machine-code rows without dominating the layout.
 - Ellipsized labels, instructions, operands, and explanation text expose the full value through native `title` text.
 - Trace rows show main event, primary effect, and secondary note without overflowing the card.
-- Trace history rows should stay compact while the latest row remains visually prominent.
+- Trace history rows should stay compact while the latest row remains visually prominent. The latest secondary note may use up to two lines when needed for CALL / RET / PUSH / POP context.
 - Learning Flow cards use short values such as `Flow: fallthrough` or `Flow: call -> FUNC_ADDONE`.
 - Long labels in Generated CASL and Machine Code use ellipsis rather than pushing table columns out of the dock.
 - Code / Machine Mode tables should make primary columns readable and secondary mapping / meaning columns muted and ellipsized.
 - Machine Code explanation is readable.
+- Selected Machine Code explanation should show at least Address, Word, Source, and Meaning in compact dock layouts.
 - Control Flow target text is readable.
 - Source Editor is not squeezed.
 - Right Inspector remains usable.

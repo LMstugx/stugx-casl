@@ -6,6 +6,8 @@ This phase does not implement stack-frame locals, stack arguments, recursion, ne
 
 Phase 11F extends this preview with selected slot highlighting and Slot Detail in [phase11f-frameplan-slot-highlighting-contract.md](phase11f-frameplan-slot-highlighting-contract.md). That contract remains design-only and still does not make FramePlan rows live runtime slots.
 
+Phase 11G then connects C++ source context chips and Generated CASL `slot` badges to that same selected-slot model in [phase11g-source-casl-frame-slot-selection.md](phase11g-source-casl-frame-slot-selection.md), without changing emitted CASL.
+
 ## Purpose
 
 The placeholder Stack Frame View was useful as a warning that current C++ locals are not real stack-frame locals. Phase 11E makes that panel more useful by showing a `FramePlan` preview whenever the current C++ source can be parsed and semantically checked.

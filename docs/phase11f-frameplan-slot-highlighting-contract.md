@@ -4,6 +4,8 @@ Phase 11F adds a design-only slot mapping and highlighting contract for the Stac
 
 This phase does not implement stack-frame locals, stack arguments, recursion, new C++ syntax, VM behavior, assembler behavior, WASM behavior, mock-core behavior, C++ lowering behavior, or emitted CASL changes.
 
+Phase 11G wires C++ source context and Generated CASL static-label badges to the same selected-slot contract in [phase11g-source-casl-frame-slot-selection.md](phase11g-source-casl-frame-slot-selection.md). That later wiring remains design-only.
+
 ## Purpose
 
 FramePlan preview already shows proposed future slots. Phase 11F makes those rows inspectable without making them live runtime state.
@@ -99,7 +101,7 @@ Focus-visible styling is retained, and the Slot Detail text uses compact rows, e
 ## Future Work
 
 - Click a C++ variable and select the matching FramePlan slot.
-- Click a Generated CASL static label and select the matching FramePlan slot.
+- Phase 11G starts this path with compact source symbol chips and Generated CASL `slot` badges.
 - Show live stack-frame slot values after stack-frame lowering exists.
 - Add real stack-frame lowering for locals and arguments.
 - Teach recursive frames once live frame slots exist.

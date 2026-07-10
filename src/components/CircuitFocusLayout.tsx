@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { selectGeneratedCaslRows } from "../core/generatedCaslRows";
 import { selectMachineCodeRows } from "../core/machineCodeRows";
 import type { CometState } from "../core/types";
@@ -6,7 +6,16 @@ import { VisualPathKind, formatFlags, formatWord } from "../core/types";
 import type { ObservationMode, SourceMode } from "../store/useAppStore";
 import type { CppToCaslMap } from "../transpiler/cppAst";
 import { cppLineForCaslLine } from "../transpiler/cppMapping";
-import { selectStackFramePreviewState, type FrameSlotMapping, type FrameSlotPreview } from "../transpiler/framePlanView";
+import {
+  currentStaticLabelForMapping,
+  findFrameSlotMappingInCaslText,
+  frameSlotMappingsForSourceLine,
+  selectStackFramePreviewState,
+  stackFramePreviewMappings,
+  type FrameSlotMapping,
+  type FrameSlotPreview,
+  type StackFramePreviewState
+} from "../transpiler/framePlanView";
 import CometCircuitSvg from "../visual/CometCircuitSvg";
 import { summarizeCurrentInstruction } from "../visual/visualState";
 import RegisterPanel from "./RegisterPanel";
@@ -47,6 +56,18 @@ type FocusInstructionContext = {
 };
 
 type FocusPanelDensity = "normal" | "compact";
+
+type FrameSlotSelectionSource = "stack-frame-view" | "source-context" | "generated-casl";
+
+type SelectedFrameSlot = {
+  mappingId: string;
+  functionName: string;
+  slotName: string;
+  symbolName: string;
+  sourceLine?: number;
+  staticLabel?: string;
+  selectionSource: FrameSlotSelectionSource;
+};
 
 function sourceLine(source: string, line?: number): string {
   if (!line) return "No active source line";
@@ -529,8 +550,16 @@ function FocusGeneratedCaslPanel({
   sourceText,
   generatedCaslSource,
   cppToCaslMapping,
-  focus
-}: Pick<CircuitFocusLayoutProps, "sourceMode" | "sourceText" | "generatedCaslSource" | "cppToCaslMapping"> & { focus: FocusInstructionContext }) {
+  focus,
+  frameSlotMappings,
+  selectedFrameSlotId,
+  onSelectFrameSlot
+}: Pick<CircuitFocusLayoutProps, "sourceMode" | "sourceText" | "generatedCaslSource" | "cppToCaslMapping"> & {
+  focus: FocusInstructionContext;
+  frameSlotMappings: FrameSlotMapping[];
+  selectedFrameSlotId?: string;
+  onSelectFrameSlot: (mapping: FrameSlotMapping, source: FrameSlotSelectionSource) => void;
+}) {
   const hasGeneratedCasl = sourceMode === "cpp" && generatedCaslSource.trim().length > 0;
   const rows = hasGeneratedCasl
     ? selectGeneratedCaslRows(generatedCaslSource, cppToCaslMapping, focus.caslLine, focus.cppLine)
@@ -563,15 +592,41 @@ function FocusGeneratedCaslPanel({
           <span className="focus-code-cell-primary">Operand</span>
           <span className="focus-code-cell-secondary">Mapping</span>
         </div>
-        {rows.slice(0, 18).map((row) => (
-          <div key={`${row.lineNumber}-${row.raw}`} className={`focus-code-row ${row.isCurrent ? "current" : ""}`} data-testid={row.isCurrent ? "focus-generated-casl-current" : "focus-generated-casl-row"}>
-            <code className="mono-value focus-code-cell-primary">{String(row.lineNumber).padStart(2, "0")}</code>
-            <span className="text-ellipsis focus-code-cell-primary" title={row.label || "-"}>{row.label || "-"}</span>
-            <span className="nowrap-symbol focus-code-cell-primary" title={row.opcode || "-"}>{row.opcode || "-"}</span>
-            <span className="nowrap-symbol focus-code-cell-primary" title={row.operand || row.raw}>{row.operand || row.raw}</span>
-            <span className="text-ellipsis focus-code-cell-secondary" title={row.mappingKinds.join(", ") || "-"}>{row.mappingKinds.join(", ") || "-"}</span>
-          </div>
-        ))}
+        {rows.slice(0, 18).map((row) => {
+          const slotMapping = findFrameSlotMappingInCaslText(frameSlotMappings, `${row.label} ${row.operand}`);
+          const slotLabel = slotMapping ? currentStaticLabelForMapping(slotMapping) : undefined;
+
+          return (
+            <div
+              key={`${row.lineNumber}-${row.raw}`}
+              className={`focus-code-row ${row.isCurrent ? "current" : ""} ${slotMapping ? "has-frame-slot" : ""}`}
+              data-testid={row.isCurrent ? "focus-generated-casl-current" : "focus-generated-casl-row"}
+            >
+              <code className="mono-value focus-code-cell-primary">{String(row.lineNumber).padStart(2, "0")}</code>
+              <span className="text-ellipsis focus-code-cell-primary" title={row.label || "-"}>{row.label || "-"}</span>
+              <span className="nowrap-symbol focus-code-cell-primary" title={row.opcode || "-"}>{row.opcode || "-"}</span>
+              <span className="nowrap-symbol focus-code-cell-primary" title={row.operand || row.raw}>{row.operand || row.raw}</span>
+              <span className="focus-code-cell-secondary focus-code-slot-cell" title={row.mappingKinds.join(", ") || "-"}>
+                <span className="text-ellipsis">{row.mappingKinds.join(", ") || "-"}</span>
+                {slotMapping ? (
+                  <button
+                    type="button"
+                    className="frame-slot-link-badge"
+                    data-testid="generated-casl-slot-badge"
+                    data-slot-id={slotMapping.mappingId}
+                    data-selected={selectedFrameSlotId === slotMapping.mappingId ? "true" : "false"}
+                    aria-pressed={selectedFrameSlotId === slotMapping.mappingId}
+                    aria-label={`Select FramePlan slot for ${slotLabel ?? slotMapping.symbolName}`}
+                    title={`FramePlan slot: ${slotMapping.symbolName} / ${slotLabel ?? "no static label"}`}
+                    onClick={() => onSelectFrameSlot(slotMapping, "generated-casl")}
+                  >
+                    slot
+                  </button>
+                ) : null}
+              </span>
+            </div>
+          );
+        })}
       </div>
     </section>
   );
@@ -613,7 +668,19 @@ function FocusMachineCodePanel({ state, cppToCaslMapping }: { state: CometState;
   );
 }
 
-function FocusSourceMappingPanel({ focus, sourceMode }: { focus: FocusInstructionContext; sourceMode: SourceMode }) {
+function FocusSourceMappingPanel({
+  focus,
+  sourceMode,
+  sourceSlotMappings,
+  selectedFrameSlotId,
+  onSelectFrameSlot
+}: {
+  focus: FocusInstructionContext;
+  sourceMode: SourceMode;
+  sourceSlotMappings: FrameSlotMapping[];
+  selectedFrameSlotId?: string;
+  onSelectFrameSlot: (mapping: FrameSlotMapping, source: FrameSlotSelectionSource) => void;
+}) {
   const addressText = focus.address === undefined ? "----" : formatWord(focus.address);
   const instructionText = focus.instructionText ?? "No active instruction";
 
@@ -632,6 +699,29 @@ function FocusSourceMappingPanel({ focus, sourceMode }: { focus: FocusInstructio
         <code className="nowrap-symbol" title={instructionText}>{instructionText}</code>
         <span className="compact-label">Source</span>
         <code className="nowrap-symbol" title={focus.sourceText}>{focus.sourceText}</code>
+        {sourceMode === "cpp" && sourceSlotMappings.length > 0 ? (
+          <>
+            <span className="compact-label">Slots</span>
+            <div className="source-frame-slot-chips" data-testid="source-frame-slot-chips">
+              {sourceSlotMappings.map((mapping) => (
+                <button
+                  key={mapping.mappingId}
+                  type="button"
+                  className="frame-slot-link-badge source-frame-slot-chip"
+                  data-testid="source-frame-slot-chip"
+                  data-slot-id={mapping.mappingId}
+                  data-selected={selectedFrameSlotId === mapping.mappingId ? "true" : "false"}
+                  aria-pressed={selectedFrameSlotId === mapping.mappingId}
+                  aria-label={`Select FramePlan slot for source symbol ${mapping.symbolName}`}
+                  title={`Source symbol ${mapping.symbolName} -> ${mapping.currentLabelForDebug ?? "future slot"}`}
+                  onClick={() => onSelectFrameSlot(mapping, "source-context")}
+                >
+                  {mapping.symbolName}
+                </button>
+              ))}
+            </div>
+          </>
+        ) : null}
       </div>
     </section>
   );
@@ -1222,6 +1312,18 @@ function staticLabelReference(mapping: FrameSlotMapping): string {
   return `${mapping.currentLabelForDebug} DS 1`;
 }
 
+function selectionSourceLabel(source?: FrameSlotSelectionSource): string {
+  if (source === "generated-casl") return "Generated CASL";
+  if (source === "source-context") return "Source Context";
+  if (source === "stack-frame-view") return "Stack Frame View";
+  return "not selected";
+}
+
+function frameSlotMappingsForSourceText(mappings: FrameSlotMapping[], sourceText: string): FrameSlotMapping[] {
+  const tokens = new Set(sourceText.match(/[A-Za-z_][A-Za-z0-9_]*/g) ?? []);
+  return mappings.filter((mapping) => mapping.slotKind !== "return-address" && tokens.has(mapping.symbolName));
+}
+
 function slotRowsForPreview(activeFunction: ReturnType<typeof selectStackFramePreviewState>["activeFunction"]): FrameSlotPreview[] {
   if (!activeFunction) return FALLBACK_FRAME_SLOTS;
   return [
@@ -1232,34 +1334,106 @@ function slotRowsForPreview(activeFunction: ReturnType<typeof selectStackFramePr
   ];
 }
 
+function FrameSlotDetail({
+  mapping,
+  slot,
+  selectionSource,
+  emptyText = "Select a slot row to inspect design-only mapping."
+}: {
+  mapping?: FrameSlotMapping;
+  slot?: FrameSlotPreview;
+  selectionSource?: FrameSlotSelectionSource;
+  emptyText?: string;
+}) {
+  if (!mapping) {
+    return (
+      <div className="stack-frame-slot-detail stack-frame-slot-detail-empty" data-testid="stack-frame-slot-detail" data-runtime-state="false">
+        <span className="secondary-note">{emptyText}</span>
+      </div>
+    );
+  }
+
+  const selectedCurrentLowering = slot ? currentLoweringLabel(slot) : mapping.currentLowering;
+  const sourceLabel = selectionSourceLabel(selectionSource);
+
+  return (
+    <div
+      className="stack-frame-slot-detail"
+      data-testid="stack-frame-slot-detail"
+      data-runtime-state="false"
+      data-selection-source={selectionSource ?? ""}
+      title={mapping.explanation}
+    >
+      <div className="stack-frame-slot-detail-title">
+        <span>Slot Detail</span>
+        <code title={mapping.symbolName}>{mapping.symbolName}</code>
+      </div>
+      <div className="stack-frame-slot-detail-grid">
+        <div>
+          <span className="compact-label">Symbol</span>
+          <code title={mapping.symbolName}>{mapping.symbolName}</code>
+        </div>
+        <div>
+          <span className="compact-label">Kind</span>
+          <code title={mapping.slotKind}>{mapping.slotKind}</code>
+        </div>
+        <div>
+          <span className="compact-label">Current</span>
+          <code title={selectedCurrentLowering}>{selectedCurrentLowering}</code>
+        </div>
+        <div>
+          <span className="compact-label">Future</span>
+          <code title={futureStorageLabel(mapping)}>{futureStorageLabel(mapping)}</code>
+        </div>
+        <div>
+          <span className="compact-label">CASL</span>
+          <code title={staticLabelReference(mapping)}>{staticLabelReference(mapping)}</code>
+        </div>
+        <div>
+          <span className="compact-label">Source</span>
+          <code title={mapping.sourceLine ? `line ${mapping.sourceLine}` : "not mapped"}>
+            {mapping.sourceLine ? `line ${mapping.sourceLine}` : "not mapped"}
+          </code>
+        </div>
+        <div className="stack-frame-slot-detail-wide">
+          <span className="compact-label">Selected</span>
+          <code title={sourceLabel}>{sourceLabel}</code>
+        </div>
+      </div>
+      <p className="secondary-note wrap-explanation" title="Runtime state: Not available in simple mode.">
+        Runtime state: Not available in simple mode.
+      </p>
+    </div>
+  );
+}
+
 function FocusStackFrameViewPanel({
   state,
   focus,
-  sourceMode,
-  sourceText
+  preview,
+  selectedFrameSlotId,
+  selectionSource,
+  onSelectFrameSlot,
+  onFunctionChange
 }: {
   state: CometState;
   focus: FocusInstructionContext;
-  sourceMode: SourceMode;
-  sourceText: string;
+  preview: StackFramePreviewState;
+  selectedFrameSlotId?: string;
+  selectionSource?: FrameSlotSelectionSource;
+  onSelectFrameSlot: (mapping: FrameSlotMapping, source: FrameSlotSelectionSource) => void;
+  onFunctionChange: (functionName: string) => void;
 }) {
   const [detailsOpen, setDetailsOpen] = useState(false);
-  const [selectedFunctionName, setSelectedFunctionName] = useState<string | undefined>();
-  const [selectedSlotId, setSelectedSlotId] = useState<string | undefined>();
   const preferredFunctionName = functionNameFromRoutineLabel(routineLabelForAddress(state, focus.address));
-  const preview = useMemo(
-    () => selectStackFramePreviewState(sourceMode, sourceText, selectedFunctionName, preferredFunctionName),
-    [sourceMode, sourceText, selectedFunctionName, preferredFunctionName]
-  );
   const activeFunction = preview.activeFunction;
   const modeText = "Simple static locals";
   const argumentText = STACK_FRAME_ARGUMENT_REGISTERS.join(" / ");
   const functionText = preview.selectedFunctionName ?? preferredFunctionName ?? "none";
   const frameSizeText = activeFunction ? `${activeFunction.frameSizeWords} words` : "not available";
   const slotRows = slotRowsForPreview(activeFunction);
-  const selectedSlot = slotRows.find((slot) => slot.mappingId === selectedSlotId);
+  const selectedSlot = slotRows.find((slot) => slot.mappingId === selectedFrameSlotId);
   const selectedMapping = activeFunction?.slotMappings.find((mapping) => mapping.mappingId === selectedSlot?.mappingId);
-  const selectedCurrentLowering = selectedSlot ? currentLoweringLabel(selectedSlot) : selectedMapping?.currentLowering ?? "not emitted";
   const previewStatus = preview.available ? "available" : preview.reason ?? "not available";
   const warningsText = preview.warnings.join(" ");
 
@@ -1331,10 +1505,7 @@ function FocusStackFrameViewPanel({
               aria-label="Stack frame preview function"
               title={`Preview function: ${functionText}`}
               value={preview.selectedFunctionName ?? ""}
-              onChange={(event) => {
-                setSelectedFunctionName(event.currentTarget.value);
-                setSelectedSlotId(undefined);
-              }}
+              onChange={(event) => onFunctionChange(event.currentTarget.value)}
             >
               {preview.functions.map((fn) => (
                 <option key={fn.functionName} value={fn.functionName} title={fn.functionName}>
@@ -1373,10 +1544,13 @@ function FocusStackFrameViewPanel({
                 data-slot-id={slot.mappingId}
                 data-slot-kind={slot.kind}
                 data-status="future"
-                data-selected={selectedSlot?.mappingId === slot.mappingId ? "true" : "false"}
-                aria-selected={selectedSlot?.mappingId === slot.mappingId ? "true" : "false"}
+                data-selected={selectedFrameSlotId === slot.mappingId ? "true" : "false"}
+                aria-selected={selectedFrameSlotId === slot.mappingId ? "true" : "false"}
                 title={`Select ${slot.name} ${slot.kind} slot mapping`}
-                onClick={() => setSelectedSlotId(slot.mappingId)}
+                onClick={() => {
+                  const mapping = activeFunction?.slotMappings.find((candidate) => candidate.mappingId === slot.mappingId);
+                  if (mapping) onSelectFrameSlot(mapping, "stack-frame-view");
+                }}
               >
                 <span className="compact-label" title={slot.kind}>{slotKindLabel(slot)}</span>
                 <code className="nowrap-symbol" title={slot.name}>{slot.name}</code>
@@ -1385,54 +1559,7 @@ function FocusStackFrameViewPanel({
                 </small>
               </button>
             ))}
-            {selectedMapping ? (
-              <div
-                className="stack-frame-slot-detail"
-                data-testid="stack-frame-slot-detail"
-                data-runtime-state="false"
-                title={selectedMapping.explanation}
-              >
-                <div className="stack-frame-slot-detail-title">
-                  <span>Slot Detail</span>
-                  <code title={selectedMapping.symbolName}>{selectedMapping.symbolName}</code>
-                </div>
-                <div className="stack-frame-slot-detail-grid">
-                  <div>
-                    <span className="compact-label">Symbol</span>
-                    <code title={selectedMapping.symbolName}>{selectedMapping.symbolName}</code>
-                  </div>
-                  <div>
-                    <span className="compact-label">Kind</span>
-                    <code title={selectedMapping.slotKind}>{selectedMapping.slotKind}</code>
-                  </div>
-                  <div>
-                    <span className="compact-label">Current</span>
-                    <code title={selectedCurrentLowering}>{selectedCurrentLowering}</code>
-                  </div>
-                  <div>
-                    <span className="compact-label">Future</span>
-                    <code title={futureStorageLabel(selectedMapping)}>{futureStorageLabel(selectedMapping)}</code>
-                  </div>
-                  <div>
-                    <span className="compact-label">CASL</span>
-                    <code title={staticLabelReference(selectedMapping)}>{staticLabelReference(selectedMapping)}</code>
-                  </div>
-                  <div>
-                    <span className="compact-label">Source</span>
-                    <code title={selectedMapping.sourceLine ? `line ${selectedMapping.sourceLine}` : "not mapped"}>
-                      {selectedMapping.sourceLine ? `line ${selectedMapping.sourceLine}` : "not mapped"}
-                    </code>
-                  </div>
-                </div>
-                <p className="secondary-note wrap-explanation" title="Runtime state: Not available in simple mode.">
-                  Runtime state: Not available in simple mode.
-                </p>
-              </div>
-            ) : (
-              <div className="stack-frame-slot-detail stack-frame-slot-detail-empty" data-testid="stack-frame-slot-detail" data-runtime-state="false">
-                <span className="secondary-note">Select a slot row to inspect design-only mapping.</span>
-              </div>
-            )}
+            <FrameSlotDetail mapping={selectedMapping} slot={selectedSlot} selectionSource={selectionSource} />
             {warningsText ? (
               <div className="stack-frame-view-row stack-frame-view-row-wide" data-testid="stack-frame-warning-row">
                 <span className="compact-label">Warnings</span>
@@ -1442,6 +1569,33 @@ function FocusStackFrameViewPanel({
             ) : null}
           </div>
         </details>
+      </div>
+    </section>
+  );
+}
+
+function FocusFrameSlotRelationPanel({
+  mapping,
+  selectionSource
+}: {
+  mapping?: FrameSlotMapping;
+  selectionSource?: FrameSlotSelectionSource;
+}) {
+  return (
+    <section className="panel focus-frame-slot-relation" data-testid="focus-frame-slot-relation">
+      <header className="panel-header">
+        <div>
+          <h2>Frame Slot</h2>
+          <span>Design relation</span>
+        </div>
+        <span>Not runtime</span>
+      </header>
+      <div className="focus-frame-slot-relation-body">
+        <FrameSlotDetail
+          mapping={mapping}
+          selectionSource={selectionSource}
+          emptyText="Select a source chip or Generated CASL slot badge."
+        />
       </div>
     </section>
   );
@@ -1506,7 +1660,45 @@ export default function CircuitFocusLayout({
   observationMode = "cpu-flow",
   onObservationModeChange = () => undefined,
 }: CircuitFocusLayoutProps) {
+  const [selectedFrameFunctionName, setSelectedFrameFunctionName] = useState<string | undefined>();
+  const [selectedFrameSlot, setSelectedFrameSlot] = useState<SelectedFrameSlot | undefined>();
   const focus = focusInstructionContext(state, sourceMode, sourceText, cppToCaslMapping);
+  const preferredFunctionName = functionNameFromRoutineLabel(routineLabelForAddress(state, focus.address));
+  const framePreview = useMemo(
+    () => selectStackFramePreviewState(sourceMode, sourceText, selectedFrameFunctionName ?? selectedFrameSlot?.functionName, preferredFunctionName),
+    [sourceMode, sourceText, selectedFrameFunctionName, selectedFrameSlot?.functionName, preferredFunctionName]
+  );
+  const frameSlotMappings = useMemo(() => stackFramePreviewMappings(framePreview), [framePreview]);
+  const selectedFrameSlotMapping = selectedFrameSlot
+    ? frameSlotMappings.find((mapping) => mapping.mappingId === selectedFrameSlot.mappingId)
+    : undefined;
+  const sourceLineSlotMappings = frameSlotMappingsForSourceLine(frameSlotMappings, focus.cppLine);
+  const sourceSlotMappings = sourceLineSlotMappings.length > 0 ? sourceLineSlotMappings : frameSlotMappingsForSourceText(frameSlotMappings, focus.sourceText);
+  const selectFrameSlot = (mapping: FrameSlotMapping, selectionSource: FrameSlotSelectionSource) => {
+    setSelectedFrameFunctionName(mapping.functionName);
+    setSelectedFrameSlot({
+      mappingId: mapping.mappingId,
+      functionName: mapping.functionName,
+      slotName: mapping.frameSlotName,
+      symbolName: mapping.symbolName,
+      sourceLine: mapping.sourceLine,
+      staticLabel: currentStaticLabelForMapping(mapping),
+      selectionSource
+    });
+  };
+  const selectFrameFunction = (functionName: string) => {
+    setSelectedFrameFunctionName(functionName);
+    if (selectedFrameSlotMapping?.functionName !== functionName) {
+      setSelectedFrameSlot(undefined);
+    }
+  };
+
+  useEffect(() => {
+    if (selectedFrameSlot && !selectedFrameSlotMapping) {
+      setSelectedFrameSlot(undefined);
+    }
+  }, [selectedFrameSlot, selectedFrameSlotMapping]);
+
   const circuitSubtitle = useMemo(() => {
     if (isSourceDirty) return "Modified source; assemble before stepping.";
     if (!state.assembled) return "Assemble a program to visualize data and control paths.";
@@ -1526,7 +1718,16 @@ export default function CircuitFocusLayout({
       <section className="focus-center-column">
         {observationMode === "code-machine" ? (
           <section className="focus-code-machine-grid" data-testid="focus-code-machine-grid">
-            <FocusGeneratedCaslPanel sourceMode={sourceMode} sourceText={sourceText} generatedCaslSource={generatedCaslSource} cppToCaslMapping={cppToCaslMapping} focus={focus} />
+            <FocusGeneratedCaslPanel
+              sourceMode={sourceMode}
+              sourceText={sourceText}
+              generatedCaslSource={generatedCaslSource}
+              cppToCaslMapping={cppToCaslMapping}
+              focus={focus}
+              frameSlotMappings={frameSlotMappings}
+              selectedFrameSlotId={selectedFrameSlot?.mappingId}
+              onSelectFrameSlot={selectFrameSlot}
+            />
             <FocusMachineCodePanel state={state} cppToCaslMapping={cppToCaslMapping} />
           </section>
         ) : observationMode === "register-stack" ? (
@@ -1543,7 +1744,15 @@ export default function CircuitFocusLayout({
             <CometCircuitSvg state={state} sourceMapFocus={{ line: focus.caslLine, address: focus.address, instruction: focus.instructionText }} />
           </section>
         )}
-        {observationMode === "code-machine" ? <FocusSourceMappingPanel focus={focus} sourceMode={sourceMode} /> : <FocusTimeline state={state} timelineItems={timelineItems} />}
+        {observationMode === "code-machine" ? (
+          <FocusSourceMappingPanel
+            focus={focus}
+            sourceMode={sourceMode}
+            sourceSlotMappings={sourceSlotMappings}
+            selectedFrameSlotId={selectedFrameSlot?.mappingId}
+            onSelectFrameSlot={selectFrameSlot}
+          />
+        ) : <FocusTimeline state={state} timelineItems={timelineItems} />}
       </section>
 
       <aside className="focus-right-column">
@@ -1558,15 +1767,23 @@ export default function CircuitFocusLayout({
           <>
             <FocusStackPreviewPanel state={state} />
             <FocusCallStackPanel state={state} focus={focus} density="compact" />
-            <FocusStackFrameViewPanel state={state} focus={focus} sourceMode={sourceMode} sourceText={sourceText} />
+            <FocusStackFrameViewPanel
+              state={state}
+              focus={focus}
+              preview={framePreview}
+              selectedFrameSlotId={selectedFrameSlot?.mappingId}
+              selectionSource={selectedFrameSlot?.selectionSource}
+              onSelectFrameSlot={selectFrameSlot}
+              onFunctionChange={selectFrameFunction}
+            />
             <FocusSignalProbePanel state={state} focus={focus} density="compact" />
             <FocusTracePanel state={state} />
           </>
         ) : (
           <>
+            <FocusFrameSlotRelationPanel mapping={selectedFrameSlotMapping} selectionSource={selectedFrameSlot?.selectionSource} />
             <FocusTracePanel state={state} />
             <FocusCallStackPanel state={state} focus={focus} density="compact" />
-            <FocusSignalProbePanel state={state} focus={focus} density="compact" />
           </>
         )}
       </aside>

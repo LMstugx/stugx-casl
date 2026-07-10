@@ -106,6 +106,7 @@ Calling convention design note:
 - In Register / Stack observation mode, the Stack Frame View starts from a placeholder model. It explains simple static locals and future frame slots; it does not mean current C++ locals are on the stack. See [phase11c-stack-frame-view-placeholder.md](phase11c-stack-frame-view-placeholder.md).
 - Read [phase11d-frameplan-generator-scaffold.md](phase11d-frameplan-generator-scaffold.md) for the design-test `buildFramePlans` metadata scaffold. It records future frame slots but emitted CASL is still unchanged.
 - In Register / Stack observation mode, valid C++ source can now show a FramePlan design preview in Stack Frame View. It is marked `Not runtime state`, does not display live slot values, and does not change emitted CASL. See [phase11e-frameplan-stack-frame-view-preview.md](phase11e-frameplan-stack-frame-view-preview.md).
+- Code / Machine mode can also show design-only source symbol chips and Generated CASL `slot` badges. These select the related FramePlan slot detail so you can connect a C++ symbol, the current static label, and the future frame-slot concept. See [phase11g-source-casl-frame-slot-selection.md](phase11g-source-casl-frame-slot-selection.md).
 
 Single-argument follow-up: `C++: Function Argument`
 

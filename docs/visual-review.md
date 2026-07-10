@@ -152,6 +152,7 @@ Use the gallery to inspect:
 - `observation-cpu-flow.png` (CPU Flow observation mode)
 - `observation-register-stack.png` (Registers / Stack observation mode)
 - `stack-frame-view-preview.png` (FramePlan design preview in Stack Frame View; not runtime state)
+- Code / Machine mode may show FramePlan `slot` badges beside Generated CASL static labels. They are design-only selection controls and must not imply live stack-frame values.
 - `observation-code-machine.png` (Code / Machine observation mode)
 - `casl-gr2-ld.png` (Circuit Focus Mode)
 - `casl-gr2-adda.png` (Circuit Focus Mode)

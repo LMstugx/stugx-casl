@@ -32,6 +32,7 @@ import phase11c from "../../docs/phase11c-stack-frame-view-placeholder.md?raw";
 import phase11d from "../../docs/phase11d-frameplan-generator-scaffold.md?raw";
 import phase11e from "../../docs/phase11e-frameplan-stack-frame-view-preview.md?raw";
 import phase11f from "../../docs/phase11f-frameplan-slot-highlighting-contract.md?raw";
+import phase11g from "../../docs/phase11g-source-casl-frame-slot-selection.md?raw";
 import circuitVisualContract from "../../docs/circuit-visual-contract.md?raw";
 import futureCustomCircuit from "../../docs/future-custom-circuit-design.md?raw";
 import manualQaChecklist from "../../docs/manual-qa-checklist.md?raw";
@@ -414,6 +415,21 @@ describe("learning use documentation", () => {
     expect(phase11d).toContain("phase11f-frameplan-slot-highlighting-contract.md");
     expect(phase11e).toContain("phase11f-frameplan-slot-highlighting-contract.md");
     expect(futureCustomCircuit).toContain("Phase 11F adds a design-only");
+  });
+
+  it("phase11g_source_casl_frame_slot_selection_doc_exists", () => {
+    expect(phase11g).toContain("Phase 11G: Source and CASL Frame Slot Selection");
+    expect(phase11g).toContain("design-only");
+    expect(phase11g).toContain("C++ source context");
+    expect(phase11g).toContain("Generated CASL static-label");
+    expect(phase11g).toContain("slot badge");
+    expect(phase11g).toContain("No Emitted CASL Change");
+    expect(phase11g).toContain("No Runtime Value");
+    expect(readme).toContain("docs/phase11g-source-casl-frame-slot-selection.md");
+    expect(phase11f).toContain("phase11g-source-casl-frame-slot-selection.md");
+    expect(phase11e).toContain("phase11g-source-casl-frame-slot-selection.md");
+    expect(learningGuide).toContain("phase11g-source-casl-frame-slot-selection.md");
+    expect(futureCustomCircuit).toContain("Phase 11G wires C++ source context chips");
   });
 
   it("phase10e_focus_text_overflow_cleanup_doc_exists", () => {

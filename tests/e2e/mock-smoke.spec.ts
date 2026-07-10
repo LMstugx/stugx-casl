@@ -463,7 +463,43 @@ test("Mock backend shows Stack Frame View FramePlan preview in Register Stack mo
   await page.keyboard.press("Enter");
   await expect(page.locator('[data-slot-id="add:argument:b:2"]')).toHaveAttribute("aria-selected", "true");
   await expect(page.getByTestId("stack-frame-slot-detail")).toContainText("FUNC_ADD_B");
+  await page.getByTestId("stack-frame-function-select").selectOption("main");
+  await expect(page.locator('[data-testid="stack-frame-future-slot"][data-selected="true"]')).toHaveCount(0);
   expect(await page.getByTestId("focus-register-bank").getByTestId("register-pr").textContent()).toBe(prBeforeSlotSelection);
+});
+
+test("Mock backend wires Generated CASL and source chips to FramePlan slots", async ({ page }) => {
+  await openStudio(page, "Mock Core");
+  await selectDemoProgram(page, "cpp-function-arguments");
+  await page.getByTestId("circuit-focus-toggle").click();
+  await assemble(page);
+  await switchObservationMode(page, "code-machine");
+
+  const slotBadge = page.locator('[data-testid="generated-casl-slot-badge"][data-slot-id="add:argument:a:1"]').first();
+  await expect(slotBadge).toBeVisible();
+  await slotBadge.click();
+  await expect(slotBadge).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByTestId("focus-frame-slot-relation")).toContainText("a");
+  await expect(page.getByTestId("focus-frame-slot-relation")).toContainText("argument");
+  await expect(page.getByTestId("focus-frame-slot-relation")).toContainText("FUNC_ADD_A");
+  await expect(page.getByTestId("focus-frame-slot-relation")).toContainText("Generated CASL");
+  await expect(page.getByTestId("focus-frame-slot-relation")).toContainText("Not available in simple mode");
+
+  await switchObservationMode(page, "register-stack");
+  await page.getByTestId("stack-frame-view-state").evaluate((element) => {
+    element.scrollTop = element.scrollHeight;
+  });
+  await expect(page.locator('[data-slot-id="add:argument:a:1"]')).toHaveAttribute("aria-selected", "true");
+
+  await switchObservationMode(page, "code-machine");
+  await page.getByTestId("source-frame-slot-chip").first().click();
+  await expect(page.getByTestId("focus-frame-slot-relation")).toContainText("Source Context");
+
+  await page.getByTestId("circuit-focus-toggle").click();
+  await selectDemoProgram(page, "casl-gr2-addition");
+  await page.getByTestId("circuit-focus-toggle").click();
+  await switchObservationMode(page, "register-stack");
+  await expect(page.locator('[data-testid="stack-frame-future-slot"][data-selected="true"]')).toHaveCount(0);
 });
 
 test("focus_mode_works_at_1280x720", async ({ page }) => {

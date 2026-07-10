@@ -75,7 +75,11 @@ function renderCppFocus(
   );
 }
 
-function renderCppFunctionArgumentsFocus(preferredFunction?: "add" | "main", source = cppFunctionArgumentsSource): string {
+function renderCppFunctionArgumentsFocus(
+  preferredFunction?: "add" | "main",
+  source = cppFunctionArgumentsSource,
+  observationMode: ObservationMode = "register-stack"
+): string {
   const prepared = prepareSourceForCoreAssembly(source, "cpp");
   let state = mockCaslCore.assemble(prepared.generatedCaslSource);
   if (preferredFunction === "add") {
@@ -89,7 +93,7 @@ function renderCppFunctionArgumentsFocus(preferredFunction?: "add" | "main", sou
     }
   }
 
-  return renderCppFocus(state, source, prepared.generatedCaslSource, prepared.mapping, "register-stack");
+  return renderCppFocus(state, source, prepared.generatedCaslSource, prepared.mapping, observationMode);
 }
 
 function activeWireIds(markup: string): string[] {
@@ -423,6 +427,37 @@ describe("Circuit Focus Mode layout", () => {
     expect(appCss).toContain(".stack-frame-view-slot-row[data-selected=\"true\"]");
     expect(appCss).toContain(".stack-frame-view-slot-row:focus-visible");
     expect(appCss).toContain(".stack-frame-slot-detail");
+  });
+
+  it("source_symbol_chip_selects_frame_slot", () => {
+    const markup = renderCppFunctionArgumentsFocus("add", cppFunctionWithLocalSource, "code-machine");
+
+    expect(markup).toContain('data-testid="source-frame-slot-chip"');
+    expect(markup).toContain('data-slot-id="main:local:result:1"');
+    expect(markup).toContain('aria-label="Select FramePlan slot for source symbol result"');
+  });
+
+  it("generated_casl_static_label_badge_renders", () => {
+    const markup = renderCppFunctionArgumentsFocus("add", cppFunctionWithLocalSource, "code-machine");
+
+    expect(markup).toContain('data-testid="generated-casl-slot-badge"');
+    expect(markup).toContain('data-slot-id="add:argument:a:1"');
+    expect(markup).toContain('FramePlan slot: a / FUNC_ADD_A');
+  });
+
+  it("code_machine_mode_shows_slot_relation_compactly", () => {
+    const markup = renderCppFunctionArgumentsFocus("add", cppFunctionWithLocalSource, "code-machine");
+
+    expect(markup).toContain('data-testid="focus-frame-slot-relation"');
+    expect(markup).toContain("Select a source chip or Generated CASL slot badge.");
+  });
+
+  it("cpu_flow_mode_does_not_show_dense_slot_ui", () => {
+    const markup = renderCppFunctionArgumentsFocus("add", cppFunctionWithLocalSource, "cpu-flow");
+
+    expect(markup).not.toContain('data-testid="generated-casl-slot-badge"');
+    expect(markup).not.toContain('data-testid="source-frame-slot-chip"');
+    expect(markup).not.toContain('data-testid="focus-frame-slot-relation"');
   });
 
   it("stack_frame_view_function_selector_switches_preview", () => {

@@ -325,6 +325,7 @@ The current backend is shown in the status bar as `Mock Core`, `WASM Core`, or `
 - [docs/phase11d-frameplan-generator-scaffold.md](docs/phase11d-frameplan-generator-scaffold.md): TypeScript-only `buildFramePlans` scaffold for future frame metadata without changing emitted CASL.
 - [docs/phase11e-frameplan-stack-frame-view-preview.md](docs/phase11e-frameplan-stack-frame-view-preview.md): design-only FramePlan preview in Stack Frame View, explicitly marked as not runtime state and not emitted CASL.
 - [docs/phase11f-frameplan-slot-highlighting-contract.md](docs/phase11f-frameplan-slot-highlighting-contract.md): design-only FramePlan slot mapping, selected-row highlighting, and Slot Detail rules without runtime frame values.
+- [docs/phase11g-source-casl-frame-slot-selection.md](docs/phase11g-source-casl-frame-slot-selection.md): design-only C++ source / Generated CASL slot badges and FramePlan selection wiring without emitted CASL or runtime changes.
 
 ## Current Limitations
 

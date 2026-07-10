@@ -127,3 +127,5 @@ Phase 11D adds a TypeScript-only `buildFramePlans` scaffold. It can help future 
 Phase 11E connects the design-only FramePlan metadata to Stack Frame View as a preview. Custom circuit work may use the same metadata later to explain proposed argument, local, temporary, and return-address slots, but those slots remain `Not runtime state` until an advanced stack-frame lowering mode exists. Do not connect FramePlan preview rows to active circuit wires or live probes.
 
 Phase 11F adds a design-only `FrameSlotMapping` and selected-slot contract. It can relate a C++ source symbol to the current static label and a future stack-frame slot concept, but it still must not drive active circuit wires, custom probes, or live stack slot values. Future custom circuit probes can reuse the same mapping only after stack-frame lowering makes the slots real runtime state.
+
+Phase 11G wires C++ source context chips and Generated CASL `slot` badges to the same design-only selection model. This improves teaching navigation between source symbols, static labels, and future frame-slot concepts, but it still must not be interpreted as custom-circuit routing or live stack-frame probes.

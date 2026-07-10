@@ -57,6 +57,29 @@ export type StackFramePreviewState = {
 
 export type FramePlanSourceMode = "casl" | "cpp";
 
+export function stackFramePreviewMappings(preview: StackFramePreviewState): FrameSlotMapping[] {
+  return preview.functions.flatMap((fn) => fn.slotMappings);
+}
+
+export function currentStaticLabelForMapping(mapping: FrameSlotMapping): string | undefined {
+  return mapping.currentLowering === "static-label" ? mapping.currentLabelForDebug : undefined;
+}
+
+export function findFrameSlotMappingByStaticLabel(mappings: FrameSlotMapping[], staticLabel: string): FrameSlotMapping | undefined {
+  const normalized = staticLabel.toUpperCase();
+  return mappings.find((mapping) => currentStaticLabelForMapping(mapping)?.toUpperCase() === normalized);
+}
+
+export function findFrameSlotMappingInCaslText(mappings: FrameSlotMapping[], caslText: string): FrameSlotMapping | undefined {
+  const tokens = caslText.toUpperCase().match(/[A-Z][A-Z0-9_]*/g) ?? [];
+  return tokens.map((token) => findFrameSlotMappingByStaticLabel(mappings, token)).find((mapping): mapping is FrameSlotMapping => mapping !== undefined);
+}
+
+export function frameSlotMappingsForSourceLine(mappings: FrameSlotMapping[], sourceLine?: number): FrameSlotMapping[] {
+  if (sourceLine === undefined) return [];
+  return mappings.filter((mapping) => mapping.sourceLine === sourceLine && mapping.slotKind !== "return-address");
+}
+
 function unavailable(reason: string): StackFramePreviewState {
   return {
     available: false,

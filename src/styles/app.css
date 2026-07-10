@@ -449,7 +449,7 @@ button {
 }
 
 .circuit-focus-workspace[data-observation-mode="code-machine"] .focus-right-column {
-  grid-template-rows: minmax(0, 1fr) 118px 142px;
+  grid-template-rows: minmax(128px, 0.92fr) 118px 142px;
 }
 
 .focus-program-panel,
@@ -747,6 +747,48 @@ button {
   white-space: nowrap;
 }
 
+.focus-code-slot-cell {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px;
+  align-items: center;
+}
+
+.frame-slot-link-badge {
+  min-width: 0;
+  appearance: none;
+  padding: 1px 5px;
+  border: 1px solid #c9d6e6;
+  border-radius: 999px;
+  background: #f8fbff;
+  color: #31557f;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 9px;
+  font-weight: 850;
+  line-height: 1.25;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.frame-slot-link-badge:hover {
+  border-color: #8da9cc;
+  background: #edf5ff;
+}
+
+.frame-slot-link-badge[data-selected="true"],
+.frame-slot-link-badge[aria-pressed="true"] {
+  border-color: #4776ad;
+  background: #e8f1ff;
+  color: #173b67;
+}
+
+.frame-slot-link-badge:focus-visible {
+  outline: 2px solid rgba(71, 118, 173, 0.55);
+  outline-offset: 1px;
+}
+
 .focus-code-head {
   min-height: 18px;
   border-color: transparent;
@@ -788,6 +830,21 @@ button {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.source-frame-slot-chips {
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+  overflow: hidden;
+}
+
+.source-frame-slot-chip {
+  max-width: 74px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .focus-stage-timeline {
@@ -858,6 +915,22 @@ button {
 .focus-stack-frame-view {
   background: #f7f9fc;
   border-color: #c7d1df;
+}
+
+.focus-frame-slot-relation {
+  background: #f7f9fc;
+  border-color: #c7d1df;
+}
+
+.focus-frame-slot-relation .panel-header {
+  background: #f2f6fb;
+}
+
+.focus-frame-slot-relation-body {
+  min-height: 0;
+  overflow: auto;
+  padding: 6px 7px;
+  background: #f8fafc;
 }
 
 .focus-stack-frame-view .panel-header {
@@ -1086,6 +1159,11 @@ button {
   grid-template-columns: 46px minmax(0, 1fr);
   gap: 4px;
   align-items: center;
+}
+
+.stack-frame-slot-detail-grid > .stack-frame-slot-detail-wide {
+  grid-column: 1 / -1;
+  grid-template-columns: 62px minmax(0, 1fr);
 }
 
 .stack-frame-slot-detail p {
@@ -3299,7 +3377,7 @@ button {
   }
 
   .circuit-focus-workspace[data-observation-mode="code-machine"] .focus-right-column {
-    grid-template-rows: minmax(0, 1fr) 112px 106px;
+    grid-template-rows: minmax(112px, 0.9fr) 112px 106px;
   }
 
   .circuit-focus-workspace[data-observation-mode="code-machine"] .focus-center-column {

@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { selectStackFramePreviewState } from "../framePlanView";
+import {
+  findFrameSlotMappingByStaticLabel,
+  findFrameSlotMappingInCaslText,
+  frameSlotMappingsForSourceLine,
+  selectStackFramePreviewState,
+  stackFramePreviewMappings
+} from "../framePlanView";
 import { transpileCppToCasl } from "../cppTranspiler";
 
 const functionArgumentsSource = `int add(int a, int b) {
@@ -113,5 +119,23 @@ describe("FramePlan preview selector", () => {
     expect(mappingSummary).toContain("a:FUNC_ADD_A");
     expect(after.caslSource).toBe(before.caslSource);
     expect(after.mapping).toEqual(before.mapping);
+  });
+
+  it("source_symbol_relation_finds_frame_slots_by_source_line", () => {
+    const preview = selectStackFramePreviewState("cpp", functionArgumentsSource, "add");
+    const mappings = stackFramePreviewMappings(preview);
+    const lineOneMappings = frameSlotMappingsForSourceLine(mappings, 1);
+
+    expect(lineOneMappings.map((mapping) => mapping.symbolName)).toEqual(["a", "b"]);
+    expect(lineOneMappings.every((mapping) => mapping.slotKind === "argument")).toBe(true);
+  });
+
+  it("generated_casl_static_label_relation_finds_frame_slot", () => {
+    const preview = selectStackFramePreviewState("cpp", functionArgumentsSource, "add");
+    const mappings = stackFramePreviewMappings(preview);
+
+    expect(findFrameSlotMappingByStaticLabel(mappings, "FUNC_ADD_A")?.symbolName).toBe("a");
+    expect(findFrameSlotMappingInCaslText(mappings, "ST GR1,FUNC_ADD_A")?.symbolName).toBe("a");
+    expect(findFrameSlotMappingInCaslText(mappings, "ST GR2,FUNC_ADD_B")?.symbolName).toBe("b");
   });
 });

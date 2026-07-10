@@ -253,7 +253,8 @@ test("Mock backend keeps circuit focus paths anchored to rows", async ({ page })
   await expect(circuit.locator("[data-testid='wire-terminal-memory-to-mdr']")).toHaveAttribute("marker-end", /arrow-red/);
   await expect(circuit.locator("[data-testid='wire-terminal-memory-to-mdr']")).toHaveAttribute("data-to-anchor", "mdr.right");
   await expect(circuit.locator("[data-testid='wire-memory-to-mdr']")).not.toHaveAttribute("marker-mid", /.+/);
-  await expect(circuit.locator("[data-testid='wire-junction-memory-to-mdr-0']")).toBeVisible();
+  await expect(circuit.locator("[data-testid='wire-junction-memory-to-mdr-0']")).toHaveCount(0);
+  await expect(circuit.locator("[data-testid='junction-data-right']")).toHaveCount(0);
   await expect(circuit.locator("[data-testid='module-alu']")).toHaveAttribute("data-active", "false");
   await expect(circuit.locator("[data-testid='module-sp']")).toHaveAttribute("data-active", "false");
 

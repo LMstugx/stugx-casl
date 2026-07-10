@@ -87,9 +87,6 @@ function BusGuides() {
         data-testid="bus-guide-ctrl"
         d={`M 108 ${circuitBusLanes.controlY} L 238 ${circuitBusLanes.controlY}`}
       />
-      {[{ id: "junction-data-left", x: circuitBusLanes.grBusX, y: circuitBusLanes.dataBypassY }, { id: "junction-data-right", x: circuitBusLanes.memoryBusX, y: circuitBusLanes.dataBypassY }, { id: "junction-addr", x: circuitBusLanes.memoryBusX, y: circuitBusLanes.addressY }].map((node) => (
-        <circle key={node.id} className="junction-dot" data-testid={node.id} cx={node.x} cy={node.y} r="2.8" />
-      ))}
     </g>
   );
 }

@@ -195,13 +195,23 @@ B    DC    10
     }
   });
 
-  it("renders active junction dots for routed path corners", () => {
+  it("memory_junction_dot_not_rendered_when_not_semantic", () => {
     const ready = mockCaslCore.assemble(DEFAULT_CASL_SOURCE);
     const afterLd = mockCaslCore.step(ready);
     const doc = renderCircuit(afterLd);
 
-    expect(doc.querySelector("[data-testid='wire-junction-memory-to-mdr-0']")).toBeTruthy();
+    expect(doc.querySelector("[data-testid='wire-junction-memory-to-mdr-0']")).toBeNull();
+    expect(doc.querySelector("[data-testid='wire-junction-mar-to-memory-0']")).toBeNull();
+    expect(doc.querySelector("[data-testid='wire-junction-mdr-to-memory-0']")).toBeNull();
     expect(doc.querySelector("[data-testid='wire-junction-mdr-to-gr-0']")).toBeTruthy();
+  });
+
+  it("inactive_memory_guide_does_not_create_floating_dot", () => {
+    const doc = renderCircuit(mockCaslCore.assemble(DEFAULT_CASL_SOURCE));
+
+    expect(doc.querySelector("[data-testid='junction-data-left']")).toBeNull();
+    expect(doc.querySelector("[data-testid='junction-data-right']")).toBeNull();
+    expect(doc.querySelector("[data-testid='junction-addr']")).toBeNull();
   });
 
   it("renders_terminal_arrow_overlays_at_target_anchors", () => {

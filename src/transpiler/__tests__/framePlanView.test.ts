@@ -64,4 +64,54 @@ describe("FramePlan preview selector", () => {
     expect(after.caslSource).toBe(before.caslSource);
     expect(after.mapping).toEqual(before.mapping);
   });
+
+  it("frame_slot_mapping_exists_for_arguments", () => {
+    const preview = selectStackFramePreviewState("cpp", functionArgumentsSource, "add");
+    const mappings = preview.activeFunction?.slotMappings ?? [];
+
+    expect(mappings.filter((mapping) => mapping.slotKind === "argument").map((mapping) => mapping.symbolName)).toEqual(["a", "b"]);
+    expect(mappings.filter((mapping) => mapping.slotKind === "argument").map((mapping) => mapping.futureStorage)).toEqual(["register-argument", "register-argument"]);
+  });
+
+  it("frame_slot_mapping_exists_for_locals", () => {
+    const preview = selectStackFramePreviewState("cpp", functionArgumentsSource, "add");
+    const local = preview.activeFunction?.slotMappings.find((mapping) => mapping.slotKind === "local");
+
+    expect(local).toMatchObject({
+      functionName: "add",
+      symbolName: "c",
+      frameSlotName: "c",
+      futureStorage: "future-stack-slot"
+    });
+  });
+
+  it("frame_slot_mapping_includes_current_static_label", () => {
+    const preview = selectStackFramePreviewState("cpp", functionArgumentsSource, "add");
+    const mappings = preview.activeFunction?.slotMappings ?? [];
+
+    expect(mappings.find((mapping) => mapping.symbolName === "a")?.currentLabelForDebug).toBe("FUNC_ADD_A");
+    expect(mappings.find((mapping) => mapping.symbolName === "b")?.currentLabelForDebug).toBe("FUNC_ADD_B");
+    expect(mappings.find((mapping) => mapping.symbolName === "c")?.currentLabelForDebug).toBe("ADD_C");
+    expect(mappings.find((mapping) => mapping.symbolName === "c")?.currentLowering).toBe("static-label");
+  });
+
+  it("frame_slot_mapping_marks_runtime_values_unavailable", () => {
+    const preview = selectStackFramePreviewState("cpp", functionArgumentsSource, "add");
+    const mappings = preview.activeFunction?.slotMappings ?? [];
+
+    expect(mappings.length).toBeGreaterThan(0);
+    expect(mappings.every((mapping) => mapping.runtimeValueAvailable === false)).toBe(true);
+    expect(mappings.map((mapping) => mapping.explanation).join("\n")).toContain("Current lowering");
+  });
+
+  it("emitted_casl_unchanged_after_slot_mapping", () => {
+    const before = transpileCppToCasl(functionArgumentsSource);
+    const preview = selectStackFramePreviewState("cpp", functionArgumentsSource, "add");
+    const mappingSummary = preview.activeFunction?.slotMappings.map((mapping) => `${mapping.symbolName}:${mapping.currentLabelForDebug ?? ""}`).join(",");
+    const after = transpileCppToCasl(functionArgumentsSource);
+
+    expect(mappingSummary).toContain("a:FUNC_ADD_A");
+    expect(after.caslSource).toBe(before.caslSource);
+    expect(after.mapping).toEqual(before.mapping);
+  });
 });

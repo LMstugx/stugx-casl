@@ -4,6 +4,8 @@ Phase 11E connects the design-only `FramePlan` metadata from Phase 11D to the re
 
 This phase does not implement stack-frame locals, stack arguments, recursion, new C++ syntax, VM behavior, assembler behavior, WASM behavior, mock-core behavior, or new emitted CASL.
 
+Phase 11F extends this preview with selected slot highlighting and Slot Detail in [phase11f-frameplan-slot-highlighting-contract.md](phase11f-frameplan-slot-highlighting-contract.md). That contract remains design-only and still does not make FramePlan rows live runtime slots.
+
 ## Purpose
 
 The placeholder Stack Frame View was useful as a warning that current C++ locals are not real stack-frame locals. Phase 11E makes that panel more useful by showing a `FramePlan` preview whenever the current C++ source can be parsed and semantically checked.
@@ -48,6 +50,8 @@ The Register / Stack observation mode Stack Frame View can show:
 - local slots;
 - temporary slot status;
 - current lowering notes such as static labels.
+
+Phase 11F allows selecting a row to inspect its `FrameSlotMapping`: source symbol, current static label, future storage, and a clear `Runtime state: Not available in simple mode` note.
 
 Example slot rows:
 
@@ -110,6 +114,7 @@ The preview prepares future phases where the compiler may:
 
 - FramePlan is currently design metadata only.
 - Function selection changes only the preview display.
+- Slot selection changes only the preview display.
 - No runtime frame slots exist.
 - No stack arguments exist.
 - No recursion support exists.

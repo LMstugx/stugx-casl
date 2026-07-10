@@ -395,6 +395,36 @@ describe("Circuit Focus Mode layout", () => {
     expect(markup).toContain("static label ADD_C");
   });
 
+  it("stack_frame_view_slot_rows_are_clickable", () => {
+    const markup = renderCppFunctionArgumentsFocus("add", cppFunctionWithLocalSource);
+
+    expect(markup).toContain('data-testid="stack-frame-future-slot"');
+    expect(markup).toContain('class="stack-frame-view-row stack-frame-view-slot-row"');
+    expect(markup).toContain('type="button"');
+  });
+
+  it("stack_frame_view_slot_rows_have_accessible_selection_contract", () => {
+    const markup = renderCppFunctionArgumentsFocus("add", cppFunctionWithLocalSource);
+
+    expect(markup).toContain('aria-selected="false"');
+    expect(markup).toContain('data-selected="false"');
+    expect(markup).toContain('data-slot-id="add:argument:a:1"');
+  });
+
+  it("stack_frame_view_slot_detail_explains_design_only_selection", () => {
+    const markup = renderCppFunctionArgumentsFocus("add", cppFunctionWithLocalSource);
+
+    expect(markup).toContain('data-testid="stack-frame-slot-detail"');
+    expect(markup).toContain('data-runtime-state="false"');
+    expect(markup).toContain("Select a slot row to inspect design-only mapping.");
+  });
+
+  it("stack_frame_view_slot_detail_styles_exist", () => {
+    expect(appCss).toContain(".stack-frame-view-slot-row[data-selected=\"true\"]");
+    expect(appCss).toContain(".stack-frame-view-slot-row:focus-visible");
+    expect(appCss).toContain(".stack-frame-slot-detail");
+  });
+
   it("stack_frame_view_function_selector_switches_preview", () => {
     const markup = renderCppFunctionArgumentsFocus();
 

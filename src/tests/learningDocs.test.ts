@@ -31,6 +31,7 @@ import phase11b from "../../docs/phase11b-stack-frame-lowering-scaffold.md?raw";
 import phase11c from "../../docs/phase11c-stack-frame-view-placeholder.md?raw";
 import phase11d from "../../docs/phase11d-frameplan-generator-scaffold.md?raw";
 import phase11e from "../../docs/phase11e-frameplan-stack-frame-view-preview.md?raw";
+import phase11f from "../../docs/phase11f-frameplan-slot-highlighting-contract.md?raw";
 import circuitVisualContract from "../../docs/circuit-visual-contract.md?raw";
 import futureCustomCircuit from "../../docs/future-custom-circuit-design.md?raw";
 import manualQaChecklist from "../../docs/manual-qa-checklist.md?raw";
@@ -399,6 +400,20 @@ describe("learning use documentation", () => {
     expect(learningGuide).toContain("phase11e-frameplan-stack-frame-view-preview.md");
     expect(practiceTasks).toContain("phase11e-frameplan-stack-frame-view-preview.md");
     expect(futureCustomCircuit).toContain("Phase 11E connects the design-only FramePlan metadata");
+  });
+
+  it("phase11f_frameplan_slot_highlighting_contract_doc_exists", () => {
+    expect(phase11f).toContain("Phase 11F: FramePlan Slot Highlighting Contract");
+    expect(phase11f).toContain("FrameSlotMapping");
+    expect(phase11f).toContain("Selected Slot Behavior");
+    expect(phase11f).toContain("current static labels");
+    expect(phase11f).toContain("Runtime state: Not available in simple mode");
+    expect(phase11f).toContain("fake live stack slot values");
+    expect(phase11f).toContain("aria-selected");
+    expect(readme).toContain("docs/phase11f-frameplan-slot-highlighting-contract.md");
+    expect(phase11d).toContain("phase11f-frameplan-slot-highlighting-contract.md");
+    expect(phase11e).toContain("phase11f-frameplan-slot-highlighting-contract.md");
+    expect(futureCustomCircuit).toContain("Phase 11F adds a design-only");
   });
 
   it("phase10e_focus_text_overflow_cleanup_doc_exists", () => {

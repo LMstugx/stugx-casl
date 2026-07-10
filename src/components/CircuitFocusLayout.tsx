@@ -6,7 +6,7 @@ import { VisualPathKind, formatFlags, formatWord } from "../core/types";
 import type { ObservationMode, SourceMode } from "../store/useAppStore";
 import type { CppToCaslMap } from "../transpiler/cppAst";
 import { cppLineForCaslLine } from "../transpiler/cppMapping";
-import { selectStackFramePreviewState, type FrameSlotPreview } from "../transpiler/framePlanView";
+import { selectStackFramePreviewState, type FrameSlotMapping, type FrameSlotPreview } from "../transpiler/framePlanView";
 import CometCircuitSvg from "../visual/CometCircuitSvg";
 import { summarizeCurrentInstruction } from "../visual/visualState";
 import RegisterPanel from "./RegisterPanel";
@@ -1141,6 +1141,7 @@ const STACK_FRAME_ARGUMENT_REGISTERS = ["GR1", "GR2", "GR3"] as const;
 
 const FALLBACK_FRAME_SLOTS: FrameSlotPreview[] = [
   {
+    mappingId: "fallback:return-address",
     name: "return-address",
     kind: "return-address",
     offset: 0,
@@ -1149,6 +1150,7 @@ const FALLBACK_FRAME_SLOTS: FrameSlotPreview[] = [
     labelForDebug: "Return address slot"
   },
   {
+    mappingId: "fallback:argument",
     name: "argument slots",
     kind: "argument",
     offset: 1,
@@ -1157,6 +1159,7 @@ const FALLBACK_FRAME_SLOTS: FrameSlotPreview[] = [
     labelForDebug: "Future argument slots"
   },
   {
+    mappingId: "fallback:local",
     name: "local slots",
     kind: "local",
     offset: 2,
@@ -1165,6 +1168,7 @@ const FALLBACK_FRAME_SLOTS: FrameSlotPreview[] = [
     labelForDebug: "Future local variable slots"
   },
   {
+    mappingId: "fallback:temporary",
     name: "temporary slots",
     kind: "temporary",
     offset: 3,
@@ -1173,6 +1177,7 @@ const FALLBACK_FRAME_SLOTS: FrameSlotPreview[] = [
     labelForDebug: "Future temporary slots"
   },
   {
+    mappingId: "fallback:saved-fp",
     name: "saved-fp",
     kind: "saved-fp",
     offset: 4,
@@ -1206,6 +1211,17 @@ function currentLoweringLabel(slot: FrameSlotPreview): string {
   return "not emitted";
 }
 
+function futureStorageLabel(mapping: FrameSlotMapping): string {
+  if (mapping.futureStorage === "return-address-current") return "return-address-current";
+  if (mapping.futureStorage === "register-argument") return "register-argument";
+  return "future-stack-slot";
+}
+
+function staticLabelReference(mapping: FrameSlotMapping): string {
+  if (mapping.currentLowering !== "static-label" || !mapping.currentLabelForDebug) return "not emitted";
+  return `${mapping.currentLabelForDebug} DS 1`;
+}
+
 function slotRowsForPreview(activeFunction: ReturnType<typeof selectStackFramePreviewState>["activeFunction"]): FrameSlotPreview[] {
   if (!activeFunction) return FALLBACK_FRAME_SLOTS;
   return [
@@ -1229,6 +1245,7 @@ function FocusStackFrameViewPanel({
 }) {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [selectedFunctionName, setSelectedFunctionName] = useState<string | undefined>();
+  const [selectedSlotId, setSelectedSlotId] = useState<string | undefined>();
   const preferredFunctionName = functionNameFromRoutineLabel(routineLabelForAddress(state, focus.address));
   const preview = useMemo(
     () => selectStackFramePreviewState(sourceMode, sourceText, selectedFunctionName, preferredFunctionName),
@@ -1240,6 +1257,9 @@ function FocusStackFrameViewPanel({
   const functionText = preview.selectedFunctionName ?? preferredFunctionName ?? "none";
   const frameSizeText = activeFunction ? `${activeFunction.frameSizeWords} words` : "not available";
   const slotRows = slotRowsForPreview(activeFunction);
+  const selectedSlot = slotRows.find((slot) => slot.mappingId === selectedSlotId);
+  const selectedMapping = activeFunction?.slotMappings.find((mapping) => mapping.mappingId === selectedSlot?.mappingId);
+  const selectedCurrentLowering = selectedSlot ? currentLoweringLabel(selectedSlot) : selectedMapping?.currentLowering ?? "not emitted";
   const previewStatus = preview.available ? "available" : preview.reason ?? "not available";
   const warningsText = preview.warnings.join(" ");
 
@@ -1311,7 +1331,10 @@ function FocusStackFrameViewPanel({
               aria-label="Stack frame preview function"
               title={`Preview function: ${functionText}`}
               value={preview.selectedFunctionName ?? ""}
-              onChange={(event) => setSelectedFunctionName(event.currentTarget.value)}
+              onChange={(event) => {
+                setSelectedFunctionName(event.currentTarget.value);
+                setSelectedSlotId(undefined);
+              }}
             >
               {preview.functions.map((fn) => (
                 <option key={fn.functionName} value={fn.functionName} title={fn.functionName}>
@@ -1342,20 +1365,74 @@ function FocusStackFrameViewPanel({
               <small className="secondary-note text-ellipsis" title="Preview selection only; does not affect VM state.">preview selection</small>
             </div>
             {slotRows.map((slot) => (
-              <div
+              <button
+                type="button"
                 key={`${slot.kind}-${slot.name}-${slot.offset}`}
-                className="stack-frame-view-row"
+                className="stack-frame-view-row stack-frame-view-slot-row"
                 data-testid="stack-frame-future-slot"
+                data-slot-id={slot.mappingId}
                 data-slot-kind={slot.kind}
                 data-status="future"
+                data-selected={selectedSlot?.mappingId === slot.mappingId ? "true" : "false"}
+                aria-selected={selectedSlot?.mappingId === slot.mappingId ? "true" : "false"}
+                title={`Select ${slot.name} ${slot.kind} slot mapping`}
+                onClick={() => setSelectedSlotId(slot.mappingId)}
               >
                 <span className="compact-label" title={slot.kind}>{slotKindLabel(slot)}</span>
                 <code className="nowrap-symbol" title={slot.name}>{slot.name}</code>
                 <small className="secondary-note text-ellipsis" title={`${currentLoweringLabel(slot)} at offset +${slot.offset}`}>
                   +{slot.offset} / {currentLoweringLabel(slot)}
                 </small>
-              </div>
+              </button>
             ))}
+            {selectedMapping ? (
+              <div
+                className="stack-frame-slot-detail"
+                data-testid="stack-frame-slot-detail"
+                data-runtime-state="false"
+                title={selectedMapping.explanation}
+              >
+                <div className="stack-frame-slot-detail-title">
+                  <span>Slot Detail</span>
+                  <code title={selectedMapping.symbolName}>{selectedMapping.symbolName}</code>
+                </div>
+                <div className="stack-frame-slot-detail-grid">
+                  <div>
+                    <span className="compact-label">Symbol</span>
+                    <code title={selectedMapping.symbolName}>{selectedMapping.symbolName}</code>
+                  </div>
+                  <div>
+                    <span className="compact-label">Kind</span>
+                    <code title={selectedMapping.slotKind}>{selectedMapping.slotKind}</code>
+                  </div>
+                  <div>
+                    <span className="compact-label">Current</span>
+                    <code title={selectedCurrentLowering}>{selectedCurrentLowering}</code>
+                  </div>
+                  <div>
+                    <span className="compact-label">Future</span>
+                    <code title={futureStorageLabel(selectedMapping)}>{futureStorageLabel(selectedMapping)}</code>
+                  </div>
+                  <div>
+                    <span className="compact-label">CASL</span>
+                    <code title={staticLabelReference(selectedMapping)}>{staticLabelReference(selectedMapping)}</code>
+                  </div>
+                  <div>
+                    <span className="compact-label">Source</span>
+                    <code title={selectedMapping.sourceLine ? `line ${selectedMapping.sourceLine}` : "not mapped"}>
+                      {selectedMapping.sourceLine ? `line ${selectedMapping.sourceLine}` : "not mapped"}
+                    </code>
+                  </div>
+                </div>
+                <p className="secondary-note wrap-explanation" title="Runtime state: Not available in simple mode.">
+                  Runtime state: Not available in simple mode.
+                </p>
+              </div>
+            ) : (
+              <div className="stack-frame-slot-detail stack-frame-slot-detail-empty" data-testid="stack-frame-slot-detail" data-runtime-state="false">
+                <span className="secondary-note">Select a slot row to inspect design-only mapping.</span>
+              </div>
+            )}
             {warningsText ? (
               <div className="stack-frame-view-row stack-frame-view-row-wide" data-testid="stack-frame-warning-row">
                 <span className="compact-label">Warnings</span>

@@ -2,7 +2,7 @@
 
 Phase 11D adds a TypeScript-only FramePlan generator scaffold. It does not change emitted CASL, C++ lowering behavior, VM behavior, assembler behavior, WASM behavior, mock-core behavior, UI runtime behavior, or current demos.
 
-Phase 11E connects this metadata to the Stack Frame View as a design-only preview in [phase11e-frameplan-stack-frame-view-preview.md](phase11e-frameplan-stack-frame-view-preview.md). That UI use still does not make frame slots live and still does not change emitted CASL.
+Phase 11E connects this metadata to the Stack Frame View as a design-only preview in [phase11e-frameplan-stack-frame-view-preview.md](phase11e-frameplan-stack-frame-view-preview.md). That UI use still does not make frame slots live and still does not change emitted CASL. Phase 11F adds the design-only slot mapping and selected-slot UI contract in [phase11f-frameplan-slot-highlighting-contract.md](phase11f-frameplan-slot-highlighting-contract.md).
 
 The scaffold exists so future stack-frame lowering work can be tested against stable metadata before any runtime or emitted-code change is attempted.
 
@@ -83,6 +83,8 @@ Examples:
 
 FramePlan records those labels as `labelForDebug` so tests and future UI can explain the current behavior without pretending it is a real stack-frame slot.
 
+Phase 11F turns `labelForDebug` into inspectable `FrameSlotMapping` preview metadata. The mapping links source symbols to current static labels and future slot concepts, but it still does not provide runtime frame values.
+
 ## GR0 / GR1-GR3 Representation
 
 The current calling convention stays unchanged:
@@ -131,6 +133,8 @@ Future UI can use FramePlan metadata to explain:
 
 Until advanced lowering exists, UI must not display these design slots as live runtime slots.
 
+Phase 11F adds selected slot highlighting and Slot Detail for this preview. That selection is UI-only and must not mutate VM state or emitted CASL.
+
 ## Future Stack-Frame Lowering
 
 FramePlan prepares later lowering work:
@@ -159,7 +163,7 @@ Those stages are not implemented in Phase 11D.
 ## Future Phases
 
 - Phase 11E: FramePlan-powered Stack Frame View preview, no emitted CASL change.
+- Phase 11F: FramePlan slot mapping and highlighting contract, no runtime frame values.
 - Later phase: single-function stack-frame local lowering MVP.
-- Phase 11F: register arguments saved to real frame slots.
 - Phase 11G: recursion teaching demo.
 - Later: optional FP / frame pointer decision, stack arguments, arrays, and pointer-like addressing.

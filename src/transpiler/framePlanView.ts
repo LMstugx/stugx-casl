@@ -3,7 +3,25 @@ import { buildFramePlans } from "./framePlan";
 import { parseCpp } from "./cppParser";
 import { checkCppSemantics } from "./cppSemantic";
 
+export type FrameSlotMappingKind = Exclude<FrameSlotKind, "saved-fp">;
+export type FrameSlotFutureStorage = "future-stack-slot" | "register-argument" | "return-address-current";
+
+export type FrameSlotMapping = {
+  mappingId: string;
+  functionName: string;
+  symbolName: string;
+  sourceLine?: number;
+  slotKind: FrameSlotMappingKind;
+  frameSlotName: string;
+  currentLabelForDebug?: string;
+  currentLowering: FrameSlotCurrentLowering;
+  futureStorage: FrameSlotFutureStorage;
+  explanation: string;
+  runtimeValueAvailable: false;
+};
+
 export type FrameSlotPreview = {
+  mappingId: string;
   name: string;
   kind: FrameSlotKind;
   offset: number;
@@ -22,6 +40,7 @@ export type StackFrameFunctionPreview = {
   argumentSlots: FrameSlotPreview[];
   localSlots: FrameSlotPreview[];
   temporarySlots: FrameSlotPreview[];
+  slotMappings: FrameSlotMapping[];
   warnings: string[];
 };
 
@@ -49,8 +68,13 @@ function unavailable(reason: string): StackFramePreviewState {
   };
 }
 
-function toSlotPreview(slot: FrameSlot): FrameSlotPreview {
+function slotMappingId(functionName: string, slot: FrameSlot): string {
+  return `${functionName}:${slot.kind}:${slot.name}:${slot.offset}`;
+}
+
+function toSlotPreview(functionName: string, slot: FrameSlot): FrameSlotPreview {
   return {
+    mappingId: slotMappingId(functionName, slot),
     name: slot.name,
     kind: slot.kind,
     offset: slot.offset,
@@ -58,6 +82,46 @@ function toSlotPreview(slot: FrameSlot): FrameSlotPreview {
     currentLowering: slot.currentLowering,
     labelForDebug: slot.labelForDebug,
     sourceLine: slot.sourceLine
+  };
+}
+
+function futureStorageForSlot(slot: FrameSlot): FrameSlotFutureStorage {
+  if (slot.kind === "return-address") return "return-address-current";
+  if (slot.kind === "argument") return "register-argument";
+  return "future-stack-slot";
+}
+
+function slotExplanation(slot: FrameSlot): string {
+  if (slot.kind === "return-address") {
+    return "CALL currently writes the return address to the stack; future FramePlan treats it as the return-address slot.";
+  }
+  if (slot.kind === "argument") {
+    return `Current lowering receives this argument through register storage and saves it to static label ${slot.labelForDebug ?? slot.name}; future stack-frame mode can map it to an argument slot.`;
+  }
+  if (slot.kind === "local") {
+    return `Current lowering stores this local in static label ${slot.labelForDebug ?? slot.name}; future stack-frame mode can map it to a local slot.`;
+  }
+  if (slot.kind === "temporary") {
+    return "Temporary slots are design-only future storage and are not emitted by the current lowering.";
+  }
+  return "Saved frame pointer slots are a future design option and are not runtime state.";
+}
+
+function toSlotMapping(functionName: string, slot: FrameSlot): FrameSlotMapping | undefined {
+  if (slot.kind === "saved-fp") return undefined;
+
+  return {
+    mappingId: slotMappingId(functionName, slot),
+    functionName,
+    symbolName: slot.kind === "return-address" ? "return-address" : slot.name,
+    sourceLine: slot.sourceLine,
+    slotKind: slot.kind,
+    frameSlotName: slot.name,
+    currentLabelForDebug: slot.labelForDebug,
+    currentLowering: slot.currentLowering,
+    futureStorage: futureStorageForSlot(slot),
+    explanation: slotExplanation(slot),
+    runtimeValueAvailable: false
   };
 }
 
@@ -92,17 +156,27 @@ export function selectStackFramePreviewState(
     }
 
     const collection = buildFramePlans(parsed.program);
-    const functions = collection.functions.map((plan): StackFrameFunctionPreview => ({
-      functionName: plan.functionName,
-      frameSizeWords: plan.frameSizeWords,
-      returnValueRegister: plan.returnValueRegister,
-      argumentRegisters: plan.argumentRegisters,
-      returnAddressSlot: toSlotPreview(plan.returnAddressSlot),
-      argumentSlots: plan.argumentSlots.map(toSlotPreview),
-      localSlots: plan.localSlots.map(toSlotPreview),
-      temporarySlots: plan.temporarySlots.map(toSlotPreview),
-      warnings: plan.warnings
-    }));
+    const functions = collection.functions.map((plan): StackFrameFunctionPreview => {
+      const rawSlots = [
+        plan.returnAddressSlot,
+        ...plan.argumentSlots,
+        ...plan.localSlots,
+        ...plan.temporarySlots
+      ];
+
+      return {
+        functionName: plan.functionName,
+        frameSizeWords: plan.frameSizeWords,
+        returnValueRegister: plan.returnValueRegister,
+        argumentRegisters: plan.argumentRegisters,
+        returnAddressSlot: toSlotPreview(plan.functionName, plan.returnAddressSlot),
+        argumentSlots: plan.argumentSlots.map((slot) => toSlotPreview(plan.functionName, slot)),
+        localSlots: plan.localSlots.map((slot) => toSlotPreview(plan.functionName, slot)),
+        temporarySlots: plan.temporarySlots.map((slot) => toSlotPreview(plan.functionName, slot)),
+        slotMappings: rawSlots.map((slot) => toSlotMapping(plan.functionName, slot)).filter((slot): slot is FrameSlotMapping => slot !== undefined),
+        warnings: plan.warnings
+      };
+    });
     const activeFunction = selectDefaultFunction(functions, selectedFunctionName, preferredFunctionName);
 
     return {

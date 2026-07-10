@@ -447,6 +447,23 @@ test("Mock backend shows Stack Frame View FramePlan preview in Register Stack mo
   await expect(page.getByTestId("focus-stack-frame-view")).toContainText("FrameSlot");
   await expect(page.getByTestId("stack-frame-view-state")).toHaveAttribute("data-has-live-frame", "false");
   await expect(page.getByTestId("stack-frame-view-state")).toHaveAttribute("data-runtime-state", "false");
+
+  const prBeforeSlotSelection = await page.getByTestId("focus-register-bank").getByTestId("register-pr").textContent();
+  await page.getByTestId("stack-frame-view-state").evaluate((element) => {
+    element.scrollTop = element.scrollHeight;
+  });
+  await page.locator('[data-slot-id="add:argument:a:1"]').click();
+  await expect(page.locator('[data-slot-id="add:argument:a:1"]')).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByTestId("stack-frame-slot-detail")).toContainText("a");
+  await expect(page.getByTestId("stack-frame-slot-detail")).toContainText("argument");
+  await expect(page.getByTestId("stack-frame-slot-detail")).toContainText("static label FUNC_ADD_A");
+  await expect(page.getByTestId("stack-frame-slot-detail")).toContainText("Not available in simple mode");
+  await page.locator('[data-slot-id="add:argument:b:2"]').focus();
+  await expect(page.locator('[data-slot-id="add:argument:b:2"]')).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(page.locator('[data-slot-id="add:argument:b:2"]')).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByTestId("stack-frame-slot-detail")).toContainText("FUNC_ADD_B");
+  expect(await page.getByTestId("focus-register-bank").getByTestId("register-pr").textContent()).toBe(prBeforeSlotSelection);
 });
 
 test("focus_mode_works_at_1280x720", async ({ page }) => {

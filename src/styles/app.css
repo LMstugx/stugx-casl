@@ -441,7 +441,7 @@ button {
 }
 
 .circuit-focus-workspace[data-observation-mode="register-stack"] .focus-right-column {
-  grid-template-rows: 154px 108px 134px 110px minmax(0, 1fr);
+  grid-template-rows: 154px 108px 214px 98px minmax(0, 1fr);
 }
 
 .circuit-focus-workspace[data-observation-mode="code-machine"] .focus-center-column {
@@ -875,6 +875,7 @@ button {
   gap: 4px;
   padding: 5px 7px;
   background: #f8fafc;
+  overflow: auto;
 }
 
 .stack-frame-view-badges {
@@ -958,6 +959,31 @@ button {
   grid-template-columns: 62px minmax(58px, 0.64fr) minmax(0, 1.2fr);
 }
 
+.stack-frame-view-slot-row {
+  width: 100%;
+  appearance: none;
+  border-color: #dbe3ee;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+}
+
+.stack-frame-view-slot-row:hover {
+  border-color: #b9c8dc;
+  background: #f8fbff;
+}
+
+.stack-frame-view-slot-row[data-selected="true"] {
+  border-color: #7c9fc9;
+  background: #eef5ff;
+  box-shadow: inset 2px 0 0 #4776ad;
+}
+
+.stack-frame-view-slot-row:focus-visible {
+  outline: 2px solid rgba(71, 118, 173, 0.55);
+  outline-offset: 1px;
+}
+
 .stack-frame-view-function {
   min-width: 0;
   display: grid;
@@ -1007,8 +1033,65 @@ button {
 }
 
 .stack-frame-view-details[open] {
-  max-height: 70px;
+  max-height: 128px;
   overflow: auto;
+}
+
+.stack-frame-slot-detail {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+  padding: 4px 5px;
+  border: 1px solid #ccd7e6;
+  border-radius: 4px;
+  background: #f8fbff;
+}
+
+.stack-frame-slot-detail-empty {
+  background: #ffffff;
+}
+
+.stack-frame-slot-detail-title {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 6px;
+  align-items: center;
+  color: #334155;
+  font-size: 10px;
+  font-weight: 850;
+}
+
+.stack-frame-slot-detail-title code,
+.stack-frame-slot-detail-grid code {
+  min-width: 0;
+  overflow: hidden;
+  color: #10233d;
+  font-family: "Cascadia Mono", Consolas, monospace;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stack-frame-slot-detail-grid {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 3px 6px;
+}
+
+.stack-frame-slot-detail-grid > div {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr);
+  gap: 4px;
+  align-items: center;
+}
+
+.stack-frame-slot-detail p {
+  margin: 0;
+  font-size: 10px;
+  line-height: 1.25;
 }
 
 .signal-probe-body {
@@ -3212,7 +3295,7 @@ button {
   }
 
   .circuit-focus-workspace[data-observation-mode="register-stack"] .focus-right-column {
-    grid-template-rows: 144px 104px 116px 96px minmax(0, 1fr);
+    grid-template-rows: 144px 104px 184px 90px minmax(0, 1fr);
   }
 
   .circuit-focus-workspace[data-observation-mode="code-machine"] .focus-right-column {

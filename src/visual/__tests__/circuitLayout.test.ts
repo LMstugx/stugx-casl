@@ -53,6 +53,10 @@ function ids(wires: readonly WirePath[]): string[] {
   return wires.map((wire) => wire.id);
 }
 
+function distance(a: { x: number; y: number }, b: { x: number; y: number }): number {
+  return Math.hypot(a.x - b.x, a.y - b.y);
+}
+
 describe("circuit focus layout", () => {
   it("route_orthogonal_builds_expected_points", () => {
     expect(routeOrthogonal({ x: 10, y: 20 }, { x: 60, y: 80 })).toEqual([
@@ -142,6 +146,16 @@ describe("circuit focus layout", () => {
         y: wire.toAnchor.y
       });
       expect(routeIsContinuous(wire.terminalPoints)).toBe(true);
+    }
+  });
+
+  it("active_wire_endpoint_matches_anchor_within_one_pixel", () => {
+    for (const wire of buildWirePaths({ grIndex: 2, indexRegister: 2, memoryAddress: 0x29 })) {
+      const start = wire.points[0];
+      const end = wire.points[wire.points.length - 1];
+
+      expect(distance(start, wire.fromAnchor)).toBeLessThanOrEqual(1);
+      expect(distance(end, wire.toAnchor)).toBeLessThanOrEqual(1);
     }
   });
 

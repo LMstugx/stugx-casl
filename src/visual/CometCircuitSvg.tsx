@@ -3,7 +3,7 @@ import { selectMemoryWindow, selectProgramStartAddress } from "../core/selectors
 import { CometState, VisualPathKind, formatFlags, formatWord } from "../core/types";
 import { CIRCUIT_MEMORY_ROW_COUNT, CIRCUIT_VIEWBOX, circuitAnchors, circuitBusLanes, circuitLayout, aluPolygonPoints, RectLayout } from "./circuitLayout";
 import { resolveActiveWireIds, resolveVisualPath } from "./visualPathResolver";
-import { buildWirePaths, type WirePath } from "./wirePaths";
+import { buildWirePaths, pointIsOnRoute, type WirePath } from "./wirePaths";
 import type { ReactNode } from "react";
 
 type ModuleProps = {
@@ -33,6 +33,19 @@ function signalFlowClass(path: WirePath): string {
 
 function markerForWire(path: WirePath): string {
   return path.role === "data" ? "url(#arrow-red)" : "url(#arrow-blue)";
+}
+
+function distanceBetweenPoints(a: { x: number; y: number }, b: { x: number; y: number }): number {
+  return Math.hypot(a.x - b.x, a.y - b.y);
+}
+
+function shouldRenderJunction(path: WirePath, junction: { x: number; y: number }): boolean {
+  const minimumEndpointGap = 6;
+  return (
+    pointIsOnRoute(junction, path.points) &&
+    distanceBetweenPoints(junction, path.fromAnchor) > minimumEndpointGap &&
+    distanceBetweenPoints(junction, path.toAnchor) > minimumEndpointGap
+  );
 }
 
 function Module({ layout, title, value, accent, testId, layer, children }: ModuleProps) {
@@ -532,18 +545,20 @@ function CometCircuitSvg({ state, sourceMapFocus }: { state: CometState; sourceM
         {wirePaths
           .filter((path) => effectiveActiveWireIds.has(path.id))
           .flatMap((path) =>
-            path.junctions.map((junction, index) => (
-              <circle
-                key={`junction-${path.id}-${index}`}
-                className={`active-junction active-junction-${path.semanticType}`}
-                data-testid={`wire-junction-${path.id}-${index}`}
-                data-path-id={path.id}
-                data-semantic-type={path.semanticType}
-                cx={junction.x}
-                cy={junction.y}
-                r="2.35"
-              />
-            ))
+            path.junctions
+              .filter((junction) => shouldRenderJunction(path, junction))
+              .map((junction, index) => (
+                <circle
+                  key={`junction-${path.id}-${index}`}
+                  className={`active-junction active-junction-${path.semanticType}`}
+                  data-testid={`wire-junction-${path.id}-${index}`}
+                  data-path-id={path.id}
+                  data-semantic-type={path.semanticType}
+                  cx={junction.x}
+                  cy={junction.y}
+                  r="2.35"
+                />
+              ))
           )}
       </g>
 

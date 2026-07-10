@@ -354,6 +354,21 @@ describe("Circuit Focus Mode layout", () => {
     expect(markup).toContain("StackFramePlan / FrameSlot");
   });
 
+  it("stack_frame_view_expands_without_internal_scroll_for_preview", () => {
+    expect(appCss).toContain(".stack-frame-view-body");
+    expect(appCss).toContain("overflow: visible");
+    expect(appCss).toContain(".stack-frame-view-details[open]");
+    expect(appCss).toContain("max-height: none");
+  });
+
+  it("register_stack_mode_does_not_trap_cards_in_tiny_scroll_regions", () => {
+    expect(appCss).toContain(".focus-right-column");
+    expect(appCss).toContain("overflow: visible");
+    expect(appCss).toContain(".focus-signal-probe");
+    expect(appCss).toContain(".focus-stack-frame-view");
+    expect(appCss).toContain("grid-template-rows: auto auto");
+  });
+
   it("stack_frame_view_does_not_show_fake_live_slots", () => {
     const markup = renderFocus(mockCaslCore.assemble(gr2Source), gr2Source, "register-stack");
 
@@ -429,6 +444,19 @@ describe("Circuit Focus Mode layout", () => {
     expect(appCss).toContain(".stack-frame-view-slot-row[data-selected=\"true\"]");
     expect(appCss).toContain(".stack-frame-view-slot-row:focus-visible");
     expect(appCss).toContain(".stack-frame-slot-detail");
+  });
+
+  it("stack_preview_selected_row_does_not_change_row_height", () => {
+    expect(appCss).toContain(".stack-preview-row");
+    expect(appCss).toContain("height: 22px");
+    expect(appCss).toContain("min-height: 22px");
+    expect(appCss).toContain("border: 1px solid transparent");
+  });
+
+  it("stack_preview_selected_row_highlight_stays_within_row", () => {
+    expect(appCss).toContain(".stack-preview-row.current");
+    expect(appCss).toContain("border-color: transparent");
+    expect(appCss).toContain("box-shadow: inset 0 0 0 1px #bfdbfe, inset 2px 0 0 var(--color-primary)");
   });
 
   it("source_symbol_chip_selects_frame_slot", () => {
@@ -1099,6 +1127,13 @@ DONE RET
     expect(appCss).toContain("padding-top: 10px");
   });
 
+  it("output_dock_does_not_force_main_content_into_tiny_scroll", () => {
+    expect(appCss).toContain(".app-shell.circuit-focus-active");
+    expect(appCss).toContain("grid-template-rows: auto auto minmax(220px, auto) auto");
+    expect(appCss).toContain(".output-panel");
+    expect(appCss).toContain("min-height: 220px");
+  });
+
   it("generated_casl_table_not_hidden_under_tab_header", () => {
     const program = getDemoProgram("cpp-function-arguments");
     expect(program).toBeDefined();
@@ -1180,9 +1215,20 @@ DONE RET
   it("trace_rows_are_not_clipped_in_small_panel", () => {
     expect(appCss).toContain(".focus-trace-list");
     expect(appCss).toContain("scrollbar-gutter: stable");
+    expect(appCss).toContain("min-height: 220px");
+    expect(appCss).toContain("max-height: 440px");
     expect(appCss).toContain("min-height: 50px");
     expect(appCss).toContain("min-height: 39px");
     expect(appCss).toContain("padding: 8px 11px 8px 7px");
+  });
+
+  it("trace_panel_shows_at_least_four_complete_rows_when_space_allows", () => {
+    expect(appCss).toContain(".focus-trace-list");
+    expect(appCss).toContain("min-height: 220px");
+    expect(appCss).toContain(".focus-trace-item.latest");
+    expect(appCss).toContain("min-height: 50px");
+    expect(appCss).toContain(".focus-trace-item:not(.latest)");
+    expect(appCss).toContain("min-height: 39px");
   });
 
   it("trace_history_secondary_note_ellipsis", () => {
@@ -1252,6 +1298,20 @@ DONE RET
     expect(markup).toContain("Call depth");
   });
 
+  it("signal_probe_details_expand_card_height", () => {
+    expect(appCss).toContain(".signal-probe-body");
+    expect(appCss).toContain("overflow: visible");
+    expect(appCss).toContain(".signal-probe-details[open]");
+    expect(appCss).toContain("max-height: none");
+  });
+
+  it("signal_probe_expanded_rows_are_not_clipped", () => {
+    expect(appCss).toContain(".signal-probe-details[open]");
+    expect(appCss).toContain("overflow: visible");
+    expect(appCss).toContain('.signal-probe-body[data-density="compact"] .signal-probe-details[open]');
+    expect(appCss).toContain("max-height: none");
+  });
+
   it("signal_probe_does_not_show_unhelpful_truncated_labels", () => {
     const markup = renderFocus(stepSource(callReturnSource, 2), callReturnSource, "register-stack");
 
@@ -1314,6 +1374,13 @@ DONE RET
     expect(markup).toContain("compact-label signal-probe-label");
     expect(markup).toContain("secondary-note text-ellipsis");
     expect(appCss).toContain("grid-auto-rows: max-content");
+  });
+
+  it("page_allows_vertical_scroll_in_focus_mode", () => {
+    expect(appCss).toContain("overflow-y: auto");
+    expect(appCss).toContain(".app-shell");
+    expect(appCss).toContain("min-height: 100vh");
+    expect(appCss).toContain("overflow: visible");
   });
 
   it("signal_probe_details_has_aria_expanded", () => {
@@ -1765,7 +1832,8 @@ A    DC    3
 
   it("right_column_scroll_safe_when_content_exceeds_height", () => {
     expect(appCss).toContain(".focus-right-column");
-    expect(appCss).toContain("overflow-y: auto");
+    expect(appCss).toContain("overflow: visible");
+    expect(appCss).toContain("display: flex");
   });
 
   it("source_context_compact_in_cpu_flow", () => {

@@ -568,6 +568,23 @@ test("focus_mode_works_at_1280x720", async ({ page }) => {
   await page.keyboard.press("Enter");
   await expect(page.getByTestId("call-stack-details-summary")).toHaveAttribute("aria-expanded", "true");
 
+  await page.getByTestId("stack-frame-view-details-summary").focus();
+  await expect(page.getByTestId("stack-frame-view-details-summary")).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(page.getByTestId("stack-frame-view-details-summary")).toHaveAttribute("aria-expanded", "true");
+
+  const focusUsesPageScroll = await page.evaluate(() => document.documentElement.scrollHeight > window.innerHeight + 24);
+  expect(focusUsesPageScroll).toBe(true);
+
+  const appShellOverflow = await page.locator(".app-shell").evaluate((element) => getComputedStyle(element).overflowY);
+  expect(appShellOverflow).not.toBe("hidden");
+
+  const signalProbeBodyOverflow = await page.locator(".signal-probe-body").first().evaluate((element) => getComputedStyle(element).overflowY);
+  expect(signalProbeBodyOverflow).toBe("visible");
+
+  const stackFrameBodyOverflow = await page.getByTestId("stack-frame-view-state").evaluate((element) => getComputedStyle(element).overflowY);
+  expect(stackFrameBodyOverflow).toBe("visible");
+
   for (const testId of ["focus-current-instruction-panel", "focus-signal-probe", "focus-call-stack", "focus-stack-preview", "focus-stack-frame-view", "focus-trace-panel"]) {
     const hasHorizontalOverflow = await page.getByTestId(testId).evaluate((element) => element.scrollWidth > element.clientWidth + 1);
     expect(hasHorizontalOverflow, `${testId} should not overflow horizontally`).toBe(false);

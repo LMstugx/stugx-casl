@@ -240,6 +240,7 @@ Answer hint:
 
 Start from `C++: Function Call`, then read `docs/phase10b-calling-convention-design.md`.
 For the future stack-frame plan, also read `docs/phase11a-stack-frame-locals-design.md`.
+For the implementation scaffold, read `docs/phase11b-stack-frame-lowering-scaffold.md`.
 
 Expected observation:
 
@@ -248,6 +249,7 @@ Expected observation:
 - Stack arguments are a later design topic, not current syntax.
 - Static namespaced labels such as `MAIN_X` are not stack-frame locals.
 - The stack-frame document is design-only; the current generated CASL should not change.
+- `StackFramePlan` and `FrameSlot` are future design metadata, not current emitted code.
 
 Answer hint:
 

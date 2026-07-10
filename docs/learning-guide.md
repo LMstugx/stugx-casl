@@ -102,6 +102,7 @@ Calling convention design note:
 - Stack arguments and stack-frame locals are design topics only; they are not implemented in the current C++ subset.
 - Read [phase10b-calling-convention-design.md](phase10b-calling-convention-design.md) before trying to design parameter or recursion lessons.
 - Read [phase11a-stack-frame-locals-design.md](phase11a-stack-frame-locals-design.md) for the future advanced-mode stack-frame plan. It is design-only and does not change the current static namespaced labels.
+- Read [phase11b-stack-frame-lowering-scaffold.md](phase11b-stack-frame-lowering-scaffold.md) for future `StackFramePlan` / `FrameSlot` metadata and prologue / epilogue design constraints.
 
 Single-argument follow-up: `C++: Function Argument`
 
@@ -130,6 +131,7 @@ Learn:
 - The callee saves `GR1` and `GR2` into `FUNC_ADD_A` and `FUNC_ADD_B` before reading parameters.
 - These parameter labels are still static generated labels, not stack-frame locals.
 - Future stack-frame locals are documented as an advanced design path, not current behavior.
+- The stack-frame lowering scaffold is a future implementation guide only; this demo should still emit static labels.
 
 Suggested actions:
 

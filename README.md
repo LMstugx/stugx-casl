@@ -320,6 +320,7 @@ The current backend is shown in the status bar as `Mock Core`, `WASM Core`, or `
 - [docs/phase10l-final-ui-detail-polish.md](docs/phase10l-final-ui-detail-polish.md): final EAU readability, Signal Probe labels, Call Stack wording, Trace notes, and compact Machine Code explanation polish.
 - [docs/visual-rc-baseline.md](docs/visual-rc-baseline.md): visual release-candidate baseline commit, tag, screenshot list, and future UI modification rules.
 - [docs/phase11a-stack-frame-locals-design.md](docs/phase11a-stack-frame-locals-design.md): design-only plan for future C++ stack-frame locals, stack arguments, frame pointer decisions, and Stack Frame View.
+- [docs/phase11b-stack-frame-lowering-scaffold.md](docs/phase11b-stack-frame-lowering-scaffold.md): future stack-frame lowering scaffold for `StackFramePlan`, `FrameSlot`, prologue/epilogue stages, and Stack Frame View data.
 
 ## Current Limitations
 

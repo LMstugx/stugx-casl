@@ -27,6 +27,7 @@ import phase10j from "../../docs/phase10j-observation-mode-split.md?raw";
 import phase10k from "../../docs/phase10k-observation-visual-defect-cleanup.md?raw";
 import phase10l from "../../docs/phase10l-final-ui-detail-polish.md?raw";
 import phase11a from "../../docs/phase11a-stack-frame-locals-design.md?raw";
+import phase11b from "../../docs/phase11b-stack-frame-lowering-scaffold.md?raw";
 import circuitVisualContract from "../../docs/circuit-visual-contract.md?raw";
 import futureCustomCircuit from "../../docs/future-custom-circuit-design.md?raw";
 import manualQaChecklist from "../../docs/manual-qa-checklist.md?raw";
@@ -307,6 +308,31 @@ describe("learning use documentation", () => {
     expect(releaseCandidateNotes).toContain("Phase 11A records the design-only stack-frame locals plan");
   });
 
+  it("phase11b_stack_frame_lowering_scaffold_doc_exists", () => {
+    expect(phase11b).toContain("Phase 11B: Stack-Frame Lowering Scaffold");
+    expect(phase11b).toContain("StackFramePlan");
+    expect(phase11b).toContain("FrameSlot");
+    expect(phase11b).toContain("MAIN_X");
+    expect(phase11b).toContain("FUNC_ADD_A");
+    expect(phase11b).toContain("FUNC_ADD_B");
+    expect(phase11b).toContain("Future advanced mode");
+    expect(phase11b).toContain("Prologue");
+    expect(phase11b).toContain("Epilogue");
+    expect(phase11b).toContain("Option A: No Frame Pointer");
+    expect(phase11b).toContain("Option B: Virtual FP");
+    expect(phase11b).toContain("Option C: Real FP Register");
+    expect(phase11b).toContain("Stack Frame View");
+    expect(phase11b).toContain("Observation Mode");
+    expect(phase11b).toContain("Future Test Plan");
+    expect(phase11b).toContain("No Runtime Behavior Changed");
+    expect(readme).toContain("docs/phase11b-stack-frame-lowering-scaffold.md");
+    expect(phase11a).toContain("phase11b-stack-frame-lowering-scaffold.md");
+    expect(learningGuide).toContain("phase11b-stack-frame-lowering-scaffold.md");
+    expect(practiceTasks).toContain("phase11b-stack-frame-lowering-scaffold.md");
+    expect(futureCustomCircuit).toContain("Phase 11B adds the design scaffold");
+    expect(releaseCandidateNotes).toContain("Phase 11B records the future lowering scaffold");
+  });
+
   it("phase10e_focus_text_overflow_cleanup_doc_exists", () => {
     expect(phase10e).toContain("Phase 10E: Focus Mode Text Overflow Cleanup");
     expect(phase10e).toContain("Signal Probe Compact Design");
@@ -469,6 +495,7 @@ describe("learning use documentation", () => {
     expect(futureCustomCircuit).toContain("Phase 10C implements the first concrete argument path");
     expect(futureCustomCircuit).toContain("Phase 10D extends that path");
     expect(futureCustomCircuit).toContain("Phase 11A documents the future stack-frame locals design");
+    expect(futureCustomCircuit).toContain("Phase 11B adds the design scaffold");
     expect(futureCustomCircuit).toContain("GR1");
     expect(futureCustomCircuit).toContain("GR3");
     expect(futureCustomCircuit).toContain("stack-frame locals");
@@ -547,6 +574,7 @@ describe("learning use documentation", () => {
     expect(readme).toContain("docs/phase10l-final-ui-detail-polish.md");
     expect(readme).toContain("docs/visual-rc-baseline.md");
     expect(readme).toContain("docs/phase11a-stack-frame-locals-design.md");
+    expect(readme).toContain("docs/phase11b-stack-frame-lowering-scaffold.md");
     expect(readme).toContain("docs/manual-qa-checklist.md");
     expect(readme).toContain("docs/release-candidate-notes.md");
     expect(readme).toContain("docs/future-custom-circuit-design.md");

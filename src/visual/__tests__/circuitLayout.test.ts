@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { VisualPathKind } from "../../core/types";
-import { circuitAnchors, circuitLayout, circuitProtectedRects } from "../circuitLayout";
+import { circuitAnchors, circuitBusLanes, circuitLayout, circuitProtectedRects, circuitRouting } from "../circuitLayout";
 import { pathTemplateForInstruction, stackPathTemplates } from "../instructionPathTemplates";
 import {
   activeWireIdsByKind,
@@ -372,6 +372,62 @@ describe("circuit focus layout", () => {
       lane: "addr",
       semanticType: "address"
     });
+  });
+
+  it("index_input_line_targets_eau_index_anchor", () => {
+    const paths = buildWirePaths({ grIndex: 1, indexRegister: 2, memoryAddress: 0x28 });
+    const indexWire = paths.find((wire) => wire.id === "index-to-eau");
+
+    expect(indexWire).toMatchObject({
+      fromAnchor: expect.objectContaining({ id: "gr2.indexRight" }),
+      toAnchor: expect.objectContaining({ id: "eau.index" }),
+      relatedRegister: 2
+    });
+    expect(indexWire?.points[indexWire.points.length - 1]).toEqual(circuitAnchors.eau.indexInput());
+    expect(indexWire?.points.some((point) => point.y === circuitBusLanes.addressIndexY)).toBe(true);
+  });
+
+  it("base_input_line_targets_eau_base_anchor", () => {
+    const paths = buildWirePaths({ grIndex: 1, indexRegister: 2, memoryAddress: 0x28 });
+    const baseWire = paths.find((wire) => wire.id === "base-to-eau");
+
+    expect(baseWire).toMatchObject({
+      fromAnchor: expect.objectContaining({ id: "operand.base" }),
+      toAnchor: expect.objectContaining({ id: "eau.base" })
+    });
+    expect(baseWire?.points[baseWire.points.length - 1]).toEqual(circuitAnchors.eau.baseInput());
+  });
+
+  it("eau_output_line_targets_mar_or_effective_target", () => {
+    const paths = buildWirePaths({ grIndex: 1, indexRegister: 2, memoryAddress: 0x28 });
+    const outputWire = paths.find((wire) => wire.id === "eau-to-mar");
+
+    expect(outputWire).toMatchObject({
+      fromAnchor: expect.objectContaining({ id: "eau.sum" }),
+      toAnchor: expect.objectContaining({ id: "mar.left" })
+    });
+    expect(outputWire?.points[0]).toEqual(circuitAnchors.eau.sumOutput());
+    expect(outputWire?.points[outputWire.points.length - 1]).toEqual(circuitAnchors.mar.left());
+  });
+
+  it("eau_routes_do_not_overlap_eau_text", () => {
+    const paths = buildWirePaths({ grIndex: 1, indexRegister: 2, memoryAddress: 0x28 });
+    const eauText = circuitProtectedRects.eauText();
+
+    for (const wire of paths.filter((path) => ["base-to-eau", "index-to-eau", "eau-to-mar"].includes(path.id))) {
+      expect(routeCrossesProtectedRect(wire.points, eauText)).toBe(false);
+    }
+  });
+
+  it("eau_routes_have_minimum_padding", () => {
+    const paths = buildWirePaths({ grIndex: 1, indexRegister: 2, memoryAddress: 0x28 });
+    const baseWire = paths.find((wire) => wire.id === "base-to-eau");
+    const indexWire = paths.find((wire) => wire.id === "index-to-eau");
+    const outputWire = paths.find((wire) => wire.id === "eau-to-mar");
+
+    expect(baseWire?.points[0].x).toBe(circuitLayout.eau.x - circuitRouting.eauInputClearance);
+    expect(indexWire?.points.some((point) => point.x === circuitLayout.eau.x - circuitRouting.eauInputClearance)).toBe(true);
+    expect(outputWire?.points.some((point) => point.x === circuitLayout.eau.x + circuitLayout.eau.w + circuitRouting.eauOutputClearance)).toBe(true);
   });
 
   it("stack_path_guide_is_inactive_by_default", () => {

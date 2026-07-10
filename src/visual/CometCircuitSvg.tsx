@@ -200,6 +200,11 @@ function EffectiveAddressUnitModule({ state, active }: { state: CometState; acti
   const baseInput = circuitAnchors.eau.baseInput();
   const indexInput = circuitAnchors.eau.indexInput();
   const sumOutput = circuitAnchors.eau.sumOutput();
+  const rows = [
+    { label: "BASE", value: base, testId: "effective-address-base-row" },
+    { label: "INDEX", value: hasIndex ? `GR${indexRegister}=${indexValue}` : "none", testId: "effective-address-index-row" },
+    { label: "EA", value: effective, testId: "effective-address-ea-row" }
+  ];
 
   return (
     <g
@@ -212,23 +217,31 @@ function EffectiveAddressUnitModule({ state, active }: { state: CometState; acti
       data-layer="control"
     >
       <rect x={circuitLayout.eau.x} y={circuitLayout.eau.y} width={circuitLayout.eau.w} height={circuitLayout.eau.h} rx="5" />
-      <text className="module-title" x={circuitLayout.eau.x + 20} y={circuitLayout.eau.y + 15}>
+      <text className="module-title" x={circuitLayout.eau.x + 12} y={circuitLayout.eau.y + 15}>
         EAU
       </text>
-      <text className="module-small module-muted" x={circuitLayout.eau.x + 52} y={circuitLayout.eau.y + 15}>
-        Effective Address Unit
+      <text className="module-small module-muted" x={circuitLayout.eau.x + 48} y={circuitLayout.eau.y + 15}>
+        Address Unit
       </text>
       {active ? (
         <g data-testid="effective-address-chip">
-          <text className="module-small" x={circuitLayout.eau.x + 12} y={circuitLayout.eau.y + 30}>
-            {hasIndex ? `BASE ${base} + GR${indexRegister}(${indexValue})` : `BASE ${base} + no index`}
-          </text>
-          <text className="module-small module-green" x={circuitLayout.eau.x + 12} y={circuitLayout.eau.y + 43}>
-            EA {effective}
-          </text>
+          {rows.map((row, index) => {
+            const y = circuitLayout.eau.y + 21 + index * 11;
+            return (
+              <g key={row.label} className="effective-address-row" data-testid={row.testId}>
+                <rect x={circuitLayout.eau.x + 9} y={y} width={circuitLayout.eau.w - 18} height="10" rx="2" />
+                <text className="module-small eau-row-label" x={circuitLayout.eau.x + 15} y={y + 7}>
+                  {row.label}
+                </text>
+                <text className="module-small module-green eau-row-value" x={circuitLayout.eau.x + circuitLayout.eau.w - 12} y={y + 7} textAnchor="end">
+                  {row.value}
+                </text>
+              </g>
+            );
+          })}
         </g>
       ) : (
-        <text className="module-small module-muted" x={circuitLayout.eau.x + 12} y={circuitLayout.eau.y + 36}>
+        <text className="module-small module-muted" x={circuitLayout.eau.x + 12} y={circuitLayout.eau.y + 38}>
           bypass
         </text>
       )}

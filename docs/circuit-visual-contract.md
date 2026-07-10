@@ -117,6 +117,8 @@ EAU:
 
 - Effective Address Unit anchors are BASE, INDEX, SUM.
 - Use EAU for index addressing, stack target preparation when needed, and CALL/JUMP indexed targets.
+- Active EAU display uses separate BASE, INDEX, and EA rows. Do not compress those values into one packed formula when the module is active.
+- BASE and INDEX routes terminate at separate input anchors so students can see address operand and index register as different inputs.
 
 SP:
 
@@ -220,6 +222,7 @@ Rules:
 - Memory highlight must be at the effective address, not the base address
 - route: base + index GR -> EAU -> MAR -> Memory effective row
 - lanes: addr lane, with data lane added only by the instruction category
+- EAU display rows use `BASE`, `INDEX`, and `EA` labels. INDEX may use a subtle address-index visual style, but it remains an address path, not a data-compute path.
 
 ### PUSH
 
@@ -312,6 +315,9 @@ Text must never break the circuit layout.
 - No text may overflow card boundaries.
 - Prefer shorter labels over smaller unreadable text.
 - Phase 10E applies these rules with label / value / note rows for Signal Probe, summary/detail rows for Call Stack, and main/effect/note rows for Trace.
+- Phase 10K keeps Signal Probe default view to at most three primary rows. Index scenes prioritize EA while BASE / INDEX detail stays collapsed by default. Stack and CALL scenes prioritize SP or return-address activity before lower-priority details.
+- Trace history rows stay compact. The latest row may be more prominent, but it should not expand into a paragraph-like log card.
+- Code / Machine tables separate primary columns from secondary columns: Generated CASL line / label / opcode / operand and Machine Code address / word / source are primary; mapping and meaning are secondary.
 
 Observation Mode density rules:
 

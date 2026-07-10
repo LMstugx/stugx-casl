@@ -580,9 +580,13 @@ describe("Circuit Focus Mode layout", () => {
     expect(markup).toContain("IDX");
     expect(markup).toContain('data-testid="effective-address-unit"');
     expect(markup).toContain('data-active="true" data-base-address="0027" data-index-register="GR2" data-effective-address="0028"');
-    expect(markup).toContain("Effective Address Unit");
-    expect(markup).toContain("BASE 0027 + GR2(0001)");
-    expect(markup).toContain("EA 0028");
+    expect(markup).toContain("Address Unit");
+    expect(markup).toContain('data-testid="effective-address-base-row"');
+    expect(markup).toContain('data-testid="effective-address-index-row"');
+    expect(markup).toContain('data-testid="effective-address-ea-row"');
+    expect(markup).toContain("BASE");
+    expect(markup).toContain("GR2=0001");
+    expect(markup).toContain("EA");
     expect(markup).toContain("GR1 &lt;- memory[A+GR2]");
     expect(markup).toContain('data-testid="memory-row-0028"');
     expect(markup).toContain('data-read="true"');
@@ -764,6 +768,30 @@ DONE RET
     expect(markup).toContain("trace-note text-ellipsis");
   });
 
+  it("trace_latest_row_prominent_but_not_excessively_tall", () => {
+    const markup = renderFocus(stepSource(callReturnSource, 3), callReturnSource);
+
+    expect(markup).toContain('class="focus-trace-item latest"');
+    expect(markup).toContain('data-latest="true"');
+    expect(markup).toContain("trace-effect text-ellipsis");
+  });
+
+  it("trace_history_rows_compact", () => {
+    const markup = renderFocus(stepSource(callReturnSource, 4), callReturnSource);
+
+    expect(markup).toContain('data-testid="focus-trace-item"');
+    expect(markup).toContain('data-latest="false"');
+  });
+
+  it("trace_long_text_ellipsis_with_title", () => {
+    const markup = renderFocus(stepSource(callReturnSource, 2), callReturnSource);
+
+    expect(markup).toContain('class="trace-main text-ellipsis"');
+    expect(markup).toContain('class="trace-effect text-ellipsis"');
+    expect(markup).toContain('class="trace-note text-ellipsis"');
+    expect(markup).toContain('title="#2 CALL SUB"');
+  });
+
   it("signal_probe_card_renders_compact", () => {
     const markup = renderFocus(stepTimes(1));
 
@@ -791,6 +819,45 @@ DONE RET
     expect(markup).toContain('data-testid="signal-probe-details"');
     expect(markup).toContain("+ ");
     expect(markup).toContain("CALLDEPTH");
+  });
+
+  it("signal_probe_defaults_to_three_primary_rows", () => {
+    const source = getDemoProgram("casl-index-addressing")!.source;
+    const markup = renderFocus(stepSource(source, 2), source);
+    const compactRows = /data-testid="signal-probe-compact-rows"[\s\S]*?<details/.exec(markup)?.[0] ?? "";
+
+    expect(compactRows.match(/data-testid="signal-probe-row"/g)?.length).toBe(3);
+    expect(compactRows).toContain(">GR1<");
+    expect(compactRows).toContain(">EA<");
+    expect(compactRows).not.toContain(">BASE<");
+  });
+
+  it("signal_probe_index_details_collapsed_by_default", () => {
+    const source = getDemoProgram("casl-index-addressing")!.source;
+    const markup = renderFocus(stepSource(source, 2), source);
+
+    expect(markup).toContain('data-testid="signal-probe-details"');
+    expect(markup).toContain('aria-expanded="false"');
+    expect(markup).toContain(">BASE<");
+    expect(markup).toContain("index value");
+  });
+
+  it("signal_probe_stack_details_collapsed_by_default", () => {
+    const markup = renderFocus(stepSource(callReturnSource, 2), callReturnSource, "register-stack");
+    const compactRows = /data-testid="signal-probe-compact-rows"[\s\S]*?<details/.exec(markup)?.[0] ?? "";
+
+    expect(compactRows.match(/data-testid="signal-probe-row"/g)?.length).toBe(3);
+    expect(compactRows).toContain(">RETADDR<");
+    expect(compactRows).toContain(">SP<");
+    expect(markup).toContain('aria-expanded="false"');
+  });
+
+  it("signal_probe_rows_do_not_overlap", () => {
+    const markup = renderFocus(stepSource(callReturnSource, 2), callReturnSource, "register-stack");
+
+    expect(markup).toContain("signal-probe-row compact-grid");
+    expect(markup).toContain("compact-label text-ellipsis");
+    expect(markup).toContain("secondary-note text-ellipsis");
   });
 
   it("signal_probe_details_has_aria_expanded", () => {
@@ -932,6 +999,67 @@ A    DC    3
     expect(markup).toContain("text-ellipsis");
     expect(markup).toContain("nowrap-symbol");
     expect(markup).toContain('title="FUNC_ADD"');
+  });
+
+  it("code_machine_generated_casl_primary_columns_readable", () => {
+    const program = getDemoProgram("cpp-function-arguments");
+    expect(program).toBeDefined();
+    const prepared = prepareSourceForCoreAssembly(program!.source, "cpp");
+    expect(prepared.ok).toBe(true);
+    const state = mockCaslCore.assemble(prepared.coreSourceText);
+    const markup = renderCppFocus(state, program!.source, prepared.generatedCaslSource, prepared.mapping, "code-machine");
+
+    expect(markup).toContain('data-testid="focus-generated-casl-panel"');
+    expect(markup).toContain("focus-code-cell-primary");
+    expect(markup).toContain("FUNC_ADD");
+    expect(markup).toContain("CALL");
+  });
+
+  it("code_machine_secondary_columns_deemphasized", () => {
+    const program = getDemoProgram("cpp-function-arguments");
+    expect(program).toBeDefined();
+    const prepared = prepareSourceForCoreAssembly(program!.source, "cpp");
+    expect(prepared.ok).toBe(true);
+    const state = mockCaslCore.assemble(prepared.coreSourceText);
+    const markup = renderCppFocus(state, program!.source, prepared.generatedCaslSource, prepared.mapping, "code-machine");
+
+    expect(markup).toContain("focus-code-cell-secondary");
+    expect(markup).toContain("focus-code-cell-meaning");
+  });
+
+  it("machine_code_meaning_ellipsis_with_title", () => {
+    const program = getDemoProgram("cpp-function-arguments");
+    expect(program).toBeDefined();
+    const prepared = prepareSourceForCoreAssembly(program!.source, "cpp");
+    expect(prepared.ok).toBe(true);
+    const state = mockCaslCore.assemble(prepared.coreSourceText);
+    const markup = renderCppFocus(state, program!.source, prepared.generatedCaslSource, prepared.mapping, "code-machine");
+
+    expect(markup).toContain('class="text-ellipsis focus-code-cell-secondary focus-code-cell-meaning"');
+    expect(markup).toContain('title="subroutine target address"');
+  });
+
+  it("selected_word_explanation_no_overflow", () => {
+    const program = getDemoProgram("cpp-function-arguments");
+    expect(program).toBeDefined();
+    const prepared = prepareSourceForCoreAssembly(program!.source, "cpp");
+    expect(prepared.ok).toBe(true);
+    const state = mockCaslCore.assemble(prepared.coreSourceText);
+    const markup = renderToStaticMarkup(
+      <OutputPanel
+        lines={[]}
+        state={state}
+        generatedCaslSource={prepared.generatedCaslSource}
+        cppToCaslMapping={prepared.mapping}
+        sourceMode="cpp"
+        initialTab="machine"
+        onClear={() => undefined}
+      />
+    );
+
+    expect(markup).toContain('data-testid="machine-code-explanation"');
+    expect(markup).toContain("wrap-explanation");
+    expect(markup).toContain("text-ellipsis");
   });
 
   it("generated_casl_long_cells_have_title", () => {

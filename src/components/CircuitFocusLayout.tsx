@@ -556,19 +556,19 @@ function FocusGeneratedCaslPanel({
       </header>
       <div className="focus-code-table focus-generated-casl-table">
         <div className="focus-code-row focus-code-head" aria-hidden="true">
-          <span>Line</span>
-          <span>Label</span>
-          <span>Op</span>
-          <span>Operand</span>
-          <span>Mapping</span>
+          <span className="focus-code-cell-primary">Line</span>
+          <span className="focus-code-cell-primary">Label</span>
+          <span className="focus-code-cell-primary">Op</span>
+          <span className="focus-code-cell-primary">Operand</span>
+          <span className="focus-code-cell-secondary">Mapping</span>
         </div>
         {rows.slice(0, 18).map((row) => (
           <div key={`${row.lineNumber}-${row.raw}`} className={`focus-code-row ${row.isCurrent ? "current" : ""}`} data-testid={row.isCurrent ? "focus-generated-casl-current" : "focus-generated-casl-row"}>
-            <code className="mono-value">{String(row.lineNumber).padStart(2, "0")}</code>
-            <span className="text-ellipsis" title={row.label || "-"}>{row.label || "-"}</span>
-            <span className="nowrap-symbol" title={row.opcode || "-"}>{row.opcode || "-"}</span>
-            <span className="nowrap-symbol" title={row.operand || row.raw}>{row.operand || row.raw}</span>
-            <span className="text-ellipsis" title={row.mappingKinds.join(", ") || "-"}>{row.mappingKinds.join(", ") || "-"}</span>
+            <code className="mono-value focus-code-cell-primary">{String(row.lineNumber).padStart(2, "0")}</code>
+            <span className="text-ellipsis focus-code-cell-primary" title={row.label || "-"}>{row.label || "-"}</span>
+            <span className="nowrap-symbol focus-code-cell-primary" title={row.opcode || "-"}>{row.opcode || "-"}</span>
+            <span className="nowrap-symbol focus-code-cell-primary" title={row.operand || row.raw}>{row.operand || row.raw}</span>
+            <span className="text-ellipsis focus-code-cell-secondary" title={row.mappingKinds.join(", ") || "-"}>{row.mappingKinds.join(", ") || "-"}</span>
           </div>
         ))}
       </div>
@@ -590,10 +590,10 @@ function FocusMachineCodePanel({ state, cppToCaslMapping }: { state: CometState;
       </header>
       <div className="focus-code-table focus-machine-code-table">
         <div className="focus-code-row focus-code-head" aria-hidden="true">
-          <span>Addr</span>
-          <span>Word</span>
-          <span>Source</span>
-          <span>Meaning</span>
+          <span className="focus-code-cell-primary">Addr</span>
+          <span className="focus-code-cell-primary">Word</span>
+          <span className="focus-code-cell-primary">Source</span>
+          <span className="focus-code-cell-secondary">Meaning</span>
         </div>
         {rows.slice(0, 18).map((row) => (
           <div
@@ -601,10 +601,10 @@ function FocusMachineCodePanel({ state, cppToCaslMapping }: { state: CometState;
             className={`focus-code-row ${row.isCurrentIr ? "current" : ""} ${row.isRead ? "read" : ""} ${row.isWritten ? "write" : ""}`}
             data-testid={row.isCurrentIr ? "focus-machine-code-current" : "focus-machine-code-row"}
           >
-            <code className="mono-value">{formatWord(row.address)}</code>
-            <code className="mono-value">{formatWord(row.word)}</code>
-            <span className="nowrap-symbol" title={row.sourceText}>{row.sourceText}</span>
-            <span className="text-ellipsis" title={row.meaning}>{row.meaning}</span>
+            <code className="mono-value focus-code-cell-primary">{formatWord(row.address)}</code>
+            <code className="mono-value focus-code-cell-primary">{formatWord(row.word)}</code>
+            <span className="nowrap-symbol focus-code-cell-primary" title={row.sourceText}>{row.sourceText}</span>
+            <span className="text-ellipsis focus-code-cell-secondary focus-code-cell-meaning" title={row.meaning}>{row.meaning}</span>
           </div>
         ))}
       </div>
@@ -735,6 +735,44 @@ function callStackInfo(state: CometState, focus: FocusInstructionContext): CallS
   };
 }
 
+function signalProbePriority(row: ProbeRow, visualPath: VisualPathKind): number {
+  const stackPath =
+    visualPath === VisualPathKind.PUSH_EffectiveAddressToStack ||
+    visualPath === VisualPathKind.POP_StackToGr ||
+    visualPath === VisualPathKind.CALL_ReturnAddressToStackAndPr ||
+    visualPath === VisualPathKind.RET_StackToPr;
+
+  if (visualPath === VisualPathKind.CALL_ReturnAddressToStackAndPr || visualPath === VisualPathKind.RET_StackToPr) {
+    if (row.label === "RETADDR") return 10;
+    if (row.label === "SP") return 15;
+    if (row.label === "STACK") return 20;
+    if (row.label === "CALLDEPTH") return 52;
+  }
+
+  if (stackPath) {
+    if (row.label === "SP") return 10;
+    if (row.label === "STACK") return 15;
+    if (row.label.startsWith("MEM[")) return 20;
+    if (row.label === "MDR") return 24;
+  }
+
+  if (row.note === "selected register") return 10;
+  if (row.label === "EA") return 14;
+  if (row.label === "ALU.Y" && row.active) return 16;
+  if (row.label === "MDR" && row.active) return 18;
+  if (row.label.startsWith("MEM[") && row.active) return 20;
+  if (row.label === "FR" && row.active) return 24;
+  if (row.label === "BASE") return 56;
+  if (row.note === "index value") return 58;
+  if (row.label === "MAR") return 60;
+  if (row.label === "SP") return 68;
+  return row.active ? 40 : 90;
+}
+
+function orderSignalProbeRows(rows: ProbeRow[], visualPath: VisualPathKind): ProbeRow[] {
+  return [...rows].sort((left, right) => signalProbePriority(left, visualPath) - signalProbePriority(right, visualPath));
+}
+
 function signalProbeRows(state: CometState, focus: FocusInstructionContext): ProbeRow[] {
   const visualPath = activeVisualPath(state);
   const latest = state.trace[0];
@@ -857,7 +895,7 @@ function signalProbeRows(state: CometState, focus: FocusInstructionContext): Pro
     );
   }
 
-  return rows;
+  return orderSignalProbeRows(rows, visualPath);
 }
 
 function FocusCallStackPanel({ state, focus, density = "normal" }: { state: CometState; focus: FocusInstructionContext; density?: FocusPanelDensity }) {
@@ -927,7 +965,7 @@ function FocusSignalProbePanel({ state, focus, density = "normal" }: { state: Co
   const rows = signalProbeRows(state, focus);
   const activeRows = rows.filter((row) => row.active);
   const inactiveRows = rows.filter((row) => !row.active);
-  const primaryLimit = density === "compact" ? 2 : 3;
+  const primaryLimit = 3;
   const primaryRows = [...activeRows, ...inactiveRows].slice(0, primaryLimit);
   const detailRows = [...activeRows, ...inactiveRows].slice(primaryLimit);
   const recent = density === "compact" ? [] : state.trace.slice(0, 3);

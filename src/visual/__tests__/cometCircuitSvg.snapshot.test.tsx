@@ -318,4 +318,43 @@ A    DC    3
     expect(activeWireIds(doc)).not.toContain("memory-to-mdr");
     expect(doc.querySelector("[data-testid='module-mdr']")?.getAttribute("data-active")).toBe("false");
   });
+
+  it("eau_shows_base_index_effective_rows", () => {
+    const source = `MAIN START
+     LAD   GR2,1
+     LD    GR1,A,GR2
+     RET
+A    DC    10
+B    DC    20
+     END`;
+    const afterLad = mockCaslCore.step(mockCaslCore.assemble(source));
+    const afterLd = mockCaslCore.step(afterLad);
+    const doc = renderCircuit(afterLd);
+
+    expect(doc.querySelector("[data-testid='effective-address-unit']")?.getAttribute("data-active")).toBe("true");
+    expect(doc.querySelector("[data-testid='effective-address-base-row']")?.textContent).toContain("BASE");
+    expect(doc.querySelector("[data-testid='effective-address-base-row']")?.textContent).toContain("0025");
+    expect(doc.querySelector("[data-testid='effective-address-index-row']")?.textContent).toContain("INDEX");
+    expect(doc.querySelector("[data-testid='effective-address-index-row']")?.textContent).toContain("GR2=0001");
+    expect(doc.querySelector("[data-testid='effective-address-ea-row']")?.textContent).toContain("EA");
+    expect(doc.querySelector("[data-testid='effective-address-ea-row']")?.textContent).toContain("0026");
+  });
+
+  it("index_wire_terminal_targets_eau_index_anchor", () => {
+    const source = `MAIN START
+     LAD   GR2,1
+     LD    GR1,A,GR2
+     RET
+A    DC    10
+B    DC    20
+     END`;
+    const afterLad = mockCaslCore.step(mockCaslCore.assemble(source));
+    const afterLd = mockCaslCore.step(afterLad);
+    const doc = renderCircuit(afterLd);
+
+    expect(wireById(doc, "base-to-eau")?.getAttribute("data-to-anchor")).toBe("eau.base");
+    expect(wireById(doc, "index-to-eau")?.getAttribute("data-to-anchor")).toBe("eau.index");
+    expect(wireById(doc, "eau-to-mar")?.getAttribute("data-to-anchor")).toBe("mar.left");
+    expect(doc.querySelector("[data-testid='wire-terminal-index-to-eau']")?.getAttribute("data-to-anchor")).toBe("eau.index");
+  });
 });

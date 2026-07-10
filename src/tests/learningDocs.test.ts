@@ -24,6 +24,7 @@ import phase10f from "../../docs/phase10f-small-viewport-accessibility.md?raw";
 import phase10h from "../../docs/phase10h-robustness-audit.md?raw";
 import phase10i from "../../docs/phase10i-release-hardening-stress-audit.md?raw";
 import phase10j from "../../docs/phase10j-observation-mode-split.md?raw";
+import phase10k from "../../docs/phase10k-observation-visual-defect-cleanup.md?raw";
 import circuitVisualContract from "../../docs/circuit-visual-contract.md?raw";
 import futureCustomCircuit from "../../docs/future-custom-circuit-design.md?raw";
 import manualQaChecklist from "../../docs/manual-qa-checklist.md?raw";
@@ -235,6 +236,17 @@ describe("learning use documentation", () => {
     expect(learningGuide).toContain("Observation Mode selector");
     expect(readme).toContain("Observation Modes");
     expect(manualQaChecklist).toContain("Observation Mode selector");
+  });
+
+  it("phase10k_observation_visual_defect_cleanup_doc_exists", () => {
+    expect(phase10k).toContain("Phase 10K: Observation Visual Defect Cleanup");
+    expect(phase10k).toContain("EAU Visual Fixes");
+    expect(phase10k).toContain("Signal Probe Density Fixes");
+    expect(phase10k).toContain("Trace Compacting");
+    expect(phase10k).toContain("Code / Machine Table Hierarchy");
+    expect(phase10k).toContain("Route Spacing Fixes");
+    expect(readme).toContain("docs/phase10k-observation-visual-defect-cleanup.md");
+    expect(circuitVisualContract).toContain("BASE, INDEX, and EA rows");
   });
 
   it("phase10e_focus_text_overflow_cleanup_doc_exists", () => {
@@ -472,6 +484,7 @@ describe("learning use documentation", () => {
     expect(readme).toContain("docs/phase10e-focus-text-overflow-cleanup.md");
     expect(readme).toContain("docs/phase10f-small-viewport-accessibility.md");
     expect(readme).toContain("docs/phase10j-observation-mode-split.md");
+    expect(readme).toContain("docs/phase10k-observation-visual-defect-cleanup.md");
     expect(readme).toContain("docs/manual-qa-checklist.md");
     expect(readme).toContain("docs/release-candidate-notes.md");
     expect(readme).toContain("docs/future-custom-circuit-design.md");

@@ -241,8 +241,10 @@ async function captureIndexAddressingCircuit(page: Page, viewport: Viewport) {
   await step(page);
   await step(page);
   await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("LD");
-  await expect(page.getByTestId("comet-circuit-svg").locator("[data-testid='effective-address-unit']")).toContainText("Effective Address Unit");
-  await expect(page.getByTestId("comet-circuit-svg").locator("[data-testid='effective-address-chip']")).toContainText("BASE 0027 + GR2(0001)");
+  await expect(page.getByTestId("comet-circuit-svg").locator("[data-testid='effective-address-unit']")).toContainText("Address Unit");
+  await expect(page.getByTestId("comet-circuit-svg").locator("[data-testid='effective-address-base-row']")).toContainText("0027");
+  await expect(page.getByTestId("comet-circuit-svg").locator("[data-testid='effective-address-index-row']")).toContainText("GR2=0001");
+  await expect(page.getByTestId("comet-circuit-svg").locator("[data-testid='effective-address-ea-row']")).toContainText("0028");
   await expect(page.getByTestId("comet-circuit-svg").locator("[data-testid='memory-row-0028']")).toHaveAttribute("data-read", "true");
   await capture(page, viewport, "index-addressing-circuit.png");
 }

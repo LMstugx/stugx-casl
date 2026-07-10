@@ -16,7 +16,7 @@ export const circuitLayout = {
   pr: { x: 260, y: 36, w: 116, h: 60 },
   addressResult: { x: 404, y: 43, w: 90, h: 46 },
   sp: { x: 528, y: 36, w: 110, h: 60 },
-  eau: { x: 512, y: 102, w: 144, h: 48 },
+  eau: { x: 500, y: 98, w: 158, h: 56 },
   mar: { x: 668, y: 36, w: 126, h: 60 },
   gr: { x: 232, y: 144, w: 190, h: 266 },
   alu: { x: 452, y: 154, w: 236, h: 210 },
@@ -30,6 +30,7 @@ const alu = circuitLayout.alu;
 
 export const circuitBusLanes = {
   addressY: 24,
+  addressIndexY: 36,
   controlY: 124,
   dataBypassY: circuitLayout.alu.y + circuitLayout.alu.h + 18,
   dataComputeY: circuitLayout.alu.y + 106,
@@ -41,6 +42,8 @@ export const circuitBusLanes = {
 
 export const circuitRouting = {
   portClearance: 18,
+  eauInputClearance: 24,
+  eauOutputClearance: 14,
   controlClearance: 22,
   stackReferenceDrop: 15
 } as const;
@@ -94,9 +97,9 @@ export const circuitAnchors = {
     outputToMemory: () => rectPoint(circuitLayout.mar, "right", 0.5)
   },
   eau: {
-    baseInput: () => rectPoint(circuitLayout.eau, "left", 0.34),
-    indexInput: () => rectPoint(circuitLayout.eau, "left", 0.68),
-    sumOutput: () => rectPoint(circuitLayout.eau, "right", 0.5)
+    baseInput: () => rectPoint(circuitLayout.eau, "left", 0.42),
+    indexInput: () => rectPoint(circuitLayout.eau, "left", 0.66),
+    sumOutput: () => rectPoint(circuitLayout.eau, "right", 0.8)
   },
   gr: {
     rowLeft: (index: number) => ({ x: circuitLayout.gr.x + 16, y: registerRowY(index) }),
@@ -144,6 +147,12 @@ export const circuitProtectedRects = {
     y: circuitLayout.mdr.y + 32,
     w: circuitLayout.mdr.w - 28,
     h: 22
+  }),
+  eauText: () => ({
+    x: circuitLayout.eau.x + 10,
+    y: circuitLayout.eau.y + 18,
+    w: circuitLayout.eau.w - 20,
+    h: circuitLayout.eau.h - 22
   }),
   sourceMapText: () => ({
     x: circuitLayout.sourceMap.x + 12,

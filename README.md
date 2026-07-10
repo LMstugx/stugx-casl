@@ -87,6 +87,7 @@ For `PUSH` / `POP` stack semantics, see [docs/phase9f-push-pop-stack.md](docs/ph
 For `CALL` and stack-aware `RET`, see [docs/phase9g-call-ret-stack-semantics.md](docs/phase9g-call-ret-stack-semantics.md).
 For subroutine teaching polish and return-edge explanation, see [docs/phase9h-subroutine-teaching-polish.md](docs/phase9h-subroutine-teaching-polish.md).
 For the Focus Mode observation split, see [docs/phase10j-observation-mode-split.md](docs/phase10j-observation-mode-split.md).
+For Observation Mode visual defect cleanup, see [docs/phase10k-observation-visual-defect-cleanup.md](docs/phase10k-observation-visual-defect-cleanup.md).
 
 ## Key Views
 
@@ -315,6 +316,7 @@ The current backend is shown in the status bar as `Mock Core`, `WASM Core`, or `
 - [docs/phase10h-robustness-audit.md](docs/phase10h-robustness-audit.md): boundary tests, code safety checks, fixes, and remaining risks.
 - [docs/phase10i-release-hardening-stress-audit.md](docs/phase10i-release-hardening-stress-audit.md): deterministic malformed-input corpus, stress checks, WASM lifecycle checks, and sanitizer/toolchain notes.
 - [docs/phase10j-observation-mode-split.md](docs/phase10j-observation-mode-split.md): Focus Mode observation modes for CPU flow, register/stack values, and code/machine mapping.
+- [docs/phase10k-observation-visual-defect-cleanup.md](docs/phase10k-observation-visual-defect-cleanup.md): EAU visual cleanup, compact Signal Probe rows, Trace compacting, and Code / Machine table hierarchy.
 
 ## Current Limitations
 

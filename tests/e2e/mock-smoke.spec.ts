@@ -117,9 +117,10 @@ test("Mock backend runs CASL index addressing and explains effective address", a
   await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("LD");
   await expect(circuit.locator("[data-testid='register-gr2']")).toHaveAttribute("data-index", "true");
   await expect(circuit.locator("[data-testid='effective-address-unit']")).toHaveAttribute("data-active", "true");
-  await expect(circuit.locator("[data-testid='effective-address-unit']")).toContainText("Effective Address Unit");
-  await expect(circuit.locator("[data-testid='effective-address-chip']")).toContainText("BASE 0027 + GR2(0001)");
-  await expect(circuit.locator("[data-testid='effective-address-chip']")).toContainText("EA 0028");
+  await expect(circuit.locator("[data-testid='effective-address-unit']")).toContainText("Address Unit");
+  await expect(circuit.locator("[data-testid='effective-address-base-row']")).toContainText("0027");
+  await expect(circuit.locator("[data-testid='effective-address-index-row']")).toContainText("GR2=0001");
+  await expect(circuit.locator("[data-testid='effective-address-ea-row']")).toContainText("0028");
   await expect(circuit.locator("[data-testid='memory-row-0028']")).toHaveAttribute("data-read", "true");
   await expect(circuit.locator("[data-testid='wire-base-to-eau']")).toHaveAttribute("data-active", "true");
   await expect(circuit.locator("[data-testid='wire-index-to-eau']")).toHaveAttribute("data-active", "true");

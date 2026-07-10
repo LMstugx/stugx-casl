@@ -441,7 +441,7 @@ button {
 }
 
 .circuit-focus-workspace[data-observation-mode="register-stack"] .focus-right-column {
-  grid-template-rows: 172px 124px 118px minmax(0, 1fr);
+  grid-template-rows: 160px 116px 142px minmax(0, 1fr);
 }
 
 .circuit-focus-workspace[data-observation-mode="code-machine"] .focus-center-column {
@@ -449,7 +449,7 @@ button {
 }
 
 .circuit-focus-workspace[data-observation-mode="code-machine"] .focus-right-column {
-  grid-template-rows: minmax(0, 1fr) 126px 118px;
+  grid-template-rows: minmax(0, 1fr) 118px 142px;
 }
 
 .focus-program-panel,
@@ -707,8 +707,8 @@ button {
   min-width: 0;
   display: grid;
   align-items: center;
-  min-height: 22px;
-  gap: 7px;
+  min-height: 21px;
+  gap: 6px;
   padding: 2px 5px;
   border: 1px solid #d9e1ec;
   border-radius: var(--radius-sm);
@@ -718,11 +718,32 @@ button {
 }
 
 .focus-generated-casl-table .focus-code-row {
-  grid-template-columns: 34px minmax(54px, 0.7fr) minmax(44px, 0.5fr) minmax(0, 1.2fr) minmax(0, 1fr);
+  grid-template-columns: 34px minmax(62px, 0.78fr) minmax(44px, 0.48fr) minmax(0, 1.28fr) minmax(0, 0.72fr);
 }
 
 .focus-machine-code-table .focus-code-row {
-  grid-template-columns: 48px 48px minmax(0, 1.1fr) minmax(0, 1.4fr);
+  grid-template-columns: 48px 48px minmax(0, 1.28fr) minmax(0, 0.98fr);
+}
+
+.focus-code-cell-primary,
+.focus-code-cell-secondary {
+  min-width: 0;
+}
+
+.focus-code-cell-primary {
+  color: #10233d;
+  font-weight: 750;
+}
+
+.focus-code-cell-secondary {
+  color: var(--color-muted);
+  font-size: 10px;
+  font-weight: 650;
+  opacity: 0.82;
+}
+
+.focus-code-cell-meaning {
+  white-space: nowrap;
 }
 
 .focus-code-head {
@@ -894,11 +915,13 @@ button {
 
 .signal-probe-details {
   min-width: 0;
+  overflow: hidden;
 }
 
 .signal-probe-details summary {
   display: inline-flex;
   align-items: center;
+  max-width: 100%;
   min-height: 20px;
   padding: 1px 3px;
   border: 1px solid transparent;
@@ -907,15 +930,18 @@ button {
   color: var(--color-muted);
   font-size: 10.5px;
   font-weight: 800;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .signal-probe-details[open] {
-  max-height: 74px;
+  max-height: 68px;
   overflow: auto;
 }
 
 .signal-probe-body[data-density="compact"] .signal-probe-details[open] {
-  max-height: 48px;
+  max-height: 44px;
 }
 
 .signal-probe-evolution {
@@ -1129,8 +1155,8 @@ button {
   min-height: 0;
   overflow: auto;
   display: grid;
-  gap: 5px;
-  padding: 8px;
+  gap: 4px;
+  padding: 7px;
 }
 
 .focus-trace-item {
@@ -1138,8 +1164,8 @@ button {
   grid-template-columns: 34px minmax(0, 1fr);
   gap: 6px;
   align-items: start;
-  min-height: 46px;
-  padding: 5px 7px;
+  min-height: 38px;
+  padding: 4px 6px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   background: #fbfcfe;
@@ -1148,9 +1174,14 @@ button {
 }
 
 .focus-trace-item.latest {
+  min-height: 44px;
   border-left-color: var(--color-active-red);
   background: #fffafa;
   opacity: 1;
+}
+
+.focus-trace-item:not(.latest) {
+  min-height: 34px;
 }
 
 .focus-trace-item strong {
@@ -1191,6 +1222,10 @@ button {
 .focus-trace-item .trace-note {
   font-size: 10px;
   opacity: 0.82;
+}
+
+.focus-trace-item:not(.latest) .trace-note {
+  opacity: 0.52;
 }
 
 .focus-source-context {
@@ -1796,16 +1831,29 @@ button {
   opacity: 0.64;
 }
 
-.effective-address-chip text {
-  font-size: 9px;
-}
-
 .eau-module .module-title {
-  font-size: 10px;
+  font-size: 11px;
 }
 
 .eau-module .module-small {
-  font-size: 8.6px;
+  font-size: 9.4px;
+}
+
+.effective-address-row rect {
+  fill: rgba(255, 255, 255, 0.72);
+  stroke: color-mix(in srgb, var(--color-primary) 18%, var(--color-border));
+  stroke-width: 0.6;
+}
+
+.effective-address-row .eau-row-label {
+  fill: #5d6c7e;
+  font-size: 8.8px;
+  font-weight: 850;
+}
+
+.effective-address-row .eau-row-value {
+  font-size: 9.4px;
+  font-weight: 850;
 }
 
 .module-red {
@@ -1957,6 +2005,24 @@ button {
   stroke-dasharray: 3 7;
 }
 
+[data-path-id="base-to-eau"],
+[data-terminal-path-id="base-to-eau"] {
+  stroke: #2f6bc6;
+}
+
+[data-path-id="index-to-eau"],
+[data-terminal-path-id="index-to-eau"] {
+  stroke: #6650b8;
+  stroke-dasharray: 6 5;
+}
+
+[data-path-id="eau-to-mar"],
+[data-terminal-path-id="eau-to-mar"],
+[data-path-id="eau-to-pr"],
+[data-terminal-path-id="eau-to-pr"] {
+  stroke: #1f5fbf;
+}
+
 .wire-active {
   stroke-width: 2.7;
   opacity: 0.96;
@@ -1996,6 +2062,12 @@ button {
 .circuit-wire--flag-flow {
   stroke-dasharray: 7 7;
   animation-duration: 1.8s;
+}
+
+.circuit-wire--flow[data-path-id="index-to-eau"],
+.wire-terminal[data-terminal-path-id="index-to-eau"] {
+  stroke: #6650b8;
+  stroke-dasharray: 6 5;
 }
 
 .visual-review-static .circuit-wire--flow {

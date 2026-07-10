@@ -30,6 +30,7 @@ import phase11a from "../../docs/phase11a-stack-frame-locals-design.md?raw";
 import phase11b from "../../docs/phase11b-stack-frame-lowering-scaffold.md?raw";
 import phase11c from "../../docs/phase11c-stack-frame-view-placeholder.md?raw";
 import phase11d from "../../docs/phase11d-frameplan-generator-scaffold.md?raw";
+import phase11e from "../../docs/phase11e-frameplan-stack-frame-view-preview.md?raw";
 import circuitVisualContract from "../../docs/circuit-visual-contract.md?raw";
 import futureCustomCircuit from "../../docs/future-custom-circuit-design.md?raw";
 import manualQaChecklist from "../../docs/manual-qa-checklist.md?raw";
@@ -302,7 +303,8 @@ describe("learning use documentation", () => {
     expect(phase11a).toContain("Circuit Focus Mode");
     expect(phase11a).toContain("Current Behavior Is Unchanged");
     expect(phase11a).toContain("Phase 11B");
-    expect(phase11a).toContain("Phase 11F");
+    expect(phase11a).toContain("Phase 11E");
+    expect(phase11a).toContain("Later phase: recursion teaching demo");
     expect(readme).toContain("docs/phase11a-stack-frame-locals-design.md");
     expect(learningGuide).toContain("phase11a-stack-frame-locals-design.md");
     expect(practiceTasks).toContain("phase11a-stack-frame-locals-design.md");
@@ -376,6 +378,27 @@ describe("learning use documentation", () => {
     expect(phase11c).toContain("phase11d-frameplan-generator-scaffold.md");
     expect(learningGuide).toContain("phase11d-frameplan-generator-scaffold.md");
     expect(futureCustomCircuit).toContain("Phase 11D adds a TypeScript-only");
+  });
+
+  it("phase11e_frameplan_stack_frame_view_preview_doc_exists", () => {
+    expect(phase11e).toContain("Phase 11E: FramePlan Stack Frame View Preview");
+    expect(phase11e).toContain("FramePlan");
+    expect(phase11e).toContain("Stack Frame View");
+    expect(phase11e).toContain("design-only");
+    expect(phase11e).toContain("Not runtime state");
+    expect(phase11e).toContain("No Emitted CASL Change");
+    expect(phase11e).toContain("No Runtime Change");
+    expect(phase11e).toContain("GR0");
+    expect(phase11e).toContain("GR1");
+    expect(phase11e).toContain("GR2");
+    expect(phase11e).toContain("GR3");
+    expect(phase11e).toContain("static namespaced labels");
+    expect(readme).toContain("docs/phase11e-frameplan-stack-frame-view-preview.md");
+    expect(phase11c).toContain("phase11e-frameplan-stack-frame-view-preview.md");
+    expect(phase11d).toContain("phase11e-frameplan-stack-frame-view-preview.md");
+    expect(learningGuide).toContain("phase11e-frameplan-stack-frame-view-preview.md");
+    expect(practiceTasks).toContain("phase11e-frameplan-stack-frame-view-preview.md");
+    expect(futureCustomCircuit).toContain("Phase 11E connects the design-only FramePlan metadata");
   });
 
   it("phase10e_focus_text_overflow_cleanup_doc_exists", () => {

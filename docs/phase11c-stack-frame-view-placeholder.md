@@ -63,7 +63,7 @@ For Phase 11C:
 - no core DTO extension is needed;
 - execution state is not changed.
 
-Phase 11D adds [phase11d-frameplan-generator-scaffold.md](phase11d-frameplan-generator-scaffold.md), a TypeScript-only `buildFramePlans` metadata scaffold. That metadata still does not make the placeholder a live frame view.
+Phase 11D adds [phase11d-frameplan-generator-scaffold.md](phase11d-frameplan-generator-scaffold.md), a TypeScript-only `buildFramePlans` metadata scaffold. Phase 11E connects that metadata to Stack Frame View as a design-only preview in [phase11e-frameplan-stack-frame-view-preview.md](phase11e-frameplan-stack-frame-view-preview.md). That preview still does not make the placeholder a live frame view.
 
 ## Future StackFramePlan / FrameSlot
 
@@ -119,6 +119,7 @@ The placeholder is intentionally educational. It cannot show local lifetimes, re
 ## Future Phases
 
 - Phase 11D: FramePlan generator only, with no emitted CASL change.
-- Phase 11E: single-function stack-frame local lowering MVP.
-- Phase 11F: register arguments saved to frame slots.
-- Phase 11G: recursion teaching demo.
+- Phase 11E: FramePlan-powered Stack Frame View preview, with no emitted CASL change.
+- Later phase: single-function stack-frame local lowering MVP.
+- Later phase: register arguments saved to frame slots.
+- Later phase: recursion teaching demo.

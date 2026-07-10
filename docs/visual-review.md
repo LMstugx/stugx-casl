@@ -151,7 +151,7 @@ Use the gallery to inspect:
 - `project-overview.png`
 - `observation-cpu-flow.png` (CPU Flow observation mode)
 - `observation-register-stack.png` (Registers / Stack observation mode)
-- `stack-frame-view-placeholder.png` (Stack Frame View placeholder in Registers / Stack mode)
+- `stack-frame-view-preview.png` (FramePlan design preview in Stack Frame View; not runtime state)
 - `observation-code-machine.png` (Code / Machine observation mode)
 - `casl-gr2-ld.png` (Circuit Focus Mode)
 - `casl-gr2-adda.png` (Circuit Focus Mode)

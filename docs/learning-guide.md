@@ -103,8 +103,9 @@ Calling convention design note:
 - Read [phase10b-calling-convention-design.md](phase10b-calling-convention-design.md) before trying to design parameter or recursion lessons.
 - Read [phase11a-stack-frame-locals-design.md](phase11a-stack-frame-locals-design.md) for the future advanced-mode stack-frame plan. It is design-only and does not change the current static namespaced labels.
 - Read [phase11b-stack-frame-lowering-scaffold.md](phase11b-stack-frame-lowering-scaffold.md) for future `StackFramePlan` / `FrameSlot` metadata and prologue / epilogue design constraints.
-- In Register / Stack observation mode, the Stack Frame View is a placeholder only. It explains simple static locals and future frame slots; it does not mean current C++ locals are on the stack. See [phase11c-stack-frame-view-placeholder.md](phase11c-stack-frame-view-placeholder.md).
+- In Register / Stack observation mode, the Stack Frame View starts from a placeholder model. It explains simple static locals and future frame slots; it does not mean current C++ locals are on the stack. See [phase11c-stack-frame-view-placeholder.md](phase11c-stack-frame-view-placeholder.md).
 - Read [phase11d-frameplan-generator-scaffold.md](phase11d-frameplan-generator-scaffold.md) for the design-test `buildFramePlans` metadata scaffold. It records future frame slots but emitted CASL is still unchanged.
+- In Register / Stack observation mode, valid C++ source can now show a FramePlan design preview in Stack Frame View. It is marked `Not runtime state`, does not display live slot values, and does not change emitted CASL. See [phase11e-frameplan-stack-frame-view-preview.md](phase11e-frameplan-stack-frame-view-preview.md).
 
 Single-argument follow-up: `C++: Function Argument`
 

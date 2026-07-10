@@ -1,0 +1,67 @@
+import { describe, expect, it } from "vitest";
+import { selectStackFramePreviewState } from "../framePlanView";
+import { transpileCppToCasl } from "../cppTranspiler";
+
+const functionArgumentsSource = `int add(int a, int b) {
+    int c;
+    c = a + b;
+    return c;
+}
+
+int main() {
+    int result;
+    result = add(2, 3);
+    return result;
+}`;
+
+describe("FramePlan preview selector", () => {
+  it("frameplan_preview_available_for_cpp_function_source", () => {
+    const preview = selectStackFramePreviewState("cpp", functionArgumentsSource, "add");
+
+    expect(preview.available).toBe(true);
+    expect(preview.mode).toBe("frameplan-preview");
+    expect(preview.activeFunction?.functionName).toBe("add");
+    expect(preview.activeFunction?.frameSizeWords).toBe(4);
+  });
+
+  it("frameplan_preview_unavailable_for_casl_mode", () => {
+    const preview = selectStackFramePreviewState("casl", "MAIN START\n RET\n END");
+
+    expect(preview.available).toBe(false);
+    expect(preview.mode).toBe("simple-static-locals");
+    expect(preview.reason).toContain("C++ source only");
+  });
+
+  it("frameplan_preview_unavailable_for_invalid_cpp", () => {
+    const preview = selectStackFramePreviewState("cpp", "int main(");
+
+    expect(preview.available).toBe(false);
+    expect(preview.isRuntimeState).toBe(false);
+    expect(preview.reason).toBeTruthy();
+  });
+
+  it("frameplan_preview_lists_main_and_other_functions", () => {
+    const preview = selectStackFramePreviewState("cpp", functionArgumentsSource);
+
+    expect(preview.functions.map((fn) => fn.functionName)).toEqual(["add", "main"]);
+    expect(preview.selectedFunctionName).toBe("main");
+  });
+
+  it("frameplan_preview_marks_runtime_state_false", () => {
+    const preview = selectStackFramePreviewState("cpp", functionArgumentsSource, "add");
+
+    expect(preview.isRuntimeState).toBe(false);
+    expect(preview.activeFunction?.returnValueRegister).toBe("GR0");
+    expect(preview.activeFunction?.argumentRegisters).toEqual(["GR1", "GR2"]);
+  });
+
+  it("frameplan_preview_preserves_current_emitted_casl", () => {
+    const before = transpileCppToCasl(functionArgumentsSource);
+    const preview = selectStackFramePreviewState("cpp", functionArgumentsSource, "add");
+    const after = transpileCppToCasl(functionArgumentsSource);
+
+    expect(preview.available).toBe(true);
+    expect(after.caslSource).toBe(before.caslSource);
+    expect(after.mapping).toEqual(before.mapping);
+  });
+});

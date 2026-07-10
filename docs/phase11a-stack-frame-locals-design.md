@@ -282,9 +282,11 @@ The following decisions are intentionally postponed:
 
 - Phase 11B: stack-frame locals prototype design tests only, no runtime change.
 - Phase 11C: optional Stack Frame View UI placeholder.
-- Phase 11D: single-function stack-frame local lowering MVP.
-- Phase 11E: arguments spill to stack.
-- Phase 11F: recursion teaching demo.
+- Phase 11D: FramePlan generator only, no emitted CASL change.
+- Phase 11E: FramePlan-powered Stack Frame View preview, no runtime change.
+- Later phase: single-function stack-frame local lowering MVP.
+- Later phase: arguments spill to stack.
+- Later phase: recursion teaching demo.
 - Phase 12: configurable circuit display / custom circuit sandbox.
 
 ## Current Behavior Is Unchanged

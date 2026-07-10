@@ -412,7 +412,7 @@ test("Mock backend switches observation modes without resetting VM state", async
   await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("LD");
 });
 
-test("Mock backend shows Stack Frame View placeholder in Register Stack mode", async ({ page }) => {
+test("Mock backend shows Stack Frame View FramePlan preview in Register Stack mode", async ({ page }) => {
   await openStudio(page, "Mock Core");
   await selectDemoProgram(page, "cpp-function-arguments");
   await page.getByTestId("circuit-focus-toggle").click();
@@ -423,11 +423,20 @@ test("Mock backend shows Stack Frame View placeholder in Register Stack mode", a
   await expect(page.getByTestId("focus-register-bank").getByTestId("register-gr7")).toBeVisible();
   await expect(page.getByTestId("focus-stack-preview")).toBeVisible();
   await expect(page.getByTestId("focus-stack-frame-view")).toBeVisible();
+  await expect(page.getByTestId("focus-stack-frame-view")).toContainText("Design preview");
+  await expect(page.getByTestId("focus-stack-frame-view")).toContainText("Not runtime state");
   await expect(page.getByTestId("focus-stack-frame-view")).toContainText("Simple static locals");
   await expect(page.getByTestId("focus-stack-frame-view")).toContainText("No live stack frame locals yet");
   await expect(page.getByTestId("focus-stack-frame-view")).toContainText("GR0");
   await expect(page.getByTestId("focus-stack-frame-view")).toContainText("GR1 / GR2 / GR3");
+  await expect(page.getByTestId("stack-frame-function-select")).toContainText("main");
+  await expect(page.getByTestId("stack-frame-function-select")).toContainText("add");
   await expect(page.getByTestId("focus-memory-window-row")).toHaveCount(10);
+
+  await page.getByTestId("stack-frame-function-select").selectOption("add");
+  await expect(page.getByTestId("focus-stack-frame-view")).toContainText("FUNC_ADD_A");
+  await expect(page.getByTestId("focus-stack-frame-view")).toContainText("FUNC_ADD_B");
+  await expect(page.getByTestId("focus-stack-frame-view")).not.toContainText("live value");
 
   await expect(page.getByTestId("stack-frame-view-details-summary")).toHaveAttribute("aria-expanded", "false");
   await page.getByTestId("stack-frame-view-details-summary").focus();
@@ -437,6 +446,7 @@ test("Mock backend shows Stack Frame View placeholder in Register Stack mode", a
   await expect(page.getByTestId("focus-stack-frame-view")).toContainText("StackFramePlan");
   await expect(page.getByTestId("focus-stack-frame-view")).toContainText("FrameSlot");
   await expect(page.getByTestId("stack-frame-view-state")).toHaveAttribute("data-has-live-frame", "false");
+  await expect(page.getByTestId("stack-frame-view-state")).toHaveAttribute("data-runtime-state", "false");
 });
 
 test("focus_mode_works_at_1280x720", async ({ page }) => {

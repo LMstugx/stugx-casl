@@ -19,6 +19,18 @@ const gr2Source = getDemoProgram("casl-gr2-addition")!.source;
 const pushPopSource = getDemoProgram("casl-push-pop-stack")!.source;
 const callReturnSource = getDemoProgram("casl-call-return")!.source;
 const nestedCallReturnSource = getDemoProgram("casl-nested-call-return")!.source;
+const cppFunctionArgumentsSource = getDemoProgram("cpp-function-arguments")!.source;
+const cppFunctionWithLocalSource = `int add(int a, int b) {
+    int c;
+    c = a + b;
+    return c;
+}
+
+int main() {
+    int result;
+    result = add(2, 3);
+    return result;
+}`;
 const appCss = readFileSync("src/styles/app.css", "utf8");
 const visualReviewSpec = readFileSync("tests/e2e/visual-review.spec.ts", "utf8");
 const timelineItems = [
@@ -61,6 +73,23 @@ function renderCppFocus(
       observationMode={observationMode}
     />
   );
+}
+
+function renderCppFunctionArgumentsFocus(preferredFunction?: "add" | "main", source = cppFunctionArgumentsSource): string {
+  const prepared = prepareSourceForCoreAssembly(source, "cpp");
+  let state = mockCaslCore.assemble(prepared.generatedCaslSource);
+  if (preferredFunction === "add") {
+    const addAddress = state.sourceMap.find((entry) => entry.label === "FUNC_ADD")?.address;
+    if (addAddress !== undefined) {
+      state = {
+        ...state,
+        currentAddress: addAddress,
+        currentInstruction: "ST GR1,FUNC_ADD_A"
+      };
+    }
+  }
+
+  return renderCppFocus(state, source, prepared.generatedCaslSource, prepared.mapping, "register-stack");
 }
 
 function activeWireIds(markup: string): string[] {
@@ -325,7 +354,53 @@ describe("Circuit Focus Mode layout", () => {
     expect(markup).not.toContain('data-status="live"');
     expect(markup).not.toContain('data-testid="stack-frame-live-slot"');
     expect(markup).toContain('data-testid="stack-frame-future-slot"');
-    expect(markup).toContain("Future design placeholder; no live slot is displayed.");
+    expect(markup).toContain("Not runtime state");
+  });
+
+  it("stack_frame_view_shows_design_preview_badge", () => {
+    const markup = renderCppFunctionArgumentsFocus();
+
+    expect(markup).toContain('data-testid="stack-frame-design-preview-badge"');
+    expect(markup).toContain("Design preview");
+    expect(markup).toContain('data-mode="frameplan-preview"');
+  });
+
+  it("stack_frame_view_shows_not_runtime_state", () => {
+    const markup = renderCppFunctionArgumentsFocus();
+
+    expect(markup).toContain('data-testid="stack-frame-not-runtime-state"');
+    expect(markup).toContain('data-runtime-state="false"');
+    expect(markup).toContain("Not runtime state");
+  });
+
+  it("stack_frame_view_shows_argument_slots", () => {
+    const markup = renderCppFunctionArgumentsFocus("add");
+
+    expect(markup).toContain('data-slot-kind="argument"');
+    expect(markup).toContain("FUNC_ADD_A");
+    expect(markup).toContain("FUNC_ADD_B");
+  });
+
+  it("stack_frame_view_shows_local_slots", () => {
+    const markup = renderCppFunctionArgumentsFocus("add", cppFunctionWithLocalSource);
+
+    expect(markup).toContain('data-slot-kind="local"');
+    expect(markup).toContain("ADD_C");
+  });
+
+  it("stack_frame_view_shows_static_label_current_lowering", () => {
+    const markup = renderCppFunctionArgumentsFocus("add", cppFunctionWithLocalSource);
+
+    expect(markup).toContain("static label FUNC_ADD_A");
+    expect(markup).toContain("static label ADD_C");
+  });
+
+  it("stack_frame_view_function_selector_switches_preview", () => {
+    const markup = renderCppFunctionArgumentsFocus();
+
+    expect(markup).toContain('data-testid="stack-frame-function-select"');
+    expect(markup).toContain('<option value="main"');
+    expect(markup).toContain('<option value="add"');
   });
 
   it("register_stack_mode_shows_memory_5_to_10_rows", () => {
@@ -338,8 +413,8 @@ describe("Circuit Focus Mode layout", () => {
   });
 
   it("stack_frame_view_visual_review_screenshot_exists", () => {
-    expect(visualReviewSpec).toContain("stack-frame-view-placeholder.png");
-    expect(visualReviewSpec).toContain("captureStackFrameViewPlaceholder");
+    expect(visualReviewSpec).toContain("stack-frame-view-preview.png");
+    expect(visualReviewSpec).toContain("captureStackFrameViewPreview");
   });
 
   it("code_machine_mode_shows_generated_casl_machine_code_and_trace_mapping", () => {

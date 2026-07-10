@@ -341,10 +341,11 @@ When implementation begins, add tests for:
 
 - Phase 11C: Stack Frame View placeholder UI, no lowering change. See [phase11c-stack-frame-view-placeholder.md](phase11c-stack-frame-view-placeholder.md).
 - Phase 11D: FramePlan generator only, no emitted CASL change. See [phase11d-frameplan-generator-scaffold.md](phase11d-frameplan-generator-scaffold.md).
-- Phase 11E: single-function stack-frame local lowering MVP.
-- Phase 11F: register arguments saved to frame slots.
-- Phase 11G: recursive function teaching demo.
+- Phase 11E: FramePlan-powered Stack Frame View preview, no emitted CASL change. See [phase11e-frameplan-stack-frame-view-preview.md](phase11e-frameplan-stack-frame-view-preview.md).
+- Later phase: single-function stack-frame local lowering MVP.
+- Later phase: register arguments saved to frame slots.
+- Later phase: recursive function teaching demo.
 
 ## No Runtime Behavior Changed
 
-Phase 11B changes no runtime behavior. Current generated CASL still uses static namespaced labels, current demos still run the same way, and no UI runtime reads stack-frame metadata yet.
+Phase 11B changes no runtime behavior. Current generated CASL still uses static namespaced labels, current demos still run the same way, and later UI use of StackFramePlan metadata must remain design-only until a real advanced lowering mode exists.

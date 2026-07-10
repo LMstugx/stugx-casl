@@ -243,6 +243,7 @@ For the future stack-frame plan, also read `docs/phase11a-stack-frame-locals-des
 For the implementation scaffold, read `docs/phase11b-stack-frame-lowering-scaffold.md`.
 In Register / Stack observation mode, open the read-only Stack Frame View placeholder and read `docs/phase11c-stack-frame-view-placeholder.md`.
 For the design-test metadata scaffold, read `docs/phase11d-frameplan-generator-scaffold.md`.
+For the design-only UI preview, read `docs/phase11e-frameplan-stack-frame-view-preview.md`.
 
 Expected observation:
 
@@ -254,6 +255,7 @@ Expected observation:
 - `StackFramePlan` and `FrameSlot` are future design metadata, not current emitted code.
 - Stack Frame View should say `Simple static locals` and should not show fake live frame slots.
 - `buildFramePlans` can describe future slots for tests, but emitted CASL should remain unchanged.
+- The FramePlan preview can show proposed slots for valid C++ source, but it is marked `Not runtime state`.
 
 Answer hint:
 

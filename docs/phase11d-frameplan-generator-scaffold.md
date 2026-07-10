@@ -2,6 +2,8 @@
 
 Phase 11D adds a TypeScript-only FramePlan generator scaffold. It does not change emitted CASL, C++ lowering behavior, VM behavior, assembler behavior, WASM behavior, mock-core behavior, UI runtime behavior, or current demos.
 
+Phase 11E connects this metadata to the Stack Frame View as a design-only preview in [phase11e-frameplan-stack-frame-view-preview.md](phase11e-frameplan-stack-frame-view-preview.md). That UI use still does not make frame slots live and still does not change emitted CASL.
+
 The scaffold exists so future stack-frame lowering work can be tested against stable metadata before any runtime or emitted-code change is attempted.
 
 ## Purpose
@@ -156,7 +158,8 @@ Those stages are not implemented in Phase 11D.
 
 ## Future Phases
 
-- Phase 11E: single-function stack-frame local lowering MVP.
+- Phase 11E: FramePlan-powered Stack Frame View preview, no emitted CASL change.
+- Later phase: single-function stack-frame local lowering MVP.
 - Phase 11F: register arguments saved to real frame slots.
 - Phase 11G: recursion teaching demo.
 - Later: optional FP / frame pointer decision, stack arguments, arrays, and pointer-like addressing.

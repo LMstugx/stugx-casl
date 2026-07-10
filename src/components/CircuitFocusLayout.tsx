@@ -6,6 +6,7 @@ import { VisualPathKind, formatFlags, formatWord } from "../core/types";
 import type { ObservationMode, SourceMode } from "../store/useAppStore";
 import type { CppToCaslMap } from "../transpiler/cppAst";
 import { cppLineForCaslLine } from "../transpiler/cppMapping";
+import { selectStackFramePreviewState, type FrameSlotPreview } from "../transpiler/framePlanView";
 import CometCircuitSvg from "../visual/CometCircuitSvg";
 import { summarizeCurrentInstruction } from "../visual/visualState";
 import RegisterPanel from "./RegisterPanel";
@@ -46,23 +47,6 @@ type FocusInstructionContext = {
 };
 
 type FocusPanelDensity = "normal" | "compact";
-
-type StackFrameSlotKind = "return-address" | "argument" | "local" | "temporary" | "saved-fp";
-
-export type StackFrameViewState = {
-  mode: "simple-static-locals" | "future-stack-frame";
-  hasLiveFrame: boolean;
-  currentFunction?: string;
-  callDepth: number;
-  returnValueRegister: "GR0";
-  argumentRegisters: ["GR1", "GR2", "GR3"];
-  localsStrategy: "static-namespaced-labels";
-  futureSlots: Array<{
-    kind: StackFrameSlotKind;
-    label: string;
-    status: "future";
-  }>;
-};
 
 function sourceLine(source: string, line?: number): string {
   if (!line) return "No active source line";
@@ -540,26 +524,6 @@ function FocusRegisterStackDashboard({ state }: { state: CometState }) {
   );
 }
 
-export function selectStackFrameViewState(state: CometState, focus: FocusInstructionContext): StackFrameViewState {
-  const currentFunction = routineLabelForAddress(state, focus.address);
-  return {
-    mode: "simple-static-locals",
-    hasLiveFrame: false,
-    currentFunction,
-    callDepth: state.callDepth,
-    returnValueRegister: "GR0",
-    argumentRegisters: ["GR1", "GR2", "GR3"],
-    localsStrategy: "static-namespaced-labels",
-    futureSlots: [
-      { kind: "return-address", label: "Return address slot", status: "future" },
-      { kind: "saved-fp", label: "Optional saved FP", status: "future" },
-      { kind: "argument", label: "Argument slots", status: "future" },
-      { kind: "local", label: "Local variable slots", status: "future" },
-      { kind: "temporary", label: "Temporary slots", status: "future" }
-    ]
-  };
-}
-
 function FocusGeneratedCaslPanel({
   sourceMode,
   sourceText,
@@ -730,6 +694,12 @@ function routineLabelForAddress(state: CometState, address: number | undefined):
     .filter((entry) => entry.label && entry.address <= address)
     .sort((left, right) => right.address - left.address);
   return labeledRows[0]?.label ?? "anonymous";
+}
+
+function functionNameFromRoutineLabel(label: string): string | undefined {
+  if (label === "MAIN") return "main";
+  if (label.startsWith("FUNC_")) return label.slice(5).toLowerCase();
+  return undefined;
 }
 
 function callStackInfo(state: CometState, focus: FocusInstructionContext): CallStackInfo {
@@ -1167,46 +1137,160 @@ function FocusStackPreviewPanel({ state }: { state: CometState }) {
   );
 }
 
-function FocusStackFrameViewPanel({ state, focus }: { state: CometState; focus: FocusInstructionContext }) {
+const STACK_FRAME_ARGUMENT_REGISTERS = ["GR1", "GR2", "GR3"] as const;
+
+const FALLBACK_FRAME_SLOTS: FrameSlotPreview[] = [
+  {
+    name: "return-address",
+    kind: "return-address",
+    offset: 0,
+    storage: "return-address-current",
+    currentLowering: "call-stack-return-address",
+    labelForDebug: "Return address slot"
+  },
+  {
+    name: "argument slots",
+    kind: "argument",
+    offset: 1,
+    storage: "register-argument",
+    currentLowering: "static-label",
+    labelForDebug: "Future argument slots"
+  },
+  {
+    name: "local slots",
+    kind: "local",
+    offset: 2,
+    storage: "static-label-current",
+    currentLowering: "static-label",
+    labelForDebug: "Future local variable slots"
+  },
+  {
+    name: "temporary slots",
+    kind: "temporary",
+    offset: 3,
+    storage: "future-stack-slot",
+    currentLowering: "not-emitted",
+    labelForDebug: "Future temporary slots"
+  },
+  {
+    name: "saved-fp",
+    kind: "saved-fp",
+    offset: 4,
+    storage: "future-stack-slot",
+    currentLowering: "not-emitted",
+    labelForDebug: "Optional saved FP"
+  }
+];
+
+function slotKindLabel(slot: FrameSlotPreview): string {
+  switch (slot.kind) {
+    case "return-address":
+      return "return";
+    case "saved-fp":
+      return "saved FP";
+    case "argument":
+      return "argument";
+    case "local":
+      return "local";
+    case "temporary":
+      return "temporary";
+    default:
+      return slot.kind;
+  }
+}
+
+function currentLoweringLabel(slot: FrameSlotPreview): string {
+  if (slot.currentLowering === "call-stack-return-address") return "CALL stack";
+  if (slot.currentLowering === "static-label") return `static label ${slot.labelForDebug ?? slot.name}`;
+  if (slot.currentLowering === "register") return slot.storage;
+  return "not emitted";
+}
+
+function slotRowsForPreview(activeFunction: ReturnType<typeof selectStackFramePreviewState>["activeFunction"]): FrameSlotPreview[] {
+  if (!activeFunction) return FALLBACK_FRAME_SLOTS;
+  return [
+    activeFunction.returnAddressSlot,
+    ...activeFunction.argumentSlots,
+    ...activeFunction.localSlots,
+    ...activeFunction.temporarySlots
+  ];
+}
+
+function FocusStackFrameViewPanel({
+  state,
+  focus,
+  sourceMode,
+  sourceText
+}: {
+  state: CometState;
+  focus: FocusInstructionContext;
+  sourceMode: SourceMode;
+  sourceText: string;
+}) {
   const [detailsOpen, setDetailsOpen] = useState(false);
-  const view = selectStackFrameViewState(state, focus);
-  const modeText = view.mode === "simple-static-locals" ? "Simple static locals" : "Future stack frame";
-  const argumentText = view.argumentRegisters.join(" / ");
-  const currentFunctionText = view.currentFunction ?? "none";
+  const [selectedFunctionName, setSelectedFunctionName] = useState<string | undefined>();
+  const preferredFunctionName = functionNameFromRoutineLabel(routineLabelForAddress(state, focus.address));
+  const preview = useMemo(
+    () => selectStackFramePreviewState(sourceMode, sourceText, selectedFunctionName, preferredFunctionName),
+    [sourceMode, sourceText, selectedFunctionName, preferredFunctionName]
+  );
+  const activeFunction = preview.activeFunction;
+  const modeText = "Simple static locals";
+  const argumentText = STACK_FRAME_ARGUMENT_REGISTERS.join(" / ");
+  const functionText = preview.selectedFunctionName ?? preferredFunctionName ?? "none";
+  const frameSizeText = activeFunction ? `${activeFunction.frameSizeWords} words` : "not available";
+  const slotRows = slotRowsForPreview(activeFunction);
+  const previewStatus = preview.available ? "available" : preview.reason ?? "not available";
+  const warningsText = preview.warnings.join(" ");
 
   return (
     <section className="panel focus-stack-frame-view" data-testid="focus-stack-frame-view">
       <header className="panel-header">
         <div>
           <h2>Stack Frame View</h2>
-          <span>Placeholder for future frame slots</span>
+          <span>{preview.available ? "FramePlan preview" : "Design placeholder"}</span>
         </div>
         <span data-testid="stack-frame-current-mode">{modeText}</span>
       </header>
       <div
         className="stack-frame-view-body card-overflow-safe"
         data-testid="stack-frame-view-state"
-        data-mode={view.mode}
-        data-has-live-frame={view.hasLiveFrame ? "true" : "false"}
+        data-mode={preview.mode}
+        data-runtime-state={preview.isRuntimeState ? "true" : "false"}
+        data-has-live-frame="false"
       >
-        <p className="stack-frame-view-note wrap-explanation" title="No live stack frame locals yet. Current C++ locals lower to static namespaced labels.">
-          No live stack frame locals yet. C++ locals lower to static labels.
+        <div className="stack-frame-view-badges" aria-label="Stack Frame View preview status">
+          <span data-testid="stack-frame-design-preview-badge" title="FramePlan metadata is a design preview only.">Design preview</span>
+          <span data-testid="stack-frame-not-runtime-state" title="This panel does not display live runtime frame slots.">Not runtime state</span>
+        </div>
+        <p className="stack-frame-view-note wrap-explanation" title="No live stack frame locals yet. Current C++ locals lower to static namespaced labels. FramePlan is preview metadata only.">
+          No live stack frame locals yet. C++ locals lower to static labels. FramePlan is preview only.
         </p>
         <div className="stack-frame-view-rows">
           <div className="stack-frame-view-row" data-testid="stack-frame-mode-row">
             <span className="compact-label">Mode</span>
             <code className="nowrap-symbol" title={modeText}>{modeText}</code>
-            <small className="secondary-note text-ellipsis" title="Current simple lowering mode">{view.localsStrategy}</small>
+            <small className="secondary-note text-ellipsis" title="Current simple lowering mode">static-namespaced-labels</small>
+          </div>
+          <div className="stack-frame-view-row" data-testid="stack-frame-preview-row">
+            <span className="compact-label">Plan</span>
+            <code className="nowrap-symbol" title={previewStatus}>{preview.available ? "available" : "unavailable"}</code>
+            <small className="secondary-note text-ellipsis" title={previewStatus}>{previewStatus}</small>
           </div>
           <div className="stack-frame-view-row" data-testid="stack-frame-return-register-row">
             <span className="compact-label">Return</span>
-            <code className="mono-value">{view.returnValueRegister}</code>
+            <code className="mono-value">{activeFunction?.returnValueRegister ?? "GR0"}</code>
             <small className="secondary-note text-ellipsis" title="GR0 carries function return values.">return value</small>
           </div>
           <div className="stack-frame-view-row" data-testid="stack-frame-argument-registers-row">
             <span className="compact-label">Args</span>
             <code className="nowrap-symbol" title={argumentText}>{argumentText}</code>
             <small className="secondary-note text-ellipsis" title="GR1-GR3 are register arguments.">register arguments</small>
+          </div>
+          <div className="stack-frame-view-row" data-testid="stack-frame-frame-size-row">
+            <span className="compact-label">Frame size</span>
+            <code className="nowrap-symbol" title={frameSizeText}>{frameSizeText}</code>
+            <small className="secondary-note text-ellipsis" title="Design-only approximate size; not emitted as CASL.">design-only</small>
           </div>
           <div className="stack-frame-view-row" data-testid="stack-frame-static-labels-row">
             <span className="compact-label">Locals</span>
@@ -1215,10 +1299,28 @@ function FocusStackFrameViewPanel({ state, focus }: { state: CometState; focus: 
           </div>
           <div className="stack-frame-view-row" data-testid="stack-frame-call-depth-row">
             <span className="compact-label">CALL/RET</span>
-            <code className="mono-value" title={`callDepth ${view.callDepth}`}>{view.callDepth}</code>
+            <code className="mono-value" title={`callDepth ${state.callDepth}`}>{state.callDepth}</code>
             <small className="secondary-note text-ellipsis" title="CALL / RET stack currently stores return addresses only.">return addresses only</small>
           </div>
         </div>
+        {preview.available && preview.functions.length > 1 ? (
+          <label className="stack-frame-view-function" data-testid="stack-frame-function-control">
+            <span className="compact-label">Function</span>
+            <select
+              data-testid="stack-frame-function-select"
+              aria-label="Stack frame preview function"
+              title={`Preview function: ${functionText}`}
+              value={preview.selectedFunctionName ?? ""}
+              onChange={(event) => setSelectedFunctionName(event.currentTarget.value)}
+            >
+              {preview.functions.map((fn) => (
+                <option key={fn.functionName} value={fn.functionName} title={fn.functionName}>
+                  {fn.functionName}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
         <details
           className="stack-frame-view-details"
           data-testid="stack-frame-view-details"
@@ -1231,21 +1333,36 @@ function FocusStackFrameViewPanel({ state, focus }: { state: CometState; focus: 
             aria-controls="stack-frame-view-detail-rows"
             title="Toggle Stack Frame View concept details"
           >
-            Future StackFramePlan / FrameSlot details
+            StackFramePlan / FrameSlot details
           </summary>
           <div id="stack-frame-view-detail-rows" className="stack-frame-view-detail-rows">
             <div className="stack-frame-view-row">
               <span className="compact-label">Function</span>
-              <code className="nowrap-symbol" title={currentFunctionText}>{currentFunctionText}</code>
-              <small className="secondary-note text-ellipsis" title="Current source label only; not a frame pointer.">source context</small>
+              <code className="nowrap-symbol" title={functionText}>{functionText}</code>
+              <small className="secondary-note text-ellipsis" title="Preview selection only; does not affect VM state.">preview selection</small>
             </div>
-            {view.futureSlots.map((slot) => (
-              <div key={slot.kind} className="stack-frame-view-row" data-testid="stack-frame-future-slot" data-slot-kind={slot.kind} data-status={slot.status}>
-                <span className="compact-label">FrameSlot</span>
-                <code className="nowrap-symbol" title={slot.label}>{slot.label}</code>
-                <small className="secondary-note text-ellipsis" title="Future design placeholder; no live slot is displayed.">{slot.status}</small>
+            {slotRows.map((slot) => (
+              <div
+                key={`${slot.kind}-${slot.name}-${slot.offset}`}
+                className="stack-frame-view-row"
+                data-testid="stack-frame-future-slot"
+                data-slot-kind={slot.kind}
+                data-status="future"
+              >
+                <span className="compact-label" title={slot.kind}>{slotKindLabel(slot)}</span>
+                <code className="nowrap-symbol" title={slot.name}>{slot.name}</code>
+                <small className="secondary-note text-ellipsis" title={`${currentLoweringLabel(slot)} at offset +${slot.offset}`}>
+                  +{slot.offset} / {currentLoweringLabel(slot)}
+                </small>
               </div>
             ))}
+            {warningsText ? (
+              <div className="stack-frame-view-row stack-frame-view-row-wide" data-testid="stack-frame-warning-row">
+                <span className="compact-label">Warnings</span>
+                <code className="nowrap-symbol" title={warningsText}>design-only</code>
+                <small className="secondary-note text-ellipsis" title={warningsText}>{warningsText}</small>
+              </div>
+            ) : null}
           </div>
         </details>
       </div>
@@ -1364,7 +1481,7 @@ export default function CircuitFocusLayout({
           <>
             <FocusStackPreviewPanel state={state} />
             <FocusCallStackPanel state={state} focus={focus} density="compact" />
-            <FocusStackFrameViewPanel state={state} focus={focus} />
+            <FocusStackFrameViewPanel state={state} focus={focus} sourceMode={sourceMode} sourceText={sourceText} />
             <FocusSignalProbePanel state={state} focus={focus} density="compact" />
             <FocusTracePanel state={state} />
           </>

@@ -51,6 +51,7 @@ import v1ReleaseQaEvidence from "../../docs/v1-release-qa-evidence.md?raw";
 import v1Rc1ReleaseNotes from "../../docs/releases/v1.0-rc1.md?raw";
 import v1ManualSignoff from "../../docs/v1-manual-signoff.md?raw";
 import v1SecurityAuditNotes from "../../docs/v1-security-audit-notes.md?raw";
+import phase12dVisualAudit from "../../docs/phase12d-visual-audit.md?raw";
 
 describe("learning use documentation", () => {
   it("learning_guide_exists", () => {
@@ -784,6 +785,23 @@ describe("learning use documentation", () => {
     expect(practiceTasks).not.toContain("||");
   });
 
+  it("phase12d_visual_audit_doc_exists", () => {
+    expect(phase12dVisualAudit).toContain("Phase 12D-VISUAL Circuit Visual Audit");
+    expect(phase12dVisualAudit).toContain("Memory routing");
+    expect(phase12dVisualAudit).toContain("target-highlight");
+    expect(phase12dVisualAudit).toContain("no circular terminal marker");
+    expect(phase12dVisualAudit).toContain("1280x720");
+    expect(phase12dVisualAudit).toContain("visual-review-static");
+    expect(phase12dVisualAudit).toContain("does not change CASL execution");
+  });
+
+  it("phase12d_visual_rules_are_linked_from_release_docs", () => {
+    expect(circuitVisualContract).toContain("Memory must not render circular terminal markers");
+    expect(circuitVisualContract).toContain("target-highlight relation");
+    expect(releaseCandidateNotes).toContain("phase12d-visual-audit.md");
+    expect(v1ManualSignoff).toContain("phase12d-visual-audit.md");
+  });
+
   it("project_overview_uses_learning_wording", () => {
     expect(projectOverview).toContain("learning studio");
     expect(projectOverview).toContain("Recommended Study Demos");
@@ -821,6 +839,7 @@ describe("learning use documentation", () => {
     expect(readme).toContain("docs/phase11b-stack-frame-lowering-scaffold.md");
     expect(readme).toContain("docs/manual-qa-checklist.md");
     expect(readme).toContain("docs/release-candidate-notes.md");
+    expect(readme).toContain("docs/phase12d-visual-audit.md");
     expect(readme).toContain("docs/future-custom-circuit-design.md");
     expect(normalized).not.toContain("hackathon");
     expect(normalized).not.toContain("contest submission");

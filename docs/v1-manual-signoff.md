@@ -16,6 +16,7 @@ Supporting release documents:
 - [v1-release-qa-evidence.md](v1-release-qa-evidence.md)
 - [release-candidate-notes.md](release-candidate-notes.md)
 - [v1-security-audit-notes.md](v1-security-audit-notes.md)
+- [phase12d-visual-audit.md](phase12d-visual-audit.md)
 
 ## 3. Required Manual Checks
 
@@ -44,6 +45,13 @@ Required visual categories:
 - `cpp-function-arguments-generated-casl`
 - `machine-code-explanation`
 - `stack-frame-view-preview`
+
+Circuit-specific visual checks:
+
+- Memory-side circular markers are absent.
+- Memory address target is shown by MAR, the Memory target badge, and row highlight rather than a long active address wire.
+- Memory read/write data flow uses short row stubs.
+- Active arrows are attached to stable endpoints and inactive guides do not animate.
 
 Do not commit visual-review screenshots or artifacts.
 

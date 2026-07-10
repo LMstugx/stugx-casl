@@ -9,6 +9,7 @@ import visualReviewSpec from "../../tests/e2e/visual-review.spec.ts?raw";
 describe("visual review screenshot gallery setup", () => {
   it("visual_review_spec_exists", () => {
     expect(visualReviewSpec).toContain("visual review screenshot gallery");
+    expect(visualReviewSpec).toContain('name: "1280x720"');
     expect(visualReviewSpec).toContain("project-overview.png");
     expect(visualReviewSpec).toContain("casl-gr2-ld.png");
     expect(visualReviewSpec).toContain("enterCircuitFocusMode");
@@ -53,14 +54,16 @@ describe("visual review screenshot gallery setup", () => {
     expect(visualReviewDoc).toContain("Visual Review Screenshot Gallery");
     expect(visualReviewDoc).toContain("pnpm visual:capture");
     expect(visualReviewDoc).toContain("phone");
-    expect(visualReviewDoc).toContain("Memory arrow points to the active memory row");
+    expect(visualReviewDoc).toContain("Memory target state points to the active memory row");
     expect(visualReviewDoc).toContain("Active wires use a single terminal arrow");
     expect(visualReviewDoc).toContain("visual-review-static");
     expect(visualReviewDoc).toContain("freeze that animation");
-    expect(visualReviewDoc).toContain("Junction dots are visible");
+    expect(visualReviewDoc).toContain("Junction dots are disabled by default");
+    expect(visualReviewDoc).toContain("Memory-side circular terminal markers");
     expect(visualReviewDoc).toContain("DATA BUS");
     expect(visualReviewDoc).toContain("LD / ST data-bypass paths avoid the ALU body");
     expect(visualReviewDoc).toContain("ST writeback lands at the Memory row edge");
+    expect(visualReviewDoc).toContain("Memory data flow uses short row stubs");
     expect(visualReviewDoc).toContain("Signal Probe is compact");
     expect(visualReviewDoc).toContain("Stack Preview is compact");
     expect(visualReviewDoc).toContain("active for stack instructions and stack-aware returns");

@@ -31,6 +31,25 @@ function signalFlowClass(path: WirePath): string {
   return `circuit-wire--active circuit-wire--flow ${flowBySemanticType[path.semanticType]}`;
 }
 
+function activeWireClass(path: WirePath): string {
+  return path.allowAnimation ? signalFlowClass(path) : "circuit-wire--active";
+}
+
+function isVisibleActiveWire(path: WirePath): boolean {
+  return path.visualRole === "active-flow";
+}
+
+function terminalSegmentLength(path: WirePath): number {
+  if (path.terminalPoints.length < 2) return 0;
+  const end = path.terminalPoints[path.terminalPoints.length - 1];
+  const previous = path.terminalPoints[path.terminalPoints.length - 2];
+  return Math.max(Math.abs(end.x - previous.x), Math.abs(end.y - previous.y));
+}
+
+function shouldRenderTerminalArrow(path: WirePath): boolean {
+  return isVisibleActiveWire(path) && path.allowArrow && terminalSegmentLength(path) >= 8;
+}
+
 function markerForWire(path: WirePath): string {
   return path.role === "data" ? "url(#arrow-red)" : "url(#arrow-blue)";
 }
@@ -42,6 +61,8 @@ function distanceBetweenPoints(a: { x: number; y: number }, b: { x: number; y: n
 function shouldRenderJunction(path: WirePath, junction: { x: number; y: number }): boolean {
   const minimumEndpointGap = 6;
   return (
+    path.allowJunction &&
+    isVisibleActiveWire(path) &&
     pointIsOnRoute(junction, path.points) &&
     distanceBetweenPoints(junction, path.fromAnchor) > minimumEndpointGap &&
     distanceBetweenPoints(junction, path.toAnchor) > minimumEndpointGap
@@ -468,17 +489,17 @@ function CometCircuitSvg({ state, sourceMapFocus }: { state: CometState; sourceM
   return (
     <svg className="comet-circuit" viewBox={`0 0 ${CIRCUIT_VIEWBOX.width} ${CIRCUIT_VIEWBOX.height}`} role="img" aria-label="COMET II circuit" data-testid="comet-circuit-svg">
       <defs>
-        <marker id="arrow-blue" markerUnits="userSpaceOnUse" markerWidth="5" markerHeight="5" refX="4.6" refY="2.5" orient="auto" viewBox="0 0 5 5">
-          <path d="M 0 0 L 5 2.5 L 0 5 z" className="marker-blue" />
+        <marker id="arrow-blue" markerUnits="userSpaceOnUse" markerWidth="4.4" markerHeight="4.4" refX="4.05" refY="2.2" orient="auto" viewBox="0 0 4.4 4.4">
+          <path d="M 0 0 L 4.4 2.2 L 0 4.4 z" className="marker-blue" />
         </marker>
-        <marker id="arrow-blue-mid" markerUnits="userSpaceOnUse" markerWidth="5" markerHeight="5" refX="2.5" refY="2.5" orient="auto" viewBox="0 0 5 5">
-          <path d="M 0 0 L 5 2.5 L 0 5 z" className="marker-blue" />
+        <marker id="arrow-blue-mid" markerUnits="userSpaceOnUse" markerWidth="4.4" markerHeight="4.4" refX="2.2" refY="2.2" orient="auto" viewBox="0 0 4.4 4.4">
+          <path d="M 0 0 L 4.4 2.2 L 0 4.4 z" className="marker-blue" />
         </marker>
-        <marker id="arrow-red" markerUnits="userSpaceOnUse" markerWidth="5" markerHeight="5" refX="4.6" refY="2.5" orient="auto" viewBox="0 0 5 5">
-          <path d="M 0 0 L 5 2.5 L 0 5 z" className="marker-red" />
+        <marker id="arrow-red" markerUnits="userSpaceOnUse" markerWidth="4.4" markerHeight="4.4" refX="4.05" refY="2.2" orient="auto" viewBox="0 0 4.4 4.4">
+          <path d="M 0 0 L 4.4 2.2 L 0 4.4 z" className="marker-red" />
         </marker>
-        <marker id="arrow-red-mid" markerUnits="userSpaceOnUse" markerWidth="5" markerHeight="5" refX="2.5" refY="2.5" orient="auto" viewBox="0 0 5 5">
-          <path d="M 0 0 L 5 2.5 L 0 5 z" className="marker-red" />
+        <marker id="arrow-red-mid" markerUnits="userSpaceOnUse" markerWidth="4.4" markerHeight="4.4" refX="2.2" refY="2.2" orient="auto" viewBox="0 0 4.4 4.4">
+          <path d="M 0 0 L 4.4 2.2 L 0 4.4 z" className="marker-red" />
         </marker>
       </defs>
 
@@ -495,6 +516,10 @@ function CometCircuitSvg({ state, sourceMapFocus }: { state: CometState; sourceM
               data-path-id={path.id}
               data-lane={path.lane}
               data-semantic-type={path.semanticType}
+              data-visual-role={path.visualRole}
+              data-allow-arrow={path.allowArrow ? "true" : "false"}
+              data-allow-animation={path.allowAnimation ? "true" : "false"}
+              data-allow-junction={path.allowJunction ? "true" : "false"}
               data-from-anchor={path.fromAnchor.id}
               data-to-anchor={path.toAnchor.id}
               data-primary={path.isPrimary ? "true" : "false"}
@@ -516,7 +541,7 @@ function CometCircuitSvg({ state, sourceMapFocus }: { state: CometState; sourceM
 
       <g className="active-wire-layer">
         {wirePaths
-          .filter((path) => effectiveActiveWireIds.has(path.id))
+          .filter((path) => effectiveActiveWireIds.has(path.id) && isVisibleActiveWire(path))
           .map((path) => {
             return (
             <path
@@ -527,6 +552,10 @@ function CometCircuitSvg({ state, sourceMapFocus }: { state: CometState; sourceM
               data-path-id={path.id}
               data-lane={path.lane}
               data-semantic-type={path.semanticType}
+              data-visual-role={path.visualRole}
+              data-allow-arrow={path.allowArrow ? "true" : "false"}
+              data-allow-animation={path.allowAnimation ? "true" : "false"}
+              data-allow-junction={path.allowJunction ? "true" : "false"}
               data-from-anchor={path.fromAnchor.id}
               data-to-anchor={path.toAnchor.id}
               data-primary={path.isPrimary ? "true" : "false"}
@@ -534,7 +563,7 @@ function CometCircuitSvg({ state, sourceMapFocus }: { state: CometState; sourceM
               data-related-memory-address={path.relatedMemoryAddress !== undefined ? formatWord(path.relatedMemoryAddress) : undefined}
               data-related-stage={path.relatedStage}
               data-avoids-alu={path.avoidsAlu ? "true" : "false"}
-              className={`wire wire-${path.role} wire-active ${signalFlowClass(path)}`}
+              className={`wire wire-${path.role} wire-active ${activeWireClass(path)}`}
             />
             );
           })}
@@ -542,7 +571,7 @@ function CometCircuitSvg({ state, sourceMapFocus }: { state: CometState; sourceM
 
       <g className="active-junction-layer" aria-hidden="true">
         {wirePaths
-          .filter((path) => effectiveActiveWireIds.has(path.id))
+          .filter((path) => effectiveActiveWireIds.has(path.id) && isVisibleActiveWire(path))
           .flatMap((path) =>
             path.junctions
               .filter((junction) => shouldRenderJunction(path, junction))
@@ -604,7 +633,7 @@ function CometCircuitSvg({ state, sourceMapFocus }: { state: CometState; sourceM
 
       <g className="active-terminal-layer" aria-hidden="true">
         {wirePaths
-          .filter((path) => effectiveActiveWireIds.has(path.id))
+          .filter((path) => effectiveActiveWireIds.has(path.id) && shouldRenderTerminalArrow(path))
           .map((path) => (
             <path
               key={`terminal-${path.id}`}
@@ -614,6 +643,9 @@ function CometCircuitSvg({ state, sourceMapFocus }: { state: CometState; sourceM
               data-terminal-path-id={path.id}
               data-lane={path.lane}
               data-semantic-type={path.semanticType}
+              data-visual-role={path.visualRole}
+              data-allow-arrow={path.allowArrow ? "true" : "false"}
+              data-allow-animation={path.allowAnimation ? "true" : "false"}
               data-to-anchor={path.toAnchor.id}
               className={`wire wire-${path.role} wire-active wire-terminal`}
               markerEnd={markerForWire(path)}

@@ -29,4 +29,17 @@ describe("circuit signal flow animation styles", () => {
     expect(visualReviewSpec).toContain("document.documentElement.classList.add");
     expect(visualReviewSpec).toContain("document.body.classList.add");
   });
+
+  it("inactive_wires_do_not_animate", async () => {
+    const appCss = await readRepoFile("src/styles/app.css");
+
+    expect(appCss).toContain('[data-active="false"].circuit-wire--flow');
+    expect(appCss).toContain("animation: none");
+  });
+
+  it("visual_review_covers_1280_viewport", async () => {
+    const visualReviewSpec = await readRepoFile("tests/e2e/visual-review.spec.ts");
+
+    expect(visualReviewSpec).toContain('name: "1280x720"');
+  });
 });

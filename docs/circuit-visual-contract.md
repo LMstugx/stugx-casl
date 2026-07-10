@@ -358,11 +358,16 @@ Arrow markers explain direction, not decoration.
 - Active wires use one terminal arrow marker per meaningful segment.
 - Inactive guide wires should have no arrow marker or a very faint marker.
 - Arrowheads must be smaller than module labels and must not cover values.
-- Junction dots are allowed at real split or merge points.
+- Junction dots are disabled by default. They are allowed only at explicit real split or merge points.
+- Junction dots must sit on an actual SVG segment, stay away from endpoints and arrowheads, and never appear as orphan nodes.
+- Memory must not render circular terminal markers, floating junctions, or Memory-side guide circles in v1.0.
+- `mar-to-memory` is a target-highlight relation, not a visible active blue address wire. Use MAR activity, the Memory target badge, and the highlighted row to teach the address target.
+- Visible Memory active wires should represent data movement: Memory row -> MDR, MDR -> Memory row, MDR -> ALU, GR -> MDR, or GR -> ALU.
 - Do not stack multiple arrowheads on the same long segment.
 - Data, address, control, flag, and stack paths may use different colors, but the palette must remain restrained.
 - Animation, when enabled, must follow the route without changing the route geometry.
 - Visual review static mode must freeze animation.
+- Inactive guide wires must not animate.
 
 ## 9. Small Viewport Rules
 
@@ -386,12 +391,14 @@ LD:
 
 - Current instruction, Program highlight, Source Mapping, Source Context, and latest Trace row all show LD.
 - Memory effective row -> MDR -> target GR is the first visible data story.
+- MAR and the Memory target badge may show the addressed row, but no long active Memory-side address wire should appear.
 - ALU inactive for LD.
 
 ST:
 
 - source GR -> MDR -> Memory effective row is clear.
 - write row is highlighted.
+- Memory row entry uses a short horizontal data stub, with no circular marker in the Memory gutter.
 - ALU inactive for ST.
 
 Compute:
@@ -418,6 +425,7 @@ Stack:
 - CALL writes return address and updates PR target.
 - stack RET reads Memory[SP] to PR.
 - top-level RET does not activate stack.
+- Stack memory access follows the same Memory rule: no Memory-side circular marker and no long active address wire.
 - Use consistent visible terminology: PUSH is Stack write, POP is Stack read, CALL is Return address write, stack RET is Return address read, and top-level RET is Program finish.
 
 C++ function calls:

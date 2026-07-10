@@ -39,7 +39,7 @@ export const circuitBusLanes = {
   aluRightBusX: circuitLayout.alu.x + circuitLayout.alu.w + 16,
   memoryBusX: circuitLayout.memory.x - 42,
   memoryAddressLaneX: circuitLayout.memory.x - 44,
-  memoryDataLaneX: circuitLayout.memory.x - 28
+  memoryDataLaneX: circuitLayout.memory.x - 36
 } as const;
 
 export const circuitRouting = {

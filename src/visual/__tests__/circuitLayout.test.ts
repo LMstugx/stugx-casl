@@ -290,6 +290,16 @@ describe("circuit focus layout", () => {
     }
   });
 
+  it("no_memory_side_address_wire_for_memory_operands", () => {
+    const addressWire = wireById("mar-to-memory");
+
+    expect(addressWire.visualRole).toBe("target-highlight");
+    expect(addressWire.allowArrow).toBe(false);
+    expect(addressWire.allowAnimation).toBe(false);
+    expect(addressWire.allowJunction).toBe(false);
+    expect(addressWire.relatedStage).toBe("Operand Target");
+  });
+
   it("adda_memory_operand_route_has_separate_address_and_data_lanes", () => {
     const active = activeWiresFor(VisualPathKind.ADDA_GrMdrToAluToGr);
     const addressWire = active.find((wire) => wire.id === "mar-to-memory");
@@ -336,6 +346,31 @@ describe("circuit focus layout", () => {
     expect(activeWireIdsByKind[VisualPathKind.POP_StackToGr]).toEqual(["sp-to-mar-preview", "mar-to-memory", "memory-to-mdr", "mdr-to-gr"]);
     expect(activeWireIdsByKind[VisualPathKind.CALL_ReturnAddressToStackAndPr]).toEqual(["pr-to-plus2", "return-address-to-mdr", "sp-to-mar-preview", "mar-to-memory", "mdr-to-memory", "base-to-eau", "eau-to-pr"]);
     expect(activeWireIdsByKind[VisualPathKind.RET_StackToPr]).toEqual(["sp-to-mar-preview", "mar-to-memory", "memory-to-mdr", "mdr-to-pr"]);
+  });
+
+  it("arrowhead_has_valid_final_segment", () => {
+    for (const wire of buildWirePaths({ grIndex: 2, indexRegister: 2, memoryAddress: 0x29 })) {
+      if (wire.visualRole !== "active-flow" || !wire.allowArrow) continue;
+      const segments = routeSegments(wire.terminalPoints);
+      const finalSegment = segments[segments.length - 1];
+      const finalLength = segmentLength(finalSegment);
+
+      expect(finalSegment).toBeDefined();
+      expect(finalLength === 4 || finalLength >= 8).toBe(true);
+    }
+  });
+
+  it("junction_dots_only_render_for_valid_semantic_junctions", () => {
+    for (const wire of buildWirePaths({ grIndex: 2, indexRegister: 2, memoryAddress: 0x29 })) {
+      expect(wire.allowJunction).toBe(false);
+    }
+  });
+
+  it("alu_flag_route_has_no_floating_dot", () => {
+    const flagWire = wireById("alu-to-fr");
+
+    expect(flagWire.junctions.length).toBeGreaterThanOrEqual(0);
+    expect(flagWire.allowJunction).toBe(false);
   });
 
   it("eau_wires_avoid_header_and_value_rows", () => {

@@ -674,7 +674,8 @@ describe("Circuit Focus Mode layout", () => {
 
     expect(markup).toContain('data-testid="module-sp" data-active="true"');
     expect(markup).toContain('data-testid="effective-address-unit" data-active="true"');
-    expect(activeWireIds(markup)).toEqual(expect.arrayContaining(["base-to-eau", "eau-to-mdr", "sp-to-mar-preview", "mar-to-memory", "mdr-to-memory"]));
+    expect(activeWireIds(markup)).toEqual(expect.arrayContaining(["base-to-eau", "eau-to-mdr", "sp-to-mar-preview", "mdr-to-memory"]));
+    expect(activeWireIds(markup)).not.toContain("mar-to-memory");
     expect(markup).toContain('data-testid="memory-row-FFFD"');
     expect(markup).toContain('data-write="true"');
     expect(markup).toContain("SP: FFFE -&gt; FFFD");
@@ -686,7 +687,8 @@ describe("Circuit Focus Mode layout", () => {
 
     expect(markup).toContain('data-testid="module-sp" data-active="true"');
     expect(markup).toContain('data-testid="register-gr1" data-active="true"');
-    expect(activeWireIds(markup)).toEqual(expect.arrayContaining(["sp-to-mar-preview", "mar-to-memory", "memory-to-mdr", "mdr-to-gr"]));
+    expect(activeWireIds(markup)).toEqual(expect.arrayContaining(["sp-to-mar-preview", "memory-to-mdr", "mdr-to-gr"]));
+    expect(activeWireIds(markup)).not.toContain("mar-to-memory");
     expect(markup).toContain('data-testid="memory-row-FFFD"');
     expect(markup).toContain('data-read="true"');
     expect(markup).toContain("Read MEM[FFFD]");
@@ -699,7 +701,8 @@ describe("Circuit Focus Mode layout", () => {
     expect(markup).toContain('data-testid="module-sp" data-active="true"');
     expect(markup).toContain('data-testid="module-pr" data-active="true"');
     expect(markup).toContain('data-testid="effective-address-unit" data-active="true"');
-    expect(activeWireIds(markup)).toEqual(expect.arrayContaining(["pr-to-plus2", "return-address-to-mdr", "sp-to-mar-preview", "mar-to-memory", "mdr-to-memory", "base-to-eau", "eau-to-pr"]));
+    expect(activeWireIds(markup)).toEqual(expect.arrayContaining(["pr-to-plus2", "return-address-to-mdr", "sp-to-mar-preview", "mdr-to-memory", "base-to-eau", "eau-to-pr"]));
+    expect(activeWireIds(markup)).not.toContain("mar-to-memory");
     expect(markup).toContain('data-testid="memory-row-FFFD"');
     expect(markup).toContain('data-write="true"');
     expect(markup).toContain("return 0024");
@@ -807,7 +810,8 @@ describe("Circuit Focus Mode layout", () => {
 
     expect(markup).toContain('data-testid="module-sp" data-active="true"');
     expect(markup).toContain('data-testid="module-pr" data-active="true"');
-    expect(activeWireIds(markup)).toEqual(expect.arrayContaining(["sp-to-mar-preview", "mar-to-memory", "memory-to-mdr", "mdr-to-pr"]));
+    expect(activeWireIds(markup)).toEqual(expect.arrayContaining(["sp-to-mar-preview", "memory-to-mdr", "mdr-to-pr"]));
+    expect(activeWireIds(markup)).not.toContain("mar-to-memory");
     expect(markup).toContain('data-testid="memory-row-FFFD"');
     expect(markup).toContain('data-read="true"');
     expect(markup).toContain("RET stack return");

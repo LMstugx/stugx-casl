@@ -12,6 +12,7 @@ type Viewport = {
 
 const screenshotRoot = path.resolve("artifacts/visual-review/screenshots");
 const viewports: Viewport[] = [
+  { name: "1280x720", width: 1280, height: 720 },
   { name: "1440x900", width: 1440, height: 900, primary: true },
   { name: "1920x1080", width: 1920, height: 1080 }
 ];

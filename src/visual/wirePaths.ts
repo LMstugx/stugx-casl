@@ -6,6 +6,7 @@ export type WireRole = "address" | "control" | "data" | "inactive";
 export type WireLane = "addr" | "ctrl" | "data-bypass" | "data-compute" | "flag";
 export type AnchorSemanticRole = "input" | "output" | "bidirectional" | "address" | "data" | "control" | "flag";
 export type WireSemanticType = "data" | "address" | "control" | "flag";
+export type WireVisualRole = "active-flow" | "guide" | "semantic-only" | "target-highlight";
 
 export type CircuitAnchorRef = CircuitPoint & {
   id: string;
@@ -26,6 +27,10 @@ export type WirePath = {
   relatedMemoryAddress?: number;
   relatedStage?: string;
   relatedInstructionKind?: string;
+  visualRole: WireVisualRole;
+  allowArrow: boolean;
+  allowAnimation: boolean;
+  allowJunction: boolean;
   points: readonly CircuitPoint[];
   terminalPoints: readonly CircuitPoint[];
   junctions: readonly CircuitPoint[];
@@ -192,11 +197,31 @@ function wire(
   fromAnchor: CircuitAnchorRef,
   toAnchor: CircuitAnchorRef,
   points: readonly CircuitPoint[],
-  options: Pick<WirePath, "avoidsAlu" | "relatedRegister" | "relatedMemoryAddress" | "relatedStage" | "relatedInstructionKind"> & { junctions?: readonly CircuitPoint[] } = {}
+  options: Partial<
+    Pick<
+      WirePath,
+      | "avoidsAlu"
+      | "relatedRegister"
+      | "relatedMemoryAddress"
+      | "relatedStage"
+      | "relatedInstructionKind"
+      | "visualRole"
+      | "allowArrow"
+      | "allowAnimation"
+      | "allowJunction"
+    >
+  > & { junctions?: readonly CircuitPoint[] } = {}
 ): WirePath {
   const compacted = snapRouteToAnchors(points, fromAnchor, toAnchor);
   const terminalPoints = terminalSegment(compacted);
-  const { junctions = [], ...metadata } = options;
+  const {
+    junctions = [],
+    visualRole = "active-flow",
+    allowArrow = true,
+    allowAnimation = true,
+    allowJunction = false,
+    ...metadata
+  } = options;
   return {
     id,
     role,
@@ -206,6 +231,10 @@ function wire(
     toAnchor,
     direction: "forward",
     isPrimary: role !== "inactive",
+    visualRole,
+    allowArrow,
+    allowAnimation,
+    allowJunction,
     points: compacted,
     terminalPoints,
     junctions,
@@ -331,7 +360,14 @@ export function buildWirePaths({ grIndex = 1, indexRegister, memoryAddress = 0x2
       { relatedStage: "Stack preview" }
     ),
     wire("mar-to-stack-memory-preview", "address", "addr", "address", anchors.marRight, anchors.stackMemoryPreview, routeViaLane(marRight, stackMemoryPreview, { x: memoryBusX }), { relatedStage: "Stack preview", junctions: [{ x: memoryBusX, y: stackMemoryPreview.y }] }),
-    wire("mar-to-memory", "address", "addr", "address", anchors.marRight, anchors.memoryAddressLeft, routeToMemoryPort(marRight, memoryAddressLeft, memoryAddressLaneX), { relatedMemoryAddress: memoryAddress, relatedStage: "Operand Read" }),
+    wire("mar-to-memory", "address", "addr", "address", anchors.marRight, anchors.memoryAddressLeft, routeToMemoryPort(marRight, memoryAddressLeft, memoryAddressLaneX), {
+      relatedMemoryAddress: memoryAddress,
+      relatedStage: "Operand Target",
+      visualRole: "target-highlight",
+      allowArrow: false,
+      allowAnimation: false,
+      allowJunction: false
+    }),
     wire("memory-to-mdr", "data", "data-bypass", "data", anchors.memoryLeft, anchors.mdrRight, routeFromMemoryPort(memoryLeft, mdrRight, memoryDataLaneX), { avoidsAlu: true, relatedMemoryAddress: memoryAddress, relatedStage: "Operand Read" }),
     wire("mdr-to-gr", "data", "data-bypass", "data", anchors.mdrBottom, anchors.grRight, routeAvoidRect(mdrBottom, grRight, [circuitLayout.alu], { y: dataBypassY }), { avoidsAlu: true, relatedRegister: gr, relatedStage: "Write Back", junctions: [{ x: mdrBottom.x, y: dataBypassY }] }),
     wire("gr-to-mdr", "data", "data-bypass", "data", anchors.grRight, anchors.mdrBottom, routeAvoidRect(grRight, mdrBottom, [circuitLayout.alu], { y: dataBypassY }), { avoidsAlu: true, relatedRegister: gr, relatedStage: "Execute", junctions: [{ x: grRight.x, y: dataBypassY }] }),

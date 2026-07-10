@@ -50,7 +50,7 @@ function buildFixtures(): CircuitFixture[] {
     {
       name: "Step1 LD",
       state: afterLd,
-      activeWires: ["mar-to-memory", "memory-to-mdr", "mdr-to-gr"],
+      activeWires: ["memory-to-mdr", "mdr-to-gr"],
       currentLine: "3",
       activeMemory: "0027",
       activeRegister: "gr1"
@@ -58,7 +58,7 @@ function buildFixtures(): CircuitFixture[] {
     {
       name: "Step2 ADDA",
       state: afterAdda,
-      activeWires: ["gr-to-alu", "mar-to-memory", "memory-to-mdr", "mdr-to-alu", "alu-to-gr", "alu-to-fr"],
+      activeWires: ["gr-to-alu", "memory-to-mdr", "mdr-to-alu", "alu-to-gr", "alu-to-fr"],
       currentLine: "4",
       activeMemory: "0028",
       activeRegister: "gr1"
@@ -66,7 +66,7 @@ function buildFixtures(): CircuitFixture[] {
     {
       name: "Step3 ST",
       state: afterSt,
-      activeWires: ["gr-to-mdr", "mar-to-memory", "mdr-to-memory"],
+      activeWires: ["gr-to-mdr", "mdr-to-memory"],
       currentLine: "5",
       activeMemory: "0029",
       activeRegister: "gr1"
@@ -177,8 +177,10 @@ B    DC    10
       expect(path.getAttribute("marker-end")).toBeNull();
       expect(path.getAttribute("marker-mid")).toBeNull();
     }
-    expect(terminalPaths.length).toBe(activePaths.length);
+    expect(terminalPaths.length).toBeGreaterThan(0);
+    expect(terminalPaths.length).toBeLessThanOrEqual(activePaths.length);
     for (const path of terminalPaths) {
+      expect(activePaths.some((activePath) => activePath.dataset.pathId === path.dataset.terminalPathId)).toBe(true);
       expect(path.getAttribute("marker-end")).toMatch(/^url\(#arrow-/);
       expect(path.getAttribute("marker-mid")).toBeNull();
     }
@@ -203,7 +205,34 @@ B    DC    10
     expect(doc.querySelector("[data-testid='wire-junction-memory-to-mdr-0']")).toBeNull();
     expect(doc.querySelector("[data-testid='wire-junction-mar-to-memory-0']")).toBeNull();
     expect(doc.querySelector("[data-testid='wire-junction-mdr-to-memory-0']")).toBeNull();
-    expect(doc.querySelector("[data-testid='wire-junction-mdr-to-gr-0']")).toBeTruthy();
+    expect(doc.querySelector("[data-testid='wire-junction-mdr-to-gr-0']")).toBeNull();
+  });
+
+  it("no_memory_side_address_wire_for_memory_operands", () => {
+    const afterLd = mockCaslCore.step(mockCaslCore.assemble(DEFAULT_CASL_SOURCE));
+    const doc = renderCircuit(afterLd);
+    const guide = doc.querySelector<SVGPathElement>("[data-testid='wire-guide-mar-to-memory']");
+
+    expect(doc.querySelector("[data-testid='wire-mar-to-memory']")).toBeNull();
+    expect(doc.querySelector("[data-testid='wire-terminal-mar-to-memory']")).toBeNull();
+    expect(guide?.getAttribute("data-visual-role")).toBe("target-highlight");
+    expect(guide?.getAttribute("data-allow-arrow")).toBe("false");
+    expect(guide?.getAttribute("data-allow-animation")).toBe("false");
+  });
+
+  it("junction_dots_only_render_for_valid_semantic_junctions", () => {
+    const afterAdda = mockCaslCore.step(mockCaslCore.step(mockCaslCore.assemble(DEFAULT_CASL_SOURCE)));
+    const doc = renderCircuit(afterAdda);
+
+    expect(doc.querySelectorAll("[data-testid^='wire-junction-']").length).toBe(0);
+  });
+
+  it("no_orphan_circle_markers_in_circuit_svg", () => {
+    const afterAdda = mockCaslCore.step(mockCaslCore.step(mockCaslCore.assemble(DEFAULT_CASL_SOURCE)));
+    const doc = renderCircuit(afterAdda);
+
+    expect(doc.querySelector("[data-testid^='memory-terminal-marker-']")).toBeNull();
+    expect(doc.querySelectorAll(".active-junction").length).toBe(0);
   });
 
   it("inactive_memory_guide_does_not_create_floating_dot", () => {

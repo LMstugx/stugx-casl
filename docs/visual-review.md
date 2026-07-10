@@ -99,14 +99,16 @@ Use the gallery to inspect:
 - Program, Current Instruction, Current Source Mapping, Source Context, and the newest Trace row agree on the same last executed instruction.
 - PR and Next Instruction are visible only as secondary hints.
 - Machine state and pipeline stage are labeled separately.
-- Memory arrow points to the active memory row.
+- Memory target state points to the active memory row through MAR activity, the Memory target badge, and the highlighted row. Do not expect a long active `MAR -> Memory` address wire.
 - GR arrow points to the active GR row.
 - Active wires use a single terminal arrow instead of repeated arrowheads.
 - Active wires may flow in the live app, but visual review screenshots intentionally freeze that animation.
-- Junction dots are visible at route merge points but do not dominate the view.
+- Junction dots are disabled by default; if one appears, it must be an explicit semantic branch or merge point, not an orphan marker.
+- Memory-side circular terminal markers and guide circles must not appear in v1.0 screenshots.
 - `DATA BUS`, `ADDR BUS`, and `CTRL` lanes are visible but not visually noisy.
 - LD / ST data-bypass paths avoid the ALU body.
 - ST writeback lands at the Memory row edge instead of crossing value or label text.
+- Memory data flow uses short row stubs for read/write and avoids a long vertical wire in the Memory gutter.
 - READ / WRITE / EXEC / FLAG indicators match the visible active path.
 - Signal Probe is compact and derived from the current instruction / recent trace.
 - Stack Preview is compact, read-only, and shows real `PUSH` / `POP` / `CALL` / stack-`RET` stack read/write rows.
@@ -144,6 +146,7 @@ Use the gallery to inspect:
 - Source Editor is not squeezed.
 - Right Inspector remains usable.
 - At `1280x720`, Focus Mode should keep the selected observation mode usable without horizontal overflow.
+- Visual review captures `1280x720`, `1440x900`, and `1920x1080`.
 - Trace still shows break / continue / loop movement clearly.
 
 ## Captured Scenes

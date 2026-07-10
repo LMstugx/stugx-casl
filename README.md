@@ -335,6 +335,7 @@ The current backend is shown in the status bar as `Mock Core`, `WASM Core`, or `
 - [docs/releases/v1.0-rc1.md](docs/releases/v1.0-rc1.md): v1.0-rc1 release candidate notes with scope references, highlights, validation summary, limitations, and local verification commands.
 - [docs/v1-manual-signoff.md](docs/v1-manual-signoff.md): manual sign-off preparation checklist for `v1.0-rc1`, including required manual QA, visual review, limitations acceptance, and final `v1.0.0` criteria.
 - [docs/v1-security-audit-notes.md](docs/v1-security-audit-notes.md): Phase 12D-SEC notes for the dev dependency audit blocker, patched Vite / Vitest / esbuild versions, validation result, and final tag requirement.
+- [docs/phase12d-visual-audit.md](docs/phase12d-visual-audit.md): comprehensive Circuit SVG visual self-audit for marker, arrow, Memory routing, animation, and scroll rules before final v1.0.
 
 ## Current Limitations
 

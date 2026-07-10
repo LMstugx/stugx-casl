@@ -2641,7 +2641,8 @@ button {
 .circuit-wire--flow {
   stroke-dasharray: 10 8;
   stroke-dashoffset: 0;
-  animation: circuitSignalFlow 1.55s linear infinite;
+  animation: circuitSignalFlow var(--wire-flow-duration, 2.35s) linear infinite;
+  will-change: stroke-dashoffset;
 }
 
 .circuit-wire--addr-flow,
@@ -2651,7 +2652,7 @@ button {
 
 .circuit-wire--flag-flow {
   stroke-dasharray: 7 7;
-  animation-duration: 1.8s;
+  animation-duration: calc(var(--wire-flow-duration, 2.35s) + 0.35s);
 }
 
 .circuit-wire--flow[data-path-id="index-to-eau"],
@@ -2661,6 +2662,11 @@ button {
 }
 
 .visual-review-static .circuit-wire--flow {
+  animation: none;
+  stroke-dashoffset: 0;
+}
+
+[data-active="false"].circuit-wire--flow {
   animation: none;
   stroke-dashoffset: 0;
 }

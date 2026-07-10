@@ -160,6 +160,16 @@ export function routeAvoidRect(from: CircuitPoint, to: CircuitPoint, avoidRects:
   return avoidRects.some((rect) => routeCrossesRect(direct, rect)) ? routeViaLane(from, to, fallbackLane) : direct;
 }
 
+function routeToMemoryPort(from: CircuitPoint, to: CircuitPoint, laneX: number, stubLength = circuitRouting.memoryPortStub): CircuitPoint[] {
+  const stubStart = { x: to.x - stubLength, y: to.y };
+  return compactPoints([from, { x: laneX, y: from.y }, { x: laneX, y: to.y }, stubStart, to]);
+}
+
+function routeFromMemoryPort(from: CircuitPoint, to: CircuitPoint, laneX: number, stubLength = circuitRouting.memoryPortStub): CircuitPoint[] {
+  const stubEnd = { x: from.x - stubLength, y: from.y };
+  return compactPoints([from, stubEnd, { x: laneX, y: from.y }, { x: laneX, y: to.y }, to]);
+}
+
 export function addJunction(points: readonly CircuitPoint[], index: number): CircuitPoint[] {
   const compacted = compactPoints(points);
   const junction = compacted[index];
@@ -212,6 +222,7 @@ export function buildWirePaths({ grIndex = 1, indexRegister, memoryAddress = 0x2
   const grRight = circuitAnchors.gr.rowRight(gr);
   const indexGrRight = circuitAnchors.gr.rowRight(indexGr);
   const memoryLeft = circuitAnchors.memory.rowLeft(memoryAddress, memoryWindowStart);
+  const memoryAddressLeft = circuitAnchors.memory.rowAddressLeft(memoryAddress, memoryWindowStart);
   const memoryRight = circuitAnchors.memory.rowRight(memoryAddress, memoryWindowStart);
   const mdrRight = circuitAnchors.mdr.right();
   const mdrLeft = circuitAnchors.mdr.left();
@@ -241,6 +252,8 @@ export function buildWirePaths({ grIndex = 1, indexRegister, memoryAddress = 0x2
   const aluBusLeftX = circuitBusLanes.aluLeftBusX;
   const aluBusRightX = circuitBusLanes.aluRightBusX;
   const memoryBusX = circuitBusLanes.memoryBusX;
+  const memoryAddressLaneX = circuitBusLanes.memoryAddressLaneX;
+  const memoryDataLaneX = circuitBusLanes.memoryDataLaneX;
   const irBottom = { x: circuitLayout.ir.x + circuitLayout.ir.w / 2, y: circuitLayout.ir.y + circuitLayout.ir.h };
   const decoderTop = { x: circuitLayout.decoder.x + circuitLayout.decoder.w / 2, y: circuitLayout.decoder.y };
   const decoderBottom = { x: circuitLayout.decoder.x + circuitLayout.decoder.w / 2, y: circuitLayout.decoder.y + circuitLayout.decoder.h };
@@ -265,6 +278,7 @@ export function buildWirePaths({ grIndex = 1, indexRegister, memoryAddress = 0x2
     marRight: anchor("mar.right", marRight, "address"),
     marStackInput: anchor("mar.stackInput", marStackInput, "input"),
     stackMemoryPreview: anchor("memory.spPreview", stackMemoryPreview, "address"),
+    memoryAddressLeft: anchor(`memory.${memoryAddress.toString(16).padStart(4, "0")}.addressLeft`, memoryAddressLeft, "address"),
     operandBase: anchor("operand.base", operandBaseSource, "address"),
     eauBaseInput: anchor("eau.base", eauBaseInput, "input"),
     eauIndexInput: anchor("eau.index", eauIndexInput, "input"),
@@ -317,11 +331,11 @@ export function buildWirePaths({ grIndex = 1, indexRegister, memoryAddress = 0x2
       { relatedStage: "Stack preview" }
     ),
     wire("mar-to-stack-memory-preview", "address", "addr", "address", anchors.marRight, anchors.stackMemoryPreview, routeViaLane(marRight, stackMemoryPreview, { x: memoryBusX }), { relatedStage: "Stack preview", junctions: [{ x: memoryBusX, y: stackMemoryPreview.y }] }),
-    wire("mar-to-memory", "address", "addr", "address", anchors.marRight, anchors.memoryLeft, routeViaLane(marRight, memoryLeft, { x: memoryBusX }), { relatedMemoryAddress: memoryAddress, relatedStage: "Operand Read" }),
-    wire("memory-to-mdr", "data", "data-bypass", "data", anchors.memoryLeft, anchors.mdrRight, routeViaLane(memoryLeft, mdrRight, { x: memoryBusX }), { avoidsAlu: true, relatedMemoryAddress: memoryAddress, relatedStage: "Operand Read" }),
+    wire("mar-to-memory", "address", "addr", "address", anchors.marRight, anchors.memoryAddressLeft, routeToMemoryPort(marRight, memoryAddressLeft, memoryAddressLaneX), { relatedMemoryAddress: memoryAddress, relatedStage: "Operand Read" }),
+    wire("memory-to-mdr", "data", "data-bypass", "data", anchors.memoryLeft, anchors.mdrRight, routeFromMemoryPort(memoryLeft, mdrRight, memoryDataLaneX), { avoidsAlu: true, relatedMemoryAddress: memoryAddress, relatedStage: "Operand Read" }),
     wire("mdr-to-gr", "data", "data-bypass", "data", anchors.mdrBottom, anchors.grRight, routeAvoidRect(mdrBottom, grRight, [circuitLayout.alu], { y: dataBypassY }), { avoidsAlu: true, relatedRegister: gr, relatedStage: "Write Back", junctions: [{ x: mdrBottom.x, y: dataBypassY }] }),
     wire("gr-to-mdr", "data", "data-bypass", "data", anchors.grRight, anchors.mdrBottom, routeAvoidRect(grRight, mdrBottom, [circuitLayout.alu], { y: dataBypassY }), { avoidsAlu: true, relatedRegister: gr, relatedStage: "Execute", junctions: [{ x: grRight.x, y: dataBypassY }] }),
-    wire("mdr-to-memory", "data", "data-bypass", "data", anchors.mdrRight, anchors.memoryLeft, routeViaLane(mdrRight, memoryLeft, { x: memoryBusX }), { avoidsAlu: true, relatedMemoryAddress: memoryAddress, relatedStage: "Write Back" }),
+    wire("mdr-to-memory", "data", "data-bypass", "data", anchors.mdrRight, anchors.memoryLeft, routeToMemoryPort(mdrRight, memoryLeft, memoryDataLaneX), { avoidsAlu: true, relatedMemoryAddress: memoryAddress, relatedStage: "Write Back" }),
     wire("mdr-to-pr", "address", "ctrl", "control", anchors.mdrLeft, anchors.prLeft, [mdrLeft, { x: mdrLeft.x - portClearance, y: mdrLeft.y }, { x: mdrLeft.x - portClearance, y: controlBusY }, { x: prLeft.x - portClearance, y: controlBusY }, { x: prLeft.x - portClearance, y: prLeft.y }, prLeft], { avoidsAlu: true, relatedStage: "Return", junctions: [{ x: mdrLeft.x - portClearance, y: controlBusY }] }),
     wire("gr-to-alu", "data", "data-compute", "data", anchors.grRight, anchors.aluInputA, routeViaLane(grRight, aluInputA, { x: grBusX }), { relatedRegister: gr, relatedStage: "Execute", junctions: [{ x: grBusX, y: aluInputA.y }] }),
     wire("shift-count-to-alu", "address", "data-compute", "address", anchors.marShiftCount, anchors.aluInputB, routeViaLane(marLeft, aluInputB, { x: aluBusRightX }), { relatedStage: "Operand Read", relatedInstructionKind: "shift", junctions: [{ x: aluBusRightX, y: aluInputB.y }] }),

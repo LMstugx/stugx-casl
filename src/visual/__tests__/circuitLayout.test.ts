@@ -9,6 +9,7 @@ import {
   routeCrossesProtectedRect,
   routeIsContinuous,
   routeOrthogonal,
+  routeSegments,
   routeViaLane,
   type WirePath
 } from "../wirePaths";
@@ -55,6 +56,32 @@ function ids(wires: readonly WirePath[]): string[] {
 
 function distance(a: { x: number; y: number }, b: { x: number; y: number }): number {
   return Math.hypot(a.x - b.x, a.y - b.y);
+}
+
+function segmentLength([from, to]: [{ x: number; y: number }, { x: number; y: number }]): number {
+  return Math.max(Math.abs(to.x - from.x), Math.abs(to.y - from.y));
+}
+
+function isHorizontal([from, to]: [{ x: number; y: number }, { x: number; y: number }]): boolean {
+  return from.y === to.y;
+}
+
+function isVertical([from, to]: [{ x: number; y: number }, { x: number; y: number }]): boolean {
+  return from.x === to.x;
+}
+
+function segmentKey([from, to]: [{ x: number; y: number }, { x: number; y: number }]): string {
+  return `${from.x},${from.y}->${to.x},${to.y}`;
+}
+
+function memoryGutterLongVerticalSegments(wire: WirePath) {
+  const minX = circuitLayout.memory.x - 16;
+  const maxX = circuitLayout.memory.x + 4;
+  const rowHeight = 26;
+  return routeSegments(wire.points).filter((segment) => {
+    const [from, to] = segment;
+    return isVertical(segment) && from.x >= minX && from.x <= maxX && segmentLength(segment) > rowHeight;
+  });
 }
 
 describe("circuit focus layout", () => {
@@ -105,12 +132,15 @@ describe("circuit focus layout", () => {
     const grLeft = circuitAnchors.gr.rowLeft(2);
     const grRight = circuitAnchors.gr.rowRight(2);
     const memLeft = circuitAnchors.memory.rowLeft(0x27, 0x20);
+    const memAddressLeft = circuitAnchors.memory.rowAddressLeft(0x27, 0x20);
     const memRight = circuitAnchors.memory.rowRight(0x27, 0x20);
 
     expect(grLeft.x).toBeLessThan(grRight.x);
     expect(grLeft.y).toBe(grRight.y);
     expect(memLeft.x).toBeLessThan(memRight.x);
     expect(memLeft.y).toBe(memRight.y);
+    expect(memAddressLeft.x).toBe(memLeft.x);
+    expect(memAddressLeft.y).toBe(memLeft.y + circuitRouting.memoryAddressPortYOffset);
   });
 
   it("wire_endpoints_are_snapped_to_anchor_points", () => {
@@ -184,9 +214,12 @@ describe("circuit focus layout", () => {
   });
 
   it("memory_active_wire_endpoint_snaps_to_anchor", () => {
+    const addressWire = wireById("mar-to-memory");
     const readWire = wireById("memory-to-mdr");
     const writeWire = wireById("mdr-to-memory");
 
+    expect(addressWire.toAnchor.id).toBe("memory.0027.addressLeft");
+    expect(addressWire.points[addressWire.points.length - 1]).toEqual({ x: addressWire.toAnchor.x, y: addressWire.toAnchor.y });
     expect(readWire.fromAnchor.id).toBe("memory.0027.left");
     expect(readWire.points[0]).toEqual({ x: readWire.fromAnchor.x, y: readWire.fromAnchor.y });
     expect(readWire.points[readWire.points.length - 1]).toEqual({ x: readWire.toAnchor.x, y: readWire.toAnchor.y });
@@ -198,6 +231,74 @@ describe("circuit focus layout", () => {
     expect(wireById("mar-to-memory").junctions).toEqual([]);
     expect(wireById("memory-to-mdr").junctions).toEqual([]);
     expect(wireById("mdr-to-memory").junctions).toEqual([]);
+  });
+
+  it("memory_path_uses_short_row_stub", () => {
+    const addressSegments = routeSegments(wireById("mar-to-memory").points);
+    const readSegments = routeSegments(wireById("memory-to-mdr").points);
+    const writeSegments = routeSegments(wireById("mdr-to-memory").points);
+
+    expect(segmentLength(addressSegments[addressSegments.length - 1])).toBeLessThanOrEqual(circuitRouting.memoryPortStub);
+    expect(segmentLength(readSegments[0])).toBeLessThanOrEqual(circuitRouting.memoryPortStub);
+    expect(segmentLength(writeSegments[writeSegments.length - 1])).toBeLessThanOrEqual(circuitRouting.memoryPortStub);
+    expect(isHorizontal(addressSegments[addressSegments.length - 1])).toBe(true);
+    expect(isHorizontal(readSegments[0])).toBe(true);
+    expect(isHorizontal(writeSegments[writeSegments.length - 1])).toBe(true);
+  });
+
+  it("ld_memory_route_uses_row_stub", () => {
+    const readWire = wireById("memory-to-mdr");
+    const [firstSegment] = routeSegments(readWire.points);
+
+    expect(firstSegment[0]).toEqual({ x: readWire.fromAnchor.x, y: readWire.fromAnchor.y });
+    expect(segmentLength(firstSegment)).toBe(circuitRouting.memoryPortStub);
+    expect(isHorizontal(firstSegment)).toBe(true);
+  });
+
+  it("st_memory_route_uses_row_stub", () => {
+    const writeWire = wireById("mdr-to-memory");
+    const segments = routeSegments(writeWire.points);
+    const finalSegment = segments[segments.length - 1];
+
+    expect(finalSegment[1]).toEqual({ x: writeWire.toAnchor.x, y: writeWire.toAnchor.y });
+    expect(segmentLength(finalSegment)).toBe(circuitRouting.memoryPortStub);
+    expect(isHorizontal(finalSegment)).toBe(true);
+  });
+
+  it("memory_path_does_not_use_long_vertical_segment_next_to_card", () => {
+    for (const id of ["mar-to-memory", "memory-to-mdr", "mdr-to-memory"]) {
+      expect(memoryGutterLongVerticalSegments(wireById(id))).toEqual([]);
+    }
+  });
+
+  it("memory_address_and_data_lanes_do_not_overlap_near_memory", () => {
+    const addressWire = wireById("mar-to-memory");
+    const readWire = wireById("memory-to-mdr");
+    const writeWire = wireById("mdr-to-memory");
+    const addressVerticals = routeSegments(addressWire.points).filter(isVertical);
+    const dataVerticals = [...routeSegments(readWire.points), ...routeSegments(writeWire.points)].filter(isVertical);
+    const addressLaneXs = new Set(addressVerticals.map(([from]) => from.x));
+    const dataLaneXs = new Set(dataVerticals.map(([from]) => from.x));
+    const addressSegments = new Set(routeSegments(addressWire.points).map(segmentKey));
+    const dataSegments = new Set([...routeSegments(readWire.points), ...routeSegments(writeWire.points)].map(segmentKey));
+
+    expect(addressLaneXs.has(circuitBusLanes.memoryAddressLaneX)).toBe(true);
+    expect(dataLaneXs.has(circuitBusLanes.memoryDataLaneX)).toBe(true);
+    expect(Math.abs(circuitBusLanes.memoryDataLaneX - circuitBusLanes.memoryAddressLaneX)).toBeGreaterThanOrEqual(8);
+    for (const key of addressSegments) {
+      expect(dataSegments.has(key)).toBe(false);
+    }
+  });
+
+  it("adda_memory_operand_route_has_separate_address_and_data_lanes", () => {
+    const active = activeWiresFor(VisualPathKind.ADDA_GrMdrToAluToGr);
+    const addressWire = active.find((wire) => wire.id === "mar-to-memory");
+    const dataWire = active.find((wire) => wire.id === "memory-to-mdr");
+
+    expect(addressWire?.points.some((point) => point.x === circuitBusLanes.memoryAddressLaneX)).toBe(true);
+    expect(dataWire?.points.some((point) => point.x === circuitBusLanes.memoryDataLaneX)).toBe(true);
+    expect(addressWire?.toAnchor.id).toBe("memory.0027.addressLeft");
+    expect(dataWire?.fromAnchor.id).toBe("memory.0027.left");
   });
 
   it("memory_read_path_endpoint_matches_row_anchor", () => {
@@ -225,6 +326,16 @@ describe("circuit focus layout", () => {
       relatedStage: "Operand Read",
       avoidsAlu: true
     });
+  });
+
+  it("active_path_semantics_unchanged_for_ld_st_adda_push_pop_call_ret", () => {
+    expect(activeWireIdsByKind[VisualPathKind.LD_MemoryToMdrToGr]).toEqual(["mar-to-memory", "memory-to-mdr", "mdr-to-gr"]);
+    expect(activeWireIdsByKind[VisualPathKind.ST_GrToMdrToMemory]).toEqual(["gr-to-mdr", "mar-to-memory", "mdr-to-memory"]);
+    expect(activeWireIdsByKind[VisualPathKind.ADDA_GrMdrToAluToGr]).toEqual(["gr-to-alu", "mar-to-memory", "memory-to-mdr", "mdr-to-alu", "alu-to-gr", "alu-to-fr"]);
+    expect(activeWireIdsByKind[VisualPathKind.PUSH_EffectiveAddressToStack]).toEqual(["base-to-eau", "eau-to-mdr", "sp-to-mar-preview", "mar-to-memory", "mdr-to-memory"]);
+    expect(activeWireIdsByKind[VisualPathKind.POP_StackToGr]).toEqual(["sp-to-mar-preview", "mar-to-memory", "memory-to-mdr", "mdr-to-gr"]);
+    expect(activeWireIdsByKind[VisualPathKind.CALL_ReturnAddressToStackAndPr]).toEqual(["pr-to-plus2", "return-address-to-mdr", "sp-to-mar-preview", "mar-to-memory", "mdr-to-memory", "base-to-eau", "eau-to-pr"]);
+    expect(activeWireIdsByKind[VisualPathKind.RET_StackToPr]).toEqual(["sp-to-mar-preview", "mar-to-memory", "memory-to-mdr", "mdr-to-pr"]);
   });
 
   it("eau_wires_avoid_header_and_value_rows", () => {

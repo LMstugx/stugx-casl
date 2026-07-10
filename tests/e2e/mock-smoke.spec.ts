@@ -255,9 +255,7 @@ test("Mock backend keeps circuit focus paths anchored to rows", async ({ page })
   await expect(circuit.locator("[data-testid='wire-memory-to-mdr']")).not.toHaveAttribute("marker-mid", /.+/);
   await expect(circuit.locator("[data-testid='wire-junction-memory-to-mdr-0']")).toHaveCount(0);
   await expect(circuit.locator("[data-testid='junction-data-right']")).toHaveCount(0);
-  await expect(circuit.locator("[data-testid='memory-terminal-marker-memory-0027-left']")).toBeVisible();
-  await expect(circuit.locator("[data-testid='memory-terminal-marker-memory-0027-left']")).toHaveAttribute("data-anchor-id", "memory.0027.left");
-  await expect(circuit.locator("[data-testid='memory-terminal-marker-memory-0027-left']")).toHaveAttribute("data-semantic-type", "data");
+  await expect(circuit.locator("[data-testid^='memory-terminal-marker-']")).toHaveCount(0);
   await expect(circuit.locator("[data-testid='module-alu']")).toHaveAttribute("data-active", "false");
   await expect(circuit.locator("[data-testid='module-sp']")).toHaveAttribute("data-active", "false");
 
@@ -274,8 +272,7 @@ test("Mock backend keeps circuit focus paths anchored to rows", async ({ page })
   await expect(circuit.locator("[data-testid='wire-mdr-to-memory']")).toBeVisible();
   await expect(circuit.locator("[data-testid='wire-mdr-to-memory']")).toHaveClass(/circuit-wire--flow/);
   await expect(circuit.locator("[data-testid='wire-mdr-to-memory']")).toHaveClass(/circuit-wire--data-flow/);
-  await expect(circuit.locator("[data-testid='memory-terminal-marker-memory-0029-left']")).toBeVisible();
-  await expect(circuit.locator("[data-testid='memory-terminal-marker-memory-0029-left']")).toHaveAttribute("data-anchor-id", "memory.0029.left");
+  await expect(circuit.locator("[data-testid^='memory-terminal-marker-']")).toHaveCount(0);
   await expect(circuit.locator("[data-testid='module-sp']")).toHaveAttribute("data-active", "false");
 });
 

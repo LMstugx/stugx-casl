@@ -37,7 +37,9 @@ export const circuitBusLanes = {
   grBusX: circuitLayout.gr.x + circuitLayout.gr.w + 6,
   aluLeftBusX: circuitLayout.alu.x - 14,
   aluRightBusX: circuitLayout.alu.x + circuitLayout.alu.w + 16,
-  memoryBusX: circuitLayout.memory.x - 18
+  memoryBusX: circuitLayout.memory.x - 42,
+  memoryAddressLaneX: circuitLayout.memory.x - 44,
+  memoryDataLaneX: circuitLayout.memory.x - 28
 } as const;
 
 export const circuitRouting = {
@@ -45,7 +47,9 @@ export const circuitRouting = {
   eauInputClearance: 36,
   eauOutputClearance: 14,
   controlClearance: 22,
-  stackReferenceDrop: 15
+  stackReferenceDrop: 15,
+  memoryPortStub: 14,
+  memoryAddressPortYOffset: -7
 } as const;
 
 export type CircuitPoint = {
@@ -121,6 +125,7 @@ export const circuitAnchors = {
   },
   memory: {
     rowLeft: (address: number, windowStart = 0x20) => ({ x: circuitLayout.memory.x + 12, y: memoryRowY(address, windowStart) }),
+    rowAddressLeft: (address: number, windowStart = 0x20) => ({ x: circuitLayout.memory.x + 12, y: memoryRowY(address, windowStart) + circuitRouting.memoryAddressPortYOffset }),
     rowRight: (address: number, windowStart = 0x20) => ({ x: circuitLayout.memory.x + circuitLayout.memory.w - 12, y: memoryRowY(address, windowStart) })
   },
   fr: {

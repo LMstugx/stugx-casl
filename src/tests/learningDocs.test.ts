@@ -50,6 +50,7 @@ import v1ScopeFreeze from "../../docs/v1-scope-freeze.md?raw";
 import v1ReleaseQaEvidence from "../../docs/v1-release-qa-evidence.md?raw";
 import v1Rc1ReleaseNotes from "../../docs/releases/v1.0-rc1.md?raw";
 import v1ManualSignoff from "../../docs/v1-manual-signoff.md?raw";
+import v1SecurityAuditNotes from "../../docs/v1-security-audit-notes.md?raw";
 
 describe("learning use documentation", () => {
   it("learning_guide_exists", () => {
@@ -531,6 +532,8 @@ describe("learning use documentation", () => {
     expect(v1ReleaseQaEvidence).toContain("stress-check.ps1");
     expect(v1ReleaseQaEvidence).toContain("manual QA checklist");
     expect(v1ReleaseQaEvidence).toContain("PASS: ready for v1.0-rc1 tagging");
+    expect(v1ReleaseQaEvidence).toContain("Phase 12D-SEC Dev Dependency Audit Follow-up");
+    expect(v1ReleaseQaEvidence).toContain("pnpm audit");
     expect(readme).toContain("docs/v1-release-qa-evidence.md");
     expect(releaseCandidateNotes).toContain("v1-release-qa-evidence.md");
   });
@@ -543,6 +546,7 @@ describe("learning use documentation", () => {
     expect(v1Rc1ReleaseNotes).toContain("v1-release-qa-evidence.md");
     expect(v1Rc1ReleaseNotes).toContain("Known Limitations");
     expect(v1Rc1ReleaseNotes).toContain("validate-all.ps1");
+    expect(v1Rc1ReleaseNotes).toContain("Security Audit Follow-up");
     expect(readme).toContain("docs/releases/v1.0-rc1.md");
     expect(releaseCandidateNotes).toContain("releases/v1.0-rc1.md");
   });
@@ -557,7 +561,20 @@ describe("learning use documentation", () => {
     expect(v1ManualSignoff).toContain("no blockers");
     expect(v1ManualSignoff).toContain("no scope change");
     expect(v1ManualSignoff).toContain("validate-all.ps1");
+    expect(v1ManualSignoff).toContain("pnpm audit");
     expect(readme).toContain("docs/v1-manual-signoff.md");
+  });
+
+  it("v1_security_audit_notes_doc_exists", () => {
+    expect(v1SecurityAuditNotes).toContain("v1 Security Audit Notes");
+    expect(v1SecurityAuditNotes).toContain("pnpm audit");
+    expect(v1SecurityAuditNotes).toContain("vite");
+    expect(v1SecurityAuditNotes).toContain("vitest");
+    expect(v1SecurityAuditNotes).toContain("esbuild");
+    expect(v1SecurityAuditNotes).toContain("No runtime semantics changed");
+    expect(v1SecurityAuditNotes).toContain("Final `v1.0.0` must be based on the Phase 12D-SEC security-patched commit");
+    expect(readme).toContain("docs/v1-security-audit-notes.md");
+    expect(releaseCandidateNotes).toContain("v1-security-audit-notes.md");
   });
 
   it("phase10e_focus_text_overflow_cleanup_doc_exists", () => {

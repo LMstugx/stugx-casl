@@ -15,6 +15,7 @@ Supporting release documents:
 - [v1-scope-freeze.md](v1-scope-freeze.md)
 - [v1-release-qa-evidence.md](v1-release-qa-evidence.md)
 - [release-candidate-notes.md](release-candidate-notes.md)
+- [v1-security-audit-notes.md](v1-security-audit-notes.md)
 
 ## 3. Required Manual Checks
 
@@ -72,4 +73,6 @@ Final `v1.0.0` tagging requires:
 - no blockers;
 - no scope change;
 - `scripts/validate-all.ps1` still passed;
+- `pnpm audit` still passed;
+- final `v1.0.0` is based on the Phase 12D-SEC security-patched commit or a later passing commit, not directly on the original `v1.0-rc1` tag;
 - release notes updated only if a blocker fix changes the release candidate evidence.

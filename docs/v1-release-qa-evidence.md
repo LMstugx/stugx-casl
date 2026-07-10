@@ -89,3 +89,26 @@ Known limitations are frozen in [v1-scope-freeze.md](v1-scope-freeze.md). The ma
 PASS: ready for v1.0-rc1 tagging.
 
 No blockers were found during the automated release QA gate.
+
+## 7. Phase 12D-SEC Dev Dependency Audit Follow-up
+
+After `v1.0-rc1` was tagged, a local self-check added `pnpm audit` as a safety gate and found dev dependency blockers in the Vite / Vitest toolchain:
+
+- `vite` was patched from `5.4.21` to `6.4.3`.
+- `vitest` was patched from `2.1.9` to `3.2.6`.
+- transitive `esbuild` moved from `0.21.5` to `0.25.12` through the Vite update.
+
+This blocker affected dev and test tooling, not emitted CASL or runtime semantics. Phase 12D-SEC patched the dependencies and reran the gate:
+
+- `pnpm install`: PASS.
+- `pnpm audit`: PASS, no known vulnerabilities found.
+- `pnpm test`: PASS, 42 test files / 822 tests after security-note document coverage.
+- `pnpm build`: PASS.
+- `pnpm test:e2e`: PASS, 38 Playwright tests.
+- `pnpm build:wasm`: PASS.
+- `pnpm test:wasm`: PASS, 1 file / 18 tests.
+- `pnpm test:e2e:wasm`: PASS, 13 Playwright tests.
+- `scripts/validate-all.ps1`: PASS.
+- `scripts/stress-check.ps1`: PASS.
+
+See [v1-security-audit-notes.md](v1-security-audit-notes.md). Final `v1.0.0` must be based on the Phase 12D-SEC security-patched commit or a later passing commit, not directly on the original `v1.0-rc1` tag.

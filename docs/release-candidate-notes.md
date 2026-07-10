@@ -1,6 +1,6 @@
 # Release Candidate Notes
 
-These notes describe the current stable learning build after Phase 10I and the later Phase 11 FramePlan design-layer freeze. They are meant for local review, teacher or senior-student demos, and future release-candidate checks. The v1.0 release scope is frozen in [v1-scope-freeze.md](v1-scope-freeze.md), the latest release QA evidence is recorded in [v1-release-qa-evidence.md](v1-release-qa-evidence.md), and the v1.0-rc1 release notes are recorded in [releases/v1.0-rc1.md](releases/v1.0-rc1.md).
+These notes describe the current stable learning build after Phase 10I and the later Phase 11 FramePlan design-layer freeze. They are meant for local review, teacher or senior-student demos, and future release-candidate checks. The v1.0 release scope is frozen in [v1-scope-freeze.md](v1-scope-freeze.md), the latest release QA evidence is recorded in [v1-release-qa-evidence.md](v1-release-qa-evidence.md), the v1.0-rc1 release notes are recorded in [releases/v1.0-rc1.md](releases/v1.0-rc1.md), and Phase 12D-SEC audit blocker notes are recorded in [v1-security-audit-notes.md](v1-security-audit-notes.md).
 
 ## 1. Current Stable Capabilities
 

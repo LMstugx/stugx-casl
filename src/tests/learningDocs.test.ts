@@ -49,6 +49,7 @@ import validateAllScript from "../../scripts/validate-all.ps1?raw";
 import v1ScopeFreeze from "../../docs/v1-scope-freeze.md?raw";
 import v1ReleaseQaEvidence from "../../docs/v1-release-qa-evidence.md?raw";
 import v1Rc1ReleaseNotes from "../../docs/releases/v1.0-rc1.md?raw";
+import v1ManualSignoff from "../../docs/v1-manual-signoff.md?raw";
 
 describe("learning use documentation", () => {
   it("learning_guide_exists", () => {
@@ -544,6 +545,19 @@ describe("learning use documentation", () => {
     expect(v1Rc1ReleaseNotes).toContain("validate-all.ps1");
     expect(readme).toContain("docs/releases/v1.0-rc1.md");
     expect(releaseCandidateNotes).toContain("releases/v1.0-rc1.md");
+  });
+
+  it("v1_manual_signoff_doc_exists", () => {
+    expect(v1ManualSignoff).toContain("v1.0 Manual Sign-off");
+    expect(v1ManualSignoff).toContain("v1.0-rc1");
+    expect(v1ManualSignoff).toContain("manual QA");
+    expect(v1ManualSignoff).toContain("Pending manual review");
+    expect(v1ManualSignoff).toContain("Final v1.0.0 Criteria");
+    expect(v1ManualSignoff).toContain("manual QA passed");
+    expect(v1ManualSignoff).toContain("no blockers");
+    expect(v1ManualSignoff).toContain("no scope change");
+    expect(v1ManualSignoff).toContain("validate-all.ps1");
+    expect(readme).toContain("docs/v1-manual-signoff.md");
   });
 
   it("phase10e_focus_text_overflow_cleanup_doc_exists", () => {

@@ -63,6 +63,8 @@ For Phase 11C:
 - no core DTO extension is needed;
 - execution state is not changed.
 
+Phase 11D adds [phase11d-frameplan-generator-scaffold.md](phase11d-frameplan-generator-scaffold.md), a TypeScript-only `buildFramePlans` metadata scaffold. That metadata still does not make the placeholder a live frame view.
+
 ## Future StackFramePlan / FrameSlot
 
 The Details section introduces future concepts from Phase 11B:

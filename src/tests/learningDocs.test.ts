@@ -29,6 +29,7 @@ import phase10l from "../../docs/phase10l-final-ui-detail-polish.md?raw";
 import phase11a from "../../docs/phase11a-stack-frame-locals-design.md?raw";
 import phase11b from "../../docs/phase11b-stack-frame-lowering-scaffold.md?raw";
 import phase11c from "../../docs/phase11c-stack-frame-view-placeholder.md?raw";
+import phase11d from "../../docs/phase11d-frameplan-generator-scaffold.md?raw";
 import circuitVisualContract from "../../docs/circuit-visual-contract.md?raw";
 import futureCustomCircuit from "../../docs/future-custom-circuit-design.md?raw";
 import manualQaChecklist from "../../docs/manual-qa-checklist.md?raw";
@@ -355,6 +356,26 @@ describe("learning use documentation", () => {
     expect(learningGuide).toContain("phase11c-stack-frame-view-placeholder.md");
     expect(practiceTasks).toContain("phase11c-stack-frame-view-placeholder.md");
     expect(circuitVisualContract).toContain("Stack Frame View is tertiary");
+  });
+
+  it("phase11d_frameplan_generator_scaffold_doc_exists", () => {
+    expect(phase11d).toContain("Phase 11D: FramePlan Generator Scaffold");
+    expect(phase11d).toContain("StackFramePlan");
+    expect(phase11d).toContain("FrameSlot");
+    expect(phase11d).toContain("design-only");
+    expect(phase11d).toContain("emitted CASL changes");
+    expect(phase11d).toContain("emitted CASL is unchanged");
+    expect(phase11d).toContain("GR0");
+    expect(phase11d).toContain("GR1");
+    expect(phase11d).toContain("GR2");
+    expect(phase11d).toContain("GR3");
+    expect(phase11d).toContain("static labels");
+    expect(phase11d).toContain("Stack Frame View");
+    expect(readme).toContain("docs/phase11d-frameplan-generator-scaffold.md");
+    expect(phase11b).toContain("phase11d-frameplan-generator-scaffold.md");
+    expect(phase11c).toContain("phase11d-frameplan-generator-scaffold.md");
+    expect(learningGuide).toContain("phase11d-frameplan-generator-scaffold.md");
+    expect(futureCustomCircuit).toContain("Phase 11D adds a TypeScript-only");
   });
 
   it("phase10e_focus_text_overflow_cleanup_doc_exists", () => {

@@ -322,6 +322,7 @@ The current backend is shown in the status bar as `Mock Core`, `WASM Core`, or `
 - [docs/phase11a-stack-frame-locals-design.md](docs/phase11a-stack-frame-locals-design.md): design-only plan for future C++ stack-frame locals, stack arguments, frame pointer decisions, and Stack Frame View.
 - [docs/phase11b-stack-frame-lowering-scaffold.md](docs/phase11b-stack-frame-lowering-scaffold.md): future stack-frame lowering scaffold for `StackFramePlan`, `FrameSlot`, prologue/epilogue stages, and Stack Frame View data.
 - [docs/phase11c-stack-frame-view-placeholder.md](docs/phase11c-stack-frame-view-placeholder.md): read-only Register / Stack mode placeholder for future stack-frame slots without changing current static-locals lowering.
+- [docs/phase11d-frameplan-generator-scaffold.md](docs/phase11d-frameplan-generator-scaffold.md): TypeScript-only `buildFramePlans` scaffold for future frame metadata without changing emitted CASL.
 
 ## Current Limitations
 

@@ -340,7 +340,7 @@ When implementation begins, add tests for:
 ## Recommended Future Phases
 
 - Phase 11C: Stack Frame View placeholder UI, no lowering change. See [phase11c-stack-frame-view-placeholder.md](phase11c-stack-frame-view-placeholder.md).
-- Phase 11D: FramePlan generator only, no emitted CASL change.
+- Phase 11D: FramePlan generator only, no emitted CASL change. See [phase11d-frameplan-generator-scaffold.md](phase11d-frameplan-generator-scaffold.md).
 - Phase 11E: single-function stack-frame local lowering MVP.
 - Phase 11F: register arguments saved to frame slots.
 - Phase 11G: recursive function teaching demo.

@@ -104,6 +104,7 @@ Calling convention design note:
 - Read [phase11a-stack-frame-locals-design.md](phase11a-stack-frame-locals-design.md) for the future advanced-mode stack-frame plan. It is design-only and does not change the current static namespaced labels.
 - Read [phase11b-stack-frame-lowering-scaffold.md](phase11b-stack-frame-lowering-scaffold.md) for future `StackFramePlan` / `FrameSlot` metadata and prologue / epilogue design constraints.
 - In Register / Stack observation mode, the Stack Frame View is a placeholder only. It explains simple static locals and future frame slots; it does not mean current C++ locals are on the stack. See [phase11c-stack-frame-view-placeholder.md](phase11c-stack-frame-view-placeholder.md).
+- Read [phase11d-frameplan-generator-scaffold.md](phase11d-frameplan-generator-scaffold.md) for the design-test `buildFramePlans` metadata scaffold. It records future frame slots but emitted CASL is still unchanged.
 
 Single-argument follow-up: `C++: Function Argument`
 

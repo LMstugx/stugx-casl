@@ -20,6 +20,7 @@ const pushPopSource = getDemoProgram("casl-push-pop-stack")!.source;
 const callReturnSource = getDemoProgram("casl-call-return")!.source;
 const nestedCallReturnSource = getDemoProgram("casl-nested-call-return")!.source;
 const appCss = readFileSync("src/styles/app.css", "utf8");
+const visualReviewSpec = readFileSync("tests/e2e/visual-review.spec.ts", "utf8");
 const timelineItems = [
   { key: "ready", index: 0, label: "Ready", phase: "completed" },
   { key: "ld", index: 1, label: "LD", phase: "current" },
@@ -256,6 +257,77 @@ describe("Circuit Focus Mode layout", () => {
     expect(markup).toContain("Stack Preview");
   });
 
+  it("stack_frame_view_renders_in_register_stack_mode", () => {
+    const markup = renderFocus(mockCaslCore.assemble(gr2Source), gr2Source, "register-stack");
+
+    expect(markup).toContain('data-testid="focus-stack-frame-view"');
+    expect(markup).toContain("Stack Frame View");
+  });
+
+  it("stack_frame_view_not_primary_in_cpu_flow_mode", () => {
+    const markup = renderFocus(mockCaslCore.assemble(gr2Source), gr2Source, "cpu-flow");
+
+    expect(markup).not.toContain('data-testid="focus-stack-frame-view"');
+    expect(markup).toContain('data-testid="focus-circuit-panel"');
+  });
+
+  it("stack_frame_view_states_simple_static_locals", () => {
+    const markup = renderFocus(mockCaslCore.assemble(gr2Source), gr2Source, "register-stack");
+
+    expect(markup).toContain('data-testid="stack-frame-current-mode">Simple static locals</span>');
+    expect(markup).toContain('data-mode="simple-static-locals"');
+    expect(markup).toContain("C++ locals lower to static labels.");
+  });
+
+  it("stack_frame_view_has_live_frame_false", () => {
+    const markup = renderFocus(mockCaslCore.assemble(gr2Source), gr2Source, "register-stack");
+
+    expect(markup).toContain('data-has-live-frame="false"');
+    expect(markup).toContain("No live stack frame locals yet.");
+  });
+
+  it("stack_frame_view_shows_gr0_return_register", () => {
+    const markup = renderFocus(mockCaslCore.assemble(gr2Source), gr2Source, "register-stack");
+
+    expect(markup).toContain('data-testid="stack-frame-return-register-row"');
+    expect(markup).toContain(">GR0</code>");
+    expect(markup).toContain("return value");
+  });
+
+  it("stack_frame_view_shows_gr1_gr2_gr3_argument_registers", () => {
+    const markup = renderFocus(mockCaslCore.assemble(gr2Source), gr2Source, "register-stack");
+
+    expect(markup).toContain('data-testid="stack-frame-argument-registers-row"');
+    expect(markup).toContain("GR1 / GR2 / GR3");
+    expect(markup).toContain("register arguments");
+  });
+
+  it("stack_frame_view_mentions_static_namespaced_labels", () => {
+    const markup = renderFocus(mockCaslCore.assemble(gr2Source), gr2Source, "register-stack");
+
+    expect(markup).toContain('data-testid="stack-frame-static-labels-row"');
+    expect(markup).toContain("static-namespaced-labels");
+    expect(markup).toContain("MAIN_X / FUNC_ADD_A");
+  });
+
+  it("stack_frame_view_details_has_aria_expanded", () => {
+    const markup = renderFocus(mockCaslCore.assemble(gr2Source), gr2Source, "register-stack");
+
+    expect(markup).toContain('data-testid="stack-frame-view-details-summary"');
+    expect(markup).toContain('aria-expanded="false"');
+    expect(markup).toContain('aria-controls="stack-frame-view-detail-rows"');
+    expect(markup).toContain("StackFramePlan / FrameSlot");
+  });
+
+  it("stack_frame_view_does_not_show_fake_live_slots", () => {
+    const markup = renderFocus(mockCaslCore.assemble(gr2Source), gr2Source, "register-stack");
+
+    expect(markup).not.toContain('data-status="live"');
+    expect(markup).not.toContain('data-testid="stack-frame-live-slot"');
+    expect(markup).toContain('data-testid="stack-frame-future-slot"');
+    expect(markup).toContain("Future design placeholder; no live slot is displayed.");
+  });
+
   it("register_stack_mode_shows_memory_5_to_10_rows", () => {
     const markup = renderFocus(stepTimes(1), gr2Source, "register-stack");
     const rowCount = (markup.match(/data-testid="focus-memory-window-row"/g) ?? []).length;
@@ -263,6 +335,11 @@ describe("Circuit Focus Mode layout", () => {
     expect(markup).toContain('data-testid="focus-register-stack-dashboard"');
     expect(rowCount).toBeGreaterThanOrEqual(5);
     expect(rowCount).toBeLessThanOrEqual(10);
+  });
+
+  it("stack_frame_view_visual_review_screenshot_exists", () => {
+    expect(visualReviewSpec).toContain("stack-frame-view-placeholder.png");
+    expect(visualReviewSpec).toContain("captureStackFrameViewPlaceholder");
   });
 
   it("code_machine_mode_shows_generated_casl_machine_code_and_trace_mapping", () => {

@@ -412,6 +412,33 @@ test("Mock backend switches observation modes without resetting VM state", async
   await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("LD");
 });
 
+test("Mock backend shows Stack Frame View placeholder in Register Stack mode", async ({ page }) => {
+  await openStudio(page, "Mock Core");
+  await selectDemoProgram(page, "cpp-function-arguments");
+  await page.getByTestId("circuit-focus-toggle").click();
+  await assemble(page);
+  await switchObservationMode(page, "register-stack");
+
+  await expect(page.getByTestId("focus-register-bank").getByTestId("register-gr0")).toBeVisible();
+  await expect(page.getByTestId("focus-register-bank").getByTestId("register-gr7")).toBeVisible();
+  await expect(page.getByTestId("focus-stack-preview")).toBeVisible();
+  await expect(page.getByTestId("focus-stack-frame-view")).toBeVisible();
+  await expect(page.getByTestId("focus-stack-frame-view")).toContainText("Simple static locals");
+  await expect(page.getByTestId("focus-stack-frame-view")).toContainText("No live stack frame locals yet");
+  await expect(page.getByTestId("focus-stack-frame-view")).toContainText("GR0");
+  await expect(page.getByTestId("focus-stack-frame-view")).toContainText("GR1 / GR2 / GR3");
+  await expect(page.getByTestId("focus-memory-window-row")).toHaveCount(10);
+
+  await expect(page.getByTestId("stack-frame-view-details-summary")).toHaveAttribute("aria-expanded", "false");
+  await page.getByTestId("stack-frame-view-details-summary").focus();
+  await expect(page.getByTestId("stack-frame-view-details-summary")).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(page.getByTestId("stack-frame-view-details-summary")).toHaveAttribute("aria-expanded", "true");
+  await expect(page.getByTestId("focus-stack-frame-view")).toContainText("StackFramePlan");
+  await expect(page.getByTestId("focus-stack-frame-view")).toContainText("FrameSlot");
+  await expect(page.getByTestId("stack-frame-view-state")).toHaveAttribute("data-has-live-frame", "false");
+});
+
 test("focus_mode_works_at_1280x720", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 720 });
   await openStudio(page, "Mock Core");
@@ -428,6 +455,7 @@ test("focus_mode_works_at_1280x720", async ({ page }) => {
   await switchObservationMode(page, "register-stack");
   await expect(page.getByTestId("focus-call-stack")).toBeVisible();
   await expect(page.getByTestId("focus-stack-preview")).toBeVisible();
+  await expect(page.getByTestId("focus-stack-frame-view")).toBeVisible();
   await expect(page.locator(".output-panel")).toBeVisible();
 
   await expect(page.getByTestId("circuit-focus-toggle")).toHaveAttribute("aria-label", "Return to studio layout");
@@ -451,7 +479,7 @@ test("focus_mode_works_at_1280x720", async ({ page }) => {
   await page.keyboard.press("Enter");
   await expect(page.getByTestId("call-stack-details-summary")).toHaveAttribute("aria-expanded", "true");
 
-  for (const testId of ["focus-current-instruction-panel", "focus-signal-probe", "focus-call-stack", "focus-stack-preview", "focus-trace-panel"]) {
+  for (const testId of ["focus-current-instruction-panel", "focus-signal-probe", "focus-call-stack", "focus-stack-preview", "focus-stack-frame-view", "focus-trace-panel"]) {
     const hasHorizontalOverflow = await page.getByTestId(testId).evaluate((element) => element.scrollWidth > element.clientWidth + 1);
     expect(hasHorizontalOverflow, `${testId} should not overflow horizontally`).toBe(false);
   }

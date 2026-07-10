@@ -47,6 +47,23 @@ type FocusInstructionContext = {
 
 type FocusPanelDensity = "normal" | "compact";
 
+type StackFrameSlotKind = "return-address" | "argument" | "local" | "temporary" | "saved-fp";
+
+export type StackFrameViewState = {
+  mode: "simple-static-locals" | "future-stack-frame";
+  hasLiveFrame: boolean;
+  currentFunction?: string;
+  callDepth: number;
+  returnValueRegister: "GR0";
+  argumentRegisters: ["GR1", "GR2", "GR3"];
+  localsStrategy: "static-namespaced-labels";
+  futureSlots: Array<{
+    kind: StackFrameSlotKind;
+    label: string;
+    status: "future";
+  }>;
+};
+
 function sourceLine(source: string, line?: number): string {
   if (!line) return "No active source line";
   return source.split(/\r?\n/)[line - 1]?.trim() || "No active source line";
@@ -521,6 +538,26 @@ function FocusRegisterStackDashboard({ state }: { state: CometState }) {
       <FocusMemoryWindowPanel state={state} rowCount={10} />
     </section>
   );
+}
+
+export function selectStackFrameViewState(state: CometState, focus: FocusInstructionContext): StackFrameViewState {
+  const currentFunction = routineLabelForAddress(state, focus.address);
+  return {
+    mode: "simple-static-locals",
+    hasLiveFrame: false,
+    currentFunction,
+    callDepth: state.callDepth,
+    returnValueRegister: "GR0",
+    argumentRegisters: ["GR1", "GR2", "GR3"],
+    localsStrategy: "static-namespaced-labels",
+    futureSlots: [
+      { kind: "return-address", label: "Return address slot", status: "future" },
+      { kind: "saved-fp", label: "Optional saved FP", status: "future" },
+      { kind: "argument", label: "Argument slots", status: "future" },
+      { kind: "local", label: "Local variable slots", status: "future" },
+      { kind: "temporary", label: "Temporary slots", status: "future" }
+    ]
+  };
 }
 
 function FocusGeneratedCaslPanel({
@@ -1130,6 +1167,92 @@ function FocusStackPreviewPanel({ state }: { state: CometState }) {
   );
 }
 
+function FocusStackFrameViewPanel({ state, focus }: { state: CometState; focus: FocusInstructionContext }) {
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const view = selectStackFrameViewState(state, focus);
+  const modeText = view.mode === "simple-static-locals" ? "Simple static locals" : "Future stack frame";
+  const argumentText = view.argumentRegisters.join(" / ");
+  const currentFunctionText = view.currentFunction ?? "none";
+
+  return (
+    <section className="panel focus-stack-frame-view" data-testid="focus-stack-frame-view">
+      <header className="panel-header">
+        <div>
+          <h2>Stack Frame View</h2>
+          <span>Placeholder for future frame slots</span>
+        </div>
+        <span data-testid="stack-frame-current-mode">{modeText}</span>
+      </header>
+      <div
+        className="stack-frame-view-body card-overflow-safe"
+        data-testid="stack-frame-view-state"
+        data-mode={view.mode}
+        data-has-live-frame={view.hasLiveFrame ? "true" : "false"}
+      >
+        <p className="stack-frame-view-note wrap-explanation" title="No live stack frame locals yet. Current C++ locals lower to static namespaced labels.">
+          No live stack frame locals yet. C++ locals lower to static labels.
+        </p>
+        <div className="stack-frame-view-rows">
+          <div className="stack-frame-view-row" data-testid="stack-frame-mode-row">
+            <span className="compact-label">Mode</span>
+            <code className="nowrap-symbol" title={modeText}>{modeText}</code>
+            <small className="secondary-note text-ellipsis" title="Current simple lowering mode">{view.localsStrategy}</small>
+          </div>
+          <div className="stack-frame-view-row" data-testid="stack-frame-return-register-row">
+            <span className="compact-label">Return</span>
+            <code className="mono-value">{view.returnValueRegister}</code>
+            <small className="secondary-note text-ellipsis" title="GR0 carries function return values.">return value</small>
+          </div>
+          <div className="stack-frame-view-row" data-testid="stack-frame-argument-registers-row">
+            <span className="compact-label">Args</span>
+            <code className="nowrap-symbol" title={argumentText}>{argumentText}</code>
+            <small className="secondary-note text-ellipsis" title="GR1-GR3 are register arguments.">register arguments</small>
+          </div>
+          <div className="stack-frame-view-row" data-testid="stack-frame-static-labels-row">
+            <span className="compact-label">Locals</span>
+            <code className="nowrap-symbol" title="MAIN_X / FUNC_ADD_A / FUNC_ADD_B">static labels</code>
+            <small className="secondary-note text-ellipsis" title="Static namespaced labels such as MAIN_X and FUNC_ADD_A.">MAIN_X / FUNC_ADD_A</small>
+          </div>
+          <div className="stack-frame-view-row" data-testid="stack-frame-call-depth-row">
+            <span className="compact-label">CALL/RET</span>
+            <code className="mono-value" title={`callDepth ${view.callDepth}`}>{view.callDepth}</code>
+            <small className="secondary-note text-ellipsis" title="CALL / RET stack currently stores return addresses only.">return addresses only</small>
+          </div>
+        </div>
+        <details
+          className="stack-frame-view-details"
+          data-testid="stack-frame-view-details"
+          open={detailsOpen}
+          onToggle={(event) => setDetailsOpen(event.currentTarget.open)}
+        >
+          <summary
+            data-testid="stack-frame-view-details-summary"
+            aria-expanded={detailsOpen}
+            aria-controls="stack-frame-view-detail-rows"
+            title="Toggle Stack Frame View concept details"
+          >
+            Future StackFramePlan / FrameSlot details
+          </summary>
+          <div id="stack-frame-view-detail-rows" className="stack-frame-view-detail-rows">
+            <div className="stack-frame-view-row">
+              <span className="compact-label">Function</span>
+              <code className="nowrap-symbol" title={currentFunctionText}>{currentFunctionText}</code>
+              <small className="secondary-note text-ellipsis" title="Current source label only; not a frame pointer.">source context</small>
+            </div>
+            {view.futureSlots.map((slot) => (
+              <div key={slot.kind} className="stack-frame-view-row" data-testid="stack-frame-future-slot" data-slot-kind={slot.kind} data-status={slot.status}>
+                <span className="compact-label">FrameSlot</span>
+                <code className="nowrap-symbol" title={slot.label}>{slot.label}</code>
+                <small className="secondary-note text-ellipsis" title="Future design placeholder; no live slot is displayed.">{slot.status}</small>
+              </div>
+            ))}
+          </div>
+        </details>
+      </div>
+    </section>
+  );
+}
+
 function ObservationModeSelector({
   mode,
   onChange
@@ -1241,6 +1364,7 @@ export default function CircuitFocusLayout({
           <>
             <FocusStackPreviewPanel state={state} />
             <FocusCallStackPanel state={state} focus={focus} density="compact" />
+            <FocusStackFrameViewPanel state={state} focus={focus} />
             <FocusSignalProbePanel state={state} focus={focus} density="compact" />
             <FocusTracePanel state={state} />
           </>

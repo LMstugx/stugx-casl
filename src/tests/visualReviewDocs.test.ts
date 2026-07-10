@@ -16,6 +16,7 @@ describe("visual review screenshot gallery setup", () => {
     expect(visualReviewSpec).toContain("shift-operations-circuit.png");
     expect(visualReviewSpec).toContain("shift-operations-machine-code.png");
     expect(visualReviewSpec).toContain("stack-preview-focus.png");
+    expect(visualReviewSpec).toContain("stack-frame-view-placeholder.png");
     expect(visualReviewSpec).toContain("push-pop-stack-circuit.png");
     expect(visualReviewSpec).toContain("push-pop-stack-machine-code.png");
     expect(visualReviewSpec).toContain("call-return-call.png");
@@ -67,6 +68,7 @@ describe("visual review screenshot gallery setup", () => {
     expect(visualReviewDoc).toContain("CALL / RET screenshots show");
     expect(visualReviewDoc).toContain("Circuit Focus screenshots include Program, Display, Current Instruction");
     expect(visualReviewDoc).toContain("stack-preview-focus.png");
+    expect(visualReviewDoc).toContain("stack-frame-view-placeholder.png");
     expect(visualReviewDoc).toContain("push-pop-stack-circuit.png");
     expect(visualReviewDoc).toContain("push-pop-stack-machine-code.png");
     expect(visualReviewDoc).toContain("call-return-call.png");

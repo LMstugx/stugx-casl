@@ -103,6 +103,7 @@ Calling convention design note:
 - Read [phase10b-calling-convention-design.md](phase10b-calling-convention-design.md) before trying to design parameter or recursion lessons.
 - Read [phase11a-stack-frame-locals-design.md](phase11a-stack-frame-locals-design.md) for the future advanced-mode stack-frame plan. It is design-only and does not change the current static namespaced labels.
 - Read [phase11b-stack-frame-lowering-scaffold.md](phase11b-stack-frame-lowering-scaffold.md) for future `StackFramePlan` / `FrameSlot` metadata and prologue / epilogue design constraints.
+- In Register / Stack observation mode, the Stack Frame View is a placeholder only. It explains simple static locals and future frame slots; it does not mean current C++ locals are on the stack. See [phase11c-stack-frame-view-placeholder.md](phase11c-stack-frame-view-placeholder.md).
 
 Single-argument follow-up: `C++: Function Argument`
 

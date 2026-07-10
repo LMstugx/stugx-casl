@@ -114,6 +114,22 @@ async function captureObservationRegisterStack(page: Page, viewport: Viewport) {
   await capture(page, viewport, "observation-register-stack.png");
 }
 
+async function captureStackFrameViewPlaceholder(page: Page, viewport: Viewport) {
+  await openStudio(page, "Mock Core");
+  await selectDemoProgram(page, "cpp-function-arguments");
+  await enterCircuitFocusMode(page);
+  await assemble(page);
+  await selectObservationMode(page, "register-stack");
+  await expect(page.getByTestId("focus-register-bank").getByTestId("register-gr0")).toBeVisible();
+  await expect(page.getByTestId("focus-register-bank").getByTestId("register-gr7")).toBeVisible();
+  await expect(page.getByTestId("focus-stack-preview")).toBeVisible();
+  await expect(page.getByTestId("focus-stack-frame-view")).toContainText("Stack Frame View");
+  await expect(page.getByTestId("focus-stack-frame-view")).toContainText("Simple static locals");
+  await expect(page.getByTestId("focus-stack-frame-view")).toContainText("GR1 / GR2 / GR3");
+  await expect(page.getByTestId("focus-memory-window-row")).toHaveCount(10);
+  await capture(page, viewport, "stack-frame-view-placeholder.png");
+}
+
 async function captureObservationCodeMachine(page: Page, viewport: Viewport) {
   await openStudio(page, "Mock Core");
   await selectDemoProgram(page, "cpp-function-arguments");
@@ -491,6 +507,7 @@ test.describe("visual review screenshot gallery", () => {
       await captureCaslGr2Flow(page, viewport);
       await captureObservationCpuFlow(page, viewport);
       await captureObservationRegisterStack(page, viewport);
+      await captureStackFrameViewPlaceholder(page, viewport);
       await captureObservationCodeMachine(page, viewport);
       await captureStackPreviewFocus(page, viewport);
       await captureCppAdditionGeneratedCasl(page, viewport);

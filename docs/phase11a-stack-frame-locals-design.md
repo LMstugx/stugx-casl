@@ -2,7 +2,7 @@
 
 Phase 11A is a design-only phase. It does not implement stack-frame locals, stack arguments, recursion, new C++ syntax, new CASL instructions, or new VM behavior. The current transpiler still uses static namespaced labels such as `MAIN_X`, `FUNC_ADD_A`, and `FUNC_ADD_B`.
 
-Phase 11B continues this as a design scaffold in [phase11b-stack-frame-lowering-scaffold.md](phase11b-stack-frame-lowering-scaffold.md). It defines future `StackFramePlan` / `FrameSlot` metadata, lowering stages, Stack Frame View data needs, and implementation test planning without changing runtime behavior.
+Phase 11B continues this as a design scaffold in [phase11b-stack-frame-lowering-scaffold.md](phase11b-stack-frame-lowering-scaffold.md). It defines future `StackFramePlan` / `FrameSlot` metadata, lowering stages, Stack Frame View data needs, and implementation test planning without changing runtime behavior. Phase 11C adds a read-only placeholder for that future UI in [phase11c-stack-frame-view-placeholder.md](phase11c-stack-frame-view-placeholder.md); it still does not implement stack-frame locals.
 
 ## Why Static Namespaced Locals Are Enough For The MVP
 

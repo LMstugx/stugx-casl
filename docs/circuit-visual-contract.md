@@ -329,6 +329,7 @@ Observation Mode density rules:
 
 - CPU Flow may show Signal Probe and latest Trace as secondary context, but the circuit and active path remain primary.
 - Register / Stack mode keeps GR, PR, SP, FR, Stack Preview, and Memory as primary. Signal Probe, Call Stack details, and Trace history should default to compact forms.
+- Stack Frame View is tertiary in Register / Stack mode until real stack-frame lowering exists. It must state `Simple static locals`, keep `hasLiveFrame=false`, and must not display fake live frame slots.
 - Code / Machine mode keeps Generated CASL, Machine Code, Trace, and Current Source Mapping primary. Do not duplicate mapping panels or show low-priority subroutine details in a way that squeezes the code tables.
 - Compact cards should prefer closed details summaries, fewer primary rows, and complete values in `title` attributes over visible overflow.
 

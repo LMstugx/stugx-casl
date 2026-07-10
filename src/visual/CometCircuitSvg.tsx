@@ -16,6 +16,15 @@ type ModuleProps = {
   children?: ReactNode;
 };
 
+type MemoryTerminalMarker = {
+  id: string;
+  pathId: string;
+  anchorId: string;
+  semanticType: WirePath["semanticType"];
+  x: number;
+  y: number;
+};
+
 function compactInstructionText(text?: string): string | undefined {
   return text?.replace(/\s+/g, " ").trim();
 }
@@ -46,6 +55,43 @@ function shouldRenderJunction(path: WirePath, junction: { x: number; y: number }
     distanceBetweenPoints(junction, path.fromAnchor) > minimumEndpointGap &&
     distanceBetweenPoints(junction, path.toAnchor) > minimumEndpointGap
   );
+}
+
+function isMemoryAnchor(anchorId: string): boolean {
+  return anchorId.startsWith("memory.");
+}
+
+function memoryTerminalEndpointFor(path: WirePath): MemoryTerminalMarker | undefined {
+  const memoryAnchor = isMemoryAnchor(path.toAnchor.id) ? path.toAnchor : isMemoryAnchor(path.fromAnchor.id) ? path.fromAnchor : undefined;
+  if (!memoryAnchor) return undefined;
+
+  const firstPoint = path.points[0];
+  const lastPoint = path.points[path.points.length - 1];
+  const endpoint = distanceBetweenPoints(lastPoint, memoryAnchor) <= 1 ? lastPoint : distanceBetweenPoints(firstPoint, memoryAnchor) <= 1 ? firstPoint : undefined;
+  if (!endpoint) return undefined;
+
+  return {
+    id: memoryAnchor.id.replace(/[^a-zA-Z0-9_-]/g, "-"),
+    pathId: path.id,
+    anchorId: memoryAnchor.id,
+    semanticType: path.semanticType,
+    x: endpoint.x,
+    y: endpoint.y
+  };
+}
+
+function uniqueMemoryTerminalMarkers(wirePaths: readonly WirePath[], activeWireIds: Set<string>): MemoryTerminalMarker[] {
+  const markers = new Map<string, MemoryTerminalMarker>();
+  for (const path of wirePaths) {
+    if (!activeWireIds.has(path.id)) continue;
+    const marker = memoryTerminalEndpointFor(path);
+    if (!marker) continue;
+    const existing = markers.get(marker.anchorId);
+    if (!existing || (existing.semanticType !== "data" && marker.semanticType === "data")) {
+      markers.set(marker.anchorId, marker);
+    }
+  }
+  return Array.from(markers.values());
 }
 
 function Module({ layout, title, value, accent, testId, layer, children }: ModuleProps) {
@@ -454,6 +500,7 @@ function CometCircuitSvg({ state, sourceMapFocus }: { state: CometState; sourceM
   const effectiveActiveWireIds = new Set(activeWireIds);
   const usesEffectiveAddressUnit = hasIndexAddressing || visualPath === VisualPathKind.PUSH_EffectiveAddressToStack || visualPath === VisualPathKind.CALL_ReturnAddressToStackAndPr;
   if (usesEffectiveAddressUnit) addEffectiveAddressUnitWires(effectiveActiveWireIds, visualPath, hasIndexAddressing);
+  const memoryTerminalMarkers = uniqueMemoryTerminalMarkers(wirePaths, effectiveActiveWireIds);
   const mdrLeft = circuitAnchors.mdr.left();
   const mdrRight = circuitAnchors.mdr.right();
   const mdrBottom = circuitAnchors.mdr.bottom();
@@ -536,6 +583,22 @@ function CometCircuitSvg({ state, sourceMapFocus }: { state: CometState; sourceM
             />
             );
           })}
+      </g>
+
+      <g className="wire-terminal-marker-layer" aria-hidden="true">
+        {memoryTerminalMarkers.map((marker) => (
+          <circle
+            key={`memory-terminal-${marker.anchorId}`}
+            className={`wire-terminal-marker memory-terminal-marker memory-terminal-marker-${marker.semanticType}`}
+            data-testid={`memory-terminal-marker-${marker.id}`}
+            data-path-id={marker.pathId}
+            data-anchor-id={marker.anchorId}
+            data-semantic-type={marker.semanticType}
+            cx={marker.x}
+            cy={marker.y}
+            r="2.65"
+          />
+        ))}
       </g>
 
       <g className="active-junction-layer" aria-hidden="true">

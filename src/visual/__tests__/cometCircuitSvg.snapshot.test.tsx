@@ -28,6 +28,12 @@ function wireById(doc: Document, id: string): SVGPathElement | null {
   return doc.querySelector<SVGPathElement>(`[data-testid='wire-${id}']`) ?? doc.querySelector<SVGPathElement>(`[data-path-id='${id}'][data-active='true']`);
 }
 
+function attrNumber(element: Element | null, name: string): number {
+  const value = element?.getAttribute(name);
+  if (value === null || value === undefined) throw new Error(`Missing ${name}`);
+  return Number(value);
+}
+
 function activeDataWires(doc: Document): SVGPathElement[] {
   return Array.from(doc.querySelectorAll<SVGPathElement>("[data-active='true'][data-semantic-type='data']"));
 }
@@ -212,6 +218,39 @@ B    DC    10
     expect(doc.querySelector("[data-testid='junction-data-left']")).toBeNull();
     expect(doc.querySelector("[data-testid='junction-data-right']")).toBeNull();
     expect(doc.querySelector("[data-testid='junction-addr']")).toBeNull();
+    expect(doc.querySelector("[data-testid^='memory-terminal-marker-']")).toBeNull();
+  });
+
+  it("memory_terminal_marker_renders_on_active_memory_endpoint", () => {
+    const afterLd = mockCaslCore.step(mockCaslCore.assemble(DEFAULT_CASL_SOURCE));
+    const doc = renderCircuit(afterLd);
+    const marker = doc.querySelector("[data-testid='memory-terminal-marker-memory-0027-left']");
+
+    expect(marker).toBeTruthy();
+    expect(marker?.getAttribute("data-anchor-id")).toBe("memory.0027.left");
+    expect(marker?.getAttribute("data-semantic-type")).toBe("data");
+  });
+
+  it("memory_terminal_marker_center_matches_memory_anchor", () => {
+    const afterLd = mockCaslCore.step(mockCaslCore.assemble(DEFAULT_CASL_SOURCE));
+    const doc = renderCircuit(afterLd);
+    const marker = doc.querySelector("[data-testid='memory-terminal-marker-memory-0027-left']");
+    const anchor = doc.querySelector("[data-testid='memory-row-anchor-left-0027']");
+
+    expect(Math.abs(attrNumber(marker, "cx") - attrNumber(anchor, "cx"))).toBeLessThanOrEqual(1);
+    expect(Math.abs(attrNumber(marker, "cy") - attrNumber(anchor, "cy"))).toBeLessThanOrEqual(1);
+  });
+
+  it("memory_terminal_marker_not_rendered_as_floating_junction", () => {
+    const afterSt = mockCaslCore.step(mockCaslCore.step(mockCaslCore.step(mockCaslCore.assemble(DEFAULT_CASL_SOURCE))));
+    const doc = renderCircuit(afterSt);
+    const marker = doc.querySelector("[data-testid='memory-terminal-marker-memory-0029-left']");
+    const anchor = doc.querySelector("[data-testid='memory-row-anchor-left-0029']");
+
+    expect(marker).toBeTruthy();
+    expect(marker?.classList.contains("memory-terminal-marker")).toBe(true);
+    expect(marker?.classList.contains("active-junction")).toBe(false);
+    expect(Math.abs(attrNumber(marker, "cy") - attrNumber(anchor, "cy"))).toBeLessThanOrEqual(1);
   });
 
   it("renders_terminal_arrow_overlays_at_target_anchors", () => {

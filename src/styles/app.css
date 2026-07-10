@@ -2539,6 +2539,22 @@ button {
   stroke: #a35252;
 }
 
+.wire-terminal-marker {
+  fill: #f8fafc;
+  stroke-width: 1.35;
+  opacity: 0.86;
+  pointer-events: none;
+}
+
+.memory-terminal-marker-data {
+  stroke: var(--color-active-red);
+}
+
+.memory-terminal-marker-address,
+.memory-terminal-marker-control {
+  stroke: #2f6bc6;
+}
+
 .anchor-point {
   fill: transparent;
   stroke: transparent;

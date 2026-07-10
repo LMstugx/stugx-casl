@@ -194,7 +194,29 @@ describe("circuit focus layout", () => {
     expect(writeWire.points[writeWire.points.length - 1]).toEqual({ x: writeWire.toAnchor.x, y: writeWire.toAnchor.y });
   });
 
-  it("active_path_semantics_unchanged_for_adda_memory_operand", () => {
+  it("no_legacy_memory_terminal_junction_metadata", () => {
+    expect(wireById("mar-to-memory").junctions).toEqual([]);
+    expect(wireById("memory-to-mdr").junctions).toEqual([]);
+    expect(wireById("mdr-to-memory").junctions).toEqual([]);
+  });
+
+  it("memory_read_path_endpoint_matches_row_anchor", () => {
+    const wire = wireById("memory-to-mdr");
+
+    expect(wire.fromAnchor.id).toBe("memory.0027.left");
+    expect(distance(wire.points[0], wire.fromAnchor)).toBeLessThanOrEqual(1);
+  });
+
+  it("memory_write_path_endpoint_matches_row_anchor", () => {
+    const wire = wireById("mdr-to-memory");
+
+    expect(wire.toAnchor.id).toBe("memory.0027.left");
+    expect(distance(wire.points[wire.points.length - 1], wire.toAnchor)).toBeLessThanOrEqual(1);
+  });
+
+  it("active_path_semantics_unchanged_for_adda_ld_st", () => {
+    expect(ids(activeWiresFor(VisualPathKind.LD_MemoryToMdrToGr))).toEqual(["mar-to-memory", "memory-to-mdr", "mdr-to-gr"]);
+    expect(ids(activeWiresFor(VisualPathKind.ST_GrToMdrToMemory)).sort()).toEqual(["gr-to-mdr", "mar-to-memory", "mdr-to-memory"].sort());
     const addaWires = activeWiresFor(VisualPathKind.ADDA_GrMdrToAluToGr);
 
     expect(ids(addaWires)).toEqual(["mar-to-memory", "memory-to-mdr", "gr-to-alu", "mdr-to-alu", "alu-to-gr", "alu-to-fr"]);

@@ -1187,6 +1187,54 @@ button {
   padding: 5px 7px;
 }
 
+.signal-probe-slot-relation {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+  padding: 4px 5px;
+  border: 1px dashed #b9c8de;
+  border-radius: 5px;
+  background: #f7fbff;
+}
+
+.signal-probe-slot-relation-head {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 6px;
+  align-items: center;
+  color: #476079;
+  font-size: 10px;
+  font-weight: 850;
+}
+
+.signal-probe-slot-relation-head code {
+  min-width: 0;
+  overflow: hidden;
+  color: #16304f;
+  font-family: "Cascadia Mono", Consolas, monospace;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.signal-probe-slot-rows {
+  gap: 2px;
+}
+
+.signal-probe-slot-relation .signal-probe-row {
+  min-height: 17px;
+  border-color: #d3deeb;
+  background: #ffffff;
+  opacity: 1;
+}
+
+.signal-probe-slot-details p {
+  margin: 2px 0 0;
+  font-size: 10px;
+  line-height: 1.25;
+}
+
 .signal-probe-rows {
   display: grid;
   gap: 3px;

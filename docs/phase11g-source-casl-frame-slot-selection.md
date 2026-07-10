@@ -4,6 +4,8 @@ Phase 11G wires C++ source context and Generated CASL static labels to the desig
 
 This phase does not implement stack-frame locals, stack arguments, recursion, new C++ syntax, VM behavior, assembler behavior, WASM behavior, mock-core behavior, transpiler lowering changes, or emitted CASL changes.
 
+Phase 11H extends this selection into Signal Probe and Slot Detail relation notes. See [Phase 11H: FramePlan Circuit and Signal Probe Relation](phase11h-frameplan-circuit-probe-relation.md).
+
 ## Purpose
 
 Phase 11F made FramePlan slot rows selectable. Phase 11G lets other teaching surfaces select the same design-only slot:
@@ -83,6 +85,8 @@ Runtime state: Not available in simple mode.
 ```
 
 The UI must not display fake live frame slot values, fake FP state, fake stack-frame bounds, or fake local lifetimes.
+
+Signal Probe may show a compact design-only relation for the selected slot, but it must not draw fake frame-slot circuit paths or present fake live values.
 
 ## Limitations
 

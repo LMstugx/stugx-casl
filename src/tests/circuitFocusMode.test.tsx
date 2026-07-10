@@ -452,6 +452,19 @@ describe("Circuit Focus Mode layout", () => {
     expect(markup).toContain("Select a source chip or Generated CASL slot badge.");
   });
 
+  it("signal_probe_does_not_show_frame_slot_relation_without_selection", () => {
+    const markup = renderCppFunctionArgumentsFocus("add", cppFunctionWithLocalSource, "register-stack");
+
+    expect(markup).toContain('data-testid="focus-signal-probe"');
+    expect(markup).not.toContain('data-testid="signal-probe-frame-slot-relation"');
+  });
+
+  it("slot_detail_relation_styles_exist", () => {
+    expect(appCss).toContain(".signal-probe-slot-relation");
+    expect(appCss).toContain(".signal-probe-slot-relation-head");
+    expect(appCss).toContain(".signal-probe-slot-details");
+  });
+
   it("cpu_flow_mode_does_not_show_dense_slot_ui", () => {
     const markup = renderCppFunctionArgumentsFocus("add", cppFunctionWithLocalSource, "cpu-flow");
 

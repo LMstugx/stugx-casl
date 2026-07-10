@@ -457,7 +457,15 @@ test("Mock backend shows Stack Frame View FramePlan preview in Register Stack mo
   await expect(page.getByTestId("stack-frame-slot-detail")).toContainText("a");
   await expect(page.getByTestId("stack-frame-slot-detail")).toContainText("argument");
   await expect(page.getByTestId("stack-frame-slot-detail")).toContainText("static label FUNC_ADD_A");
+  await expect(page.getByTestId("stack-frame-slot-detail")).toContainText("GR1 -> FUNC_ADD_A");
+  await expect(page.getByTestId("stack-frame-slot-detail")).toContainText("stack frame argument slot");
   await expect(page.getByTestId("stack-frame-slot-detail")).toContainText("Not available in simple mode");
+  await expect(page.getByTestId("signal-probe-frame-slot-relation")).toContainText("a");
+  await expect(page.getByTestId("signal-probe-frame-slot-relation")).toContainText("GR1");
+  await expect(page.getByTestId("signal-probe-frame-slot-relation")).toContainText("FUNC_ADD_A");
+  await expect(page.getByTestId("signal-probe-frame-slot-relation")).toContainText("frame arg");
+  await expect(page.getByTestId("signal-probe-frame-slot-relation")).toContainText("not runtime");
+  await expect(page.getByTestId("signal-probe-frame-slot-row").first()).toHaveAttribute("data-active", "false");
   await page.locator('[data-slot-id="add:argument:b:2"]').focus();
   await expect(page.locator('[data-slot-id="add:argument:b:2"]')).toBeFocused();
   await page.keyboard.press("Enter");
@@ -465,6 +473,15 @@ test("Mock backend shows Stack Frame View FramePlan preview in Register Stack mo
   await expect(page.getByTestId("stack-frame-slot-detail")).toContainText("FUNC_ADD_B");
   await page.getByTestId("stack-frame-function-select").selectOption("main");
   await expect(page.locator('[data-testid="stack-frame-future-slot"][data-selected="true"]')).toHaveCount(0);
+  await page.getByTestId("stack-frame-view-state").evaluate((element) => {
+    element.scrollTop = element.scrollHeight;
+  });
+  await page.locator('[data-slot-id="main:local:result:1"]').click();
+  await expect(page.locator('[data-slot-id="main:local:result:1"]')).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByTestId("signal-probe-frame-slot-relation")).toContainText("result");
+  await expect(page.getByTestId("signal-probe-frame-slot-relation")).toContainText("MAIN_RESULT");
+  await expect(page.getByTestId("signal-probe-frame-slot-relation")).toContainText("frame local");
+  await expect(page.getByTestId("signal-probe-frame-slot-relation")).toContainText("not runtime");
   expect(await page.getByTestId("focus-register-bank").getByTestId("register-pr").textContent()).toBe(prBeforeSlotSelection);
 });
 

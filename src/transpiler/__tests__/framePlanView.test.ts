@@ -77,6 +77,8 @@ describe("FramePlan preview selector", () => {
 
     expect(mappings.filter((mapping) => mapping.slotKind === "argument").map((mapping) => mapping.symbolName)).toEqual(["a", "b"]);
     expect(mappings.filter((mapping) => mapping.slotKind === "argument").map((mapping) => mapping.futureStorage)).toEqual(["register-argument", "register-argument"]);
+    expect(mappings.find((mapping) => mapping.symbolName === "a")?.argumentRegister).toBe("GR1");
+    expect(mappings.find((mapping) => mapping.symbolName === "b")?.argumentRegister).toBe("GR2");
   });
 
   it("frame_slot_mapping_exists_for_locals", () => {
@@ -108,6 +110,45 @@ describe("FramePlan preview selector", () => {
     expect(mappings.length).toBeGreaterThan(0);
     expect(mappings.every((mapping) => mapping.runtimeValueAvailable === false)).toBe(true);
     expect(mappings.map((mapping) => mapping.explanation).join("\n")).toContain("Current lowering");
+  });
+
+  it("signal_probe_shows_selected_argument_slot_relation", () => {
+    const preview = selectStackFramePreviewState("cpp", functionArgumentsSource, "add");
+    const argument = preview.activeFunction?.slotMappings.find((mapping) => mapping.symbolName === "a");
+
+    expect(argument?.currentCircuitRelation).toBe("GR1 -> FUNC_ADD_A");
+    expect(argument?.futureCircuitRelation).toBe("stack frame argument slot");
+    expect(argument?.signalProbeRelationRows.map((row) => `${row.label}:${row.value}:${row.note}`)).toEqual([
+      "Slot:a:argument",
+      "Current:GR1:-> FUNC_ADD_A",
+      "Future:frame arg:not runtime"
+    ]);
+  });
+
+  it("signal_probe_shows_selected_local_slot_relation", () => {
+    const preview = selectStackFramePreviewState("cpp", functionArgumentsSource, "add");
+    const local = preview.activeFunction?.slotMappings.find((mapping) => mapping.symbolName === "c");
+
+    expect(local?.currentCircuitRelation).toBe("static label ADD_C");
+    expect(local?.futureCircuitRelation).toBe("stack frame local slot");
+    expect(local?.signalProbeRelationRows.map((row) => `${row.label}:${row.value}:${row.note}`)).toEqual([
+      "Slot:c:local",
+      "Current:ADD_C:static label",
+      "Future:frame local:not runtime"
+    ]);
+  });
+
+  it("signal_probe_shows_return_address_slot_relation", () => {
+    const preview = selectStackFramePreviewState("cpp", functionArgumentsSource, "add");
+    const returnAddress = preview.activeFunction?.slotMappings.find((mapping) => mapping.slotKind === "return-address");
+
+    expect(returnAddress?.currentCircuitRelation).toBe("CALL/RET return-address stack path");
+    expect(returnAddress?.futureCircuitRelation).toBe("stack frame return-address slot");
+    expect(returnAddress?.signalProbeRelationRows.map((row) => `${row.label}:${row.value}:${row.note}`)).toEqual([
+      "Slot:return:return-address",
+      "Current:CALL/RET:stack path",
+      "Future:frame return:trace only"
+    ]);
   });
 
   it("emitted_casl_unchanged_after_slot_mapping", () => {

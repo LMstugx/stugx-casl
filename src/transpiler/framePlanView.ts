@@ -6,6 +6,13 @@ import { checkCppSemantics } from "./cppSemantic";
 export type FrameSlotMappingKind = Exclude<FrameSlotKind, "saved-fp">;
 export type FrameSlotFutureStorage = "future-stack-slot" | "register-argument" | "return-address-current";
 
+export type FrameSlotProbeRelationRow = {
+  label: string;
+  value: string;
+  note: string;
+  title: string;
+};
+
 export type FrameSlotMapping = {
   mappingId: string;
   functionName: string;
@@ -17,6 +24,10 @@ export type FrameSlotMapping = {
   currentLowering: FrameSlotCurrentLowering;
   futureStorage: FrameSlotFutureStorage;
   explanation: string;
+  argumentRegister?: string;
+  currentCircuitRelation: string;
+  futureCircuitRelation: string;
+  signalProbeRelationRows: FrameSlotProbeRelationRow[];
   runtimeValueAvailable: false;
 };
 
@@ -114,6 +125,133 @@ function futureStorageForSlot(slot: FrameSlot): FrameSlotFutureStorage {
   return "future-stack-slot";
 }
 
+const FRAME_ARGUMENT_REGISTERS = ["GR1", "GR2", "GR3"] as const;
+
+function argumentRegisterForSlot(slot: FrameSlot): string | undefined {
+  if (slot.kind !== "argument") return undefined;
+  return FRAME_ARGUMENT_REGISTERS[slot.offset - 1];
+}
+
+function currentCircuitRelationForSlot(slot: FrameSlot): string {
+  if (slot.kind === "return-address") {
+    return "CALL/RET return-address stack path";
+  }
+  if (slot.kind === "argument") {
+    const argumentRegister = argumentRegisterForSlot(slot) ?? "GR?";
+    return `${argumentRegister} -> ${slot.labelForDebug ?? slot.name}`;
+  }
+  if (slot.kind === "local") {
+    return `static label ${slot.labelForDebug ?? slot.name}`;
+  }
+  if (slot.kind === "temporary") {
+    return "not emitted by current lowering";
+  }
+  return "optional saved FP is design-only";
+}
+
+function futureCircuitRelationForSlot(slot: FrameSlot): string {
+  if (slot.kind === "return-address") return "stack frame return-address slot";
+  if (slot.kind === "argument") return "stack frame argument slot";
+  if (slot.kind === "local") return "stack frame local slot";
+  if (slot.kind === "temporary") return "stack frame temporary slot";
+  return "optional saved FP slot";
+}
+
+function signalProbeRelationRowsForSlot(slot: FrameSlot): FrameSlotProbeRelationRow[] {
+  if (slot.kind === "argument") {
+    const argumentRegister = argumentRegisterForSlot(slot) ?? "GR?";
+    const debugLabel = slot.labelForDebug ?? slot.name;
+    return [
+      {
+        label: "Slot",
+        value: slot.name,
+        note: "argument",
+        title: `Argument slot ${slot.name}`
+      },
+      {
+        label: "Current",
+        value: argumentRegister,
+        note: `-> ${debugLabel}`,
+        title: `Current lowering passes ${slot.name} through ${argumentRegister} and stores it in ${debugLabel}.`
+      },
+      {
+        label: "Future",
+        value: "frame arg",
+        note: "not runtime",
+        title: "Future stack-frame mode can expose this as an argument frame slot."
+      }
+    ];
+  }
+
+  if (slot.kind === "local") {
+    const debugLabel = slot.labelForDebug ?? slot.name;
+    return [
+      {
+        label: "Slot",
+        value: slot.name,
+        note: "local",
+        title: `Local slot ${slot.name}`
+      },
+      {
+        label: "Current",
+        value: debugLabel,
+        note: "static label",
+        title: `Current lowering stores ${slot.name} in static label ${debugLabel}.`
+      },
+      {
+        label: "Future",
+        value: "frame local",
+        note: "not runtime",
+        title: "Future stack-frame mode can expose this as a local frame slot."
+      }
+    ];
+  }
+
+  if (slot.kind === "return-address") {
+    return [
+      {
+        label: "Slot",
+        value: "return",
+        note: "return-address",
+        title: "Return-address slot"
+      },
+      {
+        label: "Current",
+        value: "CALL/RET",
+        note: "stack path",
+        title: "CALL and stack-aware RET already use the return-address stack path."
+      },
+      {
+        label: "Future",
+        value: "frame return",
+        note: "trace only",
+        title: "Future stack-frame mode can identify this as the frame return-address slot."
+      }
+    ];
+  }
+
+  return [
+    {
+      label: "Slot",
+      value: slot.name,
+      note: slot.kind,
+      title: `${slot.kind} slot ${slot.name}`
+    },
+    {
+      label: "Current",
+      value: "not emitted",
+      note: "design-only",
+      title: "This slot is not emitted by current lowering."
+    },
+    {
+      label: "Future",
+      value: "frame slot",
+      note: "not runtime",
+      title: "Future stack-frame mode can expose this slot."
+    }
+  ];
+}
+
 function slotExplanation(slot: FrameSlot): string {
   if (slot.kind === "return-address") {
     return "CALL currently writes the return address to the stack; future FramePlan treats it as the return-address slot.";
@@ -144,6 +282,10 @@ function toSlotMapping(functionName: string, slot: FrameSlot): FrameSlotMapping 
     currentLowering: slot.currentLowering,
     futureStorage: futureStorageForSlot(slot),
     explanation: slotExplanation(slot),
+    argumentRegister: argumentRegisterForSlot(slot),
+    currentCircuitRelation: currentCircuitRelationForSlot(slot),
+    futureCircuitRelation: futureCircuitRelationForSlot(slot),
+    signalProbeRelationRows: signalProbeRelationRowsForSlot(slot),
     runtimeValueAvailable: false
   };
 }

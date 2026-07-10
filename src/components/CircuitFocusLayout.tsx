@@ -736,6 +736,18 @@ type ProbeRow = {
   active: boolean;
 };
 
+function frameSlotProbeRows(mapping?: FrameSlotMapping): ProbeRow[] {
+  if (!mapping) return [];
+  return mapping.signalProbeRelationRows.slice(0, 3).map((row) => ({
+    label: `SLOT_${row.label}`,
+    displayLabel: row.label,
+    title: row.title,
+    value: row.value,
+    note: row.note,
+    active: false
+  }));
+}
+
 type StackPreviewRow = {
   address: number;
   value: number;
@@ -1098,14 +1110,26 @@ function FocusCallStackPanel({ state, focus, density = "normal" }: { state: Come
   );
 }
 
-function FocusSignalProbePanel({ state, focus, density = "normal" }: { state: CometState; focus: FocusInstructionContext; density?: FocusPanelDensity }) {
+function FocusSignalProbePanel({
+  state,
+  focus,
+  density = "normal",
+  selectedFrameSlot
+}: {
+  state: CometState;
+  focus: FocusInstructionContext;
+  density?: FocusPanelDensity;
+  selectedFrameSlot?: FrameSlotMapping;
+}) {
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [slotDetailsOpen, setSlotDetailsOpen] = useState(false);
   const rows = signalProbeRows(state, focus);
   const activeRows = rows.filter((row) => row.active);
   const inactiveRows = rows.filter((row) => !row.active);
   const primaryLimit = 3;
   const primaryRows = [...activeRows, ...inactiveRows].slice(0, primaryLimit);
   const detailRows = [...activeRows, ...inactiveRows].slice(primaryLimit);
+  const slotRelationRows = frameSlotProbeRows(selectedFrameSlot);
   const recent = density === "compact" ? [] : state.trace.slice(0, 3);
 
   return (
@@ -1118,6 +1142,50 @@ function FocusSignalProbePanel({ state, focus, density = "normal" }: { state: Co
         <span>compact</span>
       </header>
       <div className="signal-probe-body card-overflow-safe" data-density={density}>
+        {selectedFrameSlot ? (
+          <div
+            className="signal-probe-slot-relation"
+            data-testid="signal-probe-frame-slot-relation"
+            data-runtime-state="false"
+            title={selectedFrameSlot.explanation}
+          >
+            <div className="signal-probe-slot-relation-head">
+              <span>Frame slot relation</span>
+              <code title={selectedFrameSlot.symbolName}>{selectedFrameSlot.symbolName}</code>
+            </div>
+            <div className="signal-probe-rows signal-probe-slot-rows">
+              {slotRelationRows.map((row) => (
+                <div key={row.label} className="signal-probe-row compact-grid" data-testid="signal-probe-frame-slot-row" data-active="false">
+                  <span className="compact-label signal-probe-label" title={row.title ?? row.label}>{row.displayLabel ?? row.label}</span>
+                  <code className="mono-value" title={row.value}>{row.value}</code>
+                  <small className="secondary-note text-ellipsis" title={row.note}>{row.note}</small>
+                </div>
+              ))}
+            </div>
+            <details
+              className="signal-probe-details signal-probe-slot-details"
+              data-testid="signal-probe-frame-slot-details"
+              open={slotDetailsOpen}
+              onToggle={(event) => setSlotDetailsOpen(event.currentTarget.open)}
+            >
+              <summary
+                data-testid="signal-probe-frame-slot-details-summary"
+                aria-expanded={slotDetailsOpen}
+                aria-controls="signal-probe-frame-slot-detail-note"
+                title="Toggle design-only frame slot relation details"
+              >
+                Design note
+              </summary>
+              <p
+                id="signal-probe-frame-slot-detail-note"
+                className="secondary-note wrap-explanation"
+                title={`${selectedFrameSlot.currentCircuitRelation}. ${selectedFrameSlot.futureCircuitRelation}. Runtime frame value is not available in simple mode.`}
+              >
+                {selectedFrameSlot.currentCircuitRelation}. Future: {selectedFrameSlot.futureCircuitRelation}. Runtime frame value: not available.
+              </p>
+            </details>
+          </div>
+        ) : null}
         <div className="signal-probe-rows" data-testid="signal-probe-compact-rows">
           {primaryRows.map((row) => (
             <div key={row.label} className="signal-probe-row compact-grid" data-testid="signal-probe-row" data-active={row.active ? "true" : "false"}>
@@ -1398,6 +1466,14 @@ function FrameSlotDetail({
         <div className="stack-frame-slot-detail-wide">
           <span className="compact-label">Selected</span>
           <code title={sourceLabel}>{sourceLabel}</code>
+        </div>
+        <div className="stack-frame-slot-detail-wide">
+          <span className="compact-label">Circuit now</span>
+          <code data-testid="slot-current-circuit-relation" title={mapping.currentCircuitRelation}>{mapping.currentCircuitRelation}</code>
+        </div>
+        <div className="stack-frame-slot-detail-wide">
+          <span className="compact-label">Circuit future</span>
+          <code data-testid="slot-future-circuit-relation" title={mapping.futureCircuitRelation}>{mapping.futureCircuitRelation}</code>
         </div>
       </div>
       <p className="secondary-note wrap-explanation" title="Runtime state: Not available in simple mode.">
@@ -1776,7 +1852,7 @@ export default function CircuitFocusLayout({
               onSelectFrameSlot={selectFrameSlot}
               onFunctionChange={selectFrameFunction}
             />
-            <FocusSignalProbePanel state={state} focus={focus} density="compact" />
+            <FocusSignalProbePanel state={state} focus={focus} density="compact" selectedFrameSlot={selectedFrameSlotMapping} />
             <FocusTracePanel state={state} />
           </>
         ) : (

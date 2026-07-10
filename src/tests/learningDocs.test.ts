@@ -33,6 +33,7 @@ import phase11d from "../../docs/phase11d-frameplan-generator-scaffold.md?raw";
 import phase11e from "../../docs/phase11e-frameplan-stack-frame-view-preview.md?raw";
 import phase11f from "../../docs/phase11f-frameplan-slot-highlighting-contract.md?raw";
 import phase11g from "../../docs/phase11g-source-casl-frame-slot-selection.md?raw";
+import phase11h from "../../docs/phase11h-frameplan-circuit-probe-relation.md?raw";
 import circuitVisualContract from "../../docs/circuit-visual-contract.md?raw";
 import futureCustomCircuit from "../../docs/future-custom-circuit-design.md?raw";
 import manualQaChecklist from "../../docs/manual-qa-checklist.md?raw";
@@ -430,6 +431,21 @@ describe("learning use documentation", () => {
     expect(phase11e).toContain("phase11g-source-casl-frame-slot-selection.md");
     expect(learningGuide).toContain("phase11g-source-casl-frame-slot-selection.md");
     expect(futureCustomCircuit).toContain("Phase 11G wires C++ source context chips");
+  });
+
+  it("phase11h_frameplan_circuit_probe_relation_doc_exists", () => {
+    expect(phase11h).toContain("Phase 11H: FramePlan Circuit and Signal Probe Relation");
+    expect(phase11h).toContain("design-only");
+    expect(phase11h).toContain("Signal Probe Relation");
+    expect(phase11h).toContain("GR1 -> FUNC_ADD_A");
+    expect(phase11h).toContain("Local Slot Relation");
+    expect(phase11h).toContain("Return-Address Relation");
+    expect(phase11h).toContain("No Fake Live Values");
+    expect(phase11h).toContain("No Fake Circuit Path");
+    expect(readme).toContain("docs/phase11h-frameplan-circuit-probe-relation.md");
+    expect(phase11g).toContain("phase11h-frameplan-circuit-probe-relation.md");
+    expect(futureCustomCircuit).toContain("Phase 11H lets Signal Probe");
+    expect(circuitVisualContract).toContain("Signal Probe may show selected FramePlan slot relation notes");
   });
 
   it("phase10e_focus_text_overflow_cleanup_doc_exists", () => {

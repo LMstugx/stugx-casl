@@ -26,6 +26,7 @@ import phase10i from "../../docs/phase10i-release-hardening-stress-audit.md?raw"
 import phase10j from "../../docs/phase10j-observation-mode-split.md?raw";
 import phase10k from "../../docs/phase10k-observation-visual-defect-cleanup.md?raw";
 import phase10l from "../../docs/phase10l-final-ui-detail-polish.md?raw";
+import phase11a from "../../docs/phase11a-stack-frame-locals-design.md?raw";
 import circuitVisualContract from "../../docs/circuit-visual-contract.md?raw";
 import futureCustomCircuit from "../../docs/future-custom-circuit-design.md?raw";
 import manualQaChecklist from "../../docs/manual-qa-checklist.md?raw";
@@ -283,6 +284,29 @@ describe("learning use documentation", () => {
     expect(readme).toContain("docs/visual-rc-baseline.md");
   });
 
+  it("phase11a_stack_frame_locals_design_doc_exists", () => {
+    expect(phase11a).toContain("Phase 11A: C++ Stack-Frame Locals Design");
+    expect(phase11a).toContain("static namespaced labels");
+    expect(phase11a).toContain("GR0");
+    expect(phase11a).toContain("GR1");
+    expect(phase11a).toContain("GR2");
+    expect(phase11a).toContain("GR3");
+    expect(phase11a).toContain("stack frame");
+    expect(phase11a).toContain("return address");
+    expect(phase11a).toContain("FP");
+    expect(phase11a).toContain("frame pointer");
+    expect(phase11a).toContain("Stack Frame View");
+    expect(phase11a).toContain("Circuit Focus Mode");
+    expect(phase11a).toContain("Current Behavior Is Unchanged");
+    expect(phase11a).toContain("Phase 11B");
+    expect(phase11a).toContain("Phase 11F");
+    expect(readme).toContain("docs/phase11a-stack-frame-locals-design.md");
+    expect(learningGuide).toContain("phase11a-stack-frame-locals-design.md");
+    expect(practiceTasks).toContain("phase11a-stack-frame-locals-design.md");
+    expect(futureCustomCircuit).toContain("Phase 11A documents the future stack-frame locals design");
+    expect(releaseCandidateNotes).toContain("Phase 11A records the design-only stack-frame locals plan");
+  });
+
   it("phase10e_focus_text_overflow_cleanup_doc_exists", () => {
     expect(phase10e).toContain("Phase 10E: Focus Mode Text Overflow Cleanup");
     expect(phase10e).toContain("Signal Probe Compact Design");
@@ -444,6 +468,7 @@ describe("learning use documentation", () => {
     expect(futureCustomCircuit).toContain("Phase 10B documents the future C++ calling convention");
     expect(futureCustomCircuit).toContain("Phase 10C implements the first concrete argument path");
     expect(futureCustomCircuit).toContain("Phase 10D extends that path");
+    expect(futureCustomCircuit).toContain("Phase 11A documents the future stack-frame locals design");
     expect(futureCustomCircuit).toContain("GR1");
     expect(futureCustomCircuit).toContain("GR3");
     expect(futureCustomCircuit).toContain("stack-frame locals");
@@ -521,6 +546,7 @@ describe("learning use documentation", () => {
     expect(readme).toContain("docs/phase10k-observation-visual-defect-cleanup.md");
     expect(readme).toContain("docs/phase10l-final-ui-detail-polish.md");
     expect(readme).toContain("docs/visual-rc-baseline.md");
+    expect(readme).toContain("docs/phase11a-stack-frame-locals-design.md");
     expect(readme).toContain("docs/manual-qa-checklist.md");
     expect(readme).toContain("docs/release-candidate-notes.md");
     expect(readme).toContain("docs/future-custom-circuit-design.md");

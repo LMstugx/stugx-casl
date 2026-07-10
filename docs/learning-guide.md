@@ -101,6 +101,7 @@ Calling convention design note:
 - Current parameter support uses `GR1`, `GR2`, and `GR3` for the first three integer arguments.
 - Stack arguments and stack-frame locals are design topics only; they are not implemented in the current C++ subset.
 - Read [phase10b-calling-convention-design.md](phase10b-calling-convention-design.md) before trying to design parameter or recursion lessons.
+- Read [phase11a-stack-frame-locals-design.md](phase11a-stack-frame-locals-design.md) for the future advanced-mode stack-frame plan. It is design-only and does not change the current static namespaced labels.
 
 Single-argument follow-up: `C++: Function Argument`
 
@@ -128,6 +129,7 @@ Learn:
 - `result = add(2, 3);` lowers into `LAD GR1,2`, `LAD GR2,3`, `CALL FUNC_ADD`, and `ST GR0,MAIN_RESULT`.
 - The callee saves `GR1` and `GR2` into `FUNC_ADD_A` and `FUNC_ADD_B` before reading parameters.
 - These parameter labels are still static generated labels, not stack-frame locals.
+- Future stack-frame locals are documented as an advanced design path, not current behavior.
 
 Suggested actions:
 

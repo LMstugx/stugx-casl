@@ -164,7 +164,7 @@ Manual QA should also follow `docs/manual-qa-checklist.md`, especially the keybo
 
 - Manual keyboard-only QA pass using `docs/manual-qa-checklist.md`.
 - Release-candidate visual review using `pnpm visual:capture`.
-- Future C++ stack-frame design and stack arguments.
+- Future C++ stack-frame design and stack arguments; Phase 11A records the design-only stack-frame locals plan.
 - Future function-call expressions inside larger expressions.
 - Future custom circuit display controls or schematic/lab style toggle.
 - Optional full accessibility audit after the learning UI stabilizes.

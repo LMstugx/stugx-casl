@@ -239,6 +239,7 @@ Answer hint:
 ### Task 8C. Read the calling convention design
 
 Start from `C++: Function Call`, then read `docs/phase10b-calling-convention-design.md`.
+For the future stack-frame plan, also read `docs/phase11a-stack-frame-locals-design.md`.
 
 Expected observation:
 
@@ -246,6 +247,7 @@ Expected observation:
 - The first three small arguments use register slots `GR1`, `GR2`, and `GR3`.
 - Stack arguments are a later design topic, not current syntax.
 - Static namespaced labels such as `MAIN_X` are not stack-frame locals.
+- The stack-frame document is design-only; the current generated CASL should not change.
 
 Answer hint:
 
@@ -285,6 +287,7 @@ Answer hint:
 - `GR1`, `GR2`, and `GR3` carry the first three arguments.
 - `GR0` carries the return value.
 - A fourth argument should still be rejected because stack arguments are not implemented yet.
+- The advanced stack-frame route should be treated as future work, not something to expect in this demo.
 
 ## Level 3: If / Else
 

@@ -248,7 +248,9 @@ test("Mock backend keeps circuit focus paths anchored to rows", async ({ page })
   await expect(circuit.locator("[data-testid='wire-memory-to-mdr']")).toHaveClass(/circuit-wire--data-flow/);
   await expect(circuit.locator("[data-testid='wire-memory-to-mdr']")).toHaveAttribute("data-from-anchor", "memory.0027.left");
   await expect(circuit.locator("[data-testid='wire-memory-to-mdr']")).toHaveAttribute("data-to-anchor", "mdr.right");
-  await expect(circuit.locator("[data-testid='wire-memory-to-mdr']")).toHaveAttribute("marker-end", /arrow-red/);
+  await expect(circuit.locator("[data-testid='wire-memory-to-mdr']")).not.toHaveAttribute("marker-end", /.+/);
+  await expect(circuit.locator("[data-testid='wire-terminal-memory-to-mdr']")).toHaveAttribute("marker-end", /arrow-red/);
+  await expect(circuit.locator("[data-testid='wire-terminal-memory-to-mdr']")).toHaveAttribute("data-to-anchor", "mdr.right");
   await expect(circuit.locator("[data-testid='wire-memory-to-mdr']")).not.toHaveAttribute("marker-mid", /.+/);
   await expect(circuit.locator("[data-testid='wire-junction-memory-to-mdr-0']")).toBeVisible();
   await expect(circuit.locator("[data-testid='module-alu']")).toHaveAttribute("data-active", "false");
@@ -368,7 +370,9 @@ test("Mock backend presents Circuit Focus Mode as a teaching layout", async ({ p
   await expect(circuit.locator("[data-testid='wire-mdr-to-memory']")).toHaveClass(/circuit-wire--flow/);
   await expect(circuit.locator("[data-testid='wire-mdr-to-memory']")).toHaveClass(/circuit-wire--data-flow/);
   await expect(circuit.locator("[data-testid='wire-mdr-to-memory']")).toHaveAttribute("data-to-anchor", "memory.0029.left");
-  await expect(circuit.locator("[data-testid='wire-mdr-to-memory']")).toHaveAttribute("marker-end", /arrow-red/);
+  await expect(circuit.locator("[data-testid='wire-mdr-to-memory']")).not.toHaveAttribute("marker-end", /.+/);
+  await expect(circuit.locator("[data-testid='wire-terminal-mdr-to-memory']")).toHaveAttribute("marker-end", /arrow-red/);
+  await expect(circuit.locator("[data-testid='wire-terminal-mdr-to-memory']")).toHaveAttribute("data-to-anchor", "memory.0029.left");
   await expect(circuit.locator("[data-testid='wire-mdr-to-memory']")).not.toHaveAttribute("marker-mid", /.+/);
   await expect(circuit.locator("[data-testid='wire-gr-to-mdr']")).toHaveAttribute("data-lane", "data-bypass");
   await expect(circuit.locator("[data-testid='wire-gr-to-mdr']")).toHaveAttribute("data-avoids-alu", "true");
@@ -440,11 +444,9 @@ test("focus_mode_works_at_1280x720", async ({ page }) => {
   await page.keyboard.press("Enter");
   await expect(page.getByTestId("signal-probe-details-summary")).toHaveAttribute("aria-expanded", "true");
 
-  await expect(page.getByTestId("call-stack-details-summary")).toHaveAttribute("aria-expanded", "true");
+  await expect(page.getByTestId("call-stack-details-summary")).toHaveAttribute("aria-expanded", "false");
   await page.getByTestId("call-stack-details-summary").focus();
   await expect(page.getByTestId("call-stack-details-summary")).toBeFocused();
-  await page.keyboard.press("Enter");
-  await expect(page.getByTestId("call-stack-details-summary")).toHaveAttribute("aria-expanded", "false");
   await page.keyboard.press("Enter");
   await expect(page.getByTestId("call-stack-details-summary")).toHaveAttribute("aria-expanded", "true");
 

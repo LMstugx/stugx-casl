@@ -45,6 +45,8 @@ type FocusInstructionContext = {
   pipelineStage: string;
 };
 
+type FocusPanelDensity = "normal" | "compact";
+
 function sourceLine(source: string, line?: number): string {
   if (!line) return "No active source line";
   return source.split(/\r?\n/)[line - 1]?.trim() || "No active source line";
@@ -858,9 +860,9 @@ function signalProbeRows(state: CometState, focus: FocusInstructionContext): Pro
   return rows;
 }
 
-function FocusCallStackPanel({ state, focus }: { state: CometState; focus: FocusInstructionContext }) {
+function FocusCallStackPanel({ state, focus, density = "normal" }: { state: CometState; focus: FocusInstructionContext; density?: FocusPanelDensity }) {
   const info = callStackInfo(state, focus);
-  const [detailsOpen, setDetailsOpen] = useState(true);
+  const [detailsOpen, setDetailsOpen] = useState(false);
 
   return (
     <section className="panel focus-call-stack" data-testid="focus-call-stack">
@@ -871,7 +873,7 @@ function FocusCallStackPanel({ state, focus }: { state: CometState; focus: Focus
         </div>
         <span>Depth {info.depthText}</span>
       </header>
-      <div className="call-stack-body card-overflow-safe" data-active={info.active ? "true" : "false"}>
+      <div className="call-stack-body card-overflow-safe" data-active={info.active ? "true" : "false"} data-density={density}>
         <div className="call-stack-summary" data-testid="call-stack-summary">
           <div>
             <span className="compact-label">Depth</span>
@@ -881,6 +883,7 @@ function FocusCallStackPanel({ state, focus }: { state: CometState; focus: Focus
           <div>
             <span className="compact-label">Mode</span>
             <code data-testid="call-stack-ret-mode">{info.retModeText}</code>
+            <small className="secondary-note text-ellipsis" title={info.edgeText}>{info.edgeText}</small>
           </div>
         </div>
         <details
@@ -919,14 +922,15 @@ function FocusCallStackPanel({ state, focus }: { state: CometState; focus: Focus
   );
 }
 
-function FocusSignalProbePanel({ state, focus }: { state: CometState; focus: FocusInstructionContext }) {
+function FocusSignalProbePanel({ state, focus, density = "normal" }: { state: CometState; focus: FocusInstructionContext; density?: FocusPanelDensity }) {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const rows = signalProbeRows(state, focus);
   const activeRows = rows.filter((row) => row.active);
   const inactiveRows = rows.filter((row) => !row.active);
-  const primaryRows = [...activeRows, ...inactiveRows].slice(0, 5);
-  const detailRows = [...activeRows, ...inactiveRows].slice(5);
-  const recent = state.trace.slice(0, 5);
+  const primaryLimit = density === "compact" ? 2 : 3;
+  const primaryRows = [...activeRows, ...inactiveRows].slice(0, primaryLimit);
+  const detailRows = [...activeRows, ...inactiveRows].slice(primaryLimit);
+  const recent = density === "compact" ? [] : state.trace.slice(0, 3);
 
   return (
     <section className="panel focus-signal-probe" data-testid="focus-signal-probe">
@@ -937,7 +941,7 @@ function FocusSignalProbePanel({ state, focus }: { state: CometState; focus: Foc
         </div>
         <span>compact</span>
       </header>
-      <div className="signal-probe-body card-overflow-safe">
+      <div className="signal-probe-body card-overflow-safe" data-density={density}>
         <div className="signal-probe-rows" data-testid="signal-probe-compact-rows">
           {primaryRows.map((row) => (
             <div key={row.label} className="signal-probe-row compact-grid" data-testid="signal-probe-row" data-active={row.active ? "true" : "false"}>
@@ -973,8 +977,16 @@ function FocusSignalProbePanel({ state, focus }: { state: CometState; focus: Foc
             </div>
           </details>
         ) : null}
-        <div className="signal-probe-evolution" data-testid="signal-probe-evolution">
-          {recent.length === 0 ? <span>No signal changes yet.</span> : recent.map((event) => <span key={`${event.index}-${event.address}`} title={traceChangeText(event)}>{traceChangeText(event)}</span>)}
+        <div
+          className="signal-probe-evolution"
+          data-testid="signal-probe-evolution"
+          aria-label={recent.length ? "Recent signal changes" : "No signal changes yet."}
+        >
+          {recent.length ? (
+            recent.map((event) => <span key={`${event.index}-${event.address}`} title={traceChangeText(event)}>{traceChangeText(event)}</span>)
+          ) : (
+            <span title="No signal changes yet.">No signal changes yet.</span>
+          )}
         </div>
       </div>
     </section>
@@ -1135,16 +1147,15 @@ export default function CircuitFocusLayout({
         ) : observationMode === "register-stack" ? (
           <>
             <FocusStackPreviewPanel state={state} />
-            <FocusCallStackPanel state={state} focus={focus} />
-            <FocusSignalProbePanel state={state} focus={focus} />
+            <FocusCallStackPanel state={state} focus={focus} density="compact" />
+            <FocusSignalProbePanel state={state} focus={focus} density="compact" />
             <FocusTracePanel state={state} />
           </>
         ) : (
           <>
             <FocusTracePanel state={state} />
-            <FocusSourceMappingPanel focus={focus} sourceMode={sourceMode} />
-            <FocusCallStackPanel state={state} focus={focus} />
-            <FocusSignalProbePanel state={state} focus={focus} />
+            <FocusCallStackPanel state={state} focus={focus} density="compact" />
+            <FocusSignalProbePanel state={state} focus={focus} density="compact" />
           </>
         )}
       </aside>

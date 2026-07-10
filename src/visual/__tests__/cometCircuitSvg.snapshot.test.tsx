@@ -170,9 +170,15 @@ B    DC    10
     const afterLd = mockCaslCore.step(ready);
     const doc = renderCircuit(afterLd);
     const activePaths = Array.from(doc.querySelectorAll<SVGPathElement>("[data-active='true'][data-path-id]"));
+    const terminalPaths = Array.from(doc.querySelectorAll<SVGPathElement>("[data-active-terminal='true'][data-terminal-path-id]"));
 
     expect(activePaths.length).toBeGreaterThan(0);
     for (const path of activePaths) {
+      expect(path.getAttribute("marker-end")).toBeNull();
+      expect(path.getAttribute("marker-mid")).toBeNull();
+    }
+    expect(terminalPaths.length).toBe(activePaths.length);
+    for (const path of terminalPaths) {
       expect(path.getAttribute("marker-end")).toMatch(/^url\(#arrow-/);
       expect(path.getAttribute("marker-mid")).toBeNull();
     }
@@ -196,6 +202,16 @@ B    DC    10
 
     expect(doc.querySelector("[data-testid='wire-junction-memory-to-mdr-0']")).toBeTruthy();
     expect(doc.querySelector("[data-testid='wire-junction-mdr-to-gr-0']")).toBeTruthy();
+  });
+
+  it("renders_terminal_arrow_overlays_at_target_anchors", () => {
+    const afterSt = mockCaslCore.step(mockCaslCore.step(mockCaslCore.step(mockCaslCore.assemble(DEFAULT_CASL_SOURCE))));
+    const doc = renderCircuit(afterSt);
+    const terminal = doc.querySelector<SVGPathElement>("[data-testid='wire-terminal-mdr-to-memory']");
+
+    expect(terminal).toBeTruthy();
+    expect(terminal?.getAttribute("data-to-anchor")).toBe("memory.0029.left");
+    expect(terminal?.getAttribute("marker-end")).toBe("url(#arrow-red)");
   });
 
   it("active_wire_has_flow_class and data_wire_gets_data_flow_class", () => {

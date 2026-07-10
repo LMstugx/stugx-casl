@@ -21,6 +21,14 @@ The route must start from a semantic anchor and end at a semantic anchor. Row-le
 
 Active routes should use orthogonal routing with clear direction. If a route needs to bend, use lane-based turns rather than ad hoc diagonals. Long routes should have one clear terminal arrow marker and optional junction dots at meaningful splits or joins.
 
+Geometry convergence rules:
+
+- Route construction snaps the first rendered point to `fromAnchor` and the final rendered point to `toAnchor`.
+- Junction dots must sit on a route point or an exact route segment, not near it.
+- Protected text/value rectangles such as GR values, Memory values/labels, MDR values, Source Mapping text, and ALU value boxes should not be crossed by active routes.
+- Main active wires may render below modules to avoid covering text. A short terminal overlay may render above modules so the final arrow remains visible at the target anchor.
+- Terminal overlays must use only the final short segment near the target anchor; they must not redraw a long path over module text.
+
 ## 2. Visual Hierarchy
 
 Circuit Focus Mode uses three visual layers.
@@ -304,6 +312,13 @@ Text must never break the circuit layout.
 - No text may overflow card boundaries.
 - Prefer shorter labels over smaller unreadable text.
 - Phase 10E applies these rules with label / value / note rows for Signal Probe, summary/detail rows for Call Stack, and main/effect/note rows for Trace.
+
+Observation Mode density rules:
+
+- CPU Flow may show Signal Probe and latest Trace as secondary context, but the circuit and active path remain primary.
+- Register / Stack mode keeps GR, PR, SP, FR, Stack Preview, and Memory as primary. Signal Probe, Call Stack details, and Trace history should default to compact forms.
+- Code / Machine mode keeps Generated CASL, Machine Code, Trace, and Current Source Mapping primary. Do not duplicate mapping panels or show low-priority subroutine details in a way that squeezes the code tables.
+- Compact cards should prefer closed details summaries, fewer primary rows, and complete values in `title` attributes over visible overflow.
 
 If a value needs extra context, use a tooltip, secondary chip, or inspector detail rather than expanding the circuit module.
 

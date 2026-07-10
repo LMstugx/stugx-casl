@@ -441,15 +441,15 @@ button {
 }
 
 .circuit-focus-workspace[data-observation-mode="register-stack"] .focus-right-column {
-  grid-template-rows: 172px 146px 150px minmax(0, 1fr);
+  grid-template-rows: 172px 124px 118px minmax(0, 1fr);
 }
 
 .circuit-focus-workspace[data-observation-mode="code-machine"] .focus-center-column {
-  grid-template-rows: minmax(0, 1fr) 96px;
+  grid-template-rows: minmax(0, 1fr) 112px;
 }
 
 .circuit-focus-workspace[data-observation-mode="code-machine"] .focus-right-column {
-  grid-template-rows: minmax(0, 1fr) 104px 146px 150px;
+  grid-template-rows: minmax(0, 1fr) 126px 118px;
 }
 
 .focus-program-panel,
@@ -753,9 +753,11 @@ button {
   min-height: 0;
   display: grid;
   grid-template-columns: 64px minmax(0, 1fr);
-  gap: 5px 8px;
+  grid-auto-rows: minmax(16px, auto);
+  gap: 3px 8px;
   align-content: start;
-  padding: 8px 10px;
+  overflow: hidden;
+  padding: 6px 10px;
   background: #f8fafc;
 }
 
@@ -839,6 +841,12 @@ button {
   background: #f8fafc;
 }
 
+.signal-probe-body[data-density="compact"] {
+  grid-template-rows: minmax(0, auto) auto;
+  gap: 4px;
+  padding: 5px 7px;
+}
+
 .signal-probe-rows {
   display: grid;
   gap: 3px;
@@ -857,6 +865,12 @@ button {
   border-radius: 4px;
   background: #fbfcfe;
   opacity: 0.72;
+}
+
+.signal-probe-body[data-density="compact"] .signal-probe-row {
+  grid-template-columns: 48px minmax(54px, 0.68fr) minmax(0, 1fr);
+  min-height: 18px;
+  padding: 1px 4px;
 }
 
 .signal-probe-row[data-active="true"] {
@@ -900,8 +914,12 @@ button {
   overflow: auto;
 }
 
+.signal-probe-body[data-density="compact"] .signal-probe-details[open] {
+  max-height: 48px;
+}
+
 .signal-probe-evolution {
-  display: flex;
+  display: none;
   gap: 5px;
   overflow: hidden;
   color: var(--color-muted);
@@ -925,6 +943,12 @@ button {
   background: #f8fafc;
 }
 
+.call-stack-body[data-density="compact"] {
+  grid-template-rows: auto auto;
+  gap: 4px;
+  padding: 5px 7px;
+}
+
 .call-stack-body[data-active="true"] {
   background: #fffdf8;
 }
@@ -933,6 +957,10 @@ button {
   display: grid;
   grid-template-columns: minmax(0, 0.52fr) minmax(0, 1fr);
   gap: 6px;
+}
+
+.call-stack-body[data-density="compact"] .call-stack-summary {
+  gap: 5px;
 }
 
 .call-stack-summary > div,
@@ -947,6 +975,12 @@ button {
   border: 1px solid #d9e1ec;
   border-radius: 4px;
   background: #fbfcfe;
+}
+
+.call-stack-body[data-density="compact"] .call-stack-summary > div,
+.call-stack-body[data-density="compact"] .call-stack-row {
+  min-height: 20px;
+  padding: 2px 5px;
 }
 
 .call-stack-details {
@@ -1929,6 +1963,13 @@ button {
   filter: none;
 }
 
+.wire-terminal {
+  stroke-width: 2.9;
+  stroke-linecap: butt;
+  opacity: 0.98;
+  pointer-events: none;
+}
+
 .wire-active.wire-data {
   stroke: var(--color-active-red);
 }
@@ -2886,11 +2927,15 @@ button {
   }
 
   .circuit-focus-workspace[data-observation-mode="register-stack"] .focus-right-column {
-    grid-template-rows: 150px 126px 132px minmax(0, 1fr);
+    grid-template-rows: 150px 112px 106px minmax(0, 1fr);
   }
 
   .circuit-focus-workspace[data-observation-mode="code-machine"] .focus-right-column {
-    grid-template-rows: minmax(0, 1fr) 92px 126px 132px;
+    grid-template-rows: minmax(0, 1fr) 112px 106px;
+  }
+
+  .circuit-focus-workspace[data-observation-mode="code-machine"] .focus-center-column {
+    grid-template-rows: minmax(0, 1fr) 104px;
   }
 
   .focus-register-stack-dashboard,

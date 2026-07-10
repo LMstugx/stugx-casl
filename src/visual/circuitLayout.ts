@@ -125,6 +125,34 @@ export const circuitAnchors = {
   }
 };
 
+export const circuitProtectedRects = {
+  aluBody: () => ({ ...circuitLayout.alu }),
+  grValueColumn: (index: number) => ({
+    x: circuitLayout.gr.x + 28,
+    y: registerRowY(index) - 10,
+    w: 128,
+    h: 20
+  }),
+  memoryTextColumn: (address: number, windowStart = 0x20) => ({
+    x: circuitLayout.memory.x + 32,
+    y: memoryRowY(address, windowStart) - 10,
+    w: circuitLayout.memory.w - 48,
+    h: 20
+  }),
+  mdrValue: () => ({
+    x: circuitLayout.mdr.x + 14,
+    y: circuitLayout.mdr.y + 32,
+    w: circuitLayout.mdr.w - 28,
+    h: 22
+  }),
+  sourceMapText: () => ({
+    x: circuitLayout.sourceMap.x + 12,
+    y: circuitLayout.sourceMap.y + 32,
+    w: circuitLayout.sourceMap.w - 24,
+    h: 34
+  })
+} as const;
+
 export const aluPolygonPoints = [
   [alu.x + 18, alu.y],
   [alu.x + alu.w - 18, alu.y],

@@ -31,6 +31,10 @@ function signalFlowClass(path: WirePath): string {
   return `circuit-wire--active circuit-wire--flow ${flowBySemanticType[path.semanticType]}`;
 }
 
+function markerForWire(path: WirePath): string {
+  return path.role === "data" ? "url(#arrow-red)" : "url(#arrow-blue)";
+}
+
 function Module({ layout, title, value, accent, testId, layer, children }: ModuleProps) {
   return (
     <g className={accent ? "circuit-module circuit-module-active" : "circuit-module"} data-testid={testId} data-active={accent ? "true" : "false"} data-layer={layer}>
@@ -480,7 +484,6 @@ function CometCircuitSvg({ state, sourceMapFocus }: { state: CometState; sourceM
         {wirePaths
           .filter((path) => effectiveActiveWireIds.has(path.id))
           .map((path) => {
-            const marker = path.role === "data" ? "url(#arrow-red)" : "url(#arrow-blue)";
             return (
             <path
               key={`active-${path.id}`}
@@ -498,7 +501,6 @@ function CometCircuitSvg({ state, sourceMapFocus }: { state: CometState; sourceM
               data-related-stage={path.relatedStage}
               data-avoids-alu={path.avoidsAlu ? "true" : "false"}
               className={`wire wire-${path.role} wire-active ${signalFlowClass(path)}`}
-              markerEnd={marker}
             />
             );
           })}
@@ -563,6 +565,25 @@ function CometCircuitSvg({ state, sourceMapFocus }: { state: CometState; sourceM
           CASL {sourceMapInstruction ?? "No active line"}
         </text>
       </Module>
+
+      <g className="active-terminal-layer" aria-hidden="true">
+        {wirePaths
+          .filter((path) => effectiveActiveWireIds.has(path.id))
+          .map((path) => (
+            <path
+              key={`terminal-${path.id}`}
+              d={path.terminalD}
+              data-testid={`wire-terminal-${path.id}`}
+              data-active-terminal="true"
+              data-terminal-path-id={path.id}
+              data-lane={path.lane}
+              data-semantic-type={path.semanticType}
+              data-to-anchor={path.toAnchor.id}
+              className={`wire wire-${path.role} wire-active wire-terminal`}
+              markerEnd={markerForWire(path)}
+            />
+          ))}
+      </g>
 
     </svg>
   );

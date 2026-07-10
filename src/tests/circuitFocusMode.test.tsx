@@ -273,6 +273,12 @@ describe("Circuit Focus Mode layout", () => {
     expect(markup).toContain("LD GR2,A");
   });
 
+  it("code_machine_mode_uses_single_mapping_panel_to_prevent_density_overflow", () => {
+    const markup = renderFocus(stepTimes(1), gr2Source, "code-machine");
+
+    expect(markup.match(/data-testid="focus-source-mapping-panel"/g)).toHaveLength(1);
+  });
+
   it("focus_mode_step_timeline_visible", () => {
     const markup = renderFocus(mockCaslCore.assemble(gr2Source));
 
@@ -831,9 +837,17 @@ DONE RET
     const markup = renderFocus(stepSource(callReturnSource, 2), callReturnSource, "register-stack");
 
     expect(markup).toContain('data-testid="call-stack-details-summary"');
-    expect(markup).toContain('aria-expanded="true"');
+    expect(markup).toContain('aria-expanded="false"');
     expect(markup).toContain('aria-controls="call-stack-detail-rows"');
     expect(markup).toContain('title="Toggle Call Stack detail rows"');
+  });
+
+  it("register_stack_mode_compacts_low_priority_probe_and_call_stack_cards", () => {
+    const markup = renderFocus(stepSource(callReturnSource, 2), callReturnSource, "register-stack");
+
+    expect(markup).toContain('class="call-stack-body card-overflow-safe" data-active="true" data-density="compact"');
+    expect(markup).toContain('class="signal-probe-body card-overflow-safe" data-density="compact"');
+    expect(markup).toContain('title="CALL -&gt; SUB; return 0024"');
   });
 
   it("call_stack_top_level_mode_does_not_overflow", () => {

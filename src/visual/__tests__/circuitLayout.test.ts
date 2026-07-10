@@ -1,8 +1,17 @@
 import { describe, expect, it } from "vitest";
 import { VisualPathKind } from "../../core/types";
-import { circuitAnchors, circuitLayout } from "../circuitLayout";
+import { circuitAnchors, circuitLayout, circuitProtectedRects } from "../circuitLayout";
 import { pathTemplateForInstruction, stackPathTemplates } from "../instructionPathTemplates";
-import { activeWireIdsByKind, buildWirePaths, routeOrthogonal, routeViaLane, type WirePath } from "../wirePaths";
+import {
+  activeWireIdsByKind,
+  buildWirePaths,
+  pointIsOnRoute,
+  routeCrossesProtectedRect,
+  routeIsContinuous,
+  routeOrthogonal,
+  routeViaLane,
+  type WirePath
+} from "../wirePaths";
 
 function wireById(id: string) {
   const wire = buildWirePaths({ grIndex: 2, memoryAddress: 0x27 }).find((path) => path.id === id);
@@ -100,6 +109,40 @@ describe("circuit focus layout", () => {
     expect(memLeft.y).toBe(memRight.y);
   });
 
+  it("wire_endpoints_are_snapped_to_anchor_points", () => {
+    for (const wire of buildWirePaths({ grIndex: 2, memoryAddress: 0x29 })) {
+      expect(wire.points[0]).toEqual({ x: wire.fromAnchor.x, y: wire.fromAnchor.y });
+      expect(wire.points[wire.points.length - 1]).toEqual({ x: wire.toAnchor.x, y: wire.toAnchor.y });
+      expect(wire.d).toContain(`M ${wire.fromAnchor.x}`);
+    }
+  });
+
+  it("wire_paths_are_orthogonal_continuous_and_gap_free", () => {
+    for (const wire of buildWirePaths({ grIndex: 2, memoryAddress: 0x29 })) {
+      expect(routeIsContinuous(wire.points)).toBe(true);
+      for (let index = 1; index < wire.points.length; index += 1) {
+        expect(wire.points[index]).not.toEqual(wire.points[index - 1]);
+      }
+    }
+  });
+
+  it("terminal_segments_end_at_target_anchor", () => {
+    for (const wire of buildWirePaths({ grIndex: 2, memoryAddress: 0x29 })) {
+      const end = wire.terminalPoints[wire.terminalPoints.length - 1];
+
+      expect(end).toEqual({ x: wire.toAnchor.x, y: wire.toAnchor.y });
+      expect(routeIsContinuous(wire.terminalPoints)).toBe(true);
+    }
+  });
+
+  it("junction_dots_are_normalized_to_route_points", () => {
+    for (const wire of buildWirePaths({ grIndex: 2, memoryAddress: 0x29 })) {
+      for (const junction of wire.junctions) {
+        expect(pointIsOnRoute(junction, wire.points)).toBe(true);
+      }
+    }
+  });
+
   it("defines ALU, MDR, and FR input/output anchors", () => {
     expect(circuitAnchors.alu.inputA().x).toBe(circuitLayout.alu.x);
     expect(circuitAnchors.alu.inputB().x).toBe(circuitLayout.alu.x + circuitLayout.alu.w);
@@ -188,6 +231,23 @@ describe("circuit focus layout", () => {
       expect(wire.avoidsAlu).toBe(true);
       expect(wire.lane).toBe("data-bypass");
       expect(wireCrossesRect(wire, circuitLayout.alu)).toBe(false);
+    }
+  });
+
+  it("ld_st_bypass_routes_do_not_cross_protected_text_rects", () => {
+    const paths = buildWirePaths({ grIndex: 2, memoryAddress: 0x29 });
+    const protectedRects = [
+      circuitProtectedRects.aluBody(),
+      circuitProtectedRects.grValueColumn(2),
+      circuitProtectedRects.memoryTextColumn(0x29, 0x20),
+      circuitProtectedRects.mdrValue()
+    ];
+    const bypassWireIds = ["memory-to-mdr", "mdr-to-gr", "gr-to-mdr", "mdr-to-memory"];
+
+    for (const wire of paths.filter((path) => bypassWireIds.includes(path.id))) {
+      for (const protectedRect of protectedRects) {
+        expect(routeCrossesProtectedRect(wire.points, protectedRect)).toBe(false);
+      }
     }
   });
 

@@ -27,8 +27,10 @@ export type WirePath = {
   relatedStage?: string;
   relatedInstructionKind?: string;
   points: readonly CircuitPoint[];
+  terminalPoints: readonly CircuitPoint[];
   junctions: readonly CircuitPoint[];
   d: string;
+  terminalD: string;
 };
 
 export type WirePathOptions = {
@@ -54,6 +56,10 @@ function samePoint(a: CircuitPoint, b: CircuitPoint): boolean {
   return a.x === b.x && a.y === b.y;
 }
 
+function roundedPointEquals(a: CircuitPoint, b: CircuitPoint): boolean {
+  return point(a) === point(b);
+}
+
 function compactPoints(points: readonly CircuitPoint[]): CircuitPoint[] {
   const compacted: CircuitPoint[] = [];
   for (const pathPoint of points) {
@@ -62,6 +68,51 @@ function compactPoints(points: readonly CircuitPoint[]): CircuitPoint[] {
     }
   }
   return compacted;
+}
+
+export function routeSegments(points: readonly CircuitPoint[]): Array<[CircuitPoint, CircuitPoint]> {
+  const compacted = compactPoints(points);
+  const segments: Array<[CircuitPoint, CircuitPoint]> = [];
+  for (let index = 1; index < compacted.length; index += 1) {
+    segments.push([compacted[index - 1], compacted[index]]);
+  }
+  return segments;
+}
+
+export function snapRouteToAnchors(points: readonly CircuitPoint[], from: CircuitPoint, to: CircuitPoint): CircuitPoint[] {
+  const compacted = compactPoints(points.length ? points : [from, to]);
+  const snapped = [...compacted];
+  snapped[0] = { x: from.x, y: from.y };
+  snapped[snapped.length - 1] = { x: to.x, y: to.y };
+  return compactPoints(snapped);
+}
+
+export function routeIsContinuous(points: readonly CircuitPoint[]): boolean {
+  return routeSegments(points).every(([from, to]) => from.x === to.x || from.y === to.y);
+}
+
+export function pointIsOnRoute(routePoint: CircuitPoint, points: readonly CircuitPoint[]): boolean {
+  return routeSegments(points).some(([from, to]) => {
+    const horizontal = from.y === to.y && roundedPointEquals(routePoint, { x: Math.max(Math.min(routePoint.x, Math.max(from.x, to.x)), Math.min(from.x, to.x)), y: from.y });
+    const vertical = from.x === to.x && roundedPointEquals(routePoint, { x: from.x, y: Math.max(Math.min(routePoint.y, Math.max(from.y, to.y)), Math.min(from.y, to.y)) });
+    return horizontal || vertical;
+  });
+}
+
+export function terminalSegment(points: readonly CircuitPoint[], length = 14): CircuitPoint[] {
+  const compacted = compactPoints(points);
+  if (compacted.length < 2) return compacted;
+  const end = compacted[compacted.length - 1];
+  const previous = compacted[compacted.length - 2];
+  const dx = end.x - previous.x;
+  const dy = end.y - previous.y;
+  const distance = Math.max(Math.abs(dx), Math.abs(dy));
+  if (distance === 0) return [previous, end];
+  const visibleLength = Math.min(length, distance);
+  const start = dx !== 0
+    ? { x: end.x - Math.sign(dx) * visibleLength, y: end.y }
+    : { x: end.x, y: end.y - Math.sign(dy) * visibleLength };
+  return compactPoints([start, end]);
 }
 
 export function buildPathWithCorners(points: readonly CircuitPoint[]): string {
@@ -91,6 +142,10 @@ function segmentCrossesRect(a: CircuitPoint, b: CircuitPoint, rect: RectLayout):
   const horizontal = a.y === b.y && a.y > rect.y && a.y < rect.y + rect.h && xMax > rect.x && xMin < rect.x + rect.w;
   const vertical = a.x === b.x && a.x > rect.x && a.x < rect.x + rect.w && yMax > rect.y && yMin < rect.y + rect.h;
   return horizontal || vertical;
+}
+
+export function routeCrossesProtectedRect(points: readonly CircuitPoint[], rect: RectLayout): boolean {
+  return routeCrossesRect(points, rect);
 }
 
 function routeCrossesRect(points: readonly CircuitPoint[], rect: RectLayout): boolean {
@@ -129,7 +184,8 @@ function wire(
   points: readonly CircuitPoint[],
   options: Pick<WirePath, "avoidsAlu" | "relatedRegister" | "relatedMemoryAddress" | "relatedStage" | "relatedInstructionKind"> & { junctions?: readonly CircuitPoint[] } = {}
 ): WirePath {
-  const compacted = compactPoints(points);
+  const compacted = snapRouteToAnchors(points, fromAnchor, toAnchor);
+  const terminalPoints = terminalSegment(compacted);
   const { junctions = [], ...metadata } = options;
   return {
     id,
@@ -141,8 +197,10 @@ function wire(
     direction: "forward",
     isPrimary: role !== "inactive",
     points: compacted,
+    terminalPoints,
     junctions,
     d: buildPathWithCorners(compacted),
+    terminalD: buildPathWithCorners(terminalPoints),
     ...metadata
   };
 }

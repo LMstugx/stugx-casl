@@ -48,6 +48,7 @@ import visualRcBaseline from "../../docs/visual-rc-baseline.md?raw";
 import validateAllScript from "../../scripts/validate-all.ps1?raw";
 import v1ScopeFreeze from "../../docs/v1-scope-freeze.md?raw";
 import v1ReleaseQaEvidence from "../../docs/v1-release-qa-evidence.md?raw";
+import v1Rc1ReleaseNotes from "../../docs/releases/v1.0-rc1.md?raw";
 
 describe("learning use documentation", () => {
   it("learning_guide_exists", () => {
@@ -531,6 +532,18 @@ describe("learning use documentation", () => {
     expect(v1ReleaseQaEvidence).toContain("PASS: ready for v1.0-rc1 tagging");
     expect(readme).toContain("docs/v1-release-qa-evidence.md");
     expect(releaseCandidateNotes).toContain("v1-release-qa-evidence.md");
+  });
+
+  it("v1_0_rc1_release_notes_exist", () => {
+    expect(v1Rc1ReleaseNotes).toContain("stugx.CASL v1.0-rc1");
+    expect(v1Rc1ReleaseNotes).toContain("Release candidate");
+    expect(v1Rc1ReleaseNotes).toContain("6224b0c");
+    expect(v1Rc1ReleaseNotes).toContain("v1-scope-freeze.md");
+    expect(v1Rc1ReleaseNotes).toContain("v1-release-qa-evidence.md");
+    expect(v1Rc1ReleaseNotes).toContain("Known Limitations");
+    expect(v1Rc1ReleaseNotes).toContain("validate-all.ps1");
+    expect(readme).toContain("docs/releases/v1.0-rc1.md");
+    expect(releaseCandidateNotes).toContain("releases/v1.0-rc1.md");
   });
 
   it("phase10e_focus_text_overflow_cleanup_doc_exists", () => {

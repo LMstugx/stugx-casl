@@ -1,6 +1,6 @@
 # Release Candidate Notes
 
-These notes describe the current stable learning build after Phase 10I and the later Phase 11 FramePlan design-layer freeze. They are meant for local review, teacher or senior-student demos, and future release-candidate checks. The v1.0 release scope is frozen in [v1-scope-freeze.md](v1-scope-freeze.md).
+These notes describe the current stable learning build after Phase 10I and the later Phase 11 FramePlan design-layer freeze. They are meant for local review, teacher or senior-student demos, and future release-candidate checks. The v1.0 release scope is frozen in [v1-scope-freeze.md](v1-scope-freeze.md), and the latest release QA evidence is recorded in [v1-release-qa-evidence.md](v1-release-qa-evidence.md).
 
 ## 1. Current Stable Capabilities
 
@@ -172,3 +172,5 @@ Manual QA should also follow `docs/manual-qa-checklist.md`, especially the keybo
 - Optional sanitizer or CI hardening pass in a known-good Visual Studio developer shell or CI image.
 
 See [v1-scope-freeze.md](v1-scope-freeze.md) for the frozen v1.0 included scope, excluded scope, baseline tags, and release QA gate.
+
+See [v1-release-qa-evidence.md](v1-release-qa-evidence.md) for the latest automated QA gate results, visual review gallery status, and PASS / BLOCKED release-candidate outcome.

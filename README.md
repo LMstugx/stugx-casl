@@ -331,6 +331,7 @@ The current backend is shown in the status bar as `Mock Core`, `WASM Core`, or `
 - [docs/frameplan-relation-qa-checklist.md](docs/frameplan-relation-qa-checklist.md): QA checklist for SourceEditor, Stack Frame View, Signal Probe, Generated CASL, observation modes, and accessibility in the FramePlan relation layer.
 - [docs/phase11-frameplan-design-layer-summary.md](docs/phase11-frameplan-design-layer-summary.md): Phase 11 design-layer freeze summary covering current static namespaced labels, FramePlan metadata, slot selection, Signal Probe relation, and deferred advanced lowering.
 - [docs/v1-scope-freeze.md](docs/v1-scope-freeze.md): v1.0 scope freeze for included features, excluded features, release baselines, and final QA gates. The v1.0 scope is frozen around the current learning-studio feature set.
+- [docs/v1-release-qa-evidence.md](docs/v1-release-qa-evidence.md): v1.0 release QA execution evidence for automated validation, manual checklist coverage review, visual review gallery, and PASS / BLOCKED status.
 
 ## Current Limitations
 

@@ -47,6 +47,7 @@ import screenshotsGuide from "../../docs/screenshots-guide.md?raw";
 import visualRcBaseline from "../../docs/visual-rc-baseline.md?raw";
 import validateAllScript from "../../scripts/validate-all.ps1?raw";
 import v1ScopeFreeze from "../../docs/v1-scope-freeze.md?raw";
+import v1ReleaseQaEvidence from "../../docs/v1-release-qa-evidence.md?raw";
 
 describe("learning use documentation", () => {
   it("learning_guide_exists", () => {
@@ -514,6 +515,22 @@ describe("learning use documentation", () => {
     expect(manualQaChecklist).toContain("v1.0 Final QA Gate");
     expect(learningGuide).toContain("v1-scope-freeze.md");
     expect(futureCustomCircuit).toContain("v2.0+ direction");
+  });
+
+  it("v1_release_qa_evidence_doc_exists", () => {
+    expect(v1ReleaseQaEvidence).toContain("v1.0 Release QA Evidence");
+    expect(v1ReleaseQaEvidence).toContain("pnpm test");
+    expect(v1ReleaseQaEvidence).toContain("pnpm build");
+    expect(v1ReleaseQaEvidence).toContain("pnpm build:wasm");
+    expect(v1ReleaseQaEvidence).toContain("pnpm test:wasm");
+    expect(v1ReleaseQaEvidence).toContain("pnpm visual:review");
+    expect(v1ReleaseQaEvidence).toContain("CTest");
+    expect(v1ReleaseQaEvidence).toContain("validate-all.ps1");
+    expect(v1ReleaseQaEvidence).toContain("stress-check.ps1");
+    expect(v1ReleaseQaEvidence).toContain("manual QA checklist");
+    expect(v1ReleaseQaEvidence).toContain("PASS: ready for v1.0-rc1 tagging");
+    expect(readme).toContain("docs/v1-release-qa-evidence.md");
+    expect(releaseCandidateNotes).toContain("v1-release-qa-evidence.md");
   });
 
   it("phase10e_focus_text_overflow_cleanup_doc_exists", () => {

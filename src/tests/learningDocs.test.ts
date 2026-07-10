@@ -33,6 +33,7 @@ import practiceTasks from "../../docs/practice-tasks.md?raw";
 import projectOverview from "../../docs/project-overview.md?raw";
 import releaseCandidateNotes from "../../docs/release-candidate-notes.md?raw";
 import screenshotsGuide from "../../docs/screenshots-guide.md?raw";
+import visualRcBaseline from "../../docs/visual-rc-baseline.md?raw";
 import validateAllScript from "../../scripts/validate-all.ps1?raw";
 
 describe("learning use documentation", () => {
@@ -263,6 +264,23 @@ describe("learning use documentation", () => {
     expect(circuitVisualContract).toContain("Signal Probe labels use short stable names");
     expect(circuitVisualContract).toContain("Machine Code selected-word explanations");
     expect(circuitVisualContract).toContain("PUSH is Stack write");
+  });
+
+  it("visual_rc_baseline_doc_exists", () => {
+    expect(visualRcBaseline).toContain("Visual RC Baseline");
+    expect(visualRcBaseline).toContain("a6ce8a4");
+    expect(visualRcBaseline).toContain("visual-rc-phase10l");
+    expect(visualRcBaseline).toContain("docs/circuit-visual-contract.md");
+    expect(visualRcBaseline).toContain("observation-cpu-flow");
+    expect(visualRcBaseline).toContain("observation-register-stack");
+    expect(visualRcBaseline).toContain("observation-code-machine");
+    expect(visualRcBaseline).toContain("index-addressing-circuit");
+    expect(visualRcBaseline).toContain("push-pop-stack-circuit");
+    expect(visualRcBaseline).toContain("call-return-call");
+    expect(visualRcBaseline).toContain("machine-code-explanation");
+    expect(visualRcBaseline).toContain("cpp-function-arguments-generated-casl");
+    expect(visualRcBaseline).toContain("must not be committed");
+    expect(readme).toContain("docs/visual-rc-baseline.md");
   });
 
   it("phase10e_focus_text_overflow_cleanup_doc_exists", () => {
@@ -502,6 +520,7 @@ describe("learning use documentation", () => {
     expect(readme).toContain("docs/phase10j-observation-mode-split.md");
     expect(readme).toContain("docs/phase10k-observation-visual-defect-cleanup.md");
     expect(readme).toContain("docs/phase10l-final-ui-detail-polish.md");
+    expect(readme).toContain("docs/visual-rc-baseline.md");
     expect(readme).toContain("docs/manual-qa-checklist.md");
     expect(readme).toContain("docs/release-candidate-notes.md");
     expect(readme).toContain("docs/future-custom-circuit-design.md");

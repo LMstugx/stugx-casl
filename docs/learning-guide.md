@@ -19,6 +19,8 @@ You can use it in two ways:
 
 The purpose is not to replace a full compiler. The purpose is to make each translation and execution step visible.
 
+v1.0 is the stable learning-tool scope, not a complete C++ compiler. The frozen v1.0 boundary is documented in [v1-scope-freeze.md](v1-scope-freeze.md): it includes CASL / COMET execution, C++ subset lowering, observation modes, Circuit Focus Mode, and FramePlan design preview, while leaving arrays, pointers, recursion, stack-frame locals, custom circuit editing, and full compiler behavior for future versions.
+
 ## 2. Recommended Learning Order
 
 ### Step 1: CASL Direct Execution

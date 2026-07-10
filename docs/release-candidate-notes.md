@@ -1,6 +1,6 @@
 # Release Candidate Notes
 
-These notes describe the current stable learning build after Phase 10I. They are meant for local review, teacher or senior-student demos, and future release-candidate checks.
+These notes describe the current stable learning build after Phase 10I and the later Phase 11 FramePlan design-layer freeze. They are meant for local review, teacher or senior-student demos, and future release-candidate checks. The v1.0 release scope is frozen in [v1-scope-freeze.md](v1-scope-freeze.md).
 
 ## 1. Current Stable Capabilities
 
@@ -93,6 +93,7 @@ Addressing and stack behavior:
 - `POP` reads `Memory[SP]` into a register.
 - `CALL` stores the return address on stack and jumps to the effective target.
 - `RET` performs a stack return when `callDepth > 0`; otherwise it finishes the program as a top-level `RET`.
+- FramePlan design preview is included as a teaching layer only; it does not add stack-frame locals or live stack-frame slot values.
 
 ## 4. Supported C++ Subset
 
@@ -169,3 +170,5 @@ Manual QA should also follow `docs/manual-qa-checklist.md`, especially the keybo
 - Future custom circuit display controls or schematic/lab style toggle.
 - Optional full accessibility audit after the learning UI stabilizes.
 - Optional sanitizer or CI hardening pass in a known-good Visual Studio developer shell or CI image.
+
+See [v1-scope-freeze.md](v1-scope-freeze.md) for the frozen v1.0 included scope, excluded scope, baseline tags, and release QA gate.

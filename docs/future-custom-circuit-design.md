@@ -2,6 +2,8 @@
 
 This document is a design note. The current application does not implement a custom circuit editor.
 
+Custom circuit work is outside the v1.0 scope freeze. It belongs to the v2.0+ direction after the current learning-studio baseline is stable; see [v1-scope-freeze.md](v1-scope-freeze.md).
+
 ## Why Custom Circuit May Be Useful
 
 The fixed COMET-II circuit is useful for early study because it keeps attention on instruction execution. Later, advanced students may want to test how different hardware blocks, probes, or routing choices affect understanding.

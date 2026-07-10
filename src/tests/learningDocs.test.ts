@@ -46,6 +46,7 @@ import releaseCandidateNotes from "../../docs/release-candidate-notes.md?raw";
 import screenshotsGuide from "../../docs/screenshots-guide.md?raw";
 import visualRcBaseline from "../../docs/visual-rc-baseline.md?raw";
 import validateAllScript from "../../scripts/validate-all.ps1?raw";
+import v1ScopeFreeze from "../../docs/v1-scope-freeze.md?raw";
 
 describe("learning use documentation", () => {
   it("learning_guide_exists", () => {
@@ -491,6 +492,28 @@ describe("learning use documentation", () => {
 
     expect(readme).toContain("docs/frameplan-relation-qa-checklist.md");
     expect(readme).toContain("docs/phase11-frameplan-design-layer-summary.md");
+  });
+
+  it("v1_scope_freeze_doc_exists", () => {
+    expect(v1ScopeFreeze).toContain("v1.0 Scope Freeze");
+    expect(v1ScopeFreeze).toContain("CASL II / COMET II learning studio");
+    expect(v1ScopeFreeze).toContain("Generated CASL II");
+    expect(v1ScopeFreeze).toContain("COMET II Machine Code");
+    expect(v1ScopeFreeze).toContain("Observation Modes");
+    expect(v1ScopeFreeze).toContain("C++ subset");
+    expect(v1ScopeFreeze).toContain("CALL");
+    expect(v1ScopeFreeze).toContain("stack-aware `RET`");
+    expect(v1ScopeFreeze).toContain("FramePlan design preview");
+    expect(v1ScopeFreeze).toContain("stack-frame locals");
+    expect(v1ScopeFreeze).toContain("custom circuit editor");
+    expect(v1ScopeFreeze).toContain("v1.1 Candidates");
+    expect(v1ScopeFreeze).toContain("v1.2 Candidates");
+    expect(v1ScopeFreeze).toContain("v2.0 Candidates");
+    expect(readme).toContain("docs/v1-scope-freeze.md");
+    expect(releaseCandidateNotes).toContain("v1-scope-freeze.md");
+    expect(manualQaChecklist).toContain("v1.0 Final QA Gate");
+    expect(learningGuide).toContain("v1-scope-freeze.md");
+    expect(futureCustomCircuit).toContain("v2.0+ direction");
   });
 
   it("phase10e_focus_text_overflow_cleanup_doc_exists", () => {

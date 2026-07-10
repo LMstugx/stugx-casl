@@ -78,7 +78,24 @@ For every viewport:
 - Confirm WASM lifecycle stress completes without stale register, stack, or call-depth state.
 - Confirm no visual-review artifacts or screenshots are staged for commit.
 
-## 7. Known Limitations
+## 7. v1.0 Final QA Gate
+
+Before v1.0 final, confirm:
+
+- [v1-scope-freeze.md](v1-scope-freeze.md) still describes the intended release scope.
+- `pnpm test` passes.
+- `pnpm build` passes.
+- `pnpm test:e2e` passes.
+- `pnpm build:wasm` passes.
+- `pnpm test:wasm` passes.
+- `pnpm test:e2e:wasm` passes.
+- C++ build and CTest pass.
+- `scripts/validate-all.ps1` passes.
+- `scripts/stress-check.ps1` passes when available.
+- Manual QA checklist and visual review are complete.
+- No v1.1 / v1.2 / v2.0 feature has slipped into the v1.0 branch.
+
+## 8. Known Limitations
 
 - stugx.CASL is not a full C++ compiler.
 - C++ subset does not support arrays, pointers, references, classes, overloads, recursion, or function calls inside larger expressions.

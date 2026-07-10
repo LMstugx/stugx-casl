@@ -789,6 +789,8 @@ describe("learning use documentation", () => {
     expect(phase12dVisualAudit).toContain("Phase 12D-VISUAL Circuit Visual Audit");
     expect(phase12dVisualAudit).toContain("Memory routing");
     expect(phase12dVisualAudit).toContain("target-highlight");
+    expect(phase12dVisualAudit).toContain("active-flow wires only");
+    expect(phase12dVisualAudit).toContain("Inspector Memory uses a bounded internal table scroller");
     expect(phase12dVisualAudit).toContain("no circular terminal marker");
     expect(phase12dVisualAudit).toContain("1280x720");
     expect(phase12dVisualAudit).toContain("visual-review-static");
@@ -798,6 +800,8 @@ describe("learning use documentation", () => {
   it("phase12d_visual_rules_are_linked_from_release_docs", () => {
     expect(circuitVisualContract).toContain("Memory must not render circular terminal markers");
     expect(circuitVisualContract).toContain("target-highlight relation");
+    expect(circuitVisualContract).toContain("active-flow wires only");
+    expect(circuitVisualContract).toContain("Inspector Memory must not force the entire Circuit Focus");
     expect(releaseCandidateNotes).toContain("phase12d-visual-audit.md");
     expect(v1ManualSignoff).toContain("phase12d-visual-audit.md");
   });

@@ -1,7 +1,7 @@
 import { memo } from "react";
 import { selectMemoryWindow, selectProgramStartAddress } from "../core/selectors";
 import { CometState, VisualPathKind, formatFlags, formatWord } from "../core/types";
-import { CIRCUIT_MEMORY_ROW_COUNT, CIRCUIT_VIEWBOX, circuitAnchors, circuitBusLanes, circuitLayout, aluPolygonPoints, RectLayout } from "./circuitLayout";
+import { CIRCUIT_MEMORY_ROW_COUNT, CIRCUIT_VIEWBOX, circuitAnchors, circuitLayout, aluPolygonPoints, RectLayout } from "./circuitLayout";
 import { resolveActiveWireIds, resolveVisualPath } from "./visualPathResolver";
 import { buildWirePaths, pointIsOnRoute, type WirePath } from "./wirePaths";
 import type { ReactNode } from "react";
@@ -73,28 +73,6 @@ function Module({ layout, title, value, accent, testId, layer, children }: Modul
 
 function AnchorPoint({ id, x, y }: { id: string; x: number; y: number }) {
   return <circle className="anchor-point" data-testid={id} cx={x} cy={y} r="2" aria-hidden="true" />;
-}
-
-function BusGuides() {
-  return (
-    <g className="bus-guide-layer" aria-hidden="true">
-      <path
-        className="bus-guide bus-guide-address"
-        data-testid="bus-guide-addr"
-        d={`M 246 ${circuitBusLanes.addressY} L ${circuitBusLanes.memoryBusX} ${circuitBusLanes.addressY}`}
-      />
-      <path
-        className="bus-guide bus-guide-data"
-        data-testid="bus-guide-data"
-        d={`M ${circuitBusLanes.grBusX} ${circuitBusLanes.dataBypassY} L ${circuitBusLanes.memoryBusX} ${circuitBusLanes.dataBypassY}`}
-      />
-      <path
-        className="bus-guide bus-guide-control"
-        data-testid="bus-guide-ctrl"
-        d={`M 108 ${circuitBusLanes.controlY} L 238 ${circuitBusLanes.controlY}`}
-      />
-    </g>
-  );
 }
 
 function StatusIndicators({ activeWireIds, state }: { activeWireIds: Set<string>; state: CometState }) {
@@ -473,35 +451,6 @@ function CometCircuitSvg({ state, sourceMapFocus }: { state: CometState; sourceM
 
   return (
     <svg className="comet-circuit" viewBox={`0 0 ${CIRCUIT_VIEWBOX.width} ${CIRCUIT_VIEWBOX.height}`} role="img" aria-label="COMET II circuit" data-testid="comet-circuit-svg">
-      <BusGuides />
-
-      <g className="wire-layer">
-        {wirePaths.map((path) => {
-          return (
-            <path
-              key={path.id}
-              d={path.d}
-              data-testid={`wire-guide-${path.id}`}
-              data-active="false"
-              data-path-id={path.id}
-              data-lane={path.lane}
-              data-semantic-type={path.semanticType}
-              data-visual-role={path.visualRole}
-              data-allow-animation={path.allowAnimation ? "true" : "false"}
-              data-allow-junction={path.allowJunction ? "true" : "false"}
-              data-from-anchor={path.fromAnchor.id}
-              data-to-anchor={path.toAnchor.id}
-              data-primary={path.isPrimary ? "true" : "false"}
-              data-related-register={path.relatedRegister !== undefined ? `GR${path.relatedRegister}` : undefined}
-              data-related-memory-address={path.relatedMemoryAddress !== undefined ? formatWord(path.relatedMemoryAddress) : undefined}
-              data-related-stage={path.relatedStage}
-              data-avoids-alu={path.avoidsAlu ? "true" : "false"}
-              className={`wire wire-${path.role}`}
-            />
-          );
-        })}
-      </g>
-
       <g className="bus-labels" aria-hidden="true">
         <text x="430" y="112">DATA BUS</text>
         <text x="615" y="22">ADDR BUS</text>

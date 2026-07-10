@@ -19,7 +19,7 @@ Every visible route should answer four questions:
 
 The route must start from a semantic anchor and end at a semantic anchor. Row-level anchors are required for General Registers and Memory rows. Module-center fallback anchors are only acceptable for inactive guides or future placeholders.
 
-Active routes should use orthogonal routing with clear endpoint anchors. If a route needs to bend, use lane-based turns rather than ad hoc diagonals. In v1.0, active wires do not use terminal arrow markers; direction is taught by active color/weight, module and row highlights, Current Instruction, Trace, Source Mapping, and Signal Probe.
+Active routes should use orthogonal routing with clear endpoint anchors. If a route needs to bend, use lane-based turns rather than ad hoc diagonals. In v1.0, the default circuit view renders active-flow wires only. Inactive guide wires, semantic-only routes, target-highlight route templates, and debug/background connection paths are not drawn as SVG lines. Active wires do not use terminal arrow markers; direction is taught by active color/weight, module and row highlights, Current Instruction, Trace, Source Mapping, and Signal Probe.
 
 Geometry convergence rules:
 
@@ -357,6 +357,8 @@ Wire direction is explained by route endpoints plus the surrounding teaching con
 
 - Active wires must not render terminal arrow markers, short-segment arrow overlays, or floating arrowheads in v1.0.
 - Inactive guide wires must not render arrow markers.
+- Inactive guide wires are hidden by default in v1.0. A full route debug overlay is future work and must remain off in the release UI.
+- Semantic-only and target-highlight paths must not render as SVG lines in the default view.
 - Endpoint direction must remain readable through active color/weight, module highlights, target row highlights, Current Instruction, Trace, Source Mapping, and Signal Probe.
 - Junction dots are disabled by default. They are allowed only at explicit real split or merge points.
 - Junction dots must sit on an actual SVG segment, stay away from endpoints, and never appear as orphan nodes.
@@ -380,6 +382,9 @@ Circuit Focus Mode must remain usable at 1280x720 and above.
 - Memory and GR row anchors remain stable even when labels are truncated.
 - No panel may require horizontal page scrolling in the normal Focus Mode layout.
 - Bottom Output Log stays compact unless the user opens it.
+- Large data tables such as Inspector Memory, Source Map, and full Trace may use bounded internal scrolling.
+- Learning cards such as Signal Probe, Stack Frame View, Stack Preview, and compact Call Stack should expand naturally and must not trap ordinary details in tiny nested scroll regions.
+- Inspector Memory must not force the entire Circuit Focus or IDE page to grow when the user selects 64 or more rows.
 
 Small viewports should reduce detail density, not semantic accuracy.
 

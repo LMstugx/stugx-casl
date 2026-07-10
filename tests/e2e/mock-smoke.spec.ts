@@ -298,8 +298,9 @@ test("Mock backend presents Circuit Focus Mode as a teaching layout", async ({ p
 
   await step(page);
   await expect(circuit.locator("[data-testid='module-sp']")).toHaveAttribute("data-active", "false");
-  await expect(circuit.locator("[data-testid='wire-guide-sp-to-mar-preview']")).toHaveAttribute("data-active", "false");
-  await expect(circuit.locator("[data-testid='wire-guide-mar-to-stack-memory-preview']")).toHaveAttribute("data-active", "false");
+  await expect(circuit.locator("[data-testid='wire-guide-sp-to-mar-preview']")).toHaveCount(0);
+  await expect(circuit.locator("[data-testid='wire-guide-mar-to-stack-memory-preview']")).toHaveCount(0);
+  await expect(circuit.locator("[data-active='false'][data-path-id]")).toHaveCount(0);
   await expect(circuit).toContainText("DATA BUS");
   await expect(circuit).toContainText("ADDR BUS");
   await expect(circuit).toContainText("CTRL");
@@ -851,10 +852,25 @@ test("Mock backend memory viewer can inspect an extended range and highlight wri
   await openStudio(page, "Mock Core");
   await assemble(page);
 
+  const circuitPanel = page.locator(".circuit-panel");
+  const circuitHeightBefore = (await circuitPanel.boundingBox())?.height ?? 0;
+
   await page.getByRole("tab", { name: "Memory" }).click();
   await page.getByTestId("memory-start-input").fill("0020");
   await page.getByTestId("memory-row-count").selectOption("64");
   await page.getByTestId("memory-go-button").click();
+
+  const circuitHeightAfter = (await circuitPanel.boundingBox())?.height ?? 0;
+  expect(circuitHeightAfter).toBeLessThanOrEqual(circuitHeightBefore + 40);
+  const memoryScroll = page.locator(".inspector-content[data-active-tab='memory'] .memory-table-scroll");
+  await expect(memoryScroll).toBeVisible();
+  const scrollMetrics = await memoryScroll.evaluate((element) => ({
+    clientHeight: element.clientHeight,
+    scrollHeight: element.scrollHeight,
+    overflowY: window.getComputedStyle(element).overflowY
+  }));
+  expect(scrollMetrics.scrollHeight).toBeGreaterThan(scrollMetrics.clientHeight);
+  expect(["auto", "scroll"]).toContain(scrollMetrics.overflowY);
 
   await expect(page.getByTestId("memory-view-row-0020")).toContainText("0020");
   await expect(page.getByTestId("memory-view-row-002B")).toContainText("002B");

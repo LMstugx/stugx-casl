@@ -118,8 +118,8 @@ describe("COMET circuit SVG visual regression structure", () => {
     expect(doc.querySelector("[data-testid='module-sp']")?.getAttribute("data-layer")).toBe("control");
     expect(doc.querySelector("[data-testid='module-sp']")?.getAttribute("data-active")).toBe("false");
     expect(activeWireIds(doc)).toEqual(["pr-to-mar"]);
-    expect(doc.querySelector("[data-path-id='sp-to-mar-preview']")?.getAttribute("data-active")).toBe("false");
-    expect(doc.querySelector("[data-path-id='mar-to-stack-memory-preview']")?.getAttribute("data-active")).toBe("false");
+    expect(doc.querySelector("[data-testid='wire-guide-sp-to-mar-preview']")).toBeNull();
+    expect(doc.querySelector("[data-testid='wire-guide-mar-to-stack-memory-preview']")).toBeNull();
 
     expect(doc.querySelector("[data-testid='sp-anchor-output']")).toBeTruthy();
     expect(doc.querySelector("[data-testid='sp-anchor-adjust']")).toBeTruthy();
@@ -181,15 +181,21 @@ B    DC    10
     expect(doc.querySelectorAll("marker[id^='arrow-']").length).toBe(0);
   });
 
-  it("inactive_wires_are_not_primary_arrows", () => {
+  it("default_circuit_does_not_render_inactive_guide_wires", () => {
     const doc = renderCircuit(mockCaslCore.assemble(DEFAULT_CASL_SOURCE));
     const inactivePaths = Array.from(doc.querySelectorAll<SVGPathElement>("[data-active='false'][data-path-id]"));
 
-    expect(inactivePaths.length).toBeGreaterThan(0);
-    for (const path of inactivePaths) {
-      expect(path.getAttribute("marker-end")).toBeNull();
-      expect(path.getAttribute("marker-mid")).toBeNull();
-    }
+    expect(inactivePaths.length).toBe(0);
+    expect(doc.querySelectorAll("[data-testid^='wire-guide-']").length).toBe(0);
+  });
+
+  it("semantic_only_and_target_highlight_paths_are_not_rendered_as_svg_lines", () => {
+    const doc = renderCircuit(mockCaslCore.step(mockCaslCore.assemble(DEFAULT_CASL_SOURCE)));
+
+    expect(doc.querySelector("[data-visual-role='semantic-only']")).toBeNull();
+    expect(doc.querySelector("[data-visual-role='target-highlight']")).toBeNull();
+    expect(doc.querySelector("[data-testid='wire-mar-to-memory']")).toBeNull();
+    expect(doc.querySelector("[data-testid='wire-guide-mar-to-memory']")).toBeNull();
   });
 
   it("memory_junction_dot_not_rendered_when_not_semantic", () => {
@@ -210,8 +216,7 @@ B    DC    10
 
     expect(doc.querySelector("[data-testid='wire-mar-to-memory']")).toBeNull();
     expect(doc.querySelector("[data-testid='wire-terminal-mar-to-memory']")).toBeNull();
-    expect(guide?.getAttribute("data-visual-role")).toBe("target-highlight");
-    expect(guide?.getAttribute("data-allow-animation")).toBe("false");
+    expect(guide).toBeNull();
   });
 
   it("junction_dots_only_render_for_valid_semantic_junctions", () => {
@@ -286,15 +291,11 @@ B    DC    10
     expect(memoryToMdr?.classList.contains("circuit-wire--addr-flow")).toBe(false);
   });
 
-  it("inactive_wire_has_no_flow_class", () => {
+  it("inactive_wire_layer_is_not_rendered", () => {
     const doc = renderCircuit(mockCaslCore.assemble(DEFAULT_CASL_SOURCE));
     const inactivePaths = Array.from(doc.querySelectorAll<SVGPathElement>("[data-active='false'][data-path-id]"));
 
-    expect(inactivePaths.length).toBeGreaterThan(0);
-    for (const path of inactivePaths) {
-      expect(path.classList.contains("circuit-wire--flow")).toBe(false);
-      expect(path.classList.contains("circuit-wire--active")).toBe(false);
-    }
+    expect(inactivePaths.length).toBe(0);
   });
 
   it("control_wire_gets_ctrl_flow_class", () => {

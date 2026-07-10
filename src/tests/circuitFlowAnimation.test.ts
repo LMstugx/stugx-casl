@@ -30,11 +30,12 @@ describe("circuit signal flow animation styles", () => {
     expect(visualReviewSpec).toContain("document.body.classList.add");
   });
 
-  it("inactive_wires_do_not_animate", async () => {
-    const appCss = await readRepoFile("src/styles/app.css");
+  it("default_circuit_hides_inactive_wire_layer", async () => {
+    const circuitSvg = await readRepoFile("src/visual/CometCircuitSvg.tsx");
 
-    expect(appCss).toContain('[data-active="false"].circuit-wire--flow');
-    expect(appCss).toContain("animation: none");
+    expect(circuitSvg).not.toContain("wire-guide-");
+    expect(circuitSvg).not.toContain('data-active="false"');
+    expect(circuitSvg).not.toContain('className="wire-layer"');
   });
 
   it("visual_review_covers_1280_viewport", async () => {

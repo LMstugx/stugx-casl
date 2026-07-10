@@ -2494,25 +2494,6 @@ button {
   opacity: 0.42;
 }
 
-.bus-guide {
-  fill: none;
-  stroke-width: 1;
-  stroke-dasharray: 5 6;
-  opacity: 0.24;
-}
-
-.bus-guide-data {
-  stroke: #9c5f5f;
-}
-
-.bus-guide-address {
-  stroke: #587fb9;
-}
-
-.bus-guide-control {
-  stroke: #6f819c;
-}
-
 .junction-dot {
   fill: #f8fafc;
   stroke: #7f93ad;
@@ -2877,10 +2858,13 @@ button {
 }
 
 .inspector-panel {
-  height: 100%;
+  align-self: start;
+  height: auto;
+  max-height: calc(100vh - 176px);
   min-height: 0;
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr);
+  overflow: hidden;
 }
 
 .inspector-header {
@@ -2924,14 +2908,22 @@ button {
   min-height: 0;
   overflow: auto;
   animation: tabIn var(--motion-base) var(--ease-standard);
+  scrollbar-gutter: stable;
 }
 
 .embedded-panel {
   min-height: 0;
 }
 
+.inspector-content[data-active-tab="memory"],
+.inspector-content[data-active-tab="sourceMap"],
+.inspector-content[data-active-tab="trace"] {
+  max-height: calc(100vh - 282px);
+}
+
 .memory-viewer {
   min-height: 0;
+  max-height: inherit;
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr);
 }
@@ -2991,7 +2983,11 @@ button {
 
 .memory-table-scroll {
   min-height: 0;
+  max-height: min(480px, calc(100vh - 410px));
   overflow: auto;
+  padding-right: 4px;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
 }
 
 .data-table {
@@ -3030,6 +3026,9 @@ button {
 }
 
 .data-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
   color: #334155;
   background: #f1f4f8;
   font-weight: 750;

@@ -18,7 +18,7 @@ export default function InspectorPanel({ state }: { state: CometState }) {
   const [activeTab, setActiveTab] = useState<InspectorTab>("registers");
 
   return (
-    <section className="panel inspector-panel">
+    <section className="panel inspector-panel" data-active-tab={activeTab}>
       <header className="panel-header inspector-header">
         <div>
           <h2>Inspector</h2>
@@ -49,6 +49,7 @@ export default function InspectorPanel({ state }: { state: CometState }) {
       <div
         id={`inspector-panel-${activeTab}`}
         className="tab-content inspector-content"
+        data-active-tab={activeTab}
         role="tabpanel"
         aria-labelledby={`inspector-tab-${activeTab}`}
       >

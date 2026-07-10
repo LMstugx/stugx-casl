@@ -657,13 +657,13 @@ describe("Circuit Focus Mode layout", () => {
     expect(markup).not.toContain('data-address="0020" data-sp="true"');
   });
 
-  it("stack_path_guide_is_inactive_by_default", () => {
+  it("default_circuit_does_not_render_inactive_stack_guides", () => {
     const markup = renderFocus(stepTimes(1));
 
-    expect(markup).toContain('data-testid="wire-guide-sp-to-mar-preview"');
-    expect(markup).toContain('data-testid="wire-guide-mar-to-stack-memory-preview"');
-    expect(markup).toContain('data-active="false" data-path-id="sp-to-mar-preview"');
-    expect(markup).toContain('data-active="false" data-path-id="mar-to-stack-memory-preview"');
+    expect(markup).not.toContain('data-testid="wire-guide-sp-to-mar-preview"');
+    expect(markup).not.toContain('data-testid="wire-guide-mar-to-stack-memory-preview"');
+    expect(markup).not.toContain('data-active="false" data-path-id="sp-to-mar-preview"');
+    expect(markup).not.toContain('data-active="false" data-path-id="mar-to-stack-memory-preview"');
     expect(activeWireIds(markup)).not.toContain("sp-to-mar-preview");
     expect(activeWireIds(markup)).not.toContain("mar-to-stack-memory-preview");
   });
@@ -853,20 +853,20 @@ describe("Circuit Focus Mode layout", () => {
     expect(markup).toContain("DATA BUS");
     expect(markup).toContain("ADDR BUS");
     expect(markup).toContain("CTRL");
-    expect(markup).toContain('data-testid="bus-guide-data"');
-    expect(markup).toContain('data-testid="bus-guide-addr"');
-    expect(markup).toContain('data-testid="bus-guide-ctrl"');
+    expect(markup).not.toContain('data-testid="bus-guide-data"');
+    expect(markup).not.toContain('data-testid="bus-guide-addr"');
+    expect(markup).not.toContain('data-testid="bus-guide-ctrl"');
   });
 
-  it("focus_mode_bus_labels_are_subtle and inactive_wires_are_deemphasized", () => {
+  it("focus_mode_uses_clean_wire_mode_without_inactive_routes", () => {
     const markup = renderFocus(stepTimes(1));
 
     expect(markup).toContain('class="bus-labels"');
     expect(markup).toContain("DATA BUS");
     expect(markup).toContain("ADDR BUS");
     expect(markup).toContain("CTRL");
-    expect(markup).toContain('class="wire wire-data"');
-    expect(markup).toContain('data-active="false" data-path-id="memory-to-mdr"');
+    expect(markup).not.toContain('data-testid="wire-guide-');
+    expect(markup).not.toContain('data-active="false" data-path-id=');
     expect(markup).toContain('class="wire wire-data wire-active circuit-wire--active circuit-wire--flow circuit-wire--data-flow"');
   });
 
@@ -1386,6 +1386,16 @@ DONE RET
     expect(appCss).toContain(".app-shell");
     expect(appCss).toContain("min-height: 100vh");
     expect(appCss).toContain("overflow: visible");
+  });
+
+  it("inspector_memory_tab_uses_bounded_internal_scroll", () => {
+    expect(appCss).toContain(".inspector-panel");
+    expect(appCss).toContain("max-height: calc(100vh - 176px)");
+    expect(appCss).toContain('.inspector-content[data-active-tab="memory"]');
+    expect(appCss).toContain("max-height: calc(100vh - 282px)");
+    expect(appCss).toContain(".memory-table-scroll");
+    expect(appCss).toContain("max-height: min(480px, calc(100vh - 410px))");
+    expect(appCss).toContain("scrollbar-gutter: stable");
   });
 
   it("signal_probe_details_has_aria_expanded", () => {

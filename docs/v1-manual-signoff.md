@@ -51,7 +51,8 @@ Circuit-specific visual checks:
 - Memory-side circular markers are absent.
 - Memory address target is shown by MAR, the Memory target badge, and row highlight rather than a long active address wire.
 - Memory read/write data flow uses short row stubs.
-- Active arrows are attached to stable endpoints and inactive guides do not animate.
+- Active wires are arrowless; inactive guide routes are hidden by default and no ghost route lines appear.
+- Inspector Memory uses internal scrolling for large row counts and does not stretch the main Circuit panel.
 
 Do not commit visual-review screenshots or artifacts.
 

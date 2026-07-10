@@ -102,6 +102,7 @@ Use the gallery to inspect:
 - Memory target state points to the active memory row through MAR activity, the Memory target badge, and the highlighted row. Do not expect a long active `MAR -> Memory` address wire.
 - GR highlight points to the active GR row.
 - Active wires do not use terminal arrows in v1.0; read direction from endpoint anchors, active color/weight, module highlights, target row highlights, Trace, and Signal Probe.
+- Default Circuit SVG screenshots show active-flow wires only. Inactive guide routes, semantic-only paths, and target-highlight templates should not appear as ghost SVG lines.
 - Active wires may flow in the live app, but visual review screenshots intentionally freeze that animation.
 - Junction dots are disabled by default; if one appears, it must be an explicit semantic branch or merge point, not an orphan marker.
 - Memory-side circular terminal markers and guide circles must not appear in v1.0 screenshots.
@@ -112,7 +113,7 @@ Use the gallery to inspect:
 - READ / WRITE / EXEC / FLAG indicators match the visible active path.
 - Signal Probe is compact and derived from the current instruction / recent trace.
 - Stack Preview is compact, read-only, and shows real `PUSH` / `POP` / `CALL` / stack-`RET` stack read/write rows.
-- The SP -> MAR -> Memory guide is faint and inactive during ordinary execution, but active for stack instructions and stack-aware returns.
+- The SP -> MAR -> Memory route is hidden during ordinary execution and appears only when the stack path is active for stack instructions and stack-aware returns.
 - Older Trace rows are lower emphasis than the latest row.
 - Output Log remains available but compact in Focus Mode.
 - SP is visible but inactive for ordinary execution.
@@ -134,6 +135,7 @@ Use the gallery to inspect:
 - Call Stack details should use readable wording such as `Return`, `Stored at`, `Routine`, and `Depth change` instead of terse internal abbreviations.
 - Signal Probe and Call Stack details can be focused and opened with the keyboard.
 - Focus rings are visible on toolbar buttons, tabs, details summaries, and machine-code rows without dominating the layout.
+- Inspector Memory uses bounded internal scrolling for large row counts and must not stretch the main Circuit panel or create a large blank page below the SVG.
 - Ellipsized labels, instructions, operands, and explanation text expose the full value through native `title` text.
 - Trace rows show main event, primary effect, and secondary note without overflowing the card.
 - Trace history rows should stay compact while the latest row remains visually prominent. The latest secondary note may use up to two lines when needed for CALL / RET / PUSH / POP context.

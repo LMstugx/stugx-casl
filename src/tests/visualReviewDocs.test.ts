@@ -60,6 +60,8 @@ describe("visual review screenshot gallery setup", () => {
     expect(visualReviewDoc).toContain("freeze that animation");
     expect(visualReviewDoc).toContain("Junction dots are disabled by default");
     expect(visualReviewDoc).toContain("Memory-side circular terminal markers");
+    expect(visualReviewDoc).toContain("active-flow wires only");
+    expect(visualReviewDoc).toContain("Inspector Memory uses bounded internal scrolling");
     expect(visualReviewDoc).toContain("DATA BUS");
     expect(visualReviewDoc).toContain("LD / ST data-bypass paths avoid the ALU body");
     expect(visualReviewDoc).toContain("ST writeback lands at the Memory row edge");

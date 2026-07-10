@@ -155,7 +155,7 @@ async function captureStackPreviewFocus(page: Page, viewport: Viewport) {
   await enterCircuitFocusMode(page);
   await assemble(page);
   await expect(page.getByTestId("comet-circuit-svg").locator("[data-testid='module-sp']")).toHaveAttribute("data-active", "false");
-  await expect(page.getByTestId("comet-circuit-svg").locator("[data-testid='wire-guide-sp-to-mar-preview']")).toHaveAttribute("data-active", "false");
+  await expect(page.getByTestId("comet-circuit-svg").locator("[data-testid='wire-guide-sp-to-mar-preview']")).toHaveCount(0);
   await selectObservationMode(page, "register-stack");
   await expect(page.getByTestId("focus-stack-preview")).toContainText("Stack path preview only.");
   await expect(page.getByTestId("focus-stack-preview")).toContainText("SP FFFE");

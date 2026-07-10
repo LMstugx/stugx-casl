@@ -107,6 +107,7 @@ Calling convention design note:
 - Read [phase11d-frameplan-generator-scaffold.md](phase11d-frameplan-generator-scaffold.md) for the design-test `buildFramePlans` metadata scaffold. It records future frame slots but emitted CASL is still unchanged.
 - In Register / Stack observation mode, valid C++ source can now show a FramePlan design preview in Stack Frame View. It is marked `Not runtime state`, does not display live slot values, and does not change emitted CASL. See [phase11e-frameplan-stack-frame-view-preview.md](phase11e-frameplan-stack-frame-view-preview.md).
 - Code / Machine mode can also show design-only source symbol chips and Generated CASL `slot` badges. These select the related FramePlan slot detail so you can connect a C++ symbol, the current static label, and the future frame-slot concept. See [phase11g-source-casl-frame-slot-selection.md](phase11g-source-casl-frame-slot-selection.md).
+- Signal Probe and Slot Detail can explain the selected FramePlan slot's current relation, such as `GR1 -> FUNC_ADD_A` or a static local label, without showing fake runtime frame values. The Source Editor also has a lightweight Related Frame Symbols panel for the same design-only selection path. See [phase11h-frameplan-circuit-probe-relation.md](phase11h-frameplan-circuit-probe-relation.md) and [phase11i-editor-frameplan-symbol-hover.md](phase11i-editor-frameplan-symbol-hover.md).
 
 Single-argument follow-up: `C++: Function Argument`
 

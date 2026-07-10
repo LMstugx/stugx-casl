@@ -415,6 +415,10 @@ test("Mock backend switches observation modes without resetting VM state", async
 test("Mock backend shows Stack Frame View FramePlan preview in Register Stack mode", async ({ page }) => {
   await openStudio(page, "Mock Core");
   await selectDemoProgram(page, "cpp-function-arguments");
+  const sourceEditorMarker = page.locator('[data-testid="source-editor-frame-symbol-marker"][data-slot-id="add:argument:a:1"]').first();
+  await expect(sourceEditorMarker).toBeVisible();
+  await sourceEditorMarker.click();
+  await expect(sourceEditorMarker).toHaveAttribute("aria-pressed", "true");
   await page.getByTestId("circuit-focus-toggle").click();
   await assemble(page);
   await switchObservationMode(page, "register-stack");
@@ -447,6 +451,11 @@ test("Mock backend shows Stack Frame View FramePlan preview in Register Stack mo
   await expect(page.getByTestId("focus-stack-frame-view")).toContainText("FrameSlot");
   await expect(page.getByTestId("stack-frame-view-state")).toHaveAttribute("data-has-live-frame", "false");
   await expect(page.getByTestId("stack-frame-view-state")).toHaveAttribute("data-runtime-state", "false");
+  await expect(page.locator('[data-slot-id="add:argument:a:1"]')).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByTestId("stack-frame-slot-detail")).toContainText("Source Editor");
+  await expect(page.getByTestId("signal-probe-frame-slot-relation")).toContainText("GR1");
+  await expect(page.getByTestId("signal-probe-frame-slot-relation")).toContainText("FUNC_ADD_A");
+  await expect(page.getByTestId("signal-probe-frame-slot-relation")).toContainText("not runtime");
 
   const prBeforeSlotSelection = await page.getByTestId("focus-register-bank").getByTestId("register-pr").textContent();
   await page.getByTestId("stack-frame-view-state").evaluate((element) => {

@@ -7,6 +7,7 @@ import InspectorPanel from "../components/InspectorPanel";
 import MemoryPanel from "../components/MemoryPanel";
 import OutputPanel from "../components/OutputPanel";
 import RegisterPanel from "../components/RegisterPanel";
+import SourceEditor from "../components/SourceEditor";
 import StatusBar from "../components/StatusBar";
 import Toolbar from "../components/Toolbar";
 import TracePanel from "../components/TracePanel";
@@ -14,6 +15,7 @@ import { mockCaslCore } from "../core/mockCaslCore";
 import type { CometState } from "../core/types";
 import { getDemoProgram } from "../examples/demoPrograms";
 import { prepareSourceForCoreAssembly, type ObservationMode } from "../store/useAppStore";
+import { selectFrameSymbolRelations } from "../transpiler/framePlanView";
 
 const gr2Source = getDemoProgram("casl-gr2-addition")!.source;
 const pushPopSource = getDemoProgram("casl-push-pop-stack")!.source;
@@ -437,6 +439,53 @@ describe("Circuit Focus Mode layout", () => {
     expect(markup).toContain('aria-label="Select FramePlan slot for source symbol result"');
   });
 
+  it("source_editor_renders_frame_symbol_markers_when_available", () => {
+    const relations = selectFrameSymbolRelations("cpp", cppFunctionWithLocalSource);
+    const markup = renderToStaticMarkup(
+      <SourceEditor
+        source={cppFunctionWithLocalSource}
+        language="cpp"
+        onChange={() => undefined}
+        frameSymbolRelations={relations}
+        selectedFrameSlotId="add:argument:a:1"
+      />
+    );
+
+    expect(markup).toContain('data-testid="source-editor-frame-symbols"');
+    expect(markup).toContain('data-testid="source-editor-frame-symbol-marker"');
+    expect(markup).toContain('data-slot-id="add:argument:a:1"');
+    expect(markup).toContain('data-selected="true"');
+    expect(markup).toContain("FUNC_ADD_A");
+  });
+
+  it("source_editor_does_not_render_markers_for_casl_mode", () => {
+    const markup = renderToStaticMarkup(
+      <SourceEditor
+        source={gr2Source}
+        language="casl"
+        onChange={() => undefined}
+        frameSymbolRelations={selectFrameSymbolRelations("casl", gr2Source)}
+      />
+    );
+
+    expect(markup).toContain('data-testid="source-editor"');
+    expect(markup).not.toContain('data-testid="source-editor-frame-symbol-marker"');
+  });
+
+  it("source_editor_handles_invalid_cpp_without_crash", () => {
+    const markup = renderToStaticMarkup(
+      <SourceEditor
+        source="int main("
+        language="cpp"
+        onChange={() => undefined}
+        frameSymbolRelations={selectFrameSymbolRelations("cpp", "int main(")}
+      />
+    );
+
+    expect(markup).toContain('data-testid="source-editor"');
+    expect(markup).not.toContain('data-testid="source-editor-frame-symbol-marker"');
+  });
+
   it("generated_casl_static_label_badge_renders", () => {
     const markup = renderCppFunctionArgumentsFocus("add", cppFunctionWithLocalSource, "code-machine");
 
@@ -449,6 +498,8 @@ describe("Circuit Focus Mode layout", () => {
     const markup = renderCppFunctionArgumentsFocus("add", cppFunctionWithLocalSource, "code-machine");
 
     expect(markup).toContain('data-testid="focus-frame-slot-relation"');
+    expect(markup).toContain('data-testid="related-frame-symbols"');
+    expect(markup).toContain('data-testid="source-editor-frame-symbol-marker"');
     expect(markup).toContain("Select a source chip or Generated CASL slot badge.");
   });
 

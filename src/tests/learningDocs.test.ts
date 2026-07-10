@@ -34,6 +34,7 @@ import phase11e from "../../docs/phase11e-frameplan-stack-frame-view-preview.md?
 import phase11f from "../../docs/phase11f-frameplan-slot-highlighting-contract.md?raw";
 import phase11g from "../../docs/phase11g-source-casl-frame-slot-selection.md?raw";
 import phase11h from "../../docs/phase11h-frameplan-circuit-probe-relation.md?raw";
+import phase11i from "../../docs/phase11i-editor-frameplan-symbol-hover.md?raw";
 import circuitVisualContract from "../../docs/circuit-visual-contract.md?raw";
 import futureCustomCircuit from "../../docs/future-custom-circuit-design.md?raw";
 import manualQaChecklist from "../../docs/manual-qa-checklist.md?raw";
@@ -446,6 +447,23 @@ describe("learning use documentation", () => {
     expect(phase11g).toContain("phase11h-frameplan-circuit-probe-relation.md");
     expect(futureCustomCircuit).toContain("Phase 11H lets Signal Probe");
     expect(circuitVisualContract).toContain("Signal Probe may show selected FramePlan slot relation notes");
+  });
+
+  it("phase11i_editor_frameplan_symbol_hover_doc_exists", () => {
+    expect(phase11i).toContain("Phase 11I: Editor FramePlan Symbol Hover");
+    expect(phase11i).toContain("design-only");
+    expect(phase11i).toContain("Related Frame Symbols");
+    expect(phase11i).toContain("function parameters");
+    expect(phase11i).toContain("local variables");
+    expect(phase11i).toContain("current static label");
+    expect(phase11i).toContain("future stack slot");
+    expect(phase11i).toContain("No Emitted CASL Change");
+    expect(phase11i).toContain("No Runtime Value");
+    expect(readme).toContain("docs/phase11i-editor-frameplan-symbol-hover.md");
+    expect(phase11g).toContain("phase11i-editor-frameplan-symbol-hover.md");
+    expect(phase11h).toContain("phase11i-editor-frameplan-symbol-hover.md");
+    expect(learningGuide).toContain("phase11i-editor-frameplan-symbol-hover.md");
+    expect(futureCustomCircuit).toContain("Phase 11I adds a lightweight Source Editor");
   });
 
   it("phase10e_focus_text_overflow_cleanup_doc_exists", () => {

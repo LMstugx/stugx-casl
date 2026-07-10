@@ -131,3 +131,5 @@ Phase 11F adds a design-only `FrameSlotMapping` and selected-slot contract. It c
 Phase 11G wires C++ source context chips and Generated CASL `slot` badges to the same design-only selection model. This improves teaching navigation between source symbols, static labels, and future frame-slot concepts, but it still must not be interpreted as custom-circuit routing or live stack-frame probes.
 
 Phase 11H lets Signal Probe and Slot Detail explain the selected FramePlan slot's current circuit relation. Argument slots can point to `GR1` / `GR2` / `GR3` and their current static labels, local slots can point to static-label lowering, and return-address slots can point to the existing `CALL` / `RET` return-address stack path. These notes remain design-only and must not create fake active circuit paths or fake live stack-frame values.
+
+Phase 11I adds a lightweight Source Editor related-symbol surface for selecting the same design-only FramePlan slots. It intentionally uses a compact fallback panel instead of a full Monaco semantic plugin, so future custom-circuit work should treat it as teaching navigation only, not as live circuit probe data.

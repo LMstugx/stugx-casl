@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Toolbar from "./components/Toolbar";
 import SourceEditor from "./components/SourceEditor";
 import InspectorPanel from "./components/InspectorPanel";
@@ -12,6 +12,7 @@ import { formatWord } from "./core/types";
 import { summarizeCurrentInstruction } from "./visual/visualState";
 import { AppStoreProvider, useAppStore } from "./store/useAppStore";
 import { cppLineForCaslLine } from "./transpiler/cppMapping";
+import { selectFrameSymbolRelations } from "./transpiler/framePlanView";
 import { demoPrograms, getDefaultDemoProgram, getDemoProgram } from "./examples/demoPrograms";
 import { getLearningLesson } from "./examples/learningLessons";
 
@@ -52,6 +53,7 @@ function StudioShell() {
     setObservationMode
   } = useAppStore();
   const [isCircuitFocusMode, setCircuitFocusMode] = useState(false);
+  const [editorSelectedFrameSlotId, setEditorSelectedFrameSlotId] = useState<string | undefined>();
   const isRunning = state.runState === "Running";
   const canExecute = state.runState === "Ready" || (state.runState === "Stopped" && runStopReason === "manual");
   const canRun = !isSourceDirty && state.assembled && canExecute;
@@ -63,6 +65,12 @@ function StudioShell() {
   const selectedDemoMatchesSource = selectedDemoProgram.source === sourceText && selectedDemoProgram.mode === sourceMode;
   const selectedLesson = selectedDemoMatchesSource ? getLearningLesson(selectedDemoProgram.id) : undefined;
   const selectedLessonProgress = selectedLesson ? (lessonProgress[selectedDemoProgram.id] ?? {}) : {};
+  const frameSymbolRelations = useMemo(() => selectFrameSymbolRelations(sourceMode, sourceText), [sourceMode, sourceText]);
+  useEffect(() => {
+    if (editorSelectedFrameSlotId && !frameSymbolRelations.some((relation) => relation.mappingId === editorSelectedFrameSlotId)) {
+      setEditorSelectedFrameSlotId(undefined);
+    }
+  }, [editorSelectedFrameSlotId, frameSymbolRelations]);
   const timelineItems = useMemo(() => {
     const compactProgram = state.program && state.program.length > 0 && state.program.length <= 4 ? ["Ready", ...state.program.map((instruction) => instruction.op)] : [];
     if (compactProgram.length > 0 || state.trace.length === 0) {
@@ -113,6 +121,8 @@ function StudioShell() {
           timelineItems={timelineItems}
           observationMode={observationMode}
           onObservationModeChange={setObservationMode}
+          initialSelectedFrameSlotId={editorSelectedFrameSlotId}
+          initialSelectionSource="source-editor"
         />
       ) : (
       <main className="workspace">
@@ -148,7 +158,15 @@ function StudioShell() {
                 <span className="source-file-label" title={sourceMode === "cpp" ? "example.cpp" : "example.casl"}>{sourceMode === "cpp" ? "example.cpp" : "example.casl"}</span>
               </div>
             </header>
-            <SourceEditor source={sourceText} language={sourceMode} currentLine={editorCurrentLine} onChange={setSourceText} />
+            <SourceEditor
+              source={sourceText}
+              language={sourceMode}
+              currentLine={editorCurrentLine}
+              onChange={setSourceText}
+              frameSymbolRelations={frameSymbolRelations}
+              selectedFrameSlotId={editorSelectedFrameSlotId}
+              onSelectFrameSymbol={(relation) => setEditorSelectedFrameSlotId(relation.mappingId)}
+            />
           </section>
 
           <section className="panel current-panel">

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { selectGeneratedCaslRows } from "../core/generatedCaslRows";
 import { selectMachineCodeRows } from "../core/machineCodeRows";
 import type { CometState } from "../core/types";
@@ -37,6 +37,8 @@ type CircuitFocusLayoutProps = {
   timelineItems: TimelineItem[];
   observationMode?: ObservationMode;
   onObservationModeChange?: (mode: ObservationMode) => void;
+  initialSelectedFrameSlotId?: string;
+  initialSelectionSource?: FrameSlotSelectionSource;
 };
 
 const observationModes: Array<{ id: ObservationMode; label: string; summary: string }> = [
@@ -57,7 +59,7 @@ type FocusInstructionContext = {
 
 type FocusPanelDensity = "normal" | "compact";
 
-type FrameSlotSelectionSource = "stack-frame-view" | "source-context" | "generated-casl";
+type FrameSlotSelectionSource = "stack-frame-view" | "source-context" | "source-editor" | "generated-casl";
 
 type SelectedFrameSlot = {
   mappingId: string;
@@ -1382,6 +1384,7 @@ function staticLabelReference(mapping: FrameSlotMapping): string {
 
 function selectionSourceLabel(source?: FrameSlotSelectionSource): string {
   if (source === "generated-casl") return "Generated CASL";
+  if (source === "source-editor") return "Source Editor";
   if (source === "source-context") return "Source Context";
   if (source === "stack-frame-view") return "Stack Frame View";
   return "not selected";
@@ -1652,11 +1655,19 @@ function FocusStackFrameViewPanel({
 
 function FocusFrameSlotRelationPanel({
   mapping,
-  selectionSource
+  selectionSource,
+  frameSlotMappings,
+  selectedFrameSlotId,
+  onSelectFrameSlot
 }: {
   mapping?: FrameSlotMapping;
   selectionSource?: FrameSlotSelectionSource;
+  frameSlotMappings: FrameSlotMapping[];
+  selectedFrameSlotId?: string;
+  onSelectFrameSlot: (mapping: FrameSlotMapping, source: FrameSlotSelectionSource) => void;
 }) {
+  const symbolMappings = frameSlotMappings.filter((slot) => slot.slotKind !== "return-address").slice(0, 8);
+
   return (
     <section className="panel focus-frame-slot-relation" data-testid="focus-frame-slot-relation">
       <header className="panel-header">
@@ -1667,6 +1678,31 @@ function FocusFrameSlotRelationPanel({
         <span>Not runtime</span>
       </header>
       <div className="focus-frame-slot-relation-body">
+        {symbolMappings.length > 0 ? (
+          <div className="source-editor-frame-symbols focus-related-frame-symbols" data-testid="related-frame-symbols" aria-label="Related FramePlan symbols">
+            <span className="compact-label">Related symbols</span>
+            <div className="source-editor-frame-symbol-list">
+              {symbolMappings.map((slot) => (
+                <button
+                  key={slot.mappingId}
+                  type="button"
+                  className="source-editor-frame-symbol-marker"
+                  data-testid="source-editor-frame-symbol-marker"
+                  data-slot-id={slot.mappingId}
+                  data-symbol-kind={slot.slotKind}
+                  data-selected={selectedFrameSlotId === slot.mappingId ? "true" : "false"}
+                  aria-pressed={selectedFrameSlotId === slot.mappingId}
+                  aria-label={`Select FramePlan slot for source editor symbol ${slot.symbolName}`}
+                  title={`${slot.symbolName}. Current: ${slot.currentCircuitRelation}. Future: ${slot.futureCircuitRelation}. Runtime: not available in simple mode.`}
+                  onClick={() => onSelectFrameSlot(slot, "source-editor")}
+                >
+                  <code>{slot.symbolName}</code>
+                  <span>{slot.slotKind}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : null}
         <FrameSlotDetail
           mapping={mapping}
           selectionSource={selectionSource}
@@ -1735,9 +1771,12 @@ export default function CircuitFocusLayout({
   timelineItems,
   observationMode = "cpu-flow",
   onObservationModeChange = () => undefined,
+  initialSelectedFrameSlotId,
+  initialSelectionSource = "source-editor",
 }: CircuitFocusLayoutProps) {
   const [selectedFrameFunctionName, setSelectedFrameFunctionName] = useState<string | undefined>();
   const [selectedFrameSlot, setSelectedFrameSlot] = useState<SelectedFrameSlot | undefined>();
+  const lastAppliedInitialFrameSlotId = useRef<string | undefined>();
   const focus = focusInstructionContext(state, sourceMode, sourceText, cppToCaslMapping);
   const preferredFunctionName = functionNameFromRoutineLabel(routineLabelForAddress(state, focus.address));
   const framePreview = useMemo(
@@ -1774,6 +1813,31 @@ export default function CircuitFocusLayout({
       setSelectedFrameSlot(undefined);
     }
   }, [selectedFrameSlot, selectedFrameSlotMapping]);
+
+  useEffect(() => {
+    if (!initialSelectedFrameSlotId) {
+      lastAppliedInitialFrameSlotId.current = undefined;
+      return;
+    }
+    if (lastAppliedInitialFrameSlotId.current === initialSelectedFrameSlotId) return;
+    if (selectedFrameSlot?.mappingId === initialSelectedFrameSlotId) {
+      lastAppliedInitialFrameSlotId.current = initialSelectedFrameSlotId;
+      return;
+    }
+    const mapping = frameSlotMappings.find((candidate) => candidate.mappingId === initialSelectedFrameSlotId);
+    if (!mapping) return;
+    lastAppliedInitialFrameSlotId.current = initialSelectedFrameSlotId;
+    setSelectedFrameFunctionName(mapping.functionName);
+    setSelectedFrameSlot({
+      mappingId: mapping.mappingId,
+      functionName: mapping.functionName,
+      slotName: mapping.frameSlotName,
+      symbolName: mapping.symbolName,
+      sourceLine: mapping.sourceLine,
+      staticLabel: currentStaticLabelForMapping(mapping),
+      selectionSource: initialSelectionSource
+    });
+  }, [frameSlotMappings, initialSelectedFrameSlotId, initialSelectionSource]);
 
   const circuitSubtitle = useMemo(() => {
     if (isSourceDirty) return "Modified source; assemble before stepping.";
@@ -1857,7 +1921,13 @@ export default function CircuitFocusLayout({
           </>
         ) : (
           <>
-            <FocusFrameSlotRelationPanel mapping={selectedFrameSlotMapping} selectionSource={selectedFrameSlot?.selectionSource} />
+            <FocusFrameSlotRelationPanel
+              mapping={selectedFrameSlotMapping}
+              selectionSource={selectedFrameSlot?.selectionSource}
+              frameSlotMappings={frameSlotMappings}
+              selectedFrameSlotId={selectedFrameSlot?.mappingId}
+              onSelectFrameSlot={selectFrameSlot}
+            />
             <FocusTracePanel state={state} />
             <FocusCallStackPanel state={state} focus={focus} density="compact" />
           </>

@@ -2,6 +2,8 @@
 
 Phase 11H connects the design-only FramePlan slot selection model to Signal Probe and Slot Detail explanations. It does not implement stack-frame locals, stack arguments, live frame slot values, or new runtime circuit paths.
 
+Phase 11I adds a Source Editor related-symbol entry point into the same selection model. See [Phase 11I: Editor FramePlan Symbol Hover](phase11i-editor-frameplan-symbol-hover.md).
+
 ## Purpose
 
 Phase 11E and Phase 11F made future frame slots visible and selectable. Phase 11G connected C++ source symbols and Generated CASL static labels to that selection. Phase 11H explains what the selected slot means in the current circuit model:

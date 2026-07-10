@@ -31,6 +31,23 @@ export type FrameSlotMapping = {
   runtimeValueAvailable: false;
 };
 
+export type FrameSymbolRelation = {
+  relationId: string;
+  mappingId: string;
+  functionName: string;
+  symbolName: string;
+  slotKind: FrameSlotMappingKind;
+  sourceLine?: number;
+  sourceColumn?: number;
+  currentLabelForDebug?: string;
+  currentLowering: FrameSlotCurrentLowering;
+  futureStorage: FrameSlotFutureStorage;
+  currentCircuitRelation: string;
+  futureCircuitRelation: string;
+  title: string;
+  runtimeValueAvailable: false;
+};
+
 export type FrameSlotPreview = {
   mappingId: string;
   name: string;
@@ -89,6 +106,49 @@ export function findFrameSlotMappingInCaslText(mappings: FrameSlotMapping[], cas
 export function frameSlotMappingsForSourceLine(mappings: FrameSlotMapping[], sourceLine?: number): FrameSlotMapping[] {
   if (sourceLine === undefined) return [];
   return mappings.filter((mapping) => mapping.sourceLine === sourceLine && mapping.slotKind !== "return-address");
+}
+
+function sourceColumnForSymbol(sourceText: string, sourceLine: number | undefined, symbolName: string): number | undefined {
+  if (sourceLine === undefined) return undefined;
+  const lineText = sourceText.split(/\r?\n/)[sourceLine - 1];
+  if (!lineText) return undefined;
+  const match = new RegExp(`\\b${symbolName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`).exec(lineText);
+  return match ? match.index + 1 : undefined;
+}
+
+function toFrameSymbolRelation(mapping: FrameSlotMapping, sourceText: string): FrameSymbolRelation | undefined {
+  if (mapping.slotKind === "return-address") return undefined;
+  const sourceColumn = sourceColumnForSymbol(sourceText, mapping.sourceLine, mapping.symbolName);
+  const title = `${mapping.symbolName}. Current: ${mapping.currentCircuitRelation}. Future: ${mapping.futureCircuitRelation}. Runtime: not available in simple mode.`;
+
+  return {
+    relationId: `source-editor:${mapping.mappingId}`,
+    mappingId: mapping.mappingId,
+    functionName: mapping.functionName,
+    symbolName: mapping.symbolName,
+    slotKind: mapping.slotKind,
+    sourceLine: mapping.sourceLine,
+    sourceColumn,
+    currentLabelForDebug: mapping.currentLabelForDebug,
+    currentLowering: mapping.currentLowering,
+    futureStorage: mapping.futureStorage,
+    currentCircuitRelation: mapping.currentCircuitRelation,
+    futureCircuitRelation: mapping.futureCircuitRelation,
+    title,
+    runtimeValueAvailable: false
+  };
+}
+
+export function selectFrameSymbolRelations(
+  sourceMode: FramePlanSourceMode,
+  sourceText: string,
+  selectedFunctionName?: string
+): FrameSymbolRelation[] {
+  const preview = selectStackFramePreviewState(sourceMode, sourceText, selectedFunctionName);
+  if (!preview.available) return [];
+  return stackFramePreviewMappings(preview)
+    .map((mapping) => toFrameSymbolRelation(mapping, sourceText))
+    .filter((relation): relation is FrameSymbolRelation => relation !== undefined);
 }
 
 function unavailable(reason: string): StackFramePreviewState {

@@ -327,6 +327,7 @@ The current backend is shown in the status bar as `Mock Core`, `WASM Core`, or `
 - [docs/phase11f-frameplan-slot-highlighting-contract.md](docs/phase11f-frameplan-slot-highlighting-contract.md): design-only FramePlan slot mapping, selected-row highlighting, and Slot Detail rules without runtime frame values.
 - [docs/phase11g-source-casl-frame-slot-selection.md](docs/phase11g-source-casl-frame-slot-selection.md): design-only C++ source / Generated CASL slot badges and FramePlan selection wiring without emitted CASL or runtime changes.
 - [docs/phase11h-frameplan-circuit-probe-relation.md](docs/phase11h-frameplan-circuit-probe-relation.md): design-only Signal Probe and Slot Detail relation notes for selected FramePlan slots without fake live values or circuit paths.
+- [docs/phase11i-editor-frameplan-symbol-hover.md](docs/phase11i-editor-frameplan-symbol-hover.md): design-only Source Editor related-symbol markers for FramePlan slot selection without Monaco architecture changes or runtime frame values.
 
 ## Current Limitations
 

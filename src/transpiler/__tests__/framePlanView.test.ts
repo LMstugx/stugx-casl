@@ -3,6 +3,7 @@ import {
   findFrameSlotMappingByStaticLabel,
   findFrameSlotMappingInCaslText,
   frameSlotMappingsForSourceLine,
+  selectFrameSymbolRelations,
   selectStackFramePreviewState,
   stackFramePreviewMappings
 } from "../framePlanView";
@@ -178,5 +179,49 @@ describe("FramePlan preview selector", () => {
     expect(findFrameSlotMappingByStaticLabel(mappings, "FUNC_ADD_A")?.symbolName).toBe("a");
     expect(findFrameSlotMappingInCaslText(mappings, "ST GR1,FUNC_ADD_A")?.symbolName).toBe("a");
     expect(findFrameSlotMappingInCaslText(mappings, "ST GR2,FUNC_ADD_B")?.symbolName).toBe("b");
+  });
+
+  it("editor_symbol_relations_exist_for_arguments", () => {
+    const relations = selectFrameSymbolRelations("cpp", functionArgumentsSource);
+    const argumentsOnly = relations.filter((relation) => relation.functionName === "add" && relation.slotKind === "argument");
+
+    expect(argumentsOnly.map((relation) => relation.symbolName)).toEqual(["a", "b"]);
+    expect(argumentsOnly.map((relation) => relation.currentCircuitRelation)).toEqual(["GR1 -> FUNC_ADD_A", "GR2 -> FUNC_ADD_B"]);
+  });
+
+  it("editor_symbol_relations_exist_for_locals", () => {
+    const relations = selectFrameSymbolRelations("cpp", functionArgumentsSource);
+    const result = relations.find((relation) => relation.functionName === "main" && relation.symbolName === "result");
+
+    expect(result).toMatchObject({
+      slotKind: "local",
+      currentLabelForDebug: "MAIN_RESULT",
+      futureCircuitRelation: "stack frame local slot"
+    });
+  });
+
+  it("editor_symbol_relation_includes_static_label", () => {
+    const relations = selectFrameSymbolRelations("cpp", functionArgumentsSource);
+    const a = relations.find((relation) => relation.symbolName === "a");
+
+    expect(a?.currentLabelForDebug).toBe("FUNC_ADD_A");
+    expect(a?.title).toContain("Current: GR1 -> FUNC_ADD_A");
+    expect(a?.title).toContain("Future: stack frame argument slot");
+  });
+
+  it("editor_symbol_relation_marks_runtime_unavailable", () => {
+    const relations = selectFrameSymbolRelations("cpp", functionArgumentsSource);
+
+    expect(relations.length).toBeGreaterThan(0);
+    expect(relations.every((relation) => relation.runtimeValueAvailable === false)).toBe(true);
+    expect(relations.every((relation) => relation.title.includes("Runtime: not available in simple mode"))).toBe(true);
+  });
+
+  it("source_editor_handles_invalid_cpp_without_crash", () => {
+    expect(selectFrameSymbolRelations("cpp", "int main(")).toEqual([]);
+  });
+
+  it("source_editor_does_not_render_markers_for_casl_mode", () => {
+    expect(selectFrameSymbolRelations("casl", "MAIN START\n RET\n END")).toEqual([]);
   });
 });

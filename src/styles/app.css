@@ -1774,6 +1774,80 @@ button {
 .source-editor {
   height: 100%;
   min-height: 0;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+}
+
+.source-editor-frame-symbols {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 6px;
+  align-items: center;
+  padding: 5px 8px;
+  border-top: 1px solid #d8e2ef;
+  background: #f7fbff;
+}
+
+.source-editor-frame-symbol-list {
+  min-width: 0;
+  display: flex;
+  gap: 5px;
+  overflow: hidden;
+}
+
+.source-editor-frame-symbol-marker {
+  min-width: 0;
+  display: inline-grid;
+  grid-template-columns: minmax(0, auto) auto;
+  gap: 4px;
+  align-items: center;
+  max-width: 112px;
+  min-height: 22px;
+  padding: 2px 6px;
+  border: 1px solid #c9d7e8;
+  border-radius: 4px;
+  background: #ffffff;
+  color: #24415f;
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.source-editor-frame-symbol-marker code {
+  min-width: 0;
+  overflow: hidden;
+  color: #0f2f50;
+  font-family: "Cascadia Mono", Consolas, monospace;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.source-editor-frame-symbol-marker span {
+  color: #64748b;
+  font-size: 9px;
+}
+
+.source-editor-frame-symbol-marker:hover,
+.source-editor-frame-symbol-marker[data-selected="true"],
+.source-editor-frame-symbol-marker[aria-pressed="true"] {
+  border-color: #8fb4df;
+  background: #edf6ff;
+  color: #173d66;
+}
+
+.source-editor-frame-symbol-marker:focus-visible {
+  outline: 2px solid rgba(37, 99, 235, 0.45);
+  outline-offset: 2px;
+}
+
+.focus-related-frame-symbols {
+  grid-template-columns: 78px minmax(0, 1fr);
+  padding: 3px 0 5px;
+  border-top: 0;
+  border-bottom: 1px solid #e1e8f1;
+  background: transparent;
 }
 
 .current-exec-line {

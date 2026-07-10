@@ -6,6 +6,8 @@ This phase does not implement stack-frame locals, stack arguments, recursion, ne
 
 Phase 11H extends this selection into Signal Probe and Slot Detail relation notes. See [Phase 11H: FramePlan Circuit and Signal Probe Relation](phase11h-frameplan-circuit-probe-relation.md).
 
+Phase 11I adds a lightweight Source Editor related-symbol surface for the same design-only selection model. See [Phase 11I: Editor FramePlan Symbol Hover](phase11i-editor-frameplan-symbol-hover.md).
+
 ## Purpose
 
 Phase 11F made FramePlan slot rows selectable. Phase 11G lets other teaching surfaces select the same design-only slot:

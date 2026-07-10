@@ -755,7 +755,7 @@ describe("learning use documentation", () => {
     expect(circuitVisualContract).toContain("Instruction Category Rules");
     expect(circuitVisualContract).toContain("Text Overflow Rules");
     expect(circuitVisualContract).toContain("Active / Inactive Module Rules");
-    expect(circuitVisualContract).toContain("Arrow Marker Rules");
+    expect(circuitVisualContract).toContain("Arrowless Wire Rules");
     expect(circuitVisualContract).toContain("Small Viewport Rules");
     expect(circuitVisualContract).toContain("Visual Review Checklist");
     expect(circuitVisualContract).toContain("Future Custom Circuit Rules");

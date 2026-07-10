@@ -250,9 +250,9 @@ test("Mock backend keeps circuit focus paths anchored to rows", async ({ page })
   await expect(circuit.locator("[data-testid='wire-memory-to-mdr']")).toHaveAttribute("data-from-anchor", "memory.0027.left");
   await expect(circuit.locator("[data-testid='wire-memory-to-mdr']")).toHaveAttribute("data-to-anchor", "mdr.right");
   await expect(circuit.locator("[data-testid='wire-memory-to-mdr']")).not.toHaveAttribute("marker-end", /.+/);
-  await expect(circuit.locator("[data-testid='wire-terminal-memory-to-mdr']")).toHaveAttribute("marker-end", /arrow-red/);
-  await expect(circuit.locator("[data-testid='wire-terminal-memory-to-mdr']")).toHaveAttribute("data-to-anchor", "mdr.right");
   await expect(circuit.locator("[data-testid='wire-memory-to-mdr']")).not.toHaveAttribute("marker-mid", /.+/);
+  await expect(circuit.locator("[data-testid='wire-terminal-memory-to-mdr']")).toHaveCount(0);
+  await expect(circuit.locator("[data-active-terminal='true']")).toHaveCount(0);
   await expect(circuit.locator("[data-testid='wire-junction-memory-to-mdr-0']")).toHaveCount(0);
   await expect(circuit.locator("[data-testid='junction-data-right']")).toHaveCount(0);
   await expect(circuit.locator("[data-testid^='memory-terminal-marker-']")).toHaveCount(0);
@@ -375,9 +375,9 @@ test("Mock backend presents Circuit Focus Mode as a teaching layout", async ({ p
   await expect(circuit.locator("[data-testid='wire-mdr-to-memory']")).toHaveClass(/circuit-wire--data-flow/);
   await expect(circuit.locator("[data-testid='wire-mdr-to-memory']")).toHaveAttribute("data-to-anchor", "memory.0029.left");
   await expect(circuit.locator("[data-testid='wire-mdr-to-memory']")).not.toHaveAttribute("marker-end", /.+/);
-  await expect(circuit.locator("[data-testid='wire-terminal-mdr-to-memory']")).toHaveAttribute("marker-end", /arrow-red/);
-  await expect(circuit.locator("[data-testid='wire-terminal-mdr-to-memory']")).toHaveAttribute("data-to-anchor", "memory.0029.left");
   await expect(circuit.locator("[data-testid='wire-mdr-to-memory']")).not.toHaveAttribute("marker-mid", /.+/);
+  await expect(circuit.locator("[data-testid='wire-terminal-mdr-to-memory']")).toHaveCount(0);
+  await expect(circuit.locator("[data-active-terminal='true']")).toHaveCount(0);
   await expect(circuit.locator("[data-testid='wire-gr-to-mdr']")).toHaveAttribute("data-lane", "data-bypass");
   await expect(circuit.locator("[data-testid='wire-gr-to-mdr']")).toHaveAttribute("data-avoids-alu", "true");
   await expect(circuit.locator("[data-testid='module-alu']")).toHaveAttribute("data-active", "false");

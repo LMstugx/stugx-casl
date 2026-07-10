@@ -876,8 +876,9 @@ describe("Circuit Focus Mode layout", () => {
     expect(markup).toContain('class="wire wire-data wire-active circuit-wire--active circuit-wire--flow circuit-wire--data-flow"');
     expect(markup).toContain('data-primary="true"');
     expect(markup).toContain('data-semantic-type="data"');
-    expect(markup).toContain('marker-end="url(#arrow-red)"');
+    expect(markup).not.toContain("marker-end=");
     expect(markup).not.toContain('marker-mid="url(#arrow-red-mid)"');
+    expect(markup).not.toContain('data-active-terminal="true"');
   });
 
   it("circuit_status_indicators_render_without_fake_state", () => {

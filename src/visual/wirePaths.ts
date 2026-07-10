@@ -28,14 +28,11 @@ export type WirePath = {
   relatedStage?: string;
   relatedInstructionKind?: string;
   visualRole: WireVisualRole;
-  allowArrow: boolean;
   allowAnimation: boolean;
   allowJunction: boolean;
   points: readonly CircuitPoint[];
-  terminalPoints: readonly CircuitPoint[];
   junctions: readonly CircuitPoint[];
   d: string;
-  terminalD: string;
 };
 
 export type WirePathOptions = {
@@ -102,22 +99,6 @@ export function pointIsOnRoute(routePoint: CircuitPoint, points: readonly Circui
     const vertical = from.x === to.x && roundedPointEquals(routePoint, { x: from.x, y: Math.max(Math.min(routePoint.y, Math.max(from.y, to.y)), Math.min(from.y, to.y)) });
     return horizontal || vertical;
   });
-}
-
-export function terminalSegment(points: readonly CircuitPoint[], length = 12): CircuitPoint[] {
-  const compacted = compactPoints(points);
-  if (compacted.length < 2) return compacted;
-  const end = compacted[compacted.length - 1];
-  const previous = compacted[compacted.length - 2];
-  const dx = end.x - previous.x;
-  const dy = end.y - previous.y;
-  const distance = Math.max(Math.abs(dx), Math.abs(dy));
-  if (distance === 0) return [previous, end];
-  const visibleLength = Math.min(length, distance);
-  const start = dx !== 0
-    ? { x: end.x - Math.sign(dx) * visibleLength, y: end.y }
-    : { x: end.x, y: end.y - Math.sign(dy) * visibleLength };
-  return compactPoints([start, end]);
 }
 
 export function buildPathWithCorners(points: readonly CircuitPoint[]): string {
@@ -206,18 +187,15 @@ function wire(
       | "relatedStage"
       | "relatedInstructionKind"
       | "visualRole"
-      | "allowArrow"
       | "allowAnimation"
       | "allowJunction"
     >
   > & { junctions?: readonly CircuitPoint[] } = {}
 ): WirePath {
   const compacted = snapRouteToAnchors(points, fromAnchor, toAnchor);
-  const terminalPoints = terminalSegment(compacted);
   const {
     junctions = [],
     visualRole = "active-flow",
-    allowArrow = true,
     allowAnimation = true,
     allowJunction = false,
     ...metadata
@@ -232,14 +210,11 @@ function wire(
     direction: "forward",
     isPrimary: role !== "inactive",
     visualRole,
-    allowArrow,
     allowAnimation,
     allowJunction,
     points: compacted,
-    terminalPoints,
     junctions,
     d: buildPathWithCorners(compacted),
-    terminalD: buildPathWithCorners(terminalPoints),
     ...metadata
   };
 }
@@ -290,9 +265,11 @@ export function buildWirePaths({ grIndex = 1, indexRegister, memoryAddress = 0x2
   const controllerRight = { x: circuitLayout.controller.x + circuitLayout.controller.w, y: circuitLayout.controller.y + circuitLayout.controller.h / 2 };
   const eauInputX = circuitLayout.eau.x - circuitRouting.eauInputClearance;
   const eauOutputX = circuitLayout.eau.x + circuitLayout.eau.w + circuitRouting.eauOutputClearance;
+  const eauOutputEscapeY = circuitLayout.eau.y - 12;
   const operandBaseSource = { x: eauInputX, y: eauBaseInput.y };
   const stackMemoryPreview = { x: circuitLayout.memory.x + 12, y: circuitLayout.memory.y + 35 };
   const portClearance = circuitRouting.portClearance;
+  const mdrIngressX = mdrRight.x + portClearance;
   const controlClearance = circuitRouting.controlClearance;
   const stackReferenceDrop = circuitRouting.stackReferenceDrop;
   const anchors = {
@@ -337,11 +314,46 @@ export function buildWirePaths({ grIndex = 1, indexRegister, memoryAddress = 0x2
     wire("pr-to-mar", "address", "addr", "address", anchors.prRight, anchors.marLeft, [prRight, { x: prRight.x + portClearance, y: prRight.y }, { x: prRight.x + portClearance, y: addressBusY }, { x: marLeft.x - portClearance, y: addressBusY }, { x: marLeft.x - portClearance, y: marLeft.y }, marLeft], { relatedStage: "Fetch", junctions: [{ x: prRight.x + portClearance, y: addressBusY }] }),
     wire("base-to-eau", "address", "addr", "address", anchors.operandBase, anchors.eauBaseInput, [operandBaseSource, eauBaseInput], { relatedStage: "Effective Address" }),
     wire("index-to-eau", "address", "addr", "address", anchors.indexGrRight, anchors.eauIndexInput, [indexGrRight, { x: indexGrRight.x + portClearance, y: indexGrRight.y }, { x: indexGrRight.x + portClearance, y: addressIndexBusY }, { x: eauInputX, y: addressIndexBusY }, { x: eauInputX, y: eauIndexInput.y }, eauIndexInput], { relatedRegister: indexGr, relatedStage: "Effective Address", junctions: [{ x: indexGrRight.x + portClearance, y: addressIndexBusY }, { x: eauInputX, y: addressIndexBusY }] }),
-    wire("eau-to-mar", "address", "addr", "address", anchors.eauSumOutput, anchors.marLeft, [eauSumOutput, { x: eauOutputX, y: eauSumOutput.y }, { x: eauOutputX, y: marLeft.y }, marLeft], { relatedStage: "Effective Address", junctions: [{ x: eauOutputX, y: eauSumOutput.y }] }),
+    wire(
+      "eau-to-mar",
+      "address",
+      "addr",
+      "address",
+      anchors.eauSumOutput,
+      anchors.marLeft,
+      [eauSumOutput, { x: eauSumOutput.x, y: eauOutputEscapeY }, { x: eauOutputX, y: eauOutputEscapeY }, { x: eauOutputX, y: marLeft.y }, marLeft],
+      { relatedStage: "Effective Address", junctions: [{ x: eauOutputX, y: eauOutputEscapeY }] }
+    ),
     wire("eau-to-gr", "address", "addr", "address", anchors.eauSumOutput, anchors.grLeft, routeViaLane(eauSumOutput, grLeft, { y: addressBusY }), { relatedRegister: gr, relatedStage: "Write Back", junctions: [{ x: grLeft.x, y: addressBusY }] }),
-    wire("eau-to-mdr", "address", "addr", "address", anchors.eauSumOutput, anchors.mdrRight, routeViaLane(eauSumOutput, mdrRight, { x: memoryBusX }), { avoidsAlu: true, relatedStage: "Stack write value", junctions: [{ x: memoryBusX, y: eauSumOutput.y }] }),
-    wire("eau-to-pr", "address", "ctrl", "control", anchors.eauSumOutput, anchors.prLeft, [eauSumOutput, { x: eauOutputX, y: eauSumOutput.y }, { x: eauOutputX, y: addressBusY }, { x: prLeft.x - portClearance, y: addressBusY }, { x: prLeft.x - portClearance, y: prLeft.y }, prLeft], { relatedStage: "Next", junctions: [{ x: eauOutputX, y: addressBusY }] }),
-    wire("return-address-to-mdr", "address", "addr", "address", anchors.plus2Right, anchors.mdrRight, routeViaLane(plus2Right, mdrRight, { x: memoryBusX }), { avoidsAlu: true, relatedStage: "Return address", junctions: [{ x: memoryBusX, y: plus2Right.y }] }),
+    wire(
+      "eau-to-mdr",
+      "address",
+      "addr",
+      "address",
+      anchors.eauSumOutput,
+      anchors.mdrRight,
+      [eauSumOutput, { x: eauSumOutput.x, y: eauOutputEscapeY }, { x: mdrIngressX, y: eauOutputEscapeY }, { x: mdrIngressX, y: mdrRight.y }, mdrRight],
+      { avoidsAlu: true, relatedStage: "Stack write value", junctions: [{ x: mdrIngressX, y: eauOutputEscapeY }] }
+    ),
+    wire(
+      "eau-to-pr",
+      "address",
+      "ctrl",
+      "control",
+      anchors.eauSumOutput,
+      anchors.prLeft,
+      [
+        eauSumOutput,
+        { x: eauSumOutput.x, y: eauOutputEscapeY },
+        { x: eauOutputX, y: eauOutputEscapeY },
+        { x: eauOutputX, y: addressBusY },
+        { x: prLeft.x - portClearance, y: addressBusY },
+        { x: prLeft.x - portClearance, y: prLeft.y },
+        prLeft
+      ],
+      { relatedStage: "Next", junctions: [{ x: eauOutputX, y: addressBusY }] }
+    ),
+    wire("return-address-to-mdr", "address", "addr", "address", anchors.plus2Right, anchors.mdrRight, routeViaLane(plus2Right, mdrRight, { x: mdrIngressX }), { avoidsAlu: true, relatedStage: "Return address", junctions: [{ x: mdrIngressX, y: plus2Right.y }] }),
     wire("index-to-effective", "address", "addr", "address", anchors.indexGrRight, anchors.marLeft, [indexGrRight, { x: indexGrRight.x + portClearance, y: indexGrRight.y }, { x: indexGrRight.x + portClearance, y: addressBusY }, { x: marLeft.x - portClearance, y: addressBusY }, { x: marLeft.x - portClearance, y: marLeft.y }, marLeft], { relatedRegister: indexGr, relatedStage: "Effective Address", junctions: [{ x: indexGrRight.x + portClearance, y: addressBusY }] }),
     wire("pr-to-plus2", "control", "ctrl", "control", anchors.prRight, anchors.plus2Left, [prRight, { x: circuitLayout.addressResult.x, y: prRight.y }], { relatedStage: "Next" }),
     wire(
@@ -364,7 +376,6 @@ export function buildWirePaths({ grIndex = 1, indexRegister, memoryAddress = 0x2
       relatedMemoryAddress: memoryAddress,
       relatedStage: "Operand Target",
       visualRole: "target-highlight",
-      allowArrow: false,
       allowAnimation: false,
       allowJunction: false
     }),

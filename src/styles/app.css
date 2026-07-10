@@ -2595,21 +2595,17 @@ button {
   stroke-dasharray: 3 7;
 }
 
-[data-path-id="base-to-eau"],
-[data-terminal-path-id="base-to-eau"] {
+[data-path-id="base-to-eau"] {
   stroke: #2f6bc6;
 }
 
-[data-path-id="index-to-eau"],
-[data-terminal-path-id="index-to-eau"] {
+[data-path-id="index-to-eau"] {
   stroke: #6650b8;
   stroke-dasharray: 6 5;
 }
 
 [data-path-id="eau-to-mar"],
-[data-terminal-path-id="eau-to-mar"],
-[data-path-id="eau-to-pr"],
-[data-terminal-path-id="eau-to-pr"] {
+[data-path-id="eau-to-pr"] {
   stroke: #1f5fbf;
 }
 
@@ -2617,13 +2613,6 @@ button {
   stroke-width: 2.6;
   opacity: 0.96;
   filter: none;
-}
-
-.wire-terminal {
-  stroke-width: 2.7;
-  stroke-linecap: butt;
-  opacity: 0.96;
-  pointer-events: none;
 }
 
 .wire-active.wire-data {
@@ -2655,8 +2644,7 @@ button {
   animation-duration: calc(var(--wire-flow-duration, 2.35s) + 0.35s);
 }
 
-.circuit-wire--flow[data-path-id="index-to-eau"],
-.wire-terminal[data-terminal-path-id="index-to-eau"] {
+.circuit-wire--flow[data-path-id="index-to-eau"] {
   stroke: #6650b8;
   stroke-dasharray: 6 5;
 }
@@ -2802,14 +2790,6 @@ button {
   color: #94a3b8;
   font-size: 20px;
   font-weight: 400;
-}
-
-.marker-blue {
-  fill: #6f8fc5;
-}
-
-.marker-red {
-  fill: var(--color-active-red);
 }
 
 .timeline-panel {

@@ -78,7 +78,7 @@ Future routing should keep the Phase 8L rules:
 - route from anchor to anchor
 - use bus lanes instead of ad hoc lines
 - avoid unrelated module bodies
-- use one terminal arrow for active flow
+- use arrowless active wires for v1.0-style circuit views; direction comes from endpoint anchors, active color/weight, highlights, Trace, and Signal Probe
 - use junction dots for merge points
 
 Phase 9B adds a first `InstructionPathTemplate` layer. Future custom-circuit work should build on that shape instead of duplicating instruction-specific if/else rendering. A template should describe the category, active modules, active anchors, route segment ids, and whether the path uses Memory, MDR, ALU/Shifter, FR, or control lanes.

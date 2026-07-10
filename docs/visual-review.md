@@ -100,8 +100,8 @@ Use the gallery to inspect:
 - PR and Next Instruction are visible only as secondary hints.
 - Machine state and pipeline stage are labeled separately.
 - Memory target state points to the active memory row through MAR activity, the Memory target badge, and the highlighted row. Do not expect a long active `MAR -> Memory` address wire.
-- GR arrow points to the active GR row.
-- Active wires use a single terminal arrow instead of repeated arrowheads.
+- GR highlight points to the active GR row.
+- Active wires do not use terminal arrows in v1.0; read direction from endpoint anchors, active color/weight, module highlights, target row highlights, Trace, and Signal Probe.
 - Active wires may flow in the live app, but visual review screenshots intentionally freeze that animation.
 - Junction dots are disabled by default; if one appears, it must be an explicit semantic branch or merge point, not an orphan marker.
 - Memory-side circular terminal markers and guide circles must not appear in v1.0 screenshots.

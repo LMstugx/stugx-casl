@@ -2,14 +2,14 @@
 
 ## 1. Why This Audit Was Needed
 
-Manual QA after `v1.0-rc7` found that the Circuit SVG still had systemic visual issues: floating marker dots, address/data route ambiguity near Memory, arrows that could appear detached from anchors, and too much animated activity on non-data guide paths.
+Manual QA after `v1.0-rc7` found that the Circuit SVG still had systemic visual issues: floating marker dots, address/data route ambiguity near Memory, arrows that could appear detached from anchors, and too much animated activity on non-data guide paths. The follow-up Phase 12D-VISUAL2 pass removed active terminal arrows entirely and tightened dangling-wire checks.
 
 This pass is visual-only. It does not change CASL execution, emitted CASL, C++ lowering, the VM, the assembler, WASM, or mock core behavior.
 
 ## 2. Defect Categories
 
 - Markers: junction and terminal dots could look like orphan nodes rather than meaningful circuit joins.
-- Arrows: terminal arrows needed stricter endpoint and final-segment checks.
+- Arrows: active terminal arrows could look detached or float on short segments, so v1.0 now uses arrowless active wires.
 - Memory routing: Memory target addressing and Memory data movement were visually mixed.
 - EAU routing: BASE, INDEX, and EA lanes must preserve label clearance.
 - ALU / GR / MDR: LD and ST must remain ALU-bypass paths while compute instructions use ALU routes.
@@ -24,8 +24,9 @@ This pass is visual-only. It does not change CASL execution, emitted CASL, C++ l
 - `mar-to-memory` remains in path metadata as a target-highlight relation, but it is not rendered as a visible active blue address wire.
 - Memory address targeting is shown by MAR activity, the Memory target badge, and the highlighted Memory row.
 - Visible active Memory wires are data-flow routes: Memory row to MDR, MDR to Memory row, MDR to ALU, GR to MDR, and GR to ALU.
-- Active terminal arrows render only for visible active-flow paths with enough final segment length.
-- Inactive guides do not animate or render prominent arrows.
+- Active terminal arrows, short terminal overlays, and floating arrowheads are not rendered in v1.0.
+- Inactive guides do not animate or render arrows.
+- Direction is shown by active color/weight, endpoint anchors, module and row highlights, Trace, Source Mapping, and Signal Probe.
 - `visual-review-static` and reduced-motion mode freeze active wire animation.
 - Visual review now includes `1280x720`, `1440x900`, and `1920x1080` viewport coverage.
 

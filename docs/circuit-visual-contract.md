@@ -19,15 +19,15 @@ Every visible route should answer four questions:
 
 The route must start from a semantic anchor and end at a semantic anchor. Row-level anchors are required for General Registers and Memory rows. Module-center fallback anchors are only acceptable for inactive guides or future placeholders.
 
-Active routes should use orthogonal routing with clear direction. If a route needs to bend, use lane-based turns rather than ad hoc diagonals. Long routes should have one clear terminal arrow marker and optional junction dots at meaningful splits or joins.
+Active routes should use orthogonal routing with clear endpoint anchors. If a route needs to bend, use lane-based turns rather than ad hoc diagonals. In v1.0, active wires do not use terminal arrow markers; direction is taught by active color/weight, module and row highlights, Current Instruction, Trace, Source Mapping, and Signal Probe.
 
 Geometry convergence rules:
 
 - Route construction snaps the first rendered point to `fromAnchor` and the final rendered point to `toAnchor`.
 - Junction dots must sit on a route point or an exact route segment, not near it.
 - Protected text/value rectangles such as GR values, Memory values/labels, MDR values, Source Mapping text, and ALU value boxes should not be crossed by active routes.
-- Main active wires may render below modules to avoid covering text. A short terminal overlay may render above modules so the final arrow remains visible at the target anchor.
-- Terminal overlays must use only the final short segment near the target anchor; they must not redraw a long path over module text.
+- Main active wires may render below modules to avoid covering text. Do not add terminal overlay paths to imply direction.
+- Route endpoints must stop exactly at the anchor without inserting into protected module text/value regions.
 
 ## 2. Visual Hierarchy
 
@@ -351,19 +351,19 @@ Rules:
 
 When unsure, prefer showing less active state rather than implying false hardware participation.
 
-## 8. Arrow Marker Rules
+## 8. Arrowless Wire Rules
 
-Arrow markers explain direction, not decoration.
+Wire direction is explained by route endpoints plus the surrounding teaching context, not by terminal arrows.
 
-- Active wires use one terminal arrow marker per meaningful segment.
-- Inactive guide wires should have no arrow marker or a very faint marker.
-- Arrowheads must be smaller than module labels and must not cover values.
+- Active wires must not render terminal arrow markers, short-segment arrow overlays, or floating arrowheads in v1.0.
+- Inactive guide wires must not render arrow markers.
+- Endpoint direction must remain readable through active color/weight, module highlights, target row highlights, Current Instruction, Trace, Source Mapping, and Signal Probe.
 - Junction dots are disabled by default. They are allowed only at explicit real split or merge points.
-- Junction dots must sit on an actual SVG segment, stay away from endpoints and arrowheads, and never appear as orphan nodes.
+- Junction dots must sit on an actual SVG segment, stay away from endpoints, and never appear as orphan nodes.
 - Memory must not render circular terminal markers, floating junctions, or Memory-side guide circles in v1.0.
 - `mar-to-memory` is a target-highlight relation, not a visible active blue address wire. Use MAR activity, the Memory target badge, and the highlighted row to teach the address target.
 - Visible Memory active wires should represent data movement: Memory row -> MDR, MDR -> Memory row, MDR -> ALU, GR -> MDR, or GR -> ALU.
-- Do not stack multiple arrowheads on the same long segment.
+- Do not add hidden terminal snippets, decorative caps, or orphan short stubs to make a route look connected.
 - Data, address, control, flag, and stack paths may use different colors, but the palette must remain restrained.
 - Animation, when enabled, must follow the route without changing the route geometry.
 - Visual review static mode must freeze animation.

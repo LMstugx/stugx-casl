@@ -84,6 +84,10 @@ function memoryGutterLongVerticalSegments(wire: WirePath) {
   });
 }
 
+function pointInsideRect(point: { x: number; y: number }, rect: typeof circuitLayout.alu): boolean {
+  return point.x > rect.x && point.x < rect.x + rect.w && point.y > rect.y && point.y < rect.y + rect.h;
+}
+
 describe("circuit focus layout", () => {
   it("route_orthogonal_builds_expected_points", () => {
     expect(routeOrthogonal({ x: 10, y: 20 }, { x: 60, y: 80 })).toEqual([
@@ -160,22 +164,22 @@ describe("circuit focus layout", () => {
     }
   });
 
-  it("terminal_segments_end_at_target_anchor", () => {
+  it("route_endpoints_end_at_target_anchor", () => {
     for (const wire of buildWirePaths({ grIndex: 2, memoryAddress: 0x29 })) {
-      const end = wire.terminalPoints[wire.terminalPoints.length - 1];
+      const end = wire.points[wire.points.length - 1];
 
       expect(end).toEqual({ x: wire.toAnchor.x, y: wire.toAnchor.y });
-      expect(routeIsContinuous(wire.terminalPoints)).toBe(true);
+      expect(routeIsContinuous(wire.points)).toBe(true);
     }
   });
 
-  it("active_wire_terminal_is_snapped_to_anchor", () => {
+  it("active_wire_endpoint_is_snapped_to_anchor", () => {
     for (const wire of buildWirePaths({ grIndex: 2, indexRegister: 2, memoryAddress: 0x29 })) {
-      expect(wire.terminalPoints[wire.terminalPoints.length - 1]).toEqual({
+      expect(wire.points[wire.points.length - 1]).toEqual({
         x: wire.toAnchor.x,
         y: wire.toAnchor.y
       });
-      expect(routeIsContinuous(wire.terminalPoints)).toBe(true);
+      expect(routeIsContinuous(wire.points)).toBe(true);
     }
   });
 
@@ -294,7 +298,6 @@ describe("circuit focus layout", () => {
     const addressWire = wireById("mar-to-memory");
 
     expect(addressWire.visualRole).toBe("target-highlight");
-    expect(addressWire.allowArrow).toBe(false);
     expect(addressWire.allowAnimation).toBe(false);
     expect(addressWire.allowJunction).toBe(false);
     expect(addressWire.relatedStage).toBe("Operand Target");
@@ -348,15 +351,11 @@ describe("circuit focus layout", () => {
     expect(activeWireIdsByKind[VisualPathKind.RET_StackToPr]).toEqual(["sp-to-mar-preview", "mar-to-memory", "memory-to-mdr", "mdr-to-pr"]);
   });
 
-  it("arrowhead_has_valid_final_segment", () => {
+  it("no_arrow_metadata_remains_in_wire_paths", () => {
     for (const wire of buildWirePaths({ grIndex: 2, indexRegister: 2, memoryAddress: 0x29 })) {
-      if (wire.visualRole !== "active-flow" || !wire.allowArrow) continue;
-      const segments = routeSegments(wire.terminalPoints);
-      const finalSegment = segments[segments.length - 1];
-      const finalLength = segmentLength(finalSegment);
-
-      expect(finalSegment).toBeDefined();
-      expect(finalLength === 4 || finalLength >= 8).toBe(true);
+      expect("allowArrow" in wire).toBe(false);
+      expect("terminalPoints" in wire).toBe(false);
+      expect("terminalD" in wire).toBe(false);
     }
   });
 
@@ -371,6 +370,29 @@ describe("circuit focus layout", () => {
 
     expect(flagWire.junctions.length).toBeGreaterThanOrEqual(0);
     expect(flagWire.allowJunction).toBe(false);
+  });
+
+  it("no_segment_ends_inside_protected_rects", () => {
+    const paths = buildWirePaths({ grIndex: 2, indexRegister: 2, memoryAddress: 0x29 });
+    const protectedRects = [
+      circuitProtectedRects.aluBody(),
+      circuitProtectedRects.grValueColumn(2),
+      circuitProtectedRects.memoryTextColumn(0x29, 0x20),
+      circuitProtectedRects.mdrValue(),
+      circuitProtectedRects.eauText()
+    ];
+
+    for (const wire of paths) {
+      const internalPoints = wire.points.slice(1, -1);
+      for (const routePoint of internalPoints) {
+        for (const protectedRect of protectedRects) {
+          expect(
+            pointInsideRect(routePoint, protectedRect),
+            `${wire.id} route point ${JSON.stringify(routePoint)} must not end inside protected rect ${JSON.stringify(protectedRect)}`
+          ).toBe(false);
+        }
+      }
+    }
   });
 
   it("eau_wires_avoid_header_and_value_rows", () => {

@@ -165,25 +165,20 @@ B    DC    10
     expect(doc.querySelector("[data-testid='module-fr']")?.getAttribute("data-active")).toBe("true");
   });
 
-  it("active_arrow_has_single_terminal_marker", () => {
+  it("no_active_arrow_rendered", () => {
     const ready = mockCaslCore.assemble(DEFAULT_CASL_SOURCE);
     const afterLd = mockCaslCore.step(ready);
     const doc = renderCircuit(afterLd);
     const activePaths = Array.from(doc.querySelectorAll<SVGPathElement>("[data-active='true'][data-path-id]"));
-    const terminalPaths = Array.from(doc.querySelectorAll<SVGPathElement>("[data-active-terminal='true'][data-terminal-path-id]"));
 
     expect(activePaths.length).toBeGreaterThan(0);
     for (const path of activePaths) {
       expect(path.getAttribute("marker-end")).toBeNull();
       expect(path.getAttribute("marker-mid")).toBeNull();
+      expect(path.getAttribute("marker-start")).toBeNull();
     }
-    expect(terminalPaths.length).toBeGreaterThan(0);
-    expect(terminalPaths.length).toBeLessThanOrEqual(activePaths.length);
-    for (const path of terminalPaths) {
-      expect(activePaths.some((activePath) => activePath.dataset.pathId === path.dataset.terminalPathId)).toBe(true);
-      expect(path.getAttribute("marker-end")).toMatch(/^url\(#arrow-/);
-      expect(path.getAttribute("marker-mid")).toBeNull();
-    }
+    expect(doc.querySelectorAll("[data-active-terminal='true']").length).toBe(0);
+    expect(doc.querySelectorAll("marker[id^='arrow-']").length).toBe(0);
   });
 
   it("inactive_wires_are_not_primary_arrows", () => {
@@ -216,7 +211,6 @@ B    DC    10
     expect(doc.querySelector("[data-testid='wire-mar-to-memory']")).toBeNull();
     expect(doc.querySelector("[data-testid='wire-terminal-mar-to-memory']")).toBeNull();
     expect(guide?.getAttribute("data-visual-role")).toBe("target-highlight");
-    expect(guide?.getAttribute("data-allow-arrow")).toBe("false");
     expect(guide?.getAttribute("data-allow-animation")).toBe("false");
   });
 
@@ -270,14 +264,15 @@ B    DC    10
     expect(popDoc.querySelector("[data-testid='wire-junction-memory-to-mdr-0']")).toBeNull();
   });
 
-  it("renders_terminal_arrow_overlays_at_target_anchors", () => {
+  it("does_not_render_terminal_arrow_overlays_at_target_anchors", () => {
     const afterSt = mockCaslCore.step(mockCaslCore.step(mockCaslCore.step(mockCaslCore.assemble(DEFAULT_CASL_SOURCE))));
     const doc = renderCircuit(afterSt);
-    const terminal = doc.querySelector<SVGPathElement>("[data-testid='wire-terminal-mdr-to-memory']");
+    const activeWrite = doc.querySelector<SVGPathElement>("[data-testid='wire-mdr-to-memory']");
 
-    expect(terminal).toBeTruthy();
-    expect(terminal?.getAttribute("data-to-anchor")).toBe("memory.0029.left");
-    expect(terminal?.getAttribute("marker-end")).toBe("url(#arrow-red)");
+    expect(doc.querySelector("[data-testid='wire-terminal-mdr-to-memory']")).toBeNull();
+    expect(activeWrite).toBeTruthy();
+    expect(activeWrite?.getAttribute("data-to-anchor")).toBe("memory.0029.left");
+    expect(activeWrite?.getAttribute("marker-end")).toBeNull();
   });
 
   it("active_wire_has_flow_class and data_wire_gets_data_flow_class", () => {
@@ -421,6 +416,6 @@ B    DC    20
     expect(wireById(doc, "base-to-eau")?.getAttribute("data-to-anchor")).toBe("eau.base");
     expect(wireById(doc, "index-to-eau")?.getAttribute("data-to-anchor")).toBe("eau.index");
     expect(wireById(doc, "eau-to-mar")?.getAttribute("data-to-anchor")).toBe("mar.left");
-    expect(doc.querySelector("[data-testid='wire-terminal-index-to-eau']")?.getAttribute("data-to-anchor")).toBe("eau.index");
+    expect(doc.querySelector("[data-testid='wire-terminal-index-to-eau']")).toBeNull();
   });
 });

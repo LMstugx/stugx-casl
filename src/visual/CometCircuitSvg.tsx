@@ -39,21 +39,6 @@ function isVisibleActiveWire(path: WirePath): boolean {
   return path.visualRole === "active-flow";
 }
 
-function terminalSegmentLength(path: WirePath): number {
-  if (path.terminalPoints.length < 2) return 0;
-  const end = path.terminalPoints[path.terminalPoints.length - 1];
-  const previous = path.terminalPoints[path.terminalPoints.length - 2];
-  return Math.max(Math.abs(end.x - previous.x), Math.abs(end.y - previous.y));
-}
-
-function shouldRenderTerminalArrow(path: WirePath): boolean {
-  return isVisibleActiveWire(path) && path.allowArrow && terminalSegmentLength(path) >= 8;
-}
-
-function markerForWire(path: WirePath): string {
-  return path.role === "data" ? "url(#arrow-red)" : "url(#arrow-blue)";
-}
-
 function distanceBetweenPoints(a: { x: number; y: number }, b: { x: number; y: number }): number {
   return Math.hypot(a.x - b.x, a.y - b.y);
 }
@@ -488,21 +473,6 @@ function CometCircuitSvg({ state, sourceMapFocus }: { state: CometState; sourceM
 
   return (
     <svg className="comet-circuit" viewBox={`0 0 ${CIRCUIT_VIEWBOX.width} ${CIRCUIT_VIEWBOX.height}`} role="img" aria-label="COMET II circuit" data-testid="comet-circuit-svg">
-      <defs>
-        <marker id="arrow-blue" markerUnits="userSpaceOnUse" markerWidth="4.4" markerHeight="4.4" refX="4.05" refY="2.2" orient="auto" viewBox="0 0 4.4 4.4">
-          <path d="M 0 0 L 4.4 2.2 L 0 4.4 z" className="marker-blue" />
-        </marker>
-        <marker id="arrow-blue-mid" markerUnits="userSpaceOnUse" markerWidth="4.4" markerHeight="4.4" refX="2.2" refY="2.2" orient="auto" viewBox="0 0 4.4 4.4">
-          <path d="M 0 0 L 4.4 2.2 L 0 4.4 z" className="marker-blue" />
-        </marker>
-        <marker id="arrow-red" markerUnits="userSpaceOnUse" markerWidth="4.4" markerHeight="4.4" refX="4.05" refY="2.2" orient="auto" viewBox="0 0 4.4 4.4">
-          <path d="M 0 0 L 4.4 2.2 L 0 4.4 z" className="marker-red" />
-        </marker>
-        <marker id="arrow-red-mid" markerUnits="userSpaceOnUse" markerWidth="4.4" markerHeight="4.4" refX="2.2" refY="2.2" orient="auto" viewBox="0 0 4.4 4.4">
-          <path d="M 0 0 L 4.4 2.2 L 0 4.4 z" className="marker-red" />
-        </marker>
-      </defs>
-
       <BusGuides />
 
       <g className="wire-layer">
@@ -517,7 +487,6 @@ function CometCircuitSvg({ state, sourceMapFocus }: { state: CometState; sourceM
               data-lane={path.lane}
               data-semantic-type={path.semanticType}
               data-visual-role={path.visualRole}
-              data-allow-arrow={path.allowArrow ? "true" : "false"}
               data-allow-animation={path.allowAnimation ? "true" : "false"}
               data-allow-junction={path.allowJunction ? "true" : "false"}
               data-from-anchor={path.fromAnchor.id}
@@ -553,7 +522,6 @@ function CometCircuitSvg({ state, sourceMapFocus }: { state: CometState; sourceM
               data-lane={path.lane}
               data-semantic-type={path.semanticType}
               data-visual-role={path.visualRole}
-              data-allow-arrow={path.allowArrow ? "true" : "false"}
               data-allow-animation={path.allowAnimation ? "true" : "false"}
               data-allow-junction={path.allowJunction ? "true" : "false"}
               data-from-anchor={path.fromAnchor.id}
@@ -630,28 +598,6 @@ function CometCircuitSvg({ state, sourceMapFocus }: { state: CometState; sourceM
           CASL {sourceMapInstruction ?? "No active line"}
         </text>
       </Module>
-
-      <g className="active-terminal-layer" aria-hidden="true">
-        {wirePaths
-          .filter((path) => effectiveActiveWireIds.has(path.id) && shouldRenderTerminalArrow(path))
-          .map((path) => (
-            <path
-              key={`terminal-${path.id}`}
-              d={path.terminalD}
-              data-testid={`wire-terminal-${path.id}`}
-              data-active-terminal="true"
-              data-terminal-path-id={path.id}
-              data-lane={path.lane}
-              data-semantic-type={path.semanticType}
-              data-visual-role={path.visualRole}
-              data-allow-arrow={path.allowArrow ? "true" : "false"}
-              data-allow-animation={path.allowAnimation ? "true" : "false"}
-              data-to-anchor={path.toAnchor.id}
-              className={`wire wire-${path.role} wire-active wire-terminal`}
-              markerEnd={markerForWire(path)}
-            />
-          ))}
-      </g>
 
     </svg>
   );

@@ -55,7 +55,7 @@ describe("visual review screenshot gallery setup", () => {
     expect(visualReviewDoc).toContain("pnpm visual:capture");
     expect(visualReviewDoc).toContain("phone");
     expect(visualReviewDoc).toContain("Memory target state points to the active memory row");
-    expect(visualReviewDoc).toContain("Active wires use a single terminal arrow");
+    expect(visualReviewDoc).toContain("Active wires do not use terminal arrows");
     expect(visualReviewDoc).toContain("visual-review-static");
     expect(visualReviewDoc).toContain("freeze that animation");
     expect(visualReviewDoc).toContain("Junction dots are disabled by default");

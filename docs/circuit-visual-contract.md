@@ -66,6 +66,12 @@ Tertiary layer:
 
 Primary items must have the strongest contrast. Tertiary items must never compete with the active path.
 
+## 2A. Design Tokens
+
+Circuit Focus UI should use shared design tokens from `src/styles/tokens.css` for core surfaces, borders, text, radius, shadows, typography, motion, and active circuit colors. New polish should prefer tokens such as `--color-surface`, `--color-border`, `--color-text-primary`, `--color-text-muted`, `--color-active-data`, `--color-active-control`, `--color-memory-highlight`, `--color-register-highlight`, `--radius-sm`, `--shadow-card`, and `--shadow-focus` instead of introducing unrelated one-off colors.
+
+The token layer must preserve the Phase 12D clean-wire rules: no arrows, no circular marker, no ghost inactive wires, active-flow only, and no SVG line for Memory target-highlight relations.
+
 ## 3. Lane Definitions
 
 The circuit uses named lanes so future instructions can reuse the same visual grammar.

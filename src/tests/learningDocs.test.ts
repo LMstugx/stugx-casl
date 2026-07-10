@@ -52,6 +52,7 @@ import v1Rc1ReleaseNotes from "../../docs/releases/v1.0-rc1.md?raw";
 import v1ManualSignoff from "../../docs/v1-manual-signoff.md?raw";
 import v1SecurityAuditNotes from "../../docs/v1-security-audit-notes.md?raw";
 import phase12dVisualAudit from "../../docs/phase12d-visual-audit.md?raw";
+import phase13a from "../../docs/phase13a-advanced-ui-design-system.md?raw";
 
 describe("learning use documentation", () => {
   it("learning_guide_exists", () => {
@@ -806,6 +807,25 @@ describe("learning use documentation", () => {
     expect(v1ManualSignoff).toContain("phase12d-visual-audit.md");
   });
 
+  it("phase13a_advanced_ui_design_system_doc_exists", () => {
+    expect(phase13a).toContain("Phase 13A: Advanced UI Design System Foundation");
+    expect(phase13a).toContain("design tokens");
+    expect(phase13a).toContain("--color-background");
+    expect(phase13a).toContain("--space-2");
+    expect(phase13a).toContain("--radius-small");
+    expect(phase13a).toContain("--shadow-focus");
+    expect(phase13a).toContain("Toolbar");
+    expect(phase13a).toContain("Cards and panels");
+    expect(phase13a).toContain("Tables");
+    expect(phase13a).toContain("Tabs");
+    expect(phase13a).toContain("no arrows");
+    expect(phase13a).toContain("no circular marker");
+    expect(phase13a).toContain("no ghost inactive wires");
+    expect(phase13a).toContain("Future Phase 13B");
+    expect(readme).toContain("docs/phase13a-advanced-ui-design-system.md");
+    expect(circuitVisualContract).toContain("src/styles/tokens.css");
+  });
+
   it("project_overview_uses_learning_wording", () => {
     expect(projectOverview).toContain("learning studio");
     expect(projectOverview).toContain("Recommended Study Demos");
@@ -844,6 +864,7 @@ describe("learning use documentation", () => {
     expect(readme).toContain("docs/manual-qa-checklist.md");
     expect(readme).toContain("docs/release-candidate-notes.md");
     expect(readme).toContain("docs/phase12d-visual-audit.md");
+    expect(readme).toContain("docs/phase13a-advanced-ui-design-system.md");
     expect(readme).toContain("docs/future-custom-circuit-design.md");
     expect(normalized).not.toContain("hackathon");
     expect(normalized).not.toContain("contest submission");

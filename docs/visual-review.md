@@ -39,6 +39,8 @@ The screenshot spec uses the Mock backend for stable visual output.
 
 Circuit Focus Mode normally uses a lightweight signal-flow animation on active wires. The visual review spec adds a `visual-review-static` class before each screenshot so the active path remains highlighted but the animation is frozen for stable review.
 
+Phase 13A adds an advanced UI design-system foundation. Visual review should confirm that toolbar controls, panel cards, tabs, tables, circuit modules, and active circuit rows use the shared token vocabulary and still preserve the Phase 12D clean-wire contract: no arrows, no dots, no ghost inactive wires, and active-flow wires only.
+
 ## Open Gallery Locally
 
 After capture, open:

@@ -328,6 +328,8 @@ The current backend is shown in the status bar as `Mock Core`, `WASM Core`, or `
 - [docs/phase11g-source-casl-frame-slot-selection.md](docs/phase11g-source-casl-frame-slot-selection.md): design-only C++ source / Generated CASL slot badges and FramePlan selection wiring without emitted CASL or runtime changes.
 - [docs/phase11h-frameplan-circuit-probe-relation.md](docs/phase11h-frameplan-circuit-probe-relation.md): design-only Signal Probe and Slot Detail relation notes for selected FramePlan slots without fake live values or circuit paths.
 - [docs/phase11i-editor-frameplan-symbol-hover.md](docs/phase11i-editor-frameplan-symbol-hover.md): design-only Source Editor related-symbol markers for FramePlan slot selection without Monaco architecture changes or runtime frame values.
+- [docs/frameplan-relation-qa-checklist.md](docs/frameplan-relation-qa-checklist.md): QA checklist for SourceEditor, Stack Frame View, Signal Probe, Generated CASL, observation modes, and accessibility in the FramePlan relation layer.
+- [docs/phase11-frameplan-design-layer-summary.md](docs/phase11-frameplan-design-layer-summary.md): Phase 11 design-layer freeze summary covering current static namespaced labels, FramePlan metadata, slot selection, Signal Probe relation, and deferred advanced lowering.
 
 ## Current Limitations
 

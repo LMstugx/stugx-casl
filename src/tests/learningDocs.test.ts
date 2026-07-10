@@ -36,8 +36,10 @@ import phase11g from "../../docs/phase11g-source-casl-frame-slot-selection.md?ra
 import phase11h from "../../docs/phase11h-frameplan-circuit-probe-relation.md?raw";
 import phase11i from "../../docs/phase11i-editor-frameplan-symbol-hover.md?raw";
 import circuitVisualContract from "../../docs/circuit-visual-contract.md?raw";
+import frameplanRelationQaChecklist from "../../docs/frameplan-relation-qa-checklist.md?raw";
 import futureCustomCircuit from "../../docs/future-custom-circuit-design.md?raw";
 import manualQaChecklist from "../../docs/manual-qa-checklist.md?raw";
+import phase11FrameplanDesignLayerSummary from "../../docs/phase11-frameplan-design-layer-summary.md?raw";
 import practiceTasks from "../../docs/practice-tasks.md?raw";
 import projectOverview from "../../docs/project-overview.md?raw";
 import releaseCandidateNotes from "../../docs/release-candidate-notes.md?raw";
@@ -464,6 +466,31 @@ describe("learning use documentation", () => {
     expect(phase11h).toContain("phase11i-editor-frameplan-symbol-hover.md");
     expect(learningGuide).toContain("phase11i-editor-frameplan-symbol-hover.md");
     expect(futureCustomCircuit).toContain("Phase 11I adds a lightweight Source Editor");
+  });
+
+  it("phase11j_frameplan_relation_qa_baseline_docs_exist", () => {
+    expect(frameplanRelationQaChecklist).toContain("FramePlan Relation QA Checklist");
+    expect(frameplanRelationQaChecklist).toContain("SourceEditor Related Frame Symbols");
+    expect(frameplanRelationQaChecklist).toContain("design preview");
+    expect(frameplanRelationQaChecklist).toContain("Not runtime state");
+    expect(frameplanRelationQaChecklist).toContain("static namespaced labels");
+    expect(frameplanRelationQaChecklist).toContain("No Monaco hover provider yet");
+    expect(frameplanRelationQaChecklist).toContain("No live stack-frame values");
+    expect(frameplanRelationQaChecklist).toContain("Emitted CASL must remain unchanged");
+    expect(frameplanRelationQaChecklist).toContain("Signal Probe relation");
+    expect(frameplanRelationQaChecklist).toContain("Generated CASL slot badge");
+
+    expect(phase11FrameplanDesignLayerSummary).toContain("Phase 11: FramePlan Design Layer Summary");
+    expect(phase11FrameplanDesignLayerSummary).toContain("design-only");
+    expect(phase11FrameplanDesignLayerSummary).toContain("design preview");
+    expect(phase11FrameplanDesignLayerSummary).toContain("Not runtime state");
+    expect(phase11FrameplanDesignLayerSummary).toContain("simple static namespaced labels");
+    expect(phase11FrameplanDesignLayerSummary).toContain("does not change emitted CASL");
+    expect(phase11FrameplanDesignLayerSummary).toContain("Generated CASL slot badge");
+    expect(phase11FrameplanDesignLayerSummary).toContain("Signal Probe relation");
+
+    expect(readme).toContain("docs/frameplan-relation-qa-checklist.md");
+    expect(readme).toContain("docs/phase11-frameplan-design-layer-summary.md");
   });
 
   it("phase10e_focus_text_overflow_cleanup_doc_exists", () => {

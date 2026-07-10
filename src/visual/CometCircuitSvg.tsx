@@ -217,35 +217,35 @@ function EffectiveAddressUnitModule({ state, active }: { state: CometState; acti
       data-layer="control"
     >
       <rect x={circuitLayout.eau.x} y={circuitLayout.eau.y} width={circuitLayout.eau.w} height={circuitLayout.eau.h} rx="5" />
-      <text className="module-title" x={circuitLayout.eau.x + 12} y={circuitLayout.eau.y + 16}>
+      <text className="module-title" x={circuitLayout.eau.x + 13} y={circuitLayout.eau.y + 18}>
         EAU
       </text>
-      <text className="module-small module-muted" x={circuitLayout.eau.x + 50} y={circuitLayout.eau.y + 16}>
+      <text className="module-small module-muted eau-subtitle" x={circuitLayout.eau.x + 52} y={circuitLayout.eau.y + 18}>
         Address Unit
       </text>
       {active ? (
         <g data-testid="effective-address-chip">
           {rows.map((row, index) => {
-            const y = circuitLayout.eau.y + 24 + index * 13;
+            const y = circuitLayout.eau.y + 28 + index * 14;
             return (
               <g key={row.label} className="effective-address-row" data-testid={row.testId}>
-                <rect x={circuitLayout.eau.x + 9} y={y} width={circuitLayout.eau.w - 18} height="12" rx="2" />
-                <text className="module-small eau-row-label" x={circuitLayout.eau.x + 16} y={y + 8.5}>
+                <rect x={circuitLayout.eau.x + 10} y={y} width={circuitLayout.eau.w - 20} height="13" rx="2" />
+                <text className="module-small eau-row-label" x={circuitLayout.eau.x + 18} y={y + 9.5}>
                   {row.label}
                 </text>
-                <text className="module-small module-green eau-row-value" x={circuitLayout.eau.x + circuitLayout.eau.w - 12} y={y + 8.5} textAnchor="end">
+                <text className="module-small module-green eau-row-value" x={circuitLayout.eau.x + circuitLayout.eau.w - 14} y={y + 9.5} textAnchor="end">
                   {row.value}
                 </text>
               </g>
             );
           })}
-          <text className="eau-wire-label eau-wire-label-base" data-testid="eau-base-input-label" x={baseInput.x - 8} y={baseInput.y - 4} textAnchor="end">
+          <text className="eau-wire-label eau-wire-label-base" data-testid="eau-base-input-label" x={baseInput.x - 12} y={baseInput.y - 7} textAnchor="end">
             BASE
           </text>
-          <text className="eau-wire-label eau-wire-label-index" data-testid="eau-index-input-label" x={indexInput.x - 8} y={indexInput.y + 4} textAnchor="end">
+          <text className="eau-wire-label eau-wire-label-index" data-testid="eau-index-input-label" x={indexInput.x - 12} y={indexInput.y + 8} textAnchor="end">
             INDEX
           </text>
-          <text className="eau-wire-label eau-wire-label-ea" data-testid="eau-output-label" x={sumOutput.x + 8} y={sumOutput.y + 4}>
+          <text className="eau-wire-label eau-wire-label-ea" data-testid="eau-output-label" x={sumOutput.x + 12} y={sumOutput.y + 7}>
             EA
           </text>
         </g>
@@ -456,14 +456,14 @@ function CometCircuitSvg({ state, sourceMapFocus }: { state: CometState; sourceM
   return (
     <svg className="comet-circuit" viewBox={`0 0 ${CIRCUIT_VIEWBOX.width} ${CIRCUIT_VIEWBOX.height}`} role="img" aria-label="COMET II circuit" data-testid="comet-circuit-svg">
       <defs>
-        <marker id="arrow-blue" markerUnits="userSpaceOnUse" markerWidth="5.4" markerHeight="5.4" refX="5" refY="2.7" orient="auto" viewBox="0 0 5.4 5.4">
-          <path d="M 0 0 L 5.4 2.7 L 0 5.4 z" className="marker-blue" />
+        <marker id="arrow-blue" markerUnits="userSpaceOnUse" markerWidth="5" markerHeight="5" refX="4.6" refY="2.5" orient="auto" viewBox="0 0 5 5">
+          <path d="M 0 0 L 5 2.5 L 0 5 z" className="marker-blue" />
         </marker>
         <marker id="arrow-blue-mid" markerUnits="userSpaceOnUse" markerWidth="5" markerHeight="5" refX="2.5" refY="2.5" orient="auto" viewBox="0 0 5 5">
           <path d="M 0 0 L 5 2.5 L 0 5 z" className="marker-blue" />
         </marker>
-        <marker id="arrow-red" markerUnits="userSpaceOnUse" markerWidth="5.4" markerHeight="5.4" refX="5" refY="2.7" orient="auto" viewBox="0 0 5.4 5.4">
-          <path d="M 0 0 L 5.4 2.7 L 0 5.4 z" className="marker-red" />
+        <marker id="arrow-red" markerUnits="userSpaceOnUse" markerWidth="5" markerHeight="5" refX="4.6" refY="2.5" orient="auto" viewBox="0 0 5 5">
+          <path d="M 0 0 L 5 2.5 L 0 5 z" className="marker-red" />
         </marker>
         <marker id="arrow-red-mid" markerUnits="userSpaceOnUse" markerWidth="5" markerHeight="5" refX="2.5" refY="2.5" orient="auto" viewBox="0 0 5 5">
           <path d="M 0 0 L 5 2.5 L 0 5 z" className="marker-red" />
@@ -541,7 +541,7 @@ function CometCircuitSvg({ state, sourceMapFocus }: { state: CometState; sourceM
                 data-semantic-type={path.semanticType}
                 cx={junction.x}
                 cy={junction.y}
-                r="3"
+                r="2.35"
               />
             ))
           )}

@@ -135,12 +135,46 @@ describe("circuit focus layout", () => {
     }
   });
 
+  it("active_wire_terminal_is_snapped_to_anchor", () => {
+    for (const wire of buildWirePaths({ grIndex: 2, indexRegister: 2, memoryAddress: 0x29 })) {
+      expect(wire.terminalPoints[wire.terminalPoints.length - 1]).toEqual({
+        x: wire.toAnchor.x,
+        y: wire.toAnchor.y
+      });
+      expect(routeIsContinuous(wire.terminalPoints)).toBe(true);
+    }
+  });
+
   it("junction_dots_are_normalized_to_route_points", () => {
     for (const wire of buildWirePaths({ grIndex: 2, memoryAddress: 0x29 })) {
       for (const junction of wire.junctions) {
         expect(pointIsOnRoute(junction, wire.points)).toBe(true);
       }
     }
+  });
+
+  it("junction_dots_are_on_wire_segments", () => {
+    for (const wire of buildWirePaths({ grIndex: 2, indexRegister: 2, memoryAddress: 0x29 })) {
+      for (const junction of wire.junctions) {
+        expect(pointIsOnRoute(junction, wire.points)).toBe(true);
+        expect(junction).not.toEqual(wire.fromAnchor);
+        expect(junction).not.toEqual(wire.toAnchor);
+      }
+    }
+  });
+
+  it("eau_wires_avoid_header_and_value_rows", () => {
+    const paths = buildWirePaths({ grIndex: 2, indexRegister: 2, memoryAddress: 0x28 });
+    const byId = new Map(paths.map((wire) => [wire.id, wire]));
+    const eauTextRect = circuitProtectedRects.eauText();
+
+    for (const id of ["base-to-eau", "index-to-eau", "eau-to-mar", "eau-to-pr"]) {
+      const wire = byId.get(id);
+      expect(wire).toBeDefined();
+      expect(routeCrossesProtectedRect(wire!.points, eauTextRect)).toBe(false);
+    }
+    expect(circuitRouting.eauInputClearance).toBeGreaterThanOrEqual(36);
+    expect(circuitRouting.eauOutputClearance).toBeGreaterThanOrEqual(14);
   });
 
   it("defines ALU, MDR, and FR input/output anchors", () => {

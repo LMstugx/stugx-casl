@@ -99,7 +99,7 @@ export function pointIsOnRoute(routePoint: CircuitPoint, points: readonly Circui
   });
 }
 
-export function terminalSegment(points: readonly CircuitPoint[], length = 14): CircuitPoint[] {
+export function terminalSegment(points: readonly CircuitPoint[], length = 12): CircuitPoint[] {
   const compacted = compactPoints(points);
   if (compacted.length < 2) return compacted;
   const end = compacted[compacted.length - 1];

@@ -503,6 +503,15 @@ describe("Circuit Focus Mode layout", () => {
     expect(markup).toContain("Select a source chip or Generated CASL slot badge.");
   });
 
+  it("frame_slot_empty_state_is_compact", () => {
+    const markup = renderCppFunctionArgumentsFocus("add", cppFunctionWithLocalSource, "code-machine");
+
+    expect(markup).toContain('class="stack-frame-slot-detail stack-frame-slot-detail-empty"');
+    expect(markup).toContain("Select a source chip or Generated CASL slot badge.");
+    expect(appCss).toContain(".focus-frame-slot-relation .stack-frame-slot-detail-empty");
+    expect(appCss).toContain("border-style: dashed");
+  });
+
   it("signal_probe_does_not_show_frame_slot_relation_without_selection", () => {
     const markup = renderCppFunctionArgumentsFocus("add", cppFunctionWithLocalSource, "register-stack");
 
@@ -514,6 +523,16 @@ describe("Circuit Focus Mode layout", () => {
     expect(appCss).toContain(".signal-probe-slot-relation");
     expect(appCss).toContain(".signal-probe-slot-relation-head");
     expect(appCss).toContain(".signal-probe-slot-details");
+  });
+
+  it("scrollable_panels_hide_scrollbar_buttons_or_keep_text_clear", () => {
+    expect(appCss).toContain("scrollbar-gutter: stable");
+    expect(appCss).toContain("scrollbar-width: thin");
+    expect(appCss).toContain("::-webkit-scrollbar-button");
+    expect(appCss).toContain("display: none");
+    expect(appCss).toContain(".signal-probe-body::-webkit-scrollbar-button");
+    expect(appCss).toContain(".console-lines::-webkit-scrollbar-button");
+    expect(appCss).toContain(".focus-trace-list::-webkit-scrollbar-button");
   });
 
   it("cpu_flow_mode_does_not_show_dense_slot_ui", () => {
@@ -900,7 +919,7 @@ describe("Circuit Focus Mode layout", () => {
     expect(markup).toContain('data-testid="effective-address-index-row"');
     expect(markup).toContain('data-testid="effective-address-ea-row"');
     expect(appCss).toContain(".effective-address-row .eau-row-value");
-    expect(appCss).toContain("font-size: 10.2px");
+    expect(appCss).toContain("font-size: 10.8px");
   });
 
   it("eau_index_input_label_visible", () => {
@@ -1068,7 +1087,37 @@ DONE RET
 
   it("output_log_compact_height_unchanged", () => {
     expect(appCss).toContain(".output-panel");
-    expect(appCss).toContain("grid-template-rows: 34px minmax(0, 1fr)");
+    expect(appCss).toContain("grid-template-rows: 36px minmax(0, 1fr)");
+    expect(appCss).toContain(".app-shell.circuit-focus-active .output-panel .console-lines");
+  });
+
+  it("output_dock_table_starts_below_tabs", () => {
+    expect(appCss).toContain(".dock-header");
+    expect(appCss).toContain("position: relative");
+    expect(appCss).toContain("z-index: 1");
+    expect(appCss).toContain(".console-lines.generated");
+    expect(appCss).toContain("padding-top: 10px");
+  });
+
+  it("generated_casl_table_not_hidden_under_tab_header", () => {
+    const program = getDemoProgram("cpp-function-arguments");
+    expect(program).toBeDefined();
+    const prepared = prepareSourceForCoreAssembly(program!.source, "cpp");
+    expect(prepared.ok).toBe(true);
+    const markup = renderToStaticMarkup(
+      <OutputPanel
+        lines={[]}
+        generatedCaslSource={prepared.generatedCaslSource}
+        cppToCaslMapping={prepared.mapping}
+        sourceMode="cpp"
+        initialTab="generated"
+        onClear={() => undefined}
+      />
+    );
+
+    expect(markup).toContain('class="console-lines generated"');
+    expect(markup).toContain('class="code-table generated-casl-table"');
+    expect(appCss).toContain("margin-top: 4px");
   });
 
   it("focus_mode_out_display_is_low_emphasis_when_empty", () => {
@@ -1128,6 +1177,14 @@ DONE RET
     expect(appCss).toContain("-webkit-line-clamp: 2");
   });
 
+  it("trace_rows_are_not_clipped_in_small_panel", () => {
+    expect(appCss).toContain(".focus-trace-list");
+    expect(appCss).toContain("scrollbar-gutter: stable");
+    expect(appCss).toContain("min-height: 50px");
+    expect(appCss).toContain("min-height: 39px");
+    expect(appCss).toContain("padding: 8px 11px 8px 7px");
+  });
+
   it("trace_history_secondary_note_ellipsis", () => {
     expect(appCss).toContain(".focus-trace-item:not(.latest) .trace-note");
     expect(appCss).toContain("opacity: 0.52");
@@ -1158,6 +1215,32 @@ DONE RET
     expect(markup).toContain("mono-value");
     expect(markup).toContain("secondary-note text-ellipsis");
     expect(markup).not.toContain("signal-probe-grid");
+  });
+
+  it("signal_probe_compact_rows_do_not_render_more_inside_labels", () => {
+    const markup = renderFocus(stepSource(callReturnSource, 2), callReturnSource, "register-stack");
+    const compactRows = /data-testid="signal-probe-compact-rows"[\s\S]*?<details/.exec(markup)?.[0] ?? "";
+
+    expect(compactRows).not.toContain("SP more");
+    expect(compactRows).not.toContain("MDR more");
+    expect(compactRows).not.toContain(">more</span>");
+    expect(markup).toContain('data-testid="signal-probe-details-summary"');
+  });
+
+  it("signal_probe_rows_have_stable_label_value_note_layout", () => {
+    expect(appCss).toContain("grid-template-columns: 54px minmax(78px, 0.9fr) minmax(0, 1fr)");
+    expect(appCss).toContain("grid-template-columns: 52px minmax(72px, 0.88fr) minmax(0, 1fr)");
+    expect(appCss).toContain("min-height: 24px");
+    expect(appCss).toContain("line-height: 1.2");
+  });
+
+  it("signal_probe_flags_row_does_not_overlap", () => {
+    const markup = renderFocus(stepTimes(2));
+
+    expect(markup).toContain(">FR</span>");
+    expect(markup).toContain("flags");
+    expect(appCss).toContain(".signal-probe-row small");
+    expect(appCss).toContain("display: block");
   });
 
   it("signal_probe_shows_details_without_overlapping", () => {
@@ -1230,6 +1313,7 @@ DONE RET
     expect(markup).toContain("signal-probe-row compact-grid");
     expect(markup).toContain("compact-label signal-probe-label");
     expect(markup).toContain("secondary-note text-ellipsis");
+    expect(appCss).toContain("grid-auto-rows: max-content");
   });
 
   it("signal_probe_details_has_aria_expanded", () => {

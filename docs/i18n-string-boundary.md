@@ -31,6 +31,8 @@ Phase 14D uses a separate `diagnostics.*` namespace backed by stable diagnostic 
 
 Phase 14E binds every stable code to a typed parameter schema and validates untrusted WASM/legacy payloads at runtime. Technical parameter values remain untranslated. Source ranges, related locations, identity fields, and raw context never enter translation templates; localized messages cannot change their coordinates or selection identity.
 
+Phase 14G localizes the stable generated-function-label conflict while preserving the function spelling and generated CASL label verbatim. Storage allocation messages without reliable rejected values/ranges remain compatibility fallbacks. Lowerer invariants and browser/WASM implementation exceptions remain internal or intentionally raw details rather than localized user syntax errors.
+
 ## Lesson And Example Content Strategy
 
 Guided Lessons, demo descriptions, checkpoints, practice tasks, and long help text need a reviewed content model beyond the Phase 14B short-string inventory. They are not automatic string extraction. Example source and expected technical identifiers remain verbatim inside any future translated teaching copy.

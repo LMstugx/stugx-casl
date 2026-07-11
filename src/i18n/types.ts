@@ -306,6 +306,7 @@ export type DiagnosticTranslationKey =
   | "diagnostics.transpiler.tooManyRegisterArguments"
   | "diagnostics.transpiler.unsupportedCallArgument"
   | "diagnostics.transpiler.unsupportedExpression"
+  | "diagnostics.transpiler.generatedLabelConflict"
   | "diagnostics.transpiler.internalLoweringFailure"
   | "diagnostics.vm.notLoaded"
   | "diagnostics.vm.stepLimitReached"

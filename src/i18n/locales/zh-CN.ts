@@ -303,6 +303,7 @@ export const zhCN = {
   "diagnostics.transpiler.tooManyRegisterArguments": "函数“{function}”的参数过多；最多支持 {maximum} 个寄存器参数。",
   "diagnostics.transpiler.unsupportedCallArgument": "函数调用的第 {argumentCount} 个参数必须是标识符或整数字面量。",
   "diagnostics.transpiler.unsupportedExpression": "当前 C++ 子集不支持{construct}。",
+  "diagnostics.transpiler.generatedLabelConflict": "函数“{function}”的生成 CASL 标签“{label}”与其他函数冲突。",
   "diagnostics.transpiler.internalLoweringFailure": "无法将 C++ 源码转换为 CASL。",
   "diagnostics.vm.notLoaded": "尚未加载程序。",
   "diagnostics.vm.stepLimitReached": "已达到执行步数上限 {stepLimit}。",

@@ -53,6 +53,7 @@ const diagnosticTranslationKeys = {
   "transpiler.tooManyRegisterArguments": "diagnostics.transpiler.tooManyRegisterArguments",
   "transpiler.unsupportedCallArgument": "diagnostics.transpiler.unsupportedCallArgument",
   "transpiler.unsupportedExpression": "diagnostics.transpiler.unsupportedExpression",
+  "transpiler.generatedLabelConflict": "diagnostics.transpiler.generatedLabelConflict",
   "transpiler.internalLoweringFailure": "diagnostics.transpiler.internalLoweringFailure",
   "vm.notLoaded": "diagnostics.vm.notLoaded",
   "vm.stepLimitReached": "diagnostics.vm.stepLimitReached",

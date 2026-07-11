@@ -114,11 +114,27 @@ async function captureCppDiagnosticState(page: Page, viewport: Viewport) {
   await capture(page, viewport, "diagnostics-parser-zh-cn.png");
   if (viewport.name === "1280x720") await capture(page, viewport, "diagnostics-1280-zh-cn.png");
   await page.getByTestId("locale-en").click();
+
+  await setSource(page, "int foo() { return 0; } int FOO() { return 0; } int main() { return 0; }");
+  await page.getByTestId("assemble-button").click();
+  const p2Conflict = page.locator('.diagnostic[data-diagnostic-code="transpiler.generatedLabelConflict"]').first();
+  await expect(p2Conflict).toBeVisible();
+  await p2Conflict.click();
+  await capture(page, viewport, "diagnostic-p2-en.png");
+  await page.getByTestId("locale-ja").click();
+  await capture(page, viewport, "diagnostic-p2-ja.png");
+  await page.getByTestId("locale-zh-CN").click();
+  await capture(page, viewport, "diagnostic-p2-zh-cn.png");
+  await page.getByTestId("locale-en").click();
+
   if (viewport.primary) {
-    await setSource(page, "int foo() { return 0; } int FOO() { return 0; }");
+    await p2Conflict.locator("..").locator(".diagnostic-related summary").click();
+    await capture(page, viewport, "diagnostic-p2-related-location.png");
+    const longName = "generated_label_collision_name_".repeat(5);
+    await setSource(page, `int ${longName}() { return 0; } int ${longName.toUpperCase()}() { return 0; } int main() { return 0; }`);
     await page.getByTestId("assemble-button").click();
-    await expect(page.locator(".diagnostic").first()).toBeVisible();
-    await capture(page, viewport, "diagnostics-mixed-structured-legacy.png");
+    await expect(page.locator('.diagnostic[data-diagnostic-code="transpiler.generatedLabelConflict"]').first()).toBeVisible();
+    await capture(page, viewport, "diagnostic-long-technical-token.png");
     await setSource(page, `int main() { return ${"very_long_unknown_identifier_".repeat(8)}; }`);
     await page.getByTestId("assemble-button").click();
     await capture(page, viewport, "diagnostics-long-token.png");

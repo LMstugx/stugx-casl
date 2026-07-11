@@ -22,7 +22,7 @@ export const diagnosticCodes = [
   "semantic.duplicateVariable", "semantic.unsupportedInitializer", "semantic.invalidCondition",
   "semantic.integerLiteralOutOfRange", "semantic.forwardDeclarationUnsupported",
   "transpiler.tooManyRegisterArguments", "transpiler.unsupportedCallArgument",
-  "transpiler.unsupportedExpression", "transpiler.internalLoweringFailure",
+  "transpiler.unsupportedExpression", "transpiler.generatedLabelConflict", "transpiler.internalLoweringFailure",
   "vm.notLoaded", "vm.stepLimitReached",
   "vm.invalidInstruction", "vm.invalidMemoryAccess", "vm.stackUnderflow", "vm.stackOverflow"
 ] as const;
@@ -82,6 +82,7 @@ export interface DiagnosticParamSchemas {
   "transpiler.tooManyRegisterArguments": { function: string; maximum: number; actualCount?: number };
   "transpiler.unsupportedCallArgument": { argumentCount: number; function?: string };
   "transpiler.unsupportedExpression": { construct: string };
+  "transpiler.generatedLabelConflict": { function: string; label: string };
   "transpiler.internalLoweringFailure": NoParams;
   "vm.notLoaded": NoParams;
   "vm.stepLimitReached": { stepLimit: number };

@@ -84,12 +84,14 @@ describe("Phase 14F producer migration", () => {
     }
   });
 
-  it("user_visible_raw_diagnostic_sites_are_in_inventory", () => {
+  it("audited_raw_and_migrated_diagnostic_sites_are_in_inventory", () => {
     expect(semanticSource).toContain("conflicts with another generated label");
-    expect(diagnosticInventory).toContain("generated-label conflict");
+    expect(semanticSource).toContain('"transpiler.generatedLabelConflict"');
+    expect(diagnosticInventory).toContain("transpiler.generatedLabelConflict");
     expect(wasmAdapterSource).toContain("Failed to parse WASM");
     expect(diagnosticInventory).toContain("JSON/load/browser implementation exceptions");
-    expect(diagnosticInventory).toContain("legacy-only / internal-only");
+    expect(diagnosticInventory).toContain("internal-only");
+    expect(diagnosticInventory).toContain("intentionally-raw");
   });
 
   it("non_ascii_casl_identifier_support_is_not_added", () => {

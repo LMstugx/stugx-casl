@@ -211,3 +211,13 @@ Technical identifiers and machine data remain unchanged. CASL II mnemonics, COME
 | Opening delimiter | 開始区切り | 起始分隔符 | Related location for an unterminated construct. |
 | Closing delimiter | 終了区切り | 结束分隔符 | Expected token context. |
 | Rejected value | 拒否された値 | 被拒绝的值 | Technical value remains unchanged and plain text. |
+
+## Phase 14G P2 Terms
+
+| Canonical English | Approved Japanese | Approved Simplified Chinese | Context / usage note |
+| --- | --- | --- | --- |
+| Generated label | 生成ラベル | 生成标签 | Surrounding prose may translate; the actual CASL label stays verbatim. |
+| Label conflict | ラベルの競合 | 标签冲突 | Distinct source names project to the same generated CASL label. |
+| Generated label conflict | 生成ラベルの競合 | 生成标签冲突 | P2 transpiler diagnostic category, not a C++ syntax error. |
+| Allocation boundary | 割当て境界 | 分配边界 | Storage diagnostic term; no rejected token is implied. |
+| Internal invariant | 内部不変条件 | 内部不变量 | Developer-only failure; raw detail is not a localized user message. |

@@ -303,6 +303,7 @@ export const ja = {
   "diagnostics.transpiler.tooManyRegisterArguments": "関数「{function}」のパラメータが多すぎます。レジスタ引数は最大{maximum}個です。",
   "diagnostics.transpiler.unsupportedCallArgument": "関数呼出しの第{argumentCount}引数には識別子または整数リテラルが必要です。",
   "diagnostics.transpiler.unsupportedExpression": "現在のC++サブセットでは{construct}をサポートしていません。",
+  "diagnostics.transpiler.generatedLabelConflict": "関数「{function}」の生成CASLラベル「{label}」が別の関数と競合しています。",
   "diagnostics.transpiler.internalLoweringFailure": "C++ソースをCASLへ変換できませんでした。",
   "diagnostics.vm.notLoaded": "プログラムが読み込まれていません。",
   "diagnostics.vm.stepLimitReached": "実行ステップ上限{stepLimit}に達しました。",

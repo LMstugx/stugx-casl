@@ -24,7 +24,11 @@ describe("visual review screenshot gallery setup", () => {
     expect(visualReviewSpec).toContain("diagnostics-parser-en.png");
     expect(visualReviewSpec).toContain("diagnostics-parser-ja.png");
     expect(visualReviewSpec).toContain("diagnostics-parser-zh-cn.png");
-    expect(visualReviewSpec).toContain("diagnostics-mixed-structured-legacy.png");
+    expect(visualReviewSpec).toContain("diagnostic-p2-en.png");
+    expect(visualReviewSpec).toContain("diagnostic-p2-ja.png");
+    expect(visualReviewSpec).toContain("diagnostic-p2-zh-cn.png");
+    expect(visualReviewSpec).toContain("diagnostic-p2-related-location.png");
+    expect(visualReviewSpec).toContain("diagnostic-long-technical-token.png");
     expect(visualReviewSpec).toContain("diagnostics-long-token.png");
     expect(visualReviewSpec).toContain("diagnostics-1280-ja.png");
     expect(visualReviewSpec).toContain("diagnostics-1280-zh-cn.png");

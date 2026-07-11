@@ -304,6 +304,7 @@ export const en = {
   "diagnostics.transpiler.tooManyRegisterArguments": "Function \"{function}\" has too many parameters; at most {maximum} register arguments are supported.",
   "diagnostics.transpiler.unsupportedCallArgument": "Function call argument {argumentCount} must be an identifier or integer literal.",
   "diagnostics.transpiler.unsupportedExpression": "The current C++ subset does not support {construct}.",
+  "diagnostics.transpiler.generatedLabelConflict": "Function \"{function}\" conflicts with the generated CASL label \"{label}\".",
   "diagnostics.transpiler.internalLoweringFailure": "The C++ source could not be lowered to CASL.",
   "diagnostics.vm.notLoaded": "No program is loaded.",
   "diagnostics.vm.stepLimitReached": "The execution step limit {stepLimit} was reached.",

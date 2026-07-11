@@ -39,7 +39,7 @@ Localization status is one of `structured`, `localized`, `pending-structure`, `i
 | `semantic.parameterLocalConflict` | declaration validation | error | `function`, `variable` | line | yes | n/a | localized | complete / complete | P1 | Variable name verbatim. |
 | `transpiler.tooManyRegisterArguments` | parameter validation | error | `function`, `maximum`, `actualCount` | line | yes | n/a | localized | complete / complete | P0 | Calling convention remains GR1-GR3. |
 | `transpiler.unsupportedCallArgument` | call argument validation | error | `function`, `argumentCount` | line | yes | n/a | localized | complete / complete | P1 | Does not add syntax. |
-| remaining parser fallback messages | lexer/parser low-frequency or internal English | error | varies | existing location | partial | n/a | legacy-only / deferred | English fallback | P2/P3 | P1 sites are listed below; no unverified site is marked complete. |
+| remaining parser fallback messages | lexer/parser low-frequency or internal English | error | varies | existing location | audited | n/a | internal-only / deferred | English fallback | P2/P3 | No additional stable user-visible parser P2 site was found in Phase 14G. |
 | `cppParser.unexpectedToken` | C++ lexer/parser / unsupported character or syntax token | error | required `token`; optional `expected` | offending token | yes | n/a | localized / verified | complete / complete | P1 | `cpp-lexer` or `cpp-parser` producer is explicit. |
 | `cppParser.expectedToken` | C++ parser consume boundary | error | required `expectedToken`; optional `actualToken` | current token or EOF | yes | n/a | localized / verified | complete / complete | P1 | Recovery unchanged. |
 | `cppParser.unterminatedBlock` | C++ lexer / unterminated block comment | error | optional `construct` | EOF insertion | yes | n/a | localized / verified | complete / complete | P1 | Opening delimiter is a related location. |
@@ -61,6 +61,7 @@ Localization status is one of `structured`, `localized`, `pending-structure`, `i
 | `semantic.integerLiteralOutOfRange` | semantic / signed 16-bit bound | error | required raw `literal` | literal token when reliable | yes | n/a | localized / verified | complete / complete | P1 | Raw spelling is retained. |
 | `semantic.forwardDeclarationUnsupported` | semantic / call before definition | error | required `function` | call target | yes | n/a | localized / verified | complete / complete | P1 | Forward declarations remain unsupported. |
 | `transpiler.unsupportedExpression` | semantic/transpiler validation / unsupported expression shapes | error | required `construct` | existing line metadata | yes | n/a | localized / verified | complete / complete | P1 | No internal invariant is exposed as this code. |
+| `transpiler.generatedLabelConflict` | generated function-label projection | error | required `function`, `label` | conflicting function name; related first declaration | yes | n/a | localized / verified | complete / complete | P2 | TypeScript C++ subset only; C++ core parity is not claimed. |
 | `transpiler.internalLoweringFailure` | transpiler catch boundary | error | none | none | yes | n/a | localized / verified | complete / complete | P2 | Raw exception is details-only `rawContext`. |
 
 ## VM And Adapter
@@ -75,17 +76,23 @@ Localization status is one of `structured`, `localized`, `pending-structure`, `i
 | `vm.stackOverflow` | not currently exposed | error | none | no | no | no | deferred | P2 | Reserved stable code; no fake trigger. |
 | browser/WASM loader exception | adapter wrapper | error | raw exception | yes | n/a | n/a | intentionally-raw | P3 | Raw developer detail is not localized; no stable user action/source range exists. |
 
-## Remaining Producer Audit
+## Phase 14G P2 Stability Decisions
 
-| Producer | Remaining site | Classification | Final status | Reason |
-| --- | --- | --- | --- | --- |
-| semantic | generated-label conflict | P2 | legacy-only | Stable label allocation context requires a separate schema review. |
-| semantic | specialized compound/for shape fallbacks not reached through normal parsed forms | P2 | deferred | Keep explicit legacy fallback until producer reachability is proven. |
-| transpiler | lowerer invariant exceptions | P3 | internal-only | Stable wrapper is localized; exception text remains `rawContext`. |
-| assembler | storage/directive edge messages without a retained rejected token | P2 | partial | Existing range/value metadata is not reliable for every path. |
-| VM | runtime failures without source map | P2 | partial | No source range is fabricated. |
-| WASM adapter | JSON/load/browser implementation exceptions | P3 | internal-only / intentionally-raw | Raw details remain developer context. |
-| Trace / lessons / Demo Guide / FramePlan prose | non-diagnostic content | n/a | deferred | Outside diagnostic localization scope. |
+Phase 14G records **9 audited P2 units**. Every actual remaining unit has one explicit decision.
+
+| Producer | Actual trigger/message | Decision | Stable params | Primary/related range policy | Parity and reason |
+| --- | --- | --- | --- | --- | --- |
+| transpiler | generated function-label conflict | `migrate-now` | `function`, `label` | conflicting declaration / first declaration | TS C++ subset only; localized and verified. |
+| assembler | `Program memory exceeds 0xFFFF` | `blocked-unreliable-params` | no single rejected value | line fallback only | TS/C++ text mapping exists; metadata parity is partial. |
+| assembler | `DS address out of range` | `blocked-unreliable-range` | allocation count is not a stable rejected value | no fabricated operand range | TS/C++ condition exists; exact token ownership differs. |
+| assembler | `DC address out of range` | `blocked-unreliable-range` | no single failing value for multi-value storage | no fabricated operand range | TS/C++ condition exists; exact token ownership differs. |
+| vm | invalid memory access reserved code | `remain-legacy` | schema requires `address` | none without reliable mapping | No current user diagnostic trigger. |
+| vm | stack underflow reserved code | `remain-legacy` | none | none | No current user diagnostic trigger. |
+| vm | stack overflow reserved code | `remain-legacy` | none | none | No current user diagnostic trigger. |
+| transpiler | lowerer invariant exceptions | `internal-only` | raw exception excluded | none | Invariant exceptions remain in `rawContext`; stable wrapper already localized. |
+| wasm-adapter | JSON/load/browser implementation exceptions | `intentionally-raw` | raw exception excluded | none | Browser and loader details are intentionally raw developer context. |
+
+No actual trigger was found for separate generated-storage-conflict, invalid-generated-storage-request, or unresolved-generated-reference diagnostics. No code or trigger was created for those hypothetical names.
 
 ## Technical Boundary
 
@@ -104,6 +111,6 @@ Source text, symbol spelling, opcode/mnemonic, register name, address, numeric l
 | C++ semantic pilot | verified | code-specific | identifier, keyword, or call target | duplicate function and parameter/local conflict | verified | n/a | n/a | verified | verified within TS producer |
 | VM pilot | verified | step limit numeric; runtime address optional/required by code | reliable mapping only | none | partial | partial | partial | verified | legacy location only |
 | C++ parser P1 group | verified | code-specific token/construct params | token or insertion point | opening delimiter when reliable | verified | n/a | n/a | verified | verified within TS producer |
-| Remaining P2 parser/internal messages | legacy-only / internal-only | producer-specific | existing location only | none | partial | n/a | n/a | deferred | deferred |
+| Remaining P2 parser/internal messages | audited | producer-specific | reliable location only | reliable location only | verified decision | n/a | n/a | verified decision | see Phase 14G table |
 
 `verified` means exercised by automated tests. `partial` means the producer cannot reliably retain every value or source range. `legacy-only` means the old message remains the supported contract; no location is fabricated.

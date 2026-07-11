@@ -352,6 +352,7 @@ The current backend is shown in the status bar as `Mock Core`, `WASM Core`, or `
 - [docs/source-range-contract.md](docs/source-range-contract.md): 1-based line/column, UTF-16 offsets, exclusive ends, related locations, and TS/C++/WASM range parity.
 - [docs/phase14e-diagnostic-schema-source-range.md](docs/phase14e-diagnostic-schema-source-range.md): Phase 14E schema, source-range, identity, UI selection, compatibility, and remaining limitations.
 - [docs/phase14f-remaining-diagnostic-migration.md](docs/phase14f-remaining-diagnostic-migration.md): Phase 14F producer audit, P1 parser/assembler/semantic migration, rejected values, parity, and remaining legacy diagnostics.
+- [docs/phase14g-p2-diagnostic-stability-audit.md](docs/phase14g-p2-diagnostic-stability-audit.md): evidence-based P2 admission decisions, generated-label conflict localization, blocked storage metadata, and internal/legacy boundaries.
 
 ## Current Limitations
 

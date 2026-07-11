@@ -68,6 +68,7 @@ import diagnosticParameterSchema from "../../docs/diagnostic-parameter-schema.md
 import sourceRangeContract from "../../docs/source-range-contract.md?raw";
 import phase14e from "../../docs/phase14e-diagnostic-schema-source-range.md?raw";
 import phase14f from "../../docs/phase14f-remaining-diagnostic-migration.md?raw";
+import phase14g from "../../docs/phase14g-p2-diagnostic-stability-audit.md?raw";
 
 describe("learning use documentation", () => {
   it("learning_guide_exists", () => {
@@ -979,6 +980,19 @@ describe("learning use documentation", () => {
     expect(phase14f).toContain("Non-ASCII CASL identifiers remain unsupported");
     expect(phase14f).toContain("Lessons, Demo Guide, practice tasks, FramePlan long explanations");
     expect(readme).toContain("docs/phase14f-remaining-diagnostic-migration.md");
+  });
+
+  it("phase14g_p2_stability_audit_is_documented", () => {
+    expect(phase14g).toContain("Phase 14G: Remaining P2 Diagnostic Stability Audit");
+    expect(phase14g).toContain("9 audited P2 units");
+    expect(phase14g).toContain("transpiler.generatedLabelConflict");
+    expect(phase14g).toContain("blocked-unreliable-params");
+    expect(phase14g).toContain("blocked-unreliable-range");
+    expect(phase14g).toContain("internal-only");
+    expect(phase14g).toContain("intentionally-raw");
+    expect(phase14g).toContain("TypeScript C++ subset only; C++ core parity is not claimed");
+    expect(phase14g).toContain("emits identical CASL");
+    expect(readme).toContain("docs/phase14g-p2-diagnostic-stability-audit.md");
   });
 
   it("project_overview_uses_learning_wording", () => {

@@ -225,7 +225,9 @@ Phase 14B locale captures verify that Toolbar width remains stable, tabs do not 
 
 Phase 14E adds `diagnostic-range-casl.png`, `diagnostic-range-cpp.png`, `diagnostic-related-location.png`, `diagnostic-eof.png`, `diagnostic-ja-long.png`, `diagnostic-zh-cn-long.png`, and `diagnostic-1280.png`. Review these for precise token/insertion selection, related-location hierarchy, safe CJK wrapping, stable editor geometry, and no horizontal overflow. Circuit clean-wire geometry remains unaffected.
 
-Phase 14F adds `diagnostics-parser-en.png`, `diagnostics-parser-ja.png`, `diagnostics-parser-zh-cn.png`, `diagnostics-mixed-structured-legacy.png`, `diagnostics-long-token.png`, `diagnostics-1280-ja.png`, and `diagnostics-1280-zh-cn.png`. Review safe wrapping, token/range selection, Details hierarchy for code/producer/raw context, legacy visual consistency, and unchanged Circuit geometry.
+Phase 14F adds `diagnostics-parser-en.png`, `diagnostics-parser-ja.png`, `diagnostics-parser-zh-cn.png`, `diagnostics-long-token.png`, `diagnostics-1280-ja.png`, and `diagnostics-1280-zh-cn.png`. Review safe wrapping, token/range selection, Details hierarchy for code/producer/raw context, and unchanged Circuit geometry.
+
+Phase 14G replaces the obsolete generated-label legacy capture with `diagnostic-p2-en.png`, `diagnostic-p2-ja.png`, `diagnostic-p2-zh-cn.png`, `diagnostic-p2-related-location.png`, and `diagnostic-long-technical-token.png`. Review the localized sentence, verbatim function/CASL label, stable primary and related locations, safe long-label wrapping, and 1280px horizontal containment. Only the actually migrated P2 diagnostic is captured.
 
 - This is a review gallery, not a pixel-diff visual regression suite.
 - Screenshots are generated artifacts and are not committed to git.

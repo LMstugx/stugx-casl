@@ -55,6 +55,7 @@ export const diagnosticSchemas = {
   "transpiler.tooManyRegisterArguments": { required: { function: "string", maximum: "number" }, optional: { actualCount: "number" } },
   "transpiler.unsupportedCallArgument": { required: { argumentCount: "number" }, optional: { function: "string" } },
   "transpiler.unsupportedExpression": { required: { construct: "string" }, optional: none },
+  "transpiler.generatedLabelConflict": { required: { function: "string", label: "string" }, optional: none },
   "transpiler.internalLoweringFailure": { required: none, optional: none },
   "vm.notLoaded": { required: none, optional: none },
   "vm.stepLimitReached": { required: { stepLimit: "number" }, optional: none },

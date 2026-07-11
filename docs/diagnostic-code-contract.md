@@ -50,4 +50,8 @@ Source code, identifiers, labels, symbols, mnemonics, register names, opcodes, a
 
 ## Future Extensions
 
-Phase 14E adds the per-code typed schema, runtime payload validation, source ranges, related locations, and editor selection described in [diagnostic-parameter-schema.md](diagnostic-parameter-schema.md) and [source-range-contract.md](source-range-contract.md). Phase 14F adds the verified P1 producer group. Future phases may review remaining P2 legacy diagnostics and stable browser/WASM loader wrappers. Plural rules and rich diagnostic help remain out of scope.
+Phase 14E adds the per-code typed schema, runtime payload validation, source ranges, related locations, and editor selection described in [diagnostic-parameter-schema.md](diagnostic-parameter-schema.md) and [source-range-contract.md](source-range-contract.md). Phase 14F adds the verified P1 producer group. Phase 14G admits only `transpiler.generatedLabelConflict` from the remaining P2 set; storage boundaries, reserved VM codes, and implementation exceptions retain their documented legacy/internal decisions. Plural rules and rich diagnostic help remain out of scope.
+
+## P2 Admission Rule
+
+A P2 code is not promoted because a raw English sentence exists. It needs a stable semantic identity, producer, strict parameters, reliable primary location, locale-safe templates, and an explicit backend ownership statement. `transpiler.generatedLabelConflict` meets that rule with `function` and generated `label` parameters. The original exception text of a lowerer or WASM/browser failure remains `rawContext`, not a localized parser or semantic message.

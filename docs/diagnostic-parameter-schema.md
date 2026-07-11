@@ -31,3 +31,7 @@ C++ stores parameter values as `string | int | bool` variants and WASM serialize
 ## Remaining Limits
 
 Low-frequency parser/semantic boundary sentences, browser exceptions, and internal debug diagnostics remain legacy-only, deferred, or intentionally raw as recorded in the inventory. Adding a new code requires a TypeScript schema, runtime descriptor, locale-template audit, inventory entry, and parity tests.
+
+## Phase 14G P2 Schema Decision
+
+`transpiler.generatedLabelConflict` requires exactly `function: string` and `label: string`. Both values are stable technical data and remain untranslated. The runtime validator drops and reports unknown fields, rejects missing required fields to the legacy fallback, and never uses `rawContext` as a translation parameter. Storage allocation boundaries were not given a broader `value` escape hatch because their producers do not consistently retain one rejected value.

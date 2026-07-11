@@ -968,6 +968,39 @@ test("Phase 14F parser diagnostics localize without reparsing or moving selectio
   await expect(page.locator('.diagnostic[data-diagnostic-code="assembler.missingOperand"]')).toContainText("LD");
 });
 
+test("Phase 14G stable P2 diagnostic localizes without changing identity or source state", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await openStudio(page, "Mock Core");
+  await page.getByTestId("source-mode-cpp").click();
+  const source = "int foo() { return 0; } int FOO() { return 0; } int main() { return 0; }";
+  await setSource(page, source);
+  await page.getByTestId("assemble-button").click();
+
+  const diagnostic = page.locator('.diagnostic[data-diagnostic-code="transpiler.generatedLabelConflict"]').first();
+  await expect(diagnostic).toBeVisible();
+  await diagnostic.click();
+  const entry = diagnostic.locator("..");
+  const count = await page.locator(".diagnostic").count();
+  const englishMessage = await diagnostic.locator(".diagnostic-message").textContent();
+  const editorText = await page.getByTestId("source-editor").locator(".view-lines").textContent();
+  await expect(page.locator(".diagnostic-source-range-inline")).toContainText("FOO");
+  await entry.locator(".diagnostic-related summary").click();
+  await expect(entry.locator(".diagnostic-related")).toContainText("transpiler");
+
+  await page.getByTestId("locale-ja").click();
+  await expect(diagnostic.locator(".diagnostic-message")).toContainText("FOO");
+  await expect(diagnostic.locator(".diagnostic-message")).toContainText("FUNC_FOO");
+  expect(await diagnostic.locator(".diagnostic-message").textContent()).not.toBe(englishMessage);
+  await expect(entry).toHaveAttribute("data-selected", "true");
+
+  await page.getByTestId("locale-zh-CN").click();
+  await expect(diagnostic.locator(".diagnostic-message")).toContainText("FOO");
+  expect(await page.locator(".diagnostic").count()).toBe(count);
+  expect(await page.getByTestId("source-editor").locator(".view-lines").textContent()).toBe(editorText);
+  await expect(entry).toHaveAttribute("data-selected", "true");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)).toBe(false);
+});
+
 test("Mock backend executes C++ subset if else lowering in the browser UI", async ({ page }) => {
   await openStudio(page, "Mock Core");
   await page.getByTestId("source-mode-cpp").click();

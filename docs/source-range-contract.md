@@ -42,3 +42,7 @@ Selecting a diagnostic decorates and reveals its valid range in the existing Mon
 ## TS, C++, And WASM Parity
 
 Mock, C++ direct, and WASM pilot tests verify unknown opcode/symbol, duplicate label, invalid register, malformed comma, and missing START/END metadata. WASM adds optional `sourceRange` and `relatedLocations` while retaining old payload compatibility. Diagnostic conditions, ordering, severity, and operation success are unchanged.
+
+## Phase 14G Generated-Label Location
+
+For `transpiler.generatedLabelConflict`, the primary range covers the later C++ function name and a related location covers the first function name that projected to the same generated CASL label. The generated label itself is a parameter, not a fabricated C++ source range. Program-memory, `DS`, and `DC` allocation overflows remain line-level/partial because no single rejected token is reliable across producers.

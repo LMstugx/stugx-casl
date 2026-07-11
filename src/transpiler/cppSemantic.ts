@@ -68,6 +68,7 @@ export function checkCppSemantics(program: CppProgram | null, parseDiagnostics: 
   const diagnostics = [...parseDiagnostics];
   const variables: CppVariableSymbol[] = [];
   const usedLabels = new Set<string>();
+  const generatedFunctionLabels = new Map<string, number>();
 
   if (!program) {
     if (diagnostics.length === 0) {
@@ -105,11 +106,21 @@ export function checkCppSemantics(program: CppProgram | null, parseDiagnostics: 
     }));
   }
 
-  for (const fn of program.functions) {
+  for (const [index, fn] of program.functions.entries()) {
     const label = functionLabel(fn.name);
     if (usedLabels.has(label)) {
-      diagnostics.push({ line: fn.line, message: `Function label '${label}' conflicts with another generated label.`, severity: "error" });
+      const sourceRange = functionNameRange(source, program.functions, index);
+      const firstIndex = generatedFunctionLabels.get(label);
+      const firstRange = firstIndex === undefined ? undefined : functionNameRange(source, program.functions, firstIndex);
+      diagnostics.push(createStructuredDiagnostic(fn.line, `Function label '${label}' conflicts with another generated label.`, "transpiler.generatedLabelConflict", {
+        function: fn.name,
+        label
+      }, "error", {
+        ...(sourceRange ? { sourceRange } : {}),
+        ...(firstRange ? { relatedLocations: [{ label: "diagnostic.firstDeclaredHere", sourceRange: firstRange }] } : {})
+      }));
     }
+    if (!generatedFunctionLabels.has(label)) generatedFunctionLabels.set(label, index);
     usedLabels.add(label);
   }
 

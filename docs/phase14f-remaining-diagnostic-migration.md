@@ -53,7 +53,7 @@ English is canonical. Japanese and Simplified Chinese templates localize only th
 
 ## Remaining Legacy Diagnostics
 
-Generated-label conflicts, some specialized semantic shape errors, low-frequency storage/directive boundaries, and browser/WASM implementation failures remain P2, legacy-only, internal-only, or intentionally raw as recorded in the inventory. Lessons, Demo Guide, practice tasks, FramePlan long explanations, and Trace payloads remain deferred.
+Phase 14G subsequently admitted only the stable generated-label conflict. Low-frequency storage/directive boundaries and browser/WASM implementation failures remain blocked, internal-only, or intentionally raw as recorded in the inventory. Lessons, Demo Guide, practice tasks, FramePlan long explanations, and Trace payloads remain deferred.
 
 ## Tests
 

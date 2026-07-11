@@ -21,6 +21,10 @@ The TypeScript C++ lexer records exact UTF-16 start/end offsets. The C++ CASL co
 - Argument-count mismatch: the call target in the current AST metadata boundary.
 - `break` / `continue` outside a loop: the keyword.
 - Parameter/local conflict: the local declaration with the parameter declaration as related location.
+- Missing C++ semicolon: zero-length insertion at the current token or EOF.
+- Unterminated C++ block comment: EOF insertion point with the opening delimiter as a related location.
+- CASL missing operand: zero-length insertion at the trimmed line end.
+- CASL trailing operand and invalid literal: the rejected token.
 - VM diagnostics: no source range unless reliable runtime source mapping exists; a machine address is never fabricated as a source line.
 
 ## Lexer And Parser Expectations

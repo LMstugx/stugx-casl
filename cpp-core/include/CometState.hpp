@@ -46,6 +46,7 @@ struct Diagnostic {
     Severity severity = Severity::Error;
     std::string message;
     std::string code;
+    std::string producer;
     std::unordered_map<std::string, DiagnosticParamValue> params;
     std::string rawContext;
     std::string fallbackMessage;

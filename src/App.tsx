@@ -233,12 +233,16 @@ function StudioShell() {
                   <span className="diagnostic-message">{rendered.message}</span>
                   {source.code ? <span className="diagnostic-code" title={t("diagnostic.code", { code: source.code })}>{source.code}</span> : null}
                 </button>
-                {source.relatedLocations?.length ? (
+                {source.code || source.producer || source.rawContext || source.relatedLocations?.length ? (
                   <details className="diagnostic-related">
-                    <summary>{t("diagnostic.relatedLocations")}</summary>
-                    {source.relatedLocations.map((location, relatedIndex) => (
+                    <summary>{t("common.details")}</summary>
+                    {source.code ? <span>{t("diagnostic.code", { code: source.code })}</span> : null}
+                    {source.producer ? <span>{t("diagnostic.producer", { producer: source.producer })}</span> : null}
+                    {source.rawContext ? <span title={source.rawContext}>{t("diagnostic.rawContext")}: {source.rawContext}</span> : null}
+                    {source.relatedLocations?.length ? <strong>{t("diagnostic.relatedLocations")}</strong> : null}
+                    {source.relatedLocations?.map((location, relatedIndex) => (
                       <span key={`${location.sourceRange.start.line}:${location.sourceRange.start.column}:${relatedIndex}`}>
-                        {t("diagnostic.firstDeclaredHere")} - {t("diagnostic.line", { line: location.sourceRange.start.line })}
+                        {location.label === "diagnostic.openingDelimiterHere" ? t("diagnostic.openingDelimiterHere") : t("diagnostic.firstDeclaredHere")} - {t("diagnostic.line", { line: location.sourceRange.start.line })}
                       </span>
                     ))}
                   </details>

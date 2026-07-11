@@ -138,7 +138,9 @@ export function checkCppSemantics(program: CppProgram | null, parseDiagnostics: 
 
 function validateFunctionParameters(fn: CppFunction, context: ValidationContext): void {
   if (fn.name === "main" && fn.parameters.length > 0) {
-    context.diagnostics.push({ line: fn.parameters[0].line, message: "main parameters are not supported yet", severity: "error" });
+    context.diagnostics.push(createStructuredDiagnostic(fn.parameters[0].line, "main parameters are not supported yet", "semantic.unsupportedMainParameters", {
+      actualCount: fn.parameters.length
+    }, "error", metadataForText(context.source, fn.parameters[0].line, fn.parameters[0].name)));
   }
 
   if (fn.parameters.length > 3) {
@@ -151,7 +153,11 @@ function validateFunctionParameters(fn: CppFunction, context: ValidationContext)
 
   for (const parameter of fn.parameters) {
     if (context.variables.has(parameter.name)) {
-      context.diagnostics.push({ line: parameter.line, message: "duplicate parameter name", severity: "error" });
+      const first = context.variables.get(parameter.name);
+      context.diagnostics.push(createStructuredDiagnostic(parameter.line, "duplicate parameter name", "semantic.duplicateParameter", {
+        function: context.functionName,
+        variable: parameter.name
+      }, "error", metadataForText(context.source, parameter.line, parameter.name, first?.declarationLine)));
       continue;
     }
 
@@ -205,7 +211,9 @@ function validateStatements(statements: CppStatement[], context: ValidationConte
       }
 
       if (!statement.condition) {
-        context.diagnostics.push({ line: statement.line, message: "for without condition is not supported yet", severity: "error" });
+        context.diagnostics.push(createStructuredDiagnostic(statement.line, "for without condition is not supported yet", "semantic.invalidCondition", {
+          construct: "for"
+        }, "error", metadataForText(context.source, statement.line, "for")));
       } else {
         validateCondition(statement.condition, context);
       }
@@ -241,19 +249,20 @@ function validateVarDecl(statement: CppVarDecl, context: ValidationContext, stor
       }, "error", metadataForText(context.source, statement.line, statement.name, existing.declarationLine)));
       return;
     }
-    context.diagnostics.push({ line: statement.line, message: `Duplicate variable declaration: ${statement.name}`, severity: "error" });
+    context.diagnostics.push(createStructuredDiagnostic(statement.line, `Duplicate variable declaration: ${statement.name}`, "semantic.duplicateVariable", {
+      function: context.functionName,
+      variable: statement.name
+    }, "error", metadataForText(context.source, statement.line, statement.name, existing.declarationLine)));
     return;
   }
   const initializer = statement.initializer;
   if (initializer && initializer.kind !== "IntegerLiteral") {
-    context.diagnostics.push({
-      line: statement.line,
-      message: "Variable initializers in the current C++ subset must be integer literals.",
-      severity: "error"
-    });
+    context.diagnostics.push(createStructuredDiagnostic(statement.line, "Variable initializers in the current C++ subset must be integer literals.", "semantic.unsupportedInitializer", {
+      variable: statement.name
+    }, "error", metadataForText(context.source, statement.line, statement.name)));
     validateTopLevelExpression(initializer, context, "general");
   }
-  if (initializer?.kind === "IntegerLiteral") validateIntegerLiteral(initializer.value, initializer.line, context.diagnostics);
+  if (initializer?.kind === "IntegerLiteral") validateIntegerLiteral(initializer.value, initializer.raw, initializer.line, context.diagnostics, context.source);
   const symbol = {
     name: statement.name,
     functionName: context.functionName,
@@ -279,38 +288,30 @@ function validateAssignment(statement: CppAssignment, context: ValidationContext
 function validateCompoundAssignment(statement: CppAssignment, diagnostics: Diagnostic[]): void {
   const expression = statement.expression;
   if (expression.kind !== "BinaryExpression" || expression.left.kind !== "Identifier" || expression.left.name !== statement.target) {
-    diagnostics.push({
-      line: statement.line,
-      message: "Current C++ subset supports compound assignment only as i += step or i -= step.",
-      severity: "error"
-    });
+    diagnostics.push(createStructuredDiagnostic(statement.line, "Current C++ subset supports compound assignment only as i += step or i -= step.", "transpiler.unsupportedExpression", {
+      construct: "this compound assignment form"
+    }));
     return;
   }
   if (expression.right.kind !== "Identifier" && expression.right.kind !== "IntegerLiteral") {
-    diagnostics.push({
-      line: statement.line,
-      message: "Current C++ subset supports compound assignment step only as integer literal or declared variable.",
-      severity: "error"
-    });
+    diagnostics.push(createStructuredDiagnostic(statement.line, "Current C++ subset supports compound assignment step only as integer literal or declared variable.", "transpiler.unsupportedExpression", {
+      construct: "this compound assignment step"
+    }));
   }
 }
 
 function validateForIncrement(statement: CppAssignment, context: ValidationContext): void {
   const expression = statement.expression;
   if (expression.kind !== "BinaryExpression" || expression.left.kind !== "Identifier" || expression.left.name !== statement.target) {
-    context.diagnostics.push({
-      line: statement.line,
-      message: "Current C++ subset supports for increment only as i = i + step or i = i - step.",
-      severity: "error"
-    });
+    context.diagnostics.push(createStructuredDiagnostic(statement.line, "Current C++ subset supports for increment only as i = i + step or i = i - step.", "transpiler.unsupportedExpression", {
+      construct: "this for increment form"
+    }));
     return;
   }
   if (expression.right.kind !== "Identifier" && expression.right.kind !== "IntegerLiteral") {
-    context.diagnostics.push({
-      line: statement.line,
-      message: "Current C++ subset supports for increment step only as integer literal or declared variable.",
-      severity: "error"
-    });
+    context.diagnostics.push(createStructuredDiagnostic(statement.line, "Current C++ subset supports for increment step only as integer literal or declared variable.", "transpiler.unsupportedExpression", {
+      construct: "this for increment step"
+    }));
     return;
   }
   if (expression.right.kind === "Identifier" && !context.variables.has(expression.right.name)) {
@@ -325,13 +326,17 @@ function validateTopLevelExpression(expression: CppExpression, context: Validati
   if (expression.kind === "CallExpression") {
     validateCallExpression(expression, context);
     if (owner === "general") {
-      context.diagnostics.push({ line: expression.line, message: "Function calls are supported only as assignment RHS or return expression.", severity: "error" });
+      context.diagnostics.push(createStructuredDiagnostic(expression.line, "Function calls are supported only as assignment RHS or return expression.", "transpiler.unsupportedExpression", {
+        construct: "a function call in this statement position"
+      }));
     }
     return;
   }
 
   if (expression.kind === "BinaryExpression" && containsCallExpression(expression)) {
-    context.diagnostics.push({ line: expression.line, message: "Function calls inside binary expressions are not supported yet.", severity: "error" });
+    context.diagnostics.push(createStructuredDiagnostic(expression.line, "Function calls inside binary expressions are not supported yet.", "transpiler.unsupportedExpression", {
+      construct: "function calls inside binary expressions"
+    }));
   }
   validateExpression(expression, context);
 }
@@ -348,7 +353,7 @@ function validateExpression(expression: CppExpression, context: ValidationContex
   }
 
   if (expression.kind === "IntegerLiteral") {
-    validateIntegerLiteral(expression.value, expression.line, context.diagnostics);
+    validateIntegerLiteral(expression.value, expression.raw, expression.line, context.diagnostics, context.source);
     return;
   }
 
@@ -363,7 +368,9 @@ function validateExpression(expression: CppExpression, context: ValidationContex
 
 function validateCondition(condition: CppCondition, context: ValidationContext): void {
   if (condition.left.kind === "BinaryExpression" || condition.right.kind === "BinaryExpression") {
-    context.diagnostics.push({ line: condition.line, message: "Current C++ subset if conditions support only identifiers and integer literals.", severity: "error" });
+    context.diagnostics.push(createStructuredDiagnostic(condition.line, "Current C++ subset if conditions support only identifiers and integer literals.", "semantic.invalidCondition", {
+      construct: "if"
+    }));
     return;
   }
 
@@ -396,11 +403,9 @@ function validateCallExpression(expression: Extract<CppExpression, { kind: "Call
   }
   const calleeIndex = context.functionOrder.get(expression.callee) ?? -1;
   if (calleeIndex > context.functionIndex) {
-    context.diagnostics.push({
-      line: expression.line,
-      message: `Function '${expression.callee}' is used before its definition. Forward declarations are not supported yet.`,
-      severity: "error"
-    });
+    context.diagnostics.push(createStructuredDiagnostic(expression.line, `Function '${expression.callee}' is used before its definition. Forward declarations are not supported yet.`, "semantic.forwardDeclarationUnsupported", {
+      function: expression.callee
+    }, "error", metadataForLastText(context.source, expression.line, expression.callee)));
   }
 }
 
@@ -420,9 +425,11 @@ function containsCallExpression(expression: CppExpression): boolean {
   return containsCallExpression(expression.left) || containsCallExpression(expression.right);
 }
 
-function validateIntegerLiteral(value: number, line: number, diagnostics: Diagnostic[]): void {
+function validateIntegerLiteral(value: number, raw: string, line: number, diagnostics: Diagnostic[], source: string): void {
   if (!Number.isInteger(value) || value < INT16_MIN || value > INT16_MAX) {
-    diagnostics.push({ line, message: `Integer literal ${value} is outside the supported signed 16-bit range.`, severity: "error" });
+    diagnostics.push(createStructuredDiagnostic(line, `Integer literal ${value} is outside the supported signed 16-bit range.`, "semantic.integerLiteralOutOfRange", {
+      literal: raw
+    }, "error", metadataForText(source, line, raw)));
   }
 }
 

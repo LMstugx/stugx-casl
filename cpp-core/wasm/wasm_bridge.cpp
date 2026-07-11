@@ -188,6 +188,9 @@ void writeDiagnostics(std::ostream& output, const std::vector<casl::Diagnostic>&
         if (!diagnostic.code.empty()) {
             output << ", \"code\": \"" << jsonEscape(diagnostic.code) << "\"";
         }
+        if (!diagnostic.producer.empty()) {
+            output << ", \"producer\": \"" << jsonEscape(diagnostic.producer) << "\"";
+        }
         if (!diagnostic.params.empty()) {
             output << ", \"params\": {";
             std::size_t paramIndex = 0;

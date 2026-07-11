@@ -1,12 +1,13 @@
 import { selectMemoryWindow } from "./selectors";
 import { CometState, Diagnostic, InstructionKind } from "./types";
-import type { DiagnosticParamValue, DiagnosticRelatedLocation, DiagnosticSeverity, SourceRange } from "../diagnostics/types";
+import type { DiagnosticParamValue, DiagnosticProducer, DiagnosticRelatedLocation, DiagnosticSeverity, SourceRange } from "../diagnostics/types";
 
 export interface DiagnosticDto {
   line: number;
   message: string;
   severity: DiagnosticSeverity;
   code?: string;
+  producer?: DiagnosticProducer;
   params?: Readonly<Record<string, DiagnosticParamValue>>;
   sourceRange?: SourceRange;
   relatedLocations?: readonly DiagnosticRelatedLocation[];
@@ -106,6 +107,7 @@ function diagnosticsToDto(diagnostics: Diagnostic[]): DiagnosticDto[] {
     message: diagnostic.message,
     severity: diagnostic.severity,
     ...(diagnostic.code ? { code: diagnostic.code } : {}),
+    ...(diagnostic.producer ? { producer: diagnostic.producer } : {}),
     ...(diagnostic.params ? { params: diagnostic.params } : {}),
     ...(diagnostic.sourceRange ? { sourceRange: diagnostic.sourceRange } : {}),
     ...(diagnostic.relatedLocations ? { relatedLocations: diagnostic.relatedLocations } : {}),

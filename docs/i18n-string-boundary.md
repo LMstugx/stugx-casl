@@ -27,7 +27,7 @@ User source, program output, console data, labels, symbols, and runtime Trace pa
 
 ## Diagnostics Strategy
 
-Phase 14D uses a separate `diagnostics.*` namespace backed by stable diagnostic codes and named parameters. Locale changes rerender messages without rerunning producers. Legacy English messages remain compatibility fallbacks; source ranges and raw context stay outside templates. Raw diagnostic sentences must not be copied into the static UI namespace.
+Phase 14D uses a separate `diagnostics.*` namespace backed by stable diagnostic codes and named parameters. Phase 14F extends that boundary to existing P1 parser/semantic producers without translating rejected tokens or raw technical context. Locale changes rerender messages without rerunning producers. Legacy English messages remain compatibility fallbacks; source ranges and raw context stay outside templates. Raw diagnostic sentences must not be copied into the static UI namespace.
 
 Phase 14E binds every stable code to a typed parameter schema and validates untrusted WASM/legacy payloads at runtime. Technical parameter values remain untranslated. Source ranges, related locations, identity fields, and raw context never enter translation templates; localized messages cannot change their coordinates or selection identity.
 

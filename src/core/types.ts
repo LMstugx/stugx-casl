@@ -1,7 +1,7 @@
 import { formatHex16 } from "../utils/format";
-import type { DiagnosticCode, DiagnosticParams, DiagnosticRelatedLocation, DiagnosticSeverity, SourceRange } from "../diagnostics/types";
+import type { DiagnosticCode, DiagnosticParams, DiagnosticProducer, DiagnosticRelatedLocation, DiagnosticSeverity, SourceRange } from "../diagnostics/types";
 
-export type { DiagnosticCode, DiagnosticParamValue, DiagnosticParams, DiagnosticRelatedLocation, DiagnosticSeverity, SourceRange } from "../diagnostics/types";
+export type { DiagnosticCode, DiagnosticParamValue, DiagnosticParams, DiagnosticProducer, DiagnosticRelatedLocation, DiagnosticSeverity, SourceRange } from "../diagnostics/types";
 
 export const WORD_MASK = 0xffff;
 
@@ -126,6 +126,7 @@ export interface Diagnostic<C extends DiagnosticCode = DiagnosticCode> {
   message: string;
   severity: DiagnosticSeverity;
   code?: C;
+  producer?: DiagnosticProducer;
   params?: DiagnosticParams<C>;
   sourceRange?: SourceRange;
   relatedLocations?: readonly DiagnosticRelatedLocation[];

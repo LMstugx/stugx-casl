@@ -97,18 +97,32 @@ async function captureCaslDiagnosticState(page: Page, viewport: Viewport) {
 async function captureCppDiagnosticState(page: Page, viewport: Viewport) {
   await openStudio(page, "Mock Core");
   await page.getByTestId("source-mode-cpp").click();
-  await setSource(page, "int main() {\n  return missing;\n}");
+  await setSource(page, "int main() {\n  int value = 1\n  return value;\n}");
   await page.getByTestId("assemble-button").click();
   await expect(page.locator(".diagnostic").first()).toBeVisible();
   await page.locator(".diagnostic").first().click();
   await capture(page, viewport, "ui-cpp-diagnostic-error.png");
   await capture(page, viewport, "diagnostics-en-cpp.png");
+  await capture(page, viewport, "diagnostics-parser-en.png");
   if (viewport.primary) await capture(page, viewport, "diagnostic-range-cpp.png");
   await page.getByTestId("locale-ja").click();
   await capture(page, viewport, "diagnostics-ja-cpp.png");
+  await capture(page, viewport, "diagnostics-parser-ja.png");
+  if (viewport.name === "1280x720") await capture(page, viewport, "diagnostics-1280-ja.png");
   await page.getByTestId("locale-zh-CN").click();
   await capture(page, viewport, "diagnostics-zh-cn-cpp.png");
+  await capture(page, viewport, "diagnostics-parser-zh-cn.png");
+  if (viewport.name === "1280x720") await capture(page, viewport, "diagnostics-1280-zh-cn.png");
   await page.getByTestId("locale-en").click();
+  if (viewport.primary) {
+    await setSource(page, "int foo() { return 0; } int FOO() { return 0; }");
+    await page.getByTestId("assemble-button").click();
+    await expect(page.locator(".diagnostic").first()).toBeVisible();
+    await capture(page, viewport, "diagnostics-mixed-structured-legacy.png");
+    await setSource(page, `int main() { return ${"very_long_unknown_identifier_".repeat(8)}; }`);
+    await page.getByTestId("assemble-button").click();
+    await capture(page, viewport, "diagnostics-long-token.png");
+  }
 }
 
 async function captureStoppedState(page: Page, viewport: Viewport) {

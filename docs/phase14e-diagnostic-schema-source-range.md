@@ -42,4 +42,4 @@ Raw lexer/parser diagnostics without stable codes remain legacy-only. C++ semant
 
 ## Next Recommendation
 
-Phase 14F should inventory and structure the remaining parser diagnostics in small producer-owned groups, preserving the Phase 14E schema/range contract. Lessons, Demo Guide, practice tasks, FramePlan prose, and runtime Trace localization should remain separate editorial work.
+Phase 14F performs the producer-owned P1 migration described in [phase14f-remaining-diagnostic-migration.md](phase14f-remaining-diagnostic-migration.md), preserving the Phase 14E schema/range contract. Lessons, Demo Guide, practice tasks, FramePlan prose, and runtime Trace localization remain separate editorial work.

@@ -180,6 +180,10 @@ void AssembleInvalidNumericLiteral() {
     const auto result = assembler.assemble("MAIN START\nA DC NOPE\n END");
     require(!result.ok, "invalid numeric literal should fail");
     require(hasError(result, "Invalid numeric literal"), "invalid numeric literal diagnostic");
+    require(hasCode(result, "assembler.invalidLiteral"), "invalid literal structured code");
+    const auto* diagnostic = findCode(result, "assembler.invalidLiteral");
+    require(diagnostic != nullptr && diagnostic->producer == "assembler", "invalid literal producer");
+    require(diagnostic->sourceRange.has_value() && diagnostic->sourceRange->start.line == 2, "invalid literal range");
 }
 
 void AssembleRequiredDirectivesBoundary() {
@@ -217,6 +221,17 @@ void AssembleMalformedOperandBoundary() {
     require(assembleHasError(assembler, "MAIN START\n POP\n END", "POP requires a register operand"), "POP missing register diagnostic");
     require(assembleHasError(assembler, "MAIN START\n POP GR1,GR2\n END", "POP does not support index operands"), "POP index diagnostic");
     require(assembleHasError(assembler, "MAIN START\n LD GR1,A,\nA DC 1\n END", "Malformed operand list near comma"), "trailing comma diagnostic");
+
+    const auto missing = assembler.assemble("MAIN START\n LD GR1\n END");
+    const auto* missingDiagnostic = findCode(missing, "assembler.missingOperand");
+    require(missingDiagnostic != nullptr && missingDiagnostic->producer == "assembler", "missing operand structured producer");
+    require(missingDiagnostic->sourceRange.has_value() && missingDiagnostic->sourceRange->start.offset == missingDiagnostic->sourceRange->end.offset, "missing operand insertion range");
+
+    const auto trailing = assembler.assemble("MAIN START\n LD GR1,A,GR2,EXTRA\nA DC 1\n END");
+    const auto* trailingDiagnostic = findCode(trailing, "assembler.unexpectedTrailingOperand");
+    require(trailingDiagnostic != nullptr && trailingDiagnostic->sourceRange.has_value(), "trailing operand structured range");
+    const auto operand = trailingDiagnostic->params.find("operand");
+    require(operand != trailingDiagnostic->params.end() && std::get<std::string>(operand->second) == "EXTRA", "trailing operand rejected value");
 }
 
 void AssembleStorageBoundaryDiagnostics() {

@@ -1,5 +1,6 @@
 import type { Diagnostic } from "../core/types";
-import { eofInsertionRange, firstMeaningfulInsertionRange, rangeForTextOnLine, sourceRangeFromOffsets } from "./sourceRange";
+import { eofInsertionRange, firstMeaningfulInsertionRange, rangeForLastTextOnLine, rangeForTextOnLine, sourceRangeFromOffsets } from "./sourceRange";
+import { inferDiagnosticProducer } from "./types";
 import type { DiagnosticCode, DiagnosticParams, DiagnosticParamValue, DiagnosticRelatedLocation } from "./types";
 import { validateDiagnosticPayload } from "./validation";
 
@@ -9,9 +10,9 @@ export function createStructuredDiagnostic<C extends DiagnosticCode>(
   code: C,
   params: DiagnosticParams<C>,
   severity: Diagnostic["severity"] = "error",
-  metadata: Pick<Diagnostic<C>, "sourceRange" | "relatedLocations" | "fileName" | "rawContext"> = {}
+  metadata: Pick<Diagnostic<C>, "producer" | "sourceRange" | "relatedLocations" | "fileName" | "rawContext"> = {}
 ): Diagnostic<C> {
-  return { line, message, fallbackMessage: message, severity, code, params, ...metadata };
+  return { line, message, fallbackMessage: message, severity, code, params, producer: metadata.producer ?? inferDiagnosticProducer(code), ...metadata };
 }
 
 export function normalizeDiagnostic(input: unknown): Diagnostic {
@@ -37,7 +38,8 @@ export function normalizeDiagnostics(diagnostics: readonly unknown[]): Diagnosti
 export function normalizeAssemblerDiagnostics(diagnostics: readonly unknown[], source: string): Diagnostic[] {
   const normalized = normalizeDiagnostics(diagnostics);
   const seenLabels = new Map<string, { line: number; range?: ReturnType<typeof rangeForTextOnLine> }>();
-  return normalized.map((diagnostic) => {
+  return normalized.map((inputDiagnostic) => {
+    let diagnostic = refineAssemblerDiagnostic(inputDiagnostic, source);
     if (!diagnostic.code) return diagnostic;
     let sourceRange = diagnostic.sourceRange;
     const params = diagnostic.params ? { ...(diagnostic.params as Readonly<Record<string, DiagnosticParamValue>>) } : undefined;
@@ -65,10 +67,39 @@ export function normalizeAssemblerDiagnostics(diagnostics: readonly unknown[], s
   });
 }
 
+function refineAssemblerDiagnostic(diagnostic: Diagnostic, source: string): Diagnostic {
+  const parts = caslLineParts(source, diagnostic.line);
+  const existingParams = diagnostic.params as Readonly<Record<string, DiagnosticParamValue>> | undefined;
+  const mnemonic = typeof existingParams?.mnemonic === "string" ? existingParams.mnemonic : parts?.mnemonic;
+  if ((diagnostic.message === "Missing numeric value" || /^Invalid numeric literal for DS:\s*$/.test(diagnostic.message)) && mnemonic) {
+    return createStructuredDiagnostic(diagnostic.line, diagnostic.message, "assembler.missingOperand", { mnemonic }, diagnostic.severity, {
+      producer: "assembler",
+      sourceRange: lineEndInsertionRange(source, diagnostic.line)
+    });
+  }
+  if (diagnostic.code !== "assembler.invalidOperandCount" || !mnemonic) return diagnostic;
+  if (/requires .+ operands?/i.test(diagnostic.message)) {
+    return createStructuredDiagnostic(diagnostic.line, diagnostic.message, "assembler.missingOperand", { mnemonic }, diagnostic.severity, {
+      producer: "assembler",
+      sourceRange: lineEndInsertionRange(source, diagnostic.line)
+    });
+  }
+  if (/has too many operands|does not support index operands/i.test(diagnostic.message)) {
+    const operand = parts?.operands[parts.operands.length - 1];
+    if (!operand) return diagnostic;
+    return createStructuredDiagnostic(diagnostic.line, diagnostic.message, "assembler.unexpectedTrailingOperand", { mnemonic, operand }, diagnostic.severity, {
+      producer: "assembler",
+      sourceRange: rangeForLastTextOnLine(source, diagnostic.line, operand)
+    });
+  }
+  return diagnostic;
+}
+
 function classifyLegacyMessage(message: string): { code: DiagnosticCode; params: Record<string, DiagnosticParamValue> } | null {
   if (message === "CASL source must contain START directive") return match("assembler.missingStart");
   if (message === "CASL source must contain END directive") return match("assembler.missingEnd");
   if (message === "Malformed operand list near comma") return match("assembler.malformedOperandList");
+  if (message === "Missing opcode after label" || message === "Unsupported or missing operation") return match("assembler.missingOpcode");
   if (message === "GR0 cannot be used as an index register") return match("assembler.invalidIndexRegister", { indexRegister: "GR0" });
   if (message === "C++ subset program must define int main().") return match("semantic.mainFunctionMissing");
   if (message === "break is only supported inside a loop") return match("semantic.breakOutsideLoop");
@@ -84,7 +115,7 @@ function classifyLegacyMessage(message: string): { code: DiagnosticCode; params:
     [/^Invalid index register:\s*(.+)$/i, "assembler.invalidIndexRegister", "indexRegister"],
     [/^(?:Address operand|DS address|DC address|Program memory).*out of (?:16-bit )?range(?::\s*(.+))?$/i, "assembler.addressOutOfRange", "value"],
     [/^(?:Numeric value|DC value|Integer literal).*out(?:side)? .*range(?::\s*(.+))?\.?$/i, "assembler.literalOutOfRange", "value"],
-    [/^Invalid numeric (?:literal|value)(?: for (?:DC|DS))?:\s*(.*)$/i, "assembler.literalOutOfRange", "value"],
+    [/^Invalid numeric (?:literal|value)(?: for (?:DC|DS))?:\s*(.+)$/i, "assembler.invalidLiteral", "literal"],
     [/^Duplicate function declaration:\s*(.+)$/i, "semantic.duplicateFunction", "function"],
     [/^Function '([^']+)' is not defined\.$/i, "semantic.unknownFunction", "function"],
     [/^(?:Variable '([^']+)' is used before declaration|Assignment target '([^']+)' is not declared)\.?$/i, "semantic.unknownVariable", "variable"]
@@ -108,7 +139,8 @@ function tokenForDiagnostic(code: DiagnosticCode, params?: Readonly<Record<strin
   const names: Partial<Record<DiagnosticCode, string>> = {
     "assembler.unknownOpcode": "opcode", "assembler.unknownSymbol": "symbol", "assembler.duplicateLabel": "label",
     "assembler.invalidRegister": "register", "assembler.invalidIndexRegister": "indexRegister",
-    "assembler.invalidOperandCount": "mnemonic", "assembler.addressOutOfRange": "value", "assembler.literalOutOfRange": "value"
+    "assembler.invalidOperandCount": "mnemonic", "assembler.addressOutOfRange": "value", "assembler.literalOutOfRange": "value",
+    "assembler.invalidLiteral": "literal"
   };
   const value = names[code] ? params?.[names[code]!] : undefined;
   return value === undefined ? undefined : String(value);
@@ -138,6 +170,27 @@ function sourceLine(source: string, line: number): { text: string; offset: numbe
     offset += raw.length + 1;
   }
   return undefined;
+}
+
+function lineEndInsertionRange(source: string, line: number) {
+  const info = sourceLine(source, line);
+  if (!info) return undefined;
+  const content = info.text.replace(/\s+$/, "");
+  return sourceRangeFromOffsets(source, info.offset + content.length, info.offset + content.length);
+}
+
+function caslLineParts(source: string, line: number): { mnemonic: string; operands: string[] } | undefined {
+  const info = sourceLine(source, line);
+  if (!info) return undefined;
+  const content = info.text.split(";", 1)[0].trim();
+  if (!content) return undefined;
+  const tokens = content.split(/\s+/);
+  const known = new Set(["START", "END", "DC", "DS", "NOP", "LD", "ST", "LAD", "ADDA", "SUBA", "ADDL", "SUBL", "AND", "OR", "XOR", "CPA", "CPL", "SLA", "SRA", "SLL", "SRL", "PUSH", "POP", "CALL", "RET", "JUMP", "JZE", "JNZ", "JPL", "JMI", "JOV"]);
+  const opcodeIndex = known.has(tokens[0]?.toUpperCase()) ? 0 : 1;
+  const mnemonic = tokens[opcodeIndex]?.toUpperCase();
+  if (!mnemonic) return undefined;
+  const operandText = tokens.slice(opcodeIndex + 1).join(" ");
+  return { mnemonic, operands: operandText ? operandText.split(",").map((value) => value.trim()).filter(Boolean) : [] };
 }
 
 function escapeRegex(value: string): string {

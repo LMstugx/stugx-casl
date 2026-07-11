@@ -6,7 +6,7 @@ Every stable `DiagnosticCode` has a corresponding entry in `DiagnosticParamSchem
 
 ## Code-To-Parameter Mapping
 
-Assembler codes use `opcode`, `symbol`, `label`, `register`, `indexRegister`, `mnemonic`, and optional boundary values. Semantic codes use `function`, `variable`, `expectedCount`, and `actualCount`. Transpiler codes use `function`, `maximum`, `actualCount`, and `argumentCount`. VM step-limit diagnostics require numeric `stepLimit`.
+Assembler codes use `opcode`, `symbol`, `label`, `register`, `indexRegister`, `mnemonic`, `operand`, `literal`, and optional boundary values. C++ parser codes use `token`, `expectedToken`, `actualToken`, `operator`, and documented optional context. Semantic and transpiler codes use `function`, `variable`, `construct`, counts, and retained literal text. VM step-limit diagnostics require numeric `stepLimit`.
 
 No-parameter codes use an explicit empty schema rather than a generic record. Optional fields have a producer reason: legacy address/literal diagnostics may not retain the rejected value, and `actualCount` for the register-argument limit is retained for details while the compact template uses `maximum`.
 
@@ -30,4 +30,4 @@ C++ stores parameter values as `string | int | bool` variants and WASM serialize
 
 ## Remaining Limits
 
-Raw parser sentences without a stable `DiagnosticCode`, browser exceptions, and internal debug diagnostics remain legacy-only. Adding a new code requires a TypeScript schema, runtime descriptor, locale-template audit, inventory entry, and parity tests.
+Low-frequency parser/semantic boundary sentences, browser exceptions, and internal debug diagnostics remain legacy-only, deferred, or intentionally raw as recorded in the inventory. Adding a new code requires a TypeScript schema, runtime descriptor, locale-template audit, inventory entry, and parity tests.

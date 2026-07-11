@@ -1,4 +1,5 @@
 import type { Diagnostic } from "../core/types";
+import { createStructuredDiagnostic } from "../diagnostics/catalog";
 
 export type CppTokenKind = "keyword" | "identifier" | "integer" | "symbol" | "eof";
 
@@ -66,15 +67,22 @@ export function lexCpp(source: string): LexResult {
       advance();
       while (index < source.length && !(peek() === "*" && peek(1) === "/")) advance();
       if (index >= source.length) {
-        diagnostics.push({
-          line: startLine,
-          message: "Unterminated block comment.",
-          severity: "error",
+        diagnostics.push(createStructuredDiagnostic(startLine, "Unterminated block comment.", "cppParser.unterminatedBlock", {
+          construct: "block comment"
+        }, "error", {
+          producer: "cpp-lexer",
           sourceRange: {
-            start: { line: startLine, column: startColumn, offset: startOffset },
+            start: { line, column, offset: index },
             end: { line, column, offset: index }
-          }
-        });
+          },
+          relatedLocations: [{
+            label: "diagnostic.openingDelimiterHere",
+            sourceRange: {
+              start: { line: startLine, column: startColumn, offset: startOffset },
+              end: { line: startLine, column: startColumn + 2, offset: startOffset + 2 }
+            }
+          }]
+        }));
         break;
       }
       advance();
@@ -126,15 +134,15 @@ export function lexCpp(source: string): LexResult {
     const startColumn = column;
     const startOffset = index;
     advance();
-    diagnostics.push({
-      line: startLine,
-      message: `Unsupported character '${ch}' in C++ subset source.`,
-      severity: "error",
+    diagnostics.push(createStructuredDiagnostic(startLine, `Unsupported character '${ch}' in C++ subset source.`, "cppParser.unexpectedToken", {
+      token: ch
+    }, "error", {
+      producer: "cpp-lexer",
       sourceRange: {
         start: { line: startLine, column: startColumn, offset: startOffset },
         end: { line, column, offset: index }
       }
-    });
+    }));
   }
 
   tokens.push({ kind: "eof", value: "", line, column, endLine: line, endColumn: column, startOffset: index, endOffset: index });

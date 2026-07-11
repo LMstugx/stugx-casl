@@ -67,6 +67,7 @@ import phase14d from "../../docs/phase14d-diagnostic-localization-architecture.m
 import diagnosticParameterSchema from "../../docs/diagnostic-parameter-schema.md?raw";
 import sourceRangeContract from "../../docs/source-range-contract.md?raw";
 import phase14e from "../../docs/phase14e-diagnostic-schema-source-range.md?raw";
+import phase14f from "../../docs/phase14f-remaining-diagnostic-migration.md?raw";
 
 describe("learning use documentation", () => {
   it("learning_guide_exists", () => {
@@ -967,6 +968,17 @@ describe("learning use documentation", () => {
     expect(readme).toContain("docs/diagnostic-parameter-schema.md");
     expect(readme).toContain("docs/source-range-contract.md");
     expect(readme).toContain("docs/phase14e-diagnostic-schema-source-range.md");
+  });
+
+  it("phase14f_remaining_p1_diagnostic_migration_is_documented", () => {
+    expect(phase14f).toContain("Phase 14F: Remaining Parser And P1 Diagnostic Migration");
+    expect(phase14f).toContain("Initial Producer Audit");
+    expect(phase14f).toContain("assembler.missingOperand");
+    expect(phase14f).toContain("cppParser.missingSemicolon");
+    expect(phase14f).toContain("TS, C++, And WASM Parity");
+    expect(phase14f).toContain("Non-ASCII CASL identifiers remain unsupported");
+    expect(phase14f).toContain("Lessons, Demo Guide, practice tasks, FramePlan long explanations");
+    expect(readme).toContain("docs/phase14f-remaining-diagnostic-migration.md");
   });
 
   it("project_overview_uses_learning_wording", () => {

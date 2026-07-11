@@ -17,6 +17,23 @@ const diagnosticTranslationKeys = {
   "assembler.invalidOperandCount": "diagnostics.assembler.invalidOperandCount",
   "assembler.addressOutOfRange": "diagnostics.assembler.addressOutOfRange",
   "assembler.literalOutOfRange": "diagnostics.assembler.literalOutOfRange",
+  "assembler.missingOpcode": "diagnostics.assembler.missingOpcode",
+  "assembler.invalidLiteral": "diagnostics.assembler.invalidLiteral",
+  "assembler.missingOperand": "diagnostics.assembler.missingOperand",
+  "assembler.unexpectedTrailingOperand": "diagnostics.assembler.unexpectedTrailingOperand",
+  "cppParser.unexpectedToken": "diagnostics.cppParser.unexpectedToken",
+  "cppParser.expectedToken": "diagnostics.cppParser.expectedToken",
+  "cppParser.unterminatedBlock": "diagnostics.cppParser.unterminatedBlock",
+  "cppParser.missingSemicolon": "diagnostics.cppParser.missingSemicolon",
+  "cppParser.invalidFunctionDeclaration": "diagnostics.cppParser.invalidFunctionDeclaration",
+  "cppParser.invalidParameterList": "diagnostics.cppParser.invalidParameterList",
+  "cppParser.invalidVariableDeclaration": "diagnostics.cppParser.invalidVariableDeclaration",
+  "cppParser.invalidAssignment": "diagnostics.cppParser.invalidAssignment",
+  "cppParser.invalidIfStatement": "diagnostics.cppParser.invalidIfStatement",
+  "cppParser.invalidForStatement": "diagnostics.cppParser.invalidForStatement",
+  "cppParser.invalidCallExpression": "diagnostics.cppParser.invalidCallExpression",
+  "cppParser.unsupportedExpression": "diagnostics.cppParser.unsupportedExpression",
+  "cppParser.unsupportedOperator": "diagnostics.cppParser.unsupportedOperator",
   "semantic.mainFunctionMissing": "diagnostics.semantic.mainFunctionMissing",
   "semantic.duplicateFunction": "diagnostics.semantic.duplicateFunction",
   "semantic.unknownFunction": "diagnostics.semantic.unknownFunction",
@@ -26,8 +43,17 @@ const diagnosticTranslationKeys = {
   "semantic.breakOutsideLoop": "diagnostics.semantic.breakOutsideLoop",
   "semantic.continueOutsideLoop": "diagnostics.semantic.continueOutsideLoop",
   "semantic.parameterLocalConflict": "diagnostics.semantic.parameterLocalConflict",
+  "semantic.unsupportedMainParameters": "diagnostics.semantic.unsupportedMainParameters",
+  "semantic.duplicateParameter": "diagnostics.semantic.duplicateParameter",
+  "semantic.duplicateVariable": "diagnostics.semantic.duplicateVariable",
+  "semantic.unsupportedInitializer": "diagnostics.semantic.unsupportedInitializer",
+  "semantic.invalidCondition": "diagnostics.semantic.invalidCondition",
+  "semantic.integerLiteralOutOfRange": "diagnostics.semantic.integerLiteralOutOfRange",
+  "semantic.forwardDeclarationUnsupported": "diagnostics.semantic.forwardDeclarationUnsupported",
   "transpiler.tooManyRegisterArguments": "diagnostics.transpiler.tooManyRegisterArguments",
   "transpiler.unsupportedCallArgument": "diagnostics.transpiler.unsupportedCallArgument",
+  "transpiler.unsupportedExpression": "diagnostics.transpiler.unsupportedExpression",
+  "transpiler.internalLoweringFailure": "diagnostics.transpiler.internalLoweringFailure",
   "vm.notLoaded": "diagnostics.vm.notLoaded",
   "vm.stepLimitReached": "diagnostics.vm.stepLimitReached",
   "vm.invalidInstruction": "diagnostics.vm.invalidInstruction",
@@ -46,6 +72,7 @@ export function renderDiagnostic(diagnostic: Diagnostic, locale: SupportedLocale
     return {
       line: normalized.line,
       code: normalized.code,
+      producer: normalized.producer!,
       severity: normalized.severity,
       params: normalized.params ?? {},
       sourceRange: normalized.sourceRange,
@@ -75,7 +102,7 @@ export function diagnosticIdentity(diagnostic: Diagnostic): string {
     location.sourceRange.end.offset ?? null,
     location.fileName ?? ""
   ]);
-  return JSON.stringify([normalized.code ?? "legacy", normalized.severity, range, params, related, normalized.fileName ?? ""]);
+  return JSON.stringify([normalized.producer ?? "legacy", normalized.code ?? "legacy", normalized.severity, range, params, related, normalized.fileName ?? ""]);
 }
 
 function paramsForTranslation(params: AnyDiagnosticParams | undefined): Record<string, string | number | boolean> {

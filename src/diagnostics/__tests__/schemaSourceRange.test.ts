@@ -43,8 +43,24 @@ describe("typed diagnostic parameter schemas", () => {
 
 describe("runtime diagnostic payload validation", () => {
   it("accepts_valid_structured_and_legacy_payloads", () => {
-    expect(validateDiagnosticPayload({ line: 2, message: "fallback", severity: "error", code: "assembler.unknownSymbol", params: { symbol: "A" } }).kind).toBe("structured");
+    const structured = validateDiagnosticPayload({ line: 2, message: "fallback", severity: "error", code: "assembler.unknownSymbol", params: { symbol: "A" } });
+    expect(structured.kind).toBe("structured");
+    expect(structured.diagnostic.producer).toBe("assembler");
     expect(validateDiagnosticPayload({ line: 2, message: "legacy", severity: "warning" }).kind).toBe("legacy");
+  });
+
+  it("invalid_or_missing_producer_is_safely_inferred", () => {
+    const result = validateDiagnosticPayload({
+      line: 1,
+      message: "fallback",
+      severity: "error",
+      code: "cppParser.unexpectedToken",
+      producer: "message-panel",
+      params: { token: "@" }
+    });
+    expect(result.kind).toBe("structured");
+    expect(result.diagnostic.producer).toBe("cpp-parser");
+    expect(result.issues).toContain("invalid producer inferred");
   });
 
   it("rejects_unknown_missing_and_invalid_params_safely", () => {

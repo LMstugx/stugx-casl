@@ -2,7 +2,7 @@ import type { Diagnostic } from "../core/types";
 import { isValidSourceRange } from "./sourceRange";
 import { diagnosticSchemas, matchesParamType } from "./schema";
 import type { DiagnosticCode, DiagnosticParamValue, DiagnosticRelatedLocation, DiagnosticSeverity } from "./types";
-import { isDiagnosticCode } from "./types";
+import { inferDiagnosticProducer, isDiagnosticCode, isDiagnosticProducer } from "./types";
 
 export type DiagnosticValidationResult =
   | { kind: "structured"; diagnostic: Diagnostic; issues: readonly string[] }
@@ -45,12 +45,14 @@ export function validateDiagnosticPayload(payload: unknown): DiagnosticValidatio
 
   const sourceRange = isValidSourceRange(payload.sourceRange) ? payload.sourceRange : undefined;
   if (payload.sourceRange !== undefined && !sourceRange) issues.push("invalid sourceRange removed");
+  if (payload.producer !== undefined && !isDiagnosticProducer(payload.producer)) issues.push("invalid producer inferred");
   const relatedLocations = validateRelatedLocations(payload.relatedLocations, issues);
   return {
     kind: "structured",
     diagnostic: {
       ...legacy,
       code: payload.code,
+      producer: isDiagnosticProducer(payload.producer) ? payload.producer : inferDiagnosticProducer(payload.code),
       params: params as never,
       ...(sourceRange ? { sourceRange } : {}),
       ...(relatedLocations.length ? { relatedLocations } : {})

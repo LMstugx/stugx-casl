@@ -23,6 +23,9 @@ std::string afterPrefix(std::string_view value, std::string_view prefix) {
 
 void set(Diagnostic& diagnostic, std::string code, std::unordered_map<std::string, std::string> stringParams = {}) {
     diagnostic.code = std::move(code);
+    if (diagnostic.code.rfind("vm.", 0) == 0) diagnostic.producer = "vm";
+    else if (diagnostic.code == "assembler.unknownOpcode" || diagnostic.code == "assembler.missingOpcode") diagnostic.producer = "casl-parser";
+    else diagnostic.producer = "assembler";
     diagnostic.params.clear();
     for (auto& [name, value] : stringParams) diagnostic.params.emplace(std::move(name), std::move(value));
     if (diagnostic.fallbackMessage.empty()) diagnostic.fallbackMessage = diagnostic.message;
@@ -84,6 +87,28 @@ std::optional<SourceRange> lastTextRange(const std::string& source, int line, st
     return offsetsToRange(source, foundLine->offset + position, foundLine->offset + position + token.size());
 }
 
+std::optional<SourceRange> lineEndInsertionRange(const std::string& source, int line) {
+    const auto lines = sourceLines(source);
+    const auto found = std::find_if(lines.begin(), lines.end(), [line](const SourceLine& item) { return item.line == line; });
+    if (found == lines.end()) return std::nullopt;
+    auto end = found->text.size();
+    while (end > 0 && std::isspace(static_cast<unsigned char>(found->text[end - 1])) != 0) --end;
+    return offsetsToRange(source, found->offset + end, found->offset + end);
+}
+
+std::optional<std::string> lastOperand(const std::string& source, int line) {
+    const auto lines = sourceLines(source);
+    const auto found = std::find_if(lines.begin(), lines.end(), [line](const SourceLine& item) { return item.line == line; });
+    if (found == lines.end()) return std::nullopt;
+    auto text = found->text.substr(0, found->text.find(';'));
+    const auto comma = text.rfind(',');
+    if (comma == std::string_view::npos) return std::nullopt;
+    auto value = text.substr(comma + 1);
+    while (!value.empty() && std::isspace(static_cast<unsigned char>(value.front())) != 0) value.remove_prefix(1);
+    while (!value.empty() && std::isspace(static_cast<unsigned char>(value.back())) != 0) value.remove_suffix(1);
+    return value.empty() ? std::nullopt : std::optional<std::string>{std::string(value)};
+}
+
 std::optional<std::string> stringParam(const Diagnostic& diagnostic, const std::string& name) {
     const auto found = diagnostic.params.find(name);
     if (found == diagnostic.params.end()) return std::nullopt;
@@ -105,6 +130,18 @@ std::optional<SourceRange> firstLabelRange(const std::string& source, std::strin
 
 void attachSourceMetadata(Diagnostic& diagnostic, const std::string& source) {
     if (diagnostic.sourceRange.has_value() || diagnostic.code.empty()) return;
+    if (diagnostic.code == "assembler.missingOpcode" || diagnostic.code == "assembler.missingOperand") {
+        diagnostic.sourceRange = lineEndInsertionRange(source, diagnostic.line);
+        return;
+    }
+    if (diagnostic.code == "assembler.unexpectedTrailingOperand") {
+        const auto operand = lastOperand(source, diagnostic.line);
+        if (operand.has_value()) {
+            diagnostic.params["operand"] = *operand;
+            diagnostic.sourceRange = lastTextRange(source, diagnostic.line, *operand);
+        }
+        return;
+    }
     if (diagnostic.code == "assembler.missingEnd") {
         diagnostic.sourceRange = offsetsToRange(source, source.size(), source.size());
         return;
@@ -129,7 +166,8 @@ void attachSourceMetadata(Diagnostic& diagnostic, const std::string& source) {
         {"assembler.unknownOpcode", "opcode"}, {"assembler.unknownSymbol", "symbol"},
         {"assembler.duplicateLabel", "label"}, {"assembler.invalidRegister", "register"},
         {"assembler.invalidIndexRegister", "indexRegister"}, {"assembler.invalidOperandCount", "mnemonic"},
-        {"assembler.addressOutOfRange", "value"}, {"assembler.literalOutOfRange", "value"}
+        {"assembler.addressOutOfRange", "value"}, {"assembler.literalOutOfRange", "value"},
+        {"assembler.invalidLiteral", "literal"}
     };
     for (const auto& [code, param] : tokenParams) {
         if (diagnostic.code != code) continue;
@@ -158,6 +196,7 @@ void structureDiagnostic(Diagnostic& diagnostic) {
     if (message == "CASL source must contain START directive") return set(diagnostic, "assembler.missingStart");
     if (message == "CASL source must contain END directive") return set(diagnostic, "assembler.missingEnd");
     if (message == "Malformed operand list near comma") return set(diagnostic, "assembler.malformedOperandList");
+    if (message == "Missing opcode after label") return set(diagnostic, "assembler.missingOpcode");
     if (message == "GR0 cannot be used as an index register") return set(diagnostic, "assembler.invalidIndexRegister", {{"indexRegister", "GR0"}});
     if (message == "No program loaded") return set(diagnostic, "vm.notLoaded");
     if (message == "Max steps reached" || message == "Max steps reached before execution") return set(diagnostic, "vm.stepLimitReached");
@@ -171,11 +210,14 @@ void structureDiagnostic(Diagnostic& diagnostic) {
 
     if (message.find("requires register and address operands") != std::string_view::npos ||
         message.find("requires an address operand") != std::string_view::npos ||
-        message.find("requires a register operand") != std::string_view::npos ||
-        message.find("has too many operands") != std::string_view::npos ||
+        message.find("requires a register operand") != std::string_view::npos) {
+        const auto separator = message.find(' ');
+        return set(diagnostic, "assembler.missingOperand", {{"mnemonic", std::string(message.substr(0, separator))}});
+    }
+    if (message.find("has too many operands") != std::string_view::npos ||
         message.find("does not support index operands") != std::string_view::npos) {
         const auto separator = message.find(' ');
-        return set(diagnostic, "assembler.invalidOperandCount", {{"mnemonic", std::string(message.substr(0, separator))}});
+        return set(diagnostic, "assembler.unexpectedTrailingOperand", {{"mnemonic", std::string(message.substr(0, separator))}, {"operand", ""}});
     }
 
     if (message.find("address out of range") != std::string_view::npos ||
@@ -185,7 +227,14 @@ void structureDiagnostic(Diagnostic& diagnostic) {
         return set(diagnostic, "assembler.addressOutOfRange", separator == std::string_view::npos ? std::unordered_map<std::string, std::string>{} : std::unordered_map<std::string, std::string>{{"value", std::string(message.substr(separator + 2))}});
     }
 
-    if (startsWith(message, "Invalid numeric literal") || message.find("value out of 16-bit range") != std::string_view::npos) {
+    if (message == "Invalid numeric literal for DS: ") return set(diagnostic, "assembler.missingOperand", {{"mnemonic", "DS"}});
+    if (startsWith(message, "Invalid numeric literal")) {
+        const auto separator = message.rfind(": ");
+        if (separator != std::string_view::npos && separator + 2 < message.size()) {
+            return set(diagnostic, "assembler.invalidLiteral", {{"literal", std::string(message.substr(separator + 2))}});
+        }
+    }
+    if (message.find("value out of 16-bit range") != std::string_view::npos) {
         const auto separator = message.rfind(": ");
         return set(diagnostic, "assembler.literalOutOfRange", separator == std::string_view::npos ? std::unordered_map<std::string, std::string>{} : std::unordered_map<std::string, std::string>{{"value", std::string(message.substr(separator + 2))}});
     }

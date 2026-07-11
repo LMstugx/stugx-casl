@@ -175,8 +175,8 @@ describe("WASM adapter boundary handling", () => {
   });
 
   it("wasm_structured_and_legacy_diagnostic_payloads_remain_supported", () => {
-    const structured = parseWasmJson<{ diagnostics: Array<{ code?: string; params?: Record<string, string | number | boolean>; sourceRange?: unknown; relatedLocations?: unknown[]; message: string }> }>(
-      '{"diagnostics":[{"message":"Undefined label: MISSING","code":"assembler.unknownSymbol","params":{"symbol":"MISSING"},"sourceRange":{"start":{"line":2,"column":9,"offset":19},"end":{"line":2,"column":16,"offset":26}},"relatedLocations":[]}]}',
+    const structured = parseWasmJson<{ diagnostics: Array<{ code?: string; producer?: string; params?: Record<string, string | number | boolean>; sourceRange?: unknown; relatedLocations?: unknown[]; message: string }> }>(
+      '{"diagnostics":[{"message":"Undefined label: MISSING","code":"assembler.unknownSymbol","producer":"assembler","params":{"symbol":"MISSING"},"sourceRange":{"start":{"line":2,"column":9,"offset":19},"end":{"line":2,"column":16,"offset":26}},"relatedLocations":[]}]}',
       "assemble",
       { getLastError: () => "" }
     );
@@ -185,7 +185,7 @@ describe("WASM adapter boundary handling", () => {
       "assemble",
       { getLastError: () => "" }
     );
-    expect(structured.diagnostics[0]).toMatchObject({ code: "assembler.unknownSymbol", params: { symbol: "MISSING" } });
+    expect(structured.diagnostics[0]).toMatchObject({ code: "assembler.unknownSymbol", producer: "assembler", params: { symbol: "MISSING" } });
     expect(structured.diagnostics[0].sourceRange).toEqual({ start: { line: 2, column: 9, offset: 19 }, end: { line: 2, column: 16, offset: 26 } });
     expect(legacy.diagnostics[0]).toEqual({ message: "legacy message" });
   });
@@ -238,6 +238,22 @@ describeWasm("WasmCoreAdapter golden parity", () => {
       const mockResult = mockCaslCore.assemble(pilotSource);
       expect(wasmResult.diagnostics.find((diagnostic) => diagnostic.code === code)?.sourceRange, code).toEqual(
         mockResult.diagnostics.find((diagnostic) => diagnostic.code === code)?.sourceRange
+      );
+    }
+    await adapter.dispose();
+  });
+
+  it("wasm_p1_operand_and_literal_diagnostics_match_the_mock_contract", async () => {
+    const adapter = new WasmCoreAdapter();
+    for (const source of [
+      "MAIN START\n LD GR1\n END",
+      "MAIN START\n LD GR1,A,GR2,EXTRA\nA DC 1\n END",
+      "MAIN START\nA DC NOPE\n END"
+    ]) {
+      const wasm = await adapter.assemble(source);
+      const mock = mockCaslCore.assemble(source);
+      expect(wasm.diagnostics.map(({ code, producer, params, sourceRange }) => ({ code, producer, params, sourceRange }))).toEqual(
+        mock.diagnostics.map(({ code, producer, params, sourceRange }) => ({ code, producer, params, sourceRange }))
       );
     }
     await adapter.dispose();

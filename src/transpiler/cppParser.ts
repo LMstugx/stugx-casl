@@ -1,4 +1,6 @@
 import type { Diagnostic } from "../core/types";
+import { createStructuredDiagnostic } from "../diagnostics/catalog";
+import type { DiagnosticCode, DiagnosticParams } from "../diagnostics/types";
 import type {
   CppAssignment,
   CppBreakStatement,
@@ -62,12 +64,12 @@ class Parser {
   private parseFunctionDeclaration(): CppFunction | null {
     const start = this.current();
     if (!this.matchKeyword("int")) {
-      this.error(start, "Current C++ subset only supports int function declarations.");
+      this.error(start, "Current C++ subset only supports int function declarations.", "cppParser.invalidFunctionDeclaration", { token: this.tokenText(start) });
       return null;
     }
 
     if (this.matchSymbol("*")) {
-      this.error(this.previous(), "Current C++ subset does not support pointer return types.");
+      this.error(this.previous(), "Current C++ subset does not support pointer return types.", "cppParser.invalidFunctionDeclaration", { token: "*" });
       return null;
     }
 
@@ -98,11 +100,11 @@ class Parser {
     while (!this.is("eof") && !this.checkSymbol(")")) {
       const start = this.current();
       if (!this.matchKeyword("int")) {
-        this.error(start, "Function parameters must be int.");
+        this.error(start, "Function parameters must be int.", "cppParser.invalidParameterList", { token: this.tokenText(start) });
         this.synchronizeFunctionParameter();
       } else {
         if (this.matchSymbol("*")) {
-          this.error(this.previous(), "Current C++ subset does not support pointer parameters.");
+          this.error(this.previous(), "Current C++ subset does not support pointer parameters.", "cppParser.invalidParameterList", { token: "*" });
         }
         const name = this.consume("identifier", "Expected parameter name after int.");
         if (name) parameters.push({ name: name.value, type: "int", line: name.line });
@@ -125,7 +127,7 @@ class Parser {
     if (this.check("identifier") || this.checkSymbol("++") || this.checkSymbol("--")) return this.parseAssignmentLike();
 
     const token = this.current();
-    this.error(token, `Unsupported C++ subset syntax near '${token.value || "end of file"}'.`);
+    this.error(token, `Unsupported C++ subset syntax near '${token.value || "end of file"}'.`, "cppParser.unexpectedToken", { token: this.tokenText(token) });
     this.synchronize();
     return null;
   }
@@ -137,7 +139,7 @@ class Parser {
   private parseVarDeclInternal(expectSemicolon: boolean): CppVarDecl | null {
     const start = this.advance();
     if (this.matchSymbol("*")) {
-      this.error(this.previous(), "Current C++ subset does not support pointer variables.");
+      this.error(this.previous(), "Current C++ subset does not support pointer variables.", "cppParser.invalidVariableDeclaration", { token: "*" });
       this.synchronize();
       return null;
     }
@@ -165,7 +167,7 @@ class Parser {
   private parseAssignmentLike(expectSemicolon = true): CppAssignment | null {
     if (this.checkSymbol("++") || this.checkSymbol("--")) return this.parsePrefixUpdate(expectSemicolon);
     if (!this.check("identifier")) {
-      this.error(this.current(), "Expected assignment or update expression.");
+      this.error(this.current(), "Expected assignment or update expression.", "cppParser.invalidAssignment", { token: this.tokenText(this.current()) });
       return null;
     }
 
@@ -173,7 +175,7 @@ class Parser {
     if (this.checkSymbol("(")) {
       this.parseCallExpression(target);
       if (expectSemicolon) this.consumeSymbol(";", "Expected ';' after function call statement.");
-      this.error(target, "Function call statements are not supported yet.");
+      this.error(target, "Function call statements are not supported yet.", "cppParser.invalidCallExpression", { token: target.value });
       return null;
     }
 
@@ -267,7 +269,7 @@ class Parser {
     let elseBody: CppStatement[] | undefined;
     if (this.matchKeyword("else")) {
       if (this.checkKeyword("if")) {
-        this.error(this.current(), "Current C++ subset does not support else if.");
+        this.error(this.current(), "Current C++ subset does not support else if.", "cppParser.invalidIfStatement", { token: this.tokenText(this.current()) });
         this.synchronize();
         return null;
       }
@@ -301,14 +303,14 @@ class Parser {
       initializer = this.parseAssignmentLike(false);
       this.consumeSymbol(";", "Expected ';' after for initializer.");
     } else {
-      this.error(this.current(), "Current C++ subset supports only one int declaration or assignment in for initializer.");
+      this.error(this.current(), "Current C++ subset supports only one int declaration or assignment in for initializer.", "cppParser.invalidForStatement", { token: this.tokenText(this.current()) });
       this.synchronizeForHeader();
       this.consumeSymbol(";", "Expected ';' after for initializer.");
     }
 
     let condition: CppCondition | null = null;
     if (this.checkSymbol(";")) {
-      this.error(this.current(), "for without condition is not supported yet");
+      this.error(this.current(), "for without condition is not supported yet", "cppParser.invalidForStatement", { token: ";" });
       this.advance();
     } else {
       condition = this.parseCondition("for") ?? null;
@@ -320,7 +322,7 @@ class Parser {
       if (this.check("identifier") || this.checkSymbol("++") || this.checkSymbol("--")) {
         increment = this.parseAssignmentLike(false);
       } else {
-        this.error(this.current(), "Current C++ subset supports only one assignment in for increment.");
+        this.error(this.current(), "Current C++ subset supports only one assignment in for increment.", "cppParser.invalidForStatement", { token: this.tokenText(this.current()) });
         this.synchronizeForHeader();
       }
     }
@@ -346,7 +348,9 @@ class Parser {
     if (!left) return undefined;
     const operator = this.current();
     if (!this.isConditionOperator(operator.value)) {
-      this.error(operator, `Expected comparison operator ==, !=, <, <=, >, or >= in ${owner} condition.`);
+      this.error(operator, `Expected comparison operator ==, !=, <, <=, >, or >= in ${owner} condition.`, "cppParser.unsupportedOperator", {
+        operator: this.tokenText(operator), construct: `${owner} condition`
+      });
       return undefined;
     }
     this.advance();
@@ -387,7 +391,7 @@ class Parser {
       return { kind: "Identifier", line: token.line, name: token.value };
     }
 
-    this.error(this.current(), "Expected integer literal or identifier expression.");
+    this.error(this.current(), "Expected integer literal or identifier expression.", "cppParser.unsupportedExpression", { token: this.tokenText(this.current()) });
     return undefined;
   }
 
@@ -420,13 +424,20 @@ class Parser {
 
   private consume(kind: CppToken["kind"], message: string): CppToken | null {
     if (this.check(kind)) return this.advance();
-    this.error(this.current(), message);
+    this.error(this.current(), message, "cppParser.expectedToken", {
+      expectedToken: kind,
+      ...(this.is("eof") ? {} : { actualToken: this.tokenText(this.current()) })
+    });
     return null;
   }
 
   private consumeSymbol(value: string, message: string): CppToken | null {
     if (this.checkSymbol(value)) return this.advance();
-    this.error(this.current(), message);
+    if (value === ";") this.errorAtInsertion(this.current(), message, "cppParser.missingSemicolon", {});
+    else this.error(this.current(), message, "cppParser.expectedToken", {
+      expectedToken: value,
+      ...(this.is("eof") ? {} : { actualToken: this.tokenText(this.current()) })
+    });
     return null;
   }
 
@@ -483,15 +494,27 @@ class Parser {
     return this.tokens[Math.max(0, this.index - 1)];
   }
 
-  private error(token: CppToken, message: string) {
-    this.diagnostics.push({
-      line: token.line,
-      message,
-      severity: "error",
+  private error<C extends DiagnosticCode>(token: CppToken, message: string, code: C, params: DiagnosticParams<C>) {
+    this.diagnostics.push(createStructuredDiagnostic(token.line, message, code, params, "error", {
+      producer: "cpp-parser",
       sourceRange: {
         start: { line: token.line, column: token.column, offset: token.startOffset },
         end: { line: token.endLine, column: token.endColumn, offset: token.endOffset }
       }
-    });
+    }));
+  }
+
+  private errorAtInsertion<C extends DiagnosticCode>(token: CppToken, message: string, code: C, params: DiagnosticParams<C>) {
+    this.diagnostics.push(createStructuredDiagnostic(token.line, message, code, params, "error", {
+      producer: "cpp-parser",
+      sourceRange: {
+        start: { line: token.line, column: token.column, offset: token.startOffset },
+        end: { line: token.line, column: token.column, offset: token.startOffset }
+      }
+    }));
+  }
+
+  private tokenText(token: CppToken): string {
+    return token.kind === "eof" ? "end of file" : token.value;
   }
 }

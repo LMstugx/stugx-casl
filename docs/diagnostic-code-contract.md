@@ -6,7 +6,9 @@ Diagnostics use stable machine-readable codes and named parameters while retaini
 
 ## Code Naming
 
-`DiagnosticCode` is a TypeScript string union. Codes use semantic producer namespaces such as `assembler.*`, `semantic.*`, `transpiler.*`, and `vm.*`; dynamic values never appear in a code. Component names and full English sentences are not codes. Equivalent mock and C++ core diagnostics use the same code when both producers expose the same semantic error.
+`DiagnosticCode` is a TypeScript string union. Codes use semantic namespaces such as `assembler.*`, `cppParser.*`, `semantic.*`, `transpiler.*`, and `vm.*`; dynamic values never appear in a code. Component names and full English sentences are not codes. Equivalent mock and C++ core diagnostics use the same code when both producers expose the same semantic error.
+
+`DiagnosticProducer` is a separate stable machine field: `casl-parser`, `assembler`, `cpp-lexer`, `cpp-parser`, `semantic`, `transpiler`, `vm`, or `wasm-adapter`. It is not localized and does not replace the code namespace. Legacy structured payloads may infer it from the code.
 
 ## Severity
 
@@ -26,13 +28,13 @@ The existing 1-based `line` field remains compatible. Optional `sourceRange`, `f
 
 ## Diagnostic Identity
 
-`diagnosticIdentity()` uses code, severity, source location, stable sorted parameters, and optional file name. It does not use locale or rendered message. EN -> JA -> zh-CN therefore rerenders the same item without changing count, order, selection, or source state.
+`diagnosticIdentity()` uses producer, code, severity, source location, stable sorted parameters, and optional file name. It does not use locale or rendered message. EN -> JA -> zh-CN therefore rerenders the same item without changing count, order, selection, or source state.
 
 ## TS, C++, And WASM Parity
 
 - TS mock diagnostics are normalized after the existing producer logic runs.
 - C++ assembler and VM results pass through the equivalent `DiagnosticCatalog` normalization.
-- WASM JSON adds optional `code`, `params`, `rawContext`, and `fallbackMessage` fields.
+- WASM JSON adds optional `code`, `producer`, `params`, `rawContext`, and `fallbackMessage` fields.
 - The old `line`, `message`, and `severity` payload remains valid and supported.
 - Unknown future WASM codes are treated as legacy messages by the UI adapter.
 
@@ -48,4 +50,4 @@ Source code, identifiers, labels, symbols, mnemonics, register names, opcodes, a
 
 ## Future Extensions
 
-Phase 14E adds the per-code typed schema, runtime payload validation, source ranges, related locations, and editor selection described in [diagnostic-parameter-schema.md](diagnostic-parameter-schema.md) and [source-range-contract.md](source-range-contract.md). Future phases may structure remaining raw parser messages and stable browser/WASM loader wrappers. Plural rules and rich diagnostic help remain out of scope.
+Phase 14E adds the per-code typed schema, runtime payload validation, source ranges, related locations, and editor selection described in [diagnostic-parameter-schema.md](diagnostic-parameter-schema.md) and [source-range-contract.md](source-range-contract.md). Phase 14F adds the verified P1 producer group. Future phases may review remaining P2 legacy diagnostics and stable browser/WASM loader wrappers. Plural rules and rich diagnostic help remain out of scope.

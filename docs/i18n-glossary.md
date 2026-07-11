@@ -189,3 +189,25 @@ Technical identifiers and machine data remain unchanged. CASL II mnemonics, COME
 | Invalid memory access | 無効なメモリアクセス | 无效内存访问 | Address remains verbatim. |
 | Argument count | 引数の数 | 参数数量 | Use `expectedCount` and `actualCount`. |
 | Recursion | 再帰 | 递归 | Currently unsupported in the C++ subset. |
+
+## Phase 14F Parser And Rejected-Value Terms
+
+| Canonical English | Approved Japanese | Approved Simplified Chinese | Context / usage note |
+| --- | --- | --- | --- |
+| Token | トークン | 标记 | Rejected token text remains verbatim. |
+| Unexpected token | 予期しないトークン | 意外的标记 | Parser/lexer diagnostic category. |
+| Expected token | 必要なトークン | 应为标记 | Template surrounds an untranslated expected token. |
+| End of file | ファイル終端 | 文件末尾 | Technical EOF insertion point. |
+| Unterminated | 閉じられていない | 未闭合 | Block/comment/delimiter condition. |
+| Missing semicolon | セミコロンがない | 缺少分号 | Uses an insertion range. |
+| Declaration | 宣言 | 声明 | Function, parameter, or variable context. |
+| Parameter list | パラメータ一覧 | 参数列表 | Function declaration context. |
+| Integer literal | 整数リテラル | 整数字面量 | Literal spelling remains verbatim. |
+| Operator | 演算子 | 运算符 | Operator token remains verbatim. |
+| Statement | 文 | 语句 | Parser construct. |
+| Expression | 式 | 表达式 | Parser/semantic construct. |
+| Invalid syntax | 無効な構文 | 无效语法 | Use only when a more specific code is unavailable. |
+| Unsupported syntax | 未対応の構文 | 不支持的语法 | Subset boundary, not a parse crash. |
+| Opening delimiter | 開始区切り | 起始分隔符 | Related location for an unterminated construct. |
+| Closing delimiter | 終了区切り | 结束分隔符 | Expected token context. |
+| Rejected value | 拒否された値 | 被拒绝的值 | Technical value remains unchanged and plain text. |

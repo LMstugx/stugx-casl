@@ -19,6 +19,10 @@ Localization status is one of `structured`, `localized`, `pending-structure`, `i
 | `assembler.invalidOperandCount` | instruction operand validation | error | `mnemonic` | line | yes | yes | yes | localized | complete / complete | P0 | Mnemonic remains verbatim. |
 | `assembler.addressOutOfRange` | address/storage bounds | error | `value` when known | line | yes | yes | yes | localized | complete / complete | P1 | Missing value uses legacy fallback. |
 | `assembler.literalOutOfRange` | literal parser/storage bounds | error | `value` when known | line | yes | yes | yes | localized | complete / complete | P1 | Literal remains verbatim. |
+| `assembler.missingOpcode` | CASL parser / missing operation after label | error | optional `label` | line-end insertion | yes | yes | yes | localized / verified | complete / complete | P1 | Producer is `casl-parser`; no new parser rejection. |
+| `assembler.invalidLiteral` | numeric parser / invalid literal | error | required `literal` | rejected literal | yes | yes | yes | localized / verified | complete / complete | P1 | Distinct from numeric range errors. |
+| `assembler.missingOperand` | operand validation / existing requires-operand messages | error | required `mnemonic` | line-end insertion | yes | yes | yes | localized / verified | complete / complete | P1 | Existing trigger and fallback sentence retained. |
+| `assembler.unexpectedTrailingOperand` | operand validation / existing extra/index operand messages | error | required `mnemonic`, `operand` | rejected operand | yes | yes | yes | localized / verified | complete / complete | P1 | Rejected operand retained from source. |
 
 ## C++ Parser, Semantic, And Transpiler
 
@@ -35,7 +39,29 @@ Localization status is one of `structured`, `localized`, `pending-structure`, `i
 | `semantic.parameterLocalConflict` | declaration validation | error | `function`, `variable` | line | yes | n/a | localized | complete / complete | P1 | Variable name verbatim. |
 | `transpiler.tooManyRegisterArguments` | parameter validation | error | `function`, `maximum`, `actualCount` | line | yes | n/a | localized | complete / complete | P0 | Calling convention remains GR1-GR3. |
 | `transpiler.unsupportedCallArgument` | call argument validation | error | `function`, `argumentCount` | line | yes | n/a | localized | complete / complete | P1 | Does not add syntax. |
-| parser token/grammar messages | lexer/parser raw English | error | varies | line | yes | n/a | pending-structure | pending / pending | P1 | Requires token/range audit in Phase 14E. |
+| remaining parser fallback messages | lexer/parser low-frequency or internal English | error | varies | existing location | partial | n/a | legacy-only / deferred | English fallback | P2/P3 | P1 sites are listed below; no unverified site is marked complete. |
+| `cppParser.unexpectedToken` | C++ lexer/parser / unsupported character or syntax token | error | required `token`; optional `expected` | offending token | yes | n/a | localized / verified | complete / complete | P1 | `cpp-lexer` or `cpp-parser` producer is explicit. |
+| `cppParser.expectedToken` | C++ parser consume boundary | error | required `expectedToken`; optional `actualToken` | current token or EOF | yes | n/a | localized / verified | complete / complete | P1 | Recovery unchanged. |
+| `cppParser.unterminatedBlock` | C++ lexer / unterminated block comment | error | optional `construct` | EOF insertion | yes | n/a | localized / verified | complete / complete | P1 | Opening delimiter is a related location. |
+| `cppParser.missingSemicolon` | C++ parser / existing expected-semicolon messages | error | none | insertion point | yes | n/a | localized / verified | complete / complete | P1 | Does not highlight the next statement. |
+| `cppParser.invalidFunctionDeclaration` | C++ parser / unsupported return/declaration form | error | optional `token` | offending token | yes | n/a | localized / verified | complete / complete | P1 | Pointer syntax remains rejected. |
+| `cppParser.invalidParameterList` | C++ parser / unsupported parameter form | error | optional `token` | offending token | yes | n/a | localized / verified | complete / complete | P1 | Grammar unchanged. |
+| `cppParser.invalidVariableDeclaration` | C++ parser / unsupported variable declaration | error | optional `token` | offending token | yes | n/a | localized / verified | complete / complete | P1 | Grammar unchanged. |
+| `cppParser.invalidAssignment` | C++ parser / invalid assignment/update form | error | optional `token` | offending token | yes | n/a | localized / verified | complete / complete | P1 | Parser recovery unchanged. |
+| `cppParser.invalidIfStatement` | C++ parser / existing unsupported else-if form | error | optional `token` | offending token | yes | n/a | localized / verified | complete / complete | P1 | No `else if` support added. |
+| `cppParser.invalidForStatement` | C++ parser / existing initializer/condition/increment limits | error | optional `token` | offending token | yes | n/a | localized / verified | complete / complete | P1 | Existing multiple diagnostics/order retained. |
+| `cppParser.invalidCallExpression` | C++ parser / call used as statement | error | optional `token` | call target | yes | n/a | localized / verified | complete / complete | P1 | Call-expression feature set unchanged. |
+| `cppParser.unsupportedExpression` | C++ parser / unsupported primary expression | error | required `token` | offending token | yes | n/a | localized / verified | complete / complete | P1 | Source text stays technical. |
+| `cppParser.unsupportedOperator` | C++ parser / invalid condition operator | error | required `operator`; optional `construct` | operator/current token | yes | n/a | localized / verified | complete / complete | P1 | Approved operators unchanged. |
+| `semantic.unsupportedMainParameters` | semantic / existing main-parameter rejection | error | required `actualCount` | first parameter | yes | n/a | localized / verified | complete / complete | P1 | Trigger unchanged. |
+| `semantic.duplicateParameter` | semantic / duplicate parameter name | error | required `variable`; optional `function` | duplicate identifier | yes | n/a | localized / verified | complete / complete | P1 | First declaration related location when reliable. |
+| `semantic.duplicateVariable` | semantic / duplicate local declaration | error | required `variable`; optional `function` | duplicate identifier | yes | n/a | localized / verified | complete / complete | P1 | First declaration related location retained. |
+| `semantic.unsupportedInitializer` | semantic / non-literal variable initializer | error | required `variable` | declaration identifier | yes | n/a | localized / verified | complete / complete | P1 | Expression analysis/order unchanged. |
+| `semantic.invalidCondition` | semantic / existing condition-shape restriction | error | required `construct` | condition owner when reliable | yes | n/a | localized / verified | complete / complete | P1 | No condition syntax added. |
+| `semantic.integerLiteralOutOfRange` | semantic / signed 16-bit bound | error | required raw `literal` | literal token when reliable | yes | n/a | localized / verified | complete / complete | P1 | Raw spelling is retained. |
+| `semantic.forwardDeclarationUnsupported` | semantic / call before definition | error | required `function` | call target | yes | n/a | localized / verified | complete / complete | P1 | Forward declarations remain unsupported. |
+| `transpiler.unsupportedExpression` | semantic/transpiler validation / unsupported expression shapes | error | required `construct` | existing line metadata | yes | n/a | localized / verified | complete / complete | P1 | No internal invariant is exposed as this code. |
+| `transpiler.internalLoweringFailure` | transpiler catch boundary | error | none | none | yes | n/a | localized / verified | complete / complete | P2 | Raw exception is details-only `rawContext`. |
 
 ## VM And Adapter
 
@@ -47,7 +73,19 @@ Localization status is one of `structured`, `localized`, `pending-structure`, `i
 | `vm.invalidMemoryAccess` | memory/PR API bounds | error | `address` | no user diagnostic | no diagnostic object | no | deferred | P2 | Existing API status remains unchanged. |
 | `vm.stackUnderflow` | not currently exposed | error | none | no | no | no | deferred | P2 | Reserved stable code; no fake trigger. |
 | `vm.stackOverflow` | not currently exposed | error | none | no | no | no | deferred | P2 | Reserved stable code; no fake trigger. |
-| browser/WASM loader exception | adapter wrapper | error | raw exception | yes | n/a | n/a | intentionally-raw | P3 | Raw developer detail is not localized. |
+| browser/WASM loader exception | adapter wrapper | error | raw exception | yes | n/a | n/a | intentionally-raw | P3 | Raw developer detail is not localized; no stable user action/source range exists. |
+
+## Remaining Producer Audit
+
+| Producer | Remaining site | Classification | Final status | Reason |
+| --- | --- | --- | --- | --- |
+| semantic | generated-label conflict | P2 | legacy-only | Stable label allocation context requires a separate schema review. |
+| semantic | specialized compound/for shape fallbacks not reached through normal parsed forms | P2 | deferred | Keep explicit legacy fallback until producer reachability is proven. |
+| transpiler | lowerer invariant exceptions | P3 | internal-only | Stable wrapper is localized; exception text remains `rawContext`. |
+| assembler | storage/directive edge messages without a retained rejected token | P2 | partial | Existing range/value metadata is not reliable for every path. |
+| VM | runtime failures without source map | P2 | partial | No source range is fabricated. |
+| WASM adapter | JSON/load/browser implementation exceptions | P3 | internal-only / intentionally-raw | Raw details remain developer context. |
+| Trace / lessons / Demo Guide / FramePlan prose | non-diagnostic content | n/a | deferred | Outside diagnostic localization scope. |
 
 ## Technical Boundary
 
@@ -65,6 +103,7 @@ Source text, symbol spelling, opcode/mnemonic, register name, address, numeric l
 | Address / literal range | verified | rejected value and limits optional for legacy producers | token when retained | none | partial | partial | partial | verified | partial |
 | C++ semantic pilot | verified | code-specific | identifier, keyword, or call target | duplicate function and parameter/local conflict | verified | n/a | n/a | verified | verified within TS producer |
 | VM pilot | verified | step limit numeric; runtime address optional/required by code | reliable mapping only | none | partial | partial | partial | verified | legacy location only |
-| Raw parser/internal messages | legacy-only | not yet structured | existing line/token where available | none | partial | n/a | n/a | deferred | deferred |
+| C++ parser P1 group | verified | code-specific token/construct params | token or insertion point | opening delimiter when reliable | verified | n/a | n/a | verified | verified within TS producer |
+| Remaining P2 parser/internal messages | legacy-only / internal-only | producer-specific | existing location only | none | partial | n/a | n/a | deferred | deferred |
 
 `verified` means exercised by automated tests. `partial` means the producer cannot reliably retain every value or source range. `legacy-only` means the old message remains the supported contract; no location is fabricated.

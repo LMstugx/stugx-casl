@@ -1,6 +1,7 @@
 import { generateCaslFromCpp } from "./cppToCasl";
 import { parseCpp } from "./cppParser";
 import { checkCppSemantics } from "./cppSemantic";
+import { createStructuredDiagnostic } from "../diagnostics/catalog";
 import type { TranspileResult } from "./cppAst";
 
 export function transpileCppToCasl(source: string): TranspileResult {
@@ -24,10 +25,14 @@ export function transpileCppToCasl(source: string): TranspileResult {
       mapping: generated.mapping
     };
   } catch (error) {
+    const rawContext = error instanceof Error ? error.message : String(error);
     return {
       ok: false,
       caslSource: "",
-      diagnostics: [{ line: 0, message: error instanceof Error ? error.message : String(error), severity: "error" }],
+      diagnostics: [createStructuredDiagnostic(0, rawContext, "transpiler.internalLoweringFailure", {}, "error", {
+        producer: "transpiler",
+        rawContext
+      })],
       mapping: []
     };
   }

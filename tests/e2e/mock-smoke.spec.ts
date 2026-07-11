@@ -933,6 +933,41 @@ test("Phase 14E diagnostic ranges and related locations remain stable across loc
   expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)).toBe(false);
 });
 
+test("Phase 14F parser diagnostics localize without reparsing or moving selection", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await openStudio(page, "Mock Core");
+  await page.getByTestId("source-mode-cpp").click();
+  const source = "int main() {\n  int value = 1\n  return value;\n}";
+  await setSource(page, source);
+  await page.getByTestId("assemble-button").click();
+
+  const diagnostic = page.locator('.diagnostic[data-diagnostic-code="cppParser.missingSemicolon"]').first();
+  await expect(diagnostic).toBeVisible();
+  await diagnostic.click();
+  const entry = diagnostic.locator("..");
+  const count = await page.locator(".diagnostic").count();
+  const editorText = await page.getByTestId("source-editor").locator(".view-lines").textContent();
+  await entry.locator(".diagnostic-related summary").click();
+  await expect(entry.locator(".diagnostic-related")).toContainText("cpp-parser");
+
+  await page.getByTestId("locale-ja").click();
+  await expect(diagnostic.locator(".diagnostic-message")).toContainText("セミコロン");
+  await expect(entry).toHaveAttribute("data-selected", "true");
+  expect(await page.locator(".diagnostic").count()).toBe(count);
+  expect(await page.getByTestId("source-editor").locator(".view-lines").textContent()).toBe(editorText);
+
+  await page.getByTestId("locale-zh-CN").click();
+  await expect(diagnostic.locator(".diagnostic-message")).toContainText("缺少分号");
+  await expect(entry).toHaveAttribute("data-selected", "true");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)).toBe(false);
+
+  await page.getByTestId("locale-en").click();
+  await page.getByTestId("source-mode-casl").click();
+  await setSource(page, "MAIN START\n LD GR1\n END");
+  await page.getByTestId("assemble-button").click();
+  await expect(page.locator('.diagnostic[data-diagnostic-code="assembler.missingOperand"]')).toContainText("LD");
+});
+
 test("Mock backend executes C++ subset if else lowering in the browser UI", async ({ page }) => {
   await openStudio(page, "Mock Core");
   await page.getByTestId("source-mode-cpp").click();

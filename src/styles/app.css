@@ -2269,6 +2269,12 @@ button {
 .diagnostic-related span {
   display: block;
   padding: var(--space-4) 0 0 var(--space-12);
+  overflow-wrap: anywhere;
+}
+
+.diagnostic-related strong {
+  display: block;
+  padding-top: var(--space-6);
 }
 
 .diagnostic-source-range-inline {

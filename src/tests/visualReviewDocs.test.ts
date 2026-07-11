@@ -11,6 +11,10 @@ describe("visual review screenshot gallery setup", () => {
     expect(visualReviewSpec).toContain("visual review screenshot gallery");
     expect(visualReviewSpec).toContain('name: "1280x720"');
     expect(visualReviewSpec).toContain("project-overview.png");
+    expect(visualReviewSpec).toContain("ui-casl-diagnostic-error.png");
+    expect(visualReviewSpec).toContain("ui-cpp-diagnostic-error.png");
+    expect(visualReviewSpec).toContain("ui-stopped-state.png");
+    expect(visualReviewSpec).toContain("ui-keyboard-focus.png");
     expect(visualReviewSpec).toContain("casl-gr2-ld.png");
     expect(visualReviewSpec).toContain("enterCircuitFocusMode");
     expect(visualReviewSpec).toContain("logical-add-compare-jov.png");
@@ -64,6 +68,7 @@ describe("visual review screenshot gallery setup", () => {
     expect(visualReviewDoc).toContain("Inspector Memory uses bounded internal scrolling");
     expect(visualReviewDoc).toContain("advanced UI design-system foundation");
     expect(visualReviewDoc).toContain("Phase 13B applies");
+    expect(visualReviewDoc).toContain("Phase 13C adds keyboard, contrast");
     expect(visualReviewDoc).toContain("shared token vocabulary");
     expect(visualReviewDoc).toContain("Toolbar actions are visually grouped");
     expect(visualReviewDoc).toContain("Selected, active execution, changed");
@@ -81,6 +86,10 @@ describe("visual review screenshot gallery setup", () => {
     expect(visualReviewDoc).toContain("Circuit Focus screenshots include Program, Display, Current Instruction");
     expect(visualReviewDoc).toContain("stack-preview-focus.png");
     expect(visualReviewDoc).toContain("stack-frame-view-preview.png");
+    expect(visualReviewDoc).toContain("ui-casl-diagnostic-error.png");
+    expect(visualReviewDoc).toContain("ui-cpp-diagnostic-error.png");
+    expect(visualReviewDoc).toContain("ui-stopped-state.png");
+    expect(visualReviewDoc).toContain("ui-keyboard-focus.png");
     expect(visualReviewDoc).toContain("push-pop-stack-circuit.png");
     expect(visualReviewDoc).toContain("push-pop-stack-machine-code.png");
     expect(visualReviewDoc).toContain("call-return-call.png");

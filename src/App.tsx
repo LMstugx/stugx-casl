@@ -171,7 +171,7 @@ function StudioShell() {
 
           <section className="panel current-panel">
             <header className="panel-header">
-              <h2>Current Instruction</h2>
+              <h2 title="Current Instruction">Current Instruction</h2>
             </header>
             <div className="current-instruction">
               <strong>{summarizeCurrentInstruction(state)}</strong>
@@ -205,7 +205,7 @@ function StudioShell() {
           <section className="panel circuit-panel">
             <header className="panel-header">
               <div>
-                <h2>COMET II Simulator</h2>
+                <h2 title="COMET II Simulator">COMET II Simulator</h2>
               <span>{isSourceDirty ? "Modified / Not assembled" : sourceMode === "cpp" ? "Generated CASL driving COMET-II" : "State-driven SVG circuit"}</span>
               </div>
               <span className={`run-pill ${state.runState.toLowerCase()}`}>{state.runState}</span>
@@ -222,10 +222,10 @@ function StudioShell() {
             </header>
             <div className="timeline">
               {timelineItems.map((item) => (
-                <button key={item.key} className={`timeline-node ${item.phase}`} type="button" aria-disabled="true" title={item.label}>
+                <div key={item.key} className={`timeline-node ${item.phase}`} aria-current={item.phase === "current" ? "step" : undefined} title={item.label}>
                   <span>{item.index}</span>
                   <strong>{item.label}</strong>
-                </button>
+                </div>
               ))}
             </div>
           </section>

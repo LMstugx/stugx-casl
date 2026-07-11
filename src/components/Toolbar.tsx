@@ -25,21 +25,23 @@ type ButtonProps = {
   emphasis?: boolean;
   disabled?: boolean;
   active?: boolean;
+  pressed?: boolean;
+  groupStart?: boolean;
   loading?: boolean;
   title?: string;
   onClick?: () => void;
 };
 
-function ToolButton({ label, icon, testId, variant, emphasis, disabled, active, loading, title, onClick }: ButtonProps) {
+function ToolButton({ label, icon, testId, variant, emphasis, disabled, active, pressed, groupStart, loading, title, onClick }: ButtonProps) {
   return (
     <button
       data-testid={testId}
-      className={`tool-button ${variant ?? ""} ${emphasis ? "emphasis" : ""} ${active ? "active" : ""} ${loading ? "loading" : ""}`}
+      className={`tool-button ${variant ?? ""} ${emphasis ? "emphasis" : ""} ${active ? "active" : ""} ${groupStart ? "group-start" : ""} ${loading ? "loading" : ""}`}
       disabled={disabled}
       onClick={onClick}
       title={title ?? label}
       aria-label={title ?? label}
-      aria-pressed={active ? true : undefined}
+      aria-pressed={pressed}
     >
       {loading ? <Loader2 className="spinner" size={17} /> : icon}
       <span>{label}</span>
@@ -90,6 +92,8 @@ export default function Toolbar({
           label="Circuit Focus"
           icon={<Cpu size={18} />}
           active={isCircuitFocusMode}
+          pressed={isCircuitFocusMode}
+          groupStart
           testId="circuit-focus-toggle"
           onClick={onToggleCircuitFocusMode}
           title={isCircuitFocusMode ? "Return to studio layout" : "Open Circuit Focus Mode"}
@@ -99,6 +103,7 @@ export default function Toolbar({
           icon={<Check size={18} />}
           variant="success"
           emphasis
+          groupStart
           active={showAssembleSuccess}
           loading={assembleStatus === "running"}
           disabled={assembleStatus === "running" || isRunning}
@@ -113,9 +118,9 @@ export default function Toolbar({
 
       <div className="toolbar-meta">
         <div className="segmented" aria-label="Language selector">
-          <button disabled aria-label="Japanese language option">JP</button>
+          <button disabled aria-label="Japanese language option" aria-pressed="false">JP</button>
           <button className="selected" aria-label="English language option" aria-pressed="true">EN</button>
-          <button disabled aria-label="Chinese language option">CN</button>
+          <button disabled aria-label="Chinese language option" aria-pressed="false">CN</button>
         </div>
         <button className="theme-toggle" disabled title="Theme toggle" aria-label="Theme toggle">
           <Sun size={16} />

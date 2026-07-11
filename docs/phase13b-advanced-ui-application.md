@@ -109,4 +109,4 @@ At `1280x720`, the page may scroll vertically, but the UI should avoid horizonta
 
 ## Phase 13C Recommendation
 
-Phase 13C should be a targeted visual QA pass after user review of the Phase 13B screenshots. It should fix only concrete remaining visual defects, keep the clean-wire contract, and avoid adding new product behavior before v1.0 final.
+Phase 13C is documented in [phase13c-ui-consistency-accessibility-audit.md](phase13c-ui-consistency-accessibility-audit.md). It closes concrete contrast, keyboard tablist, pressed-state, compact-text, state-semantics, and `1280x720` overflow findings while retaining the clean-wire contract and existing product behavior.

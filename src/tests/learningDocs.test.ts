@@ -54,6 +54,7 @@ import v1SecurityAuditNotes from "../../docs/v1-security-audit-notes.md?raw";
 import phase12dVisualAudit from "../../docs/phase12d-visual-audit.md?raw";
 import phase13a from "../../docs/phase13a-advanced-ui-design-system.md?raw";
 import phase13b from "../../docs/phase13b-advanced-ui-application.md?raw";
+import phase13c from "../../docs/phase13c-ui-consistency-accessibility-audit.md?raw";
 
 describe("learning use documentation", () => {
   it("learning_guide_exists", () => {
@@ -422,7 +423,7 @@ describe("learning use documentation", () => {
     expect(phase11f).toContain("current static labels");
     expect(phase11f).toContain("Runtime state: Not available in simple mode");
     expect(phase11f).toContain("fake live stack slot values");
-    expect(phase11f).toContain("aria-selected");
+    expect(phase11f).toContain("aria-pressed");
     expect(readme).toContain("docs/phase11f-frameplan-slot-highlighting-contract.md");
     expect(phase11d).toContain("phase11f-frameplan-slot-highlighting-contract.md");
     expect(phase11e).toContain("phase11f-frameplan-slot-highlighting-contract.md");
@@ -845,6 +846,21 @@ describe("learning use documentation", () => {
     expect(phase13a).toContain("phase13b-advanced-ui-application.md");
     expect(circuitVisualContract).toContain("Selected/navigation state");
     expect(circuitVisualContract).toContain("Red should be reserved");
+  });
+
+  it("phase13c_ui_consistency_accessibility_audit_doc_exists", () => {
+    expect(phase13c).toContain("Phase 13C: UI Consistency and Accessibility Audit");
+    expect(phase13c).toContain("Contrast Findings");
+    expect(phase13c).toContain("Keyboard And Focus Findings");
+    expect(phase13c).toContain("Overflow And Clipping Findings");
+    expect(phase13c).toContain("1280x720");
+    expect(phase13c).toContain("State Consistency");
+    expect(phase13c).toContain("Scroll Behavior");
+    expect(phase13c).toContain("no terminal arrows");
+    expect(phase13c).toContain("no ghost inactive wires");
+    expect(phase13c).toContain("Phase 14A i18n architecture");
+    expect(readme).toContain("docs/phase13c-ui-consistency-accessibility-audit.md");
+    expect(phase13b).toContain("phase13c-ui-consistency-accessibility-audit.md");
   });
 
   it("project_overview_uses_learning_wording", () => {

@@ -37,9 +37,11 @@ This will:
 
 The screenshot spec uses the Mock backend for stable visual output.
 
-Circuit Focus Mode normally uses a lightweight signal-flow animation on active wires. The visual review spec adds a `visual-review-static` class before each screenshot so the active path remains highlighted but the animation is frozen for stable review.
+Circuit Focus Mode normally uses a lightweight signal-flow animation on active wires. The visual review spec adds a `visual-review-static` class before each screenshot so active state remains highlighted while wire motion, component animations, and transitions are frozen for stable review.
 
 Phase 13A adds an advanced UI design-system foundation. Phase 13B applies that foundation across the main UI. Visual review should confirm that toolbar controls, panel cards, tabs, tables, circuit modules, and active circuit rows use the shared token vocabulary and still preserve the Phase 12D clean-wire contract: no arrows, no dots, no ghost inactive wires, and active-flow wires only.
+
+Phase 13C adds keyboard, contrast, state-consistency, clipping, and viewport audit coverage. The gallery includes CASL and C++ diagnostic states plus a max-step Stopped state so warning, error, disabled, selected, and active execution treatments can be reviewed together.
 
 ## Open Gallery Locally
 
@@ -160,6 +162,10 @@ Use the gallery to inspect:
 ## Captured Scenes
 
 - `project-overview.png`
+- `ui-casl-diagnostic-error.png` (CASL assembly diagnostic state)
+- `ui-cpp-diagnostic-error.png` (C++ subset diagnostic state)
+- `ui-stopped-state.png` (max-step Stopped state)
+- `ui-keyboard-focus.png` (selected Inspector tab with visible keyboard focus)
 - `observation-cpu-flow.png` (CPU Flow observation mode)
 - `observation-register-stack.png` (Registers / Stack observation mode)
 - `stack-frame-view-preview.png` (FramePlan design preview in Stack Frame View; not runtime state)

@@ -4,6 +4,7 @@ import MemoryPanel from "./MemoryPanel";
 import RegisterPanel from "./RegisterPanel";
 import SourceMapPanel from "./SourceMapPanel";
 import TracePanel from "./TracePanel";
+import { handleHorizontalTabListKeyDown } from "./tabKeyboard";
 
 type InspectorTab = "registers" | "memory" | "sourceMap" | "trace";
 
@@ -26,7 +27,7 @@ export default function InspectorPanel({ state }: { state: CometState }) {
         </div>
       </header>
 
-      <div className="tab-list compact-tabs" role="tablist" aria-label="Inspector panels">
+      <div className="tab-list compact-tabs" role="tablist" aria-label="Inspector panels" aria-orientation="horizontal" onKeyDown={handleHorizontalTabListKeyDown}>
         {tabs.map((tab) => (
           <button
             key={tab.id}

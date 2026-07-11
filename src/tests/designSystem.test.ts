@@ -5,6 +5,11 @@ const tokensCss = readFileSync("src/styles/tokens.css", "utf8");
 const appCss = readFileSync("src/styles/app.css", "utf8");
 const circuitSvg = readFileSync("src/visual/CometCircuitSvg.tsx", "utf8");
 const appTsx = readFileSync("src/App.tsx", "utf8");
+const toolbarTsx = readFileSync("src/components/Toolbar.tsx", "utf8");
+const inspectorTsx = readFileSync("src/components/InspectorPanel.tsx", "utf8");
+const outputTsx = readFileSync("src/components/OutputPanel.tsx", "utf8");
+const focusLayoutTsx = readFileSync("src/components/CircuitFocusLayout.tsx", "utf8");
+const tabKeyboardTs = readFileSync("src/components/tabKeyboard.ts", "utf8");
 
 function cssBlock(selector: string): string {
   const index = appCss.indexOf(selector);
@@ -28,7 +33,10 @@ describe("advanced UI design system foundation", () => {
       "--color-accent",
       "--color-success",
       "--color-warning",
+      "--color-warning-text",
       "--color-danger",
+      "--color-text-disabled",
+      "--color-focus-ring",
       "--color-active-data",
       "--color-active-control",
       "--color-active-flag",
@@ -153,8 +161,10 @@ describe("advanced UI design system foundation", () => {
   });
 
   it("toolbar_actions_are_visually_grouped", () => {
-    expect(appCss).toContain(".toolbar-actions .tool-button:nth-of-type(4)");
-    expect(appCss).toContain(".toolbar-actions .tool-button:nth-of-type(5)");
+    expect(appCss).toContain(".toolbar-actions .tool-button.group-start");
+    expect(toolbarTsx).toContain("groupStart");
+    expect(appCss).not.toContain("nth-of-type(4)");
+    expect(appCss).not.toContain("nth-of-type(5)");
     expect(appCss).toContain("content: \"\"");
     expect(appCss).toContain("left: calc(-1 * var(--space-8))");
   });
@@ -168,6 +178,66 @@ describe("advanced UI design system foundation", () => {
     expect(appCss).toContain("background: var(--color-state-active-bg)");
     expect(appCss).toContain("background: var(--color-state-changed-bg)");
     expect(appCss).toContain("background: var(--color-state-write-bg)");
+    expect(appCss).toContain(".data-table tr.changed td {");
+    expect(appCss).toContain(".data-table tr.current td {");
+  });
+
+  it("core_text_contrast_uses_semantic_tokens", () => {
+    expect(tokensCss).toContain("--color-text-muted: #5b687a");
+    expect(tokensCss).toContain("--color-warning-text: #92400e");
+    expect(appCss).toContain("color: var(--color-warning-text)");
+    expect(appCss).toContain("color: var(--color-text-muted)");
+  });
+
+  it("disabled_controls_remain_legible", () => {
+    expect(tokensCss).toContain("--color-text-disabled: #64748b");
+    const disabledControls = cssBlock(".tool-button:disabled,");
+    expect(disabledControls).toContain("color: var(--color-text-disabled)");
+    expect(disabledControls).toContain("opacity: 1");
+  });
+
+  it("selected_and_focus_states_are_distinct", () => {
+    expect(tokensCss).toContain("--color-focus-ring");
+    expect(appCss).toContain("outline: 2px solid color-mix(in srgb, var(--color-focus-ring) 72%, transparent)");
+    expect(appCss).toContain("background: var(--color-state-selected-bg)");
+  });
+
+  it("execution_and_changed_states_are_distinct", () => {
+    expect(appCss).toMatch(/\.data-table tr\.changed td \{[\s\S]*?--color-state-changed-bg/);
+    expect(appCss).toMatch(/\.data-table tr\.current td \{[\s\S]*?--color-state-active-bg/);
+    expect(appCss).toMatch(/\.current-exec-line \{[\s\S]*?--color-state-active-bg/);
+  });
+
+  it("toggles_expose_pressed_state", () => {
+    expect(toolbarTsx).toContain("aria-pressed={pressed}");
+    expect(toolbarTsx).toContain("pressed={isCircuitFocusMode}");
+    expect(outputTsx).toContain("aria-pressed={isSelected}");
+    expect(focusLayoutTsx).toContain("aria-pressed={selectedFrameSlotId === slot.mappingId}");
+  });
+
+  it("observation_tabs_support_keyboard_navigation", () => {
+    expect(focusLayoutTsx).toContain("onKeyDown={handleHorizontalTabListKeyDown}");
+    expect(focusLayoutTsx).toContain("tabIndex={mode === item.id ? 0 : -1}");
+    expect(inspectorTsx).toContain("onKeyDown={handleHorizontalTabListKeyDown}");
+    expect(outputTsx).toContain("onKeyDown={handleHorizontalTabListKeyDown}");
+    expect(tabKeyboardTs).toContain('"ArrowLeft"');
+    expect(tabKeyboardTs).toContain('"ArrowRight"');
+    expect(tabKeyboardTs).toContain('"Home"');
+    expect(tabKeyboardTs).toContain('"End"');
+  });
+
+  it("long_panel_titles_do_not_hard_clip", () => {
+    expect(appTsx).toContain('<h2 title="Current Instruction">Current Instruction</h2>');
+    expect(appTsx).toContain('<h2 title="COMET II Simulator">COMET II Simulator</h2>');
+    expect(focusLayoutTsx).toContain('<h2 title="Current Source Mapping">Current Source Mapping</h2>');
+    expect(focusLayoutTsx).toContain('<h2 title="Stack Frame View">Stack Frame View</h2>');
+  });
+
+  it("mono_values_do_not_wrap", () => {
+    const monoValue = cssBlock(".mono-value {");
+    expect(monoValue).toContain("font-family: var(--font-family-mono)");
+    expect(monoValue).toContain("white-space: nowrap");
+    expect(monoValue).toContain("text-overflow: ellipsis");
   });
 
   it("inspector_tabs_share_bounded_layout", () => {
@@ -222,12 +292,14 @@ describe("advanced UI design system foundation", () => {
   it("reduced_motion_remains_supported", () => {
     expect(appCss).toContain("@media (prefers-reduced-motion: reduce)");
     expect(appCss).toContain(".visual-review-static .circuit-wire--flow");
+    expect(appCss).toContain(".visual-review-static *::before");
     expect(appCss).toContain("animation: none");
+    expect(appCss).toContain("transition: none !important");
   });
 
   it("viewport_1280_has_no_horizontal_overflow_contract", () => {
     expect(appCss).toContain("@media (max-width: 1320px), (max-height: 760px)");
-    expect(appCss).toContain(".toolbar-actions .tool-button:nth-of-type(4)::before");
+    expect(appCss).toContain(".toolbar-actions .tool-button.group-start::before");
     expect(appCss).toContain("grid-template-columns: clamp(230px, 17vw, 280px) minmax(620px, 1fr) clamp(260px, 20vw, 315px)");
   });
 });

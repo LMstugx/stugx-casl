@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { assemble, openStudio, run, selectDemoProgram, step } from "./caslSmokeHelpers";
+import { assemble, openStudio, run, selectDemoProgram, setSource, step } from "./caslSmokeHelpers";
 import { mkdir } from "node:fs/promises";
 import path from "node:path";
 
@@ -59,6 +59,49 @@ async function captureProjectOverview(page: Page, viewport: Viewport) {
   await page.getByTestId("guided-lesson-summary").click();
   await expect(page.getByTestId("project-overview")).toContainText("stugx.CASL");
   await capture(page, viewport, "project-overview.png");
+}
+
+async function captureCaslDiagnosticState(page: Page, viewport: Viewport) {
+  await openStudio(page, "Mock Core");
+  await setSource(page, "MAIN START\n     LD GR1\n     END");
+  await page.getByTestId("assemble-button").click();
+  await expect(page.locator(".diagnostic").first()).toBeVisible();
+  await capture(page, viewport, "ui-casl-diagnostic-error.png");
+}
+
+async function captureCppDiagnosticState(page: Page, viewport: Viewport) {
+  await openStudio(page, "Mock Core");
+  await page.getByTestId("source-mode-cpp").click();
+  await setSource(page, "int main() {\n  return missing;\n}");
+  await page.getByTestId("assemble-button").click();
+  await expect(page.locator(".diagnostic").first()).toBeVisible();
+  await capture(page, viewport, "ui-cpp-diagnostic-error.png");
+}
+
+async function captureStoppedState(page: Page, viewport: Viewport) {
+  await openStudio(page, "Mock Core");
+  await page.getByTestId("source-mode-cpp").click();
+  await setSource(page, `int main() {
+  int i = 1;
+  while (i > 0) {
+    i = i + 1;
+  }
+  return i;
+}`);
+  await assemble(page);
+  await page.getByTestId("run-button").click();
+  await expect(page.getByTestId("run-state")).toHaveText("Stopped", { timeout: 15_000 });
+  await capture(page, viewport, "ui-stopped-state.png");
+}
+
+async function captureKeyboardFocusState(page: Page, viewport: Viewport) {
+  await openStudio(page, "Mock Core");
+  const registersTab = page.getByRole("tab", { name: "Open Registers inspector tab" });
+  await registersTab.focus();
+  await page.keyboard.press("ArrowRight");
+  const memoryTab = page.getByRole("tab", { name: "Open Memory inspector tab" });
+  await expect(memoryTab).toBeFocused();
+  await capture(page, viewport, "ui-keyboard-focus.png");
 }
 
 async function captureCaslGr2Flow(page: Page, viewport: Viewport) {
@@ -508,6 +551,10 @@ test.describe("visual review screenshot gallery", () => {
       await page.setViewportSize({ width: viewport.width, height: viewport.height });
 
       await captureProjectOverview(page, viewport);
+      await captureCaslDiagnosticState(page, viewport);
+      await captureCppDiagnosticState(page, viewport);
+      await captureStoppedState(page, viewport);
+      await captureKeyboardFocusState(page, viewport);
       await captureCaslGr2Flow(page, viewport);
       await captureObservationCpuFlow(page, viewport);
       await captureObservationRegisterStack(page, viewport);

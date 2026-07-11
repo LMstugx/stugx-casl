@@ -85,7 +85,7 @@ Arguments keep the current `GR1` / `GR2` / `GR3` register convention today, whil
 
 ## Accessibility
 
-Slot rows are keyboard-focusable buttons with `aria-selected`.
+Slot rows are keyboard-focusable toggle buttons with `aria-pressed`.
 
 Focus-visible styling is retained, and the Slot Detail text uses compact rows, ellipsis, and native `title` text for long labels. Selecting a function resets the selected slot if the previous slot is not valid for the new function.
 

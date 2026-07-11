@@ -13,6 +13,7 @@ import {
 } from "../core/controlFlowGraph";
 import type { CppToCaslMap } from "../transpiler/cppAst";
 import type { SourceMode } from "../store/useAppStore";
+import { handleHorizontalTabListKeyDown } from "./tabKeyboard";
 
 type OutputPanelProps = {
   lines: string[];
@@ -113,7 +114,7 @@ export default function OutputPanel({
   return (
     <section className="output-panel">
       <header className="dock-header">
-        <div className="tab-list dock-tabs" role="tablist" aria-label="Output panels">
+        <div className="tab-list dock-tabs" role="tablist" aria-label="Output panels" aria-orientation="horizontal" onKeyDown={handleHorizontalTabListKeyDown}>
           {tabs.map((tab) => (
             <button
               key={tab.id}
@@ -236,6 +237,7 @@ export default function OutputPanel({
                               data-flow-kind={edge?.kind ?? ""}
                               role="button"
                               aria-label={`Select machine word ${formatWord(row.word)} at ${formatWord(row.address)} from ${row.sourceText}`}
+                              aria-pressed={isSelected}
                               tabIndex={0}
                               onClick={() => setSelectedMachineAddress(row.address)}
                               onKeyDown={(event) => {

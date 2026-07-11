@@ -427,7 +427,7 @@ describe("Circuit Focus Mode layout", () => {
   it("stack_frame_view_slot_rows_have_accessible_selection_contract", () => {
     const markup = renderCppFunctionArgumentsFocus("add", cppFunctionWithLocalSource);
 
-    expect(markup).toContain('aria-selected="false"');
+    expect(markup).toContain('aria-pressed="false"');
     expect(markup).toContain('data-selected="false"');
     expect(markup).toContain('data-slot-id="add:argument:a:1"');
   });
@@ -1238,7 +1238,7 @@ DONE RET
 
   it("trace_history_secondary_note_ellipsis", () => {
     expect(appCss).toContain(".focus-trace-item:not(.latest) .trace-note");
-    expect(appCss).toContain("opacity: 0.52");
+    expect(appCss).toContain("opacity: 0.68");
   });
 
   it("trace_call_ret_key_note_readable", () => {

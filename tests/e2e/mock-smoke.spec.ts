@@ -455,7 +455,7 @@ test("Mock backend shows Stack Frame View FramePlan preview in Register Stack mo
   await expect(page.getByTestId("focus-stack-frame-view")).toContainText("FrameSlot");
   await expect(page.getByTestId("stack-frame-view-state")).toHaveAttribute("data-has-live-frame", "false");
   await expect(page.getByTestId("stack-frame-view-state")).toHaveAttribute("data-runtime-state", "false");
-  await expect(page.locator('[data-slot-id="add:argument:a:1"]')).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator('[data-slot-id="add:argument:a:1"]')).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByTestId("stack-frame-slot-detail")).toContainText("Source Editor");
   await expect(page.getByTestId("signal-probe-frame-slot-relation")).toContainText("GR1");
   await expect(page.getByTestId("signal-probe-frame-slot-relation")).toContainText("FUNC_ADD_A");
@@ -466,7 +466,7 @@ test("Mock backend shows Stack Frame View FramePlan preview in Register Stack mo
     element.scrollTop = element.scrollHeight;
   });
   await page.locator('[data-slot-id="add:argument:a:1"]').click();
-  await expect(page.locator('[data-slot-id="add:argument:a:1"]')).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator('[data-slot-id="add:argument:a:1"]')).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByTestId("stack-frame-slot-detail")).toContainText("a");
   await expect(page.getByTestId("stack-frame-slot-detail")).toContainText("argument");
   await expect(page.getByTestId("stack-frame-slot-detail")).toContainText("static label FUNC_ADD_A");
@@ -482,7 +482,7 @@ test("Mock backend shows Stack Frame View FramePlan preview in Register Stack mo
   await page.locator('[data-slot-id="add:argument:b:2"]').focus();
   await expect(page.locator('[data-slot-id="add:argument:b:2"]')).toBeFocused();
   await page.keyboard.press("Enter");
-  await expect(page.locator('[data-slot-id="add:argument:b:2"]')).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator('[data-slot-id="add:argument:b:2"]')).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByTestId("stack-frame-slot-detail")).toContainText("FUNC_ADD_B");
   await page.getByTestId("stack-frame-function-select").selectOption("main");
   await expect(page.locator('[data-testid="stack-frame-future-slot"][data-selected="true"]')).toHaveCount(0);
@@ -490,7 +490,7 @@ test("Mock backend shows Stack Frame View FramePlan preview in Register Stack mo
     element.scrollTop = element.scrollHeight;
   });
   await page.locator('[data-slot-id="main:local:result:1"]').click();
-  await expect(page.locator('[data-slot-id="main:local:result:1"]')).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator('[data-slot-id="main:local:result:1"]')).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByTestId("signal-probe-frame-slot-relation")).toContainText("result");
   await expect(page.getByTestId("signal-probe-frame-slot-relation")).toContainText("MAIN_RESULT");
   await expect(page.getByTestId("signal-probe-frame-slot-relation")).toContainText("frame local");
@@ -519,7 +519,7 @@ test("Mock backend wires Generated CASL and source chips to FramePlan slots", as
   await page.getByTestId("stack-frame-view-state").evaluate((element) => {
     element.scrollTop = element.scrollHeight;
   });
-  await expect(page.locator('[data-slot-id="add:argument:a:1"]')).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator('[data-slot-id="add:argument:a:1"]')).toHaveAttribute("aria-pressed", "true");
 
   await switchObservationMode(page, "code-machine");
   await page.getByTestId("source-frame-slot-chip").first().click();
@@ -610,6 +610,60 @@ test("focus_mode_works_at_1440x900", async ({ page }) => {
   await expect(page.locator(".output-panel")).toBeVisible();
   const horizontalOverflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
   expect(horizontalOverflow).toBe(false);
+});
+
+test("keyboard tab navigation and 1280 viewport remain consistent", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await openStudio(page, "Mock Core");
+
+  const focusToggle = page.getByTestId("circuit-focus-toggle");
+  await expect(focusToggle).toHaveAttribute("aria-pressed", "false");
+
+  const registersTab = page.getByRole("tab", { name: "Open Registers inspector tab" });
+  await registersTab.focus();
+  await page.keyboard.press("ArrowRight");
+  const memoryTab = page.getByRole("tab", { name: "Open Memory inspector tab" });
+  await expect(memoryTab).toBeFocused();
+  await expect(memoryTab).toHaveAttribute("aria-selected", "true");
+  await page.keyboard.press("Home");
+  await expect(registersTab).toBeFocused();
+  await expect(registersTab).toHaveAttribute("aria-selected", "true");
+
+  const outputTab = page.getByRole("tab", { name: "Open Output Log tab" });
+  await outputTab.focus();
+  await page.keyboard.press("End");
+  const machineTab = page.getByRole("tab", { name: "Open Machine Code tab" });
+  await expect(machineTab).toBeFocused();
+  await expect(machineTab).toHaveAttribute("aria-selected", "true");
+  await page.keyboard.press("Home");
+  await expect(outputTab).toBeFocused();
+
+  await focusToggle.click();
+  await expect(focusToggle).toHaveAttribute("aria-pressed", "true");
+  const cpuFlowTab = page.getByRole("tab", { name: "Observation mode: CPU Flow" });
+  const registerStackTab = page.getByRole("tab", { name: "Observation mode: Registers / Stack" });
+  const codeMachineTab = page.getByRole("tab", { name: "Observation mode: Code / Machine" });
+  await cpuFlowTab.focus();
+  await page.keyboard.press("ArrowRight");
+  await expect(registerStackTab).toBeFocused();
+  await expect(registerStackTab).toHaveAttribute("aria-selected", "true");
+  await page.keyboard.press("End");
+  await expect(codeMachineTab).toBeFocused();
+  await expect(codeMachineTab).toHaveAttribute("aria-selected", "true");
+
+  for (const tab of [cpuFlowTab, registerStackTab, codeMachineTab]) {
+    await tab.click();
+    const hasHorizontalOverflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
+    expect(hasHorizontalOverflow).toBe(false);
+  }
+
+  const disabledNew = page.getByRole("button", { name: "New file is not implemented in Phase 2B" });
+  const disabledStyle = await disabledNew.evaluate((element) => {
+    const style = getComputedStyle(element);
+    return { color: style.color, backgroundColor: style.backgroundColor, opacity: style.opacity };
+  });
+  expect(disabledStyle.opacity).toBe("1");
+  expect(disabledStyle.color).not.toBe(disabledStyle.backgroundColor);
 });
 
 test("Mock backend executes C++ subset if else lowering in the browser UI", async ({ page }) => {

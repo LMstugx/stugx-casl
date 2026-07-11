@@ -19,6 +19,7 @@ import {
 import CometCircuitSvg from "../visual/CometCircuitSvg";
 import { summarizeCurrentInstruction } from "../visual/visualState";
 import RegisterPanel from "./RegisterPanel";
+import { handleHorizontalTabListKeyDown } from "./tabKeyboard";
 
 type TimelineItem = {
   key: string;
@@ -690,7 +691,7 @@ function FocusSourceMappingPanel({
     <section className="panel focus-source-mapping-panel" data-testid="focus-source-mapping-panel">
       <header className="panel-header">
         <div>
-          <h2>Current Source Mapping</h2>
+          <h2 title="Current Source Mapping">Current Source Mapping</h2>
           <span>{sourceMode === "cpp" ? "C++ -> CASL" : "CASL -> machine"}</span>
         </div>
       </header>
@@ -1520,7 +1521,7 @@ function FocusStackFrameViewPanel({
     <section className="panel focus-stack-frame-view" data-testid="focus-stack-frame-view">
       <header className="panel-header">
         <div>
-          <h2>Stack Frame View</h2>
+          <h2 title="Stack Frame View">Stack Frame View</h2>
           <span>{preview.available ? "FramePlan preview" : "Design placeholder"}</span>
         </div>
         <span data-testid="stack-frame-current-mode">{modeText}</span>
@@ -1624,7 +1625,7 @@ function FocusStackFrameViewPanel({
                 data-slot-kind={slot.kind}
                 data-status="future"
                 data-selected={selectedFrameSlotId === slot.mappingId ? "true" : "false"}
-                aria-selected={selectedFrameSlotId === slot.mappingId ? "true" : "false"}
+                aria-pressed={selectedFrameSlotId === slot.mappingId}
                 title={`Select ${slot.name} ${slot.kind} slot mapping`}
                 onClick={() => {
                   const mapping = activeFunction?.slotMappings.find((candidate) => candidate.mappingId === slot.mappingId);
@@ -1725,10 +1726,10 @@ function ObservationModeSelector({
   return (
     <section className="panel observation-mode-bar" data-testid="observation-mode-selector">
       <div className="observation-mode-copy">
-        <h2>Observation Mode</h2>
+        <h2 title="Observation Mode">Observation Mode</h2>
         <span>{current.summary}</span>
       </div>
-      <div className="segmented observation-mode-tabs" role="tablist" aria-label="Observation mode">
+      <div className="segmented observation-mode-tabs" role="tablist" aria-label="Observation mode" aria-orientation="horizontal" onKeyDown={handleHorizontalTabListKeyDown}>
         {observationModes.map((item) => (
           <button
             key={item.id}
@@ -1736,6 +1737,7 @@ function ObservationModeSelector({
             className={mode === item.id ? "selected" : ""}
             role="tab"
             aria-selected={mode === item.id}
+            tabIndex={mode === item.id ? 0 : -1}
             aria-label={`Observation mode: ${item.label}`}
             title={item.summary}
             data-testid={`observation-mode-${item.id}`}
@@ -1876,7 +1878,7 @@ export default function CircuitFocusLayout({
           <section className="panel focus-circuit-panel" data-testid="focus-circuit-panel">
             <header className="panel-header">
               <div>
-                <h2>Circuit Focus Mode</h2>
+                <h2 title="Circuit Focus Mode">Circuit Focus Mode</h2>
                 <span>{circuitSubtitle}</span>
               </div>
               <span className={`run-pill ${state.runState.toLowerCase()}`}>Machine: {state.runState}</span>

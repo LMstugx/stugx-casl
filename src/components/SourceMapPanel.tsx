@@ -1,22 +1,29 @@
 import { CometState, formatWord } from "../core/types";
+import { useI18n } from "../i18n/useI18n";
 
 export default function SourceMapPanel({ state, embedded = false }: { state: CometState; embedded?: boolean }) {
+  const { t } = useI18n();
   return (
     <section className={embedded ? "embedded-panel" : "panel"}>
       {!embedded ? (
         <header className="panel-header">
-          <h2>Source Map</h2>
+          <h2>{t("inspector.sourceMap")}</h2>
         </header>
       ) : null}
       <table className="data-table source-map-table">
         <thead>
           <tr>
             <th>Line</th>
-            <th>Addr</th>
+            <th>{t("table.address")}</th>
             <th>Machine</th>
           </tr>
         </thead>
         <tbody>
+          {state.sourceMap.length === 0 ? (
+            <tr className="empty-table-row">
+              <td colSpan={3}>{t("empty.noSourceMapping")}</td>
+            </tr>
+          ) : null}
           {state.sourceMap.map((entry) => {
             const isCurrent = entry.line === state.currentLine;
             return (

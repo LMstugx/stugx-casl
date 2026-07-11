@@ -1743,7 +1743,7 @@ A    DC    3
     const markup = renderToStaticMarkup(<MemoryPanel state={stepTimes(1)} embedded />);
 
     expect(markup).toContain('class="data-table memory-table"');
-    expect(markup).toContain("<th>Addr</th>");
+    expect(markup).toContain("<th>Address</th>");
     expect(markup).toContain("<th>Value</th>");
     expect(markup).toContain("<th>Label</th>");
     expect(markup).toContain('class="hex mono-value"');

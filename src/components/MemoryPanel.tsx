@@ -1,6 +1,7 @@
 import { KeyboardEvent, useEffect, useMemo, useState } from "react";
 import { MEMORY_VIEW_DEFAULT_ROWS, selectMemoryViewerRows, selectProgramStartAddress } from "../core/selectors";
 import { CometState, formatWord } from "../core/types";
+import { useI18n } from "../i18n/useI18n";
 
 const ROW_COUNT_OPTIONS = [32, 64, 128, 256] as const;
 
@@ -24,6 +25,7 @@ function memoryRowClass(row: ReturnType<typeof selectMemoryViewerRows>[number]):
 }
 
 export default function MemoryPanel({ state, embedded = false }: { state: CometState; embedded?: boolean }) {
+  const { t } = useI18n();
   const programStart = selectProgramStartAddress(state);
   const [startAddress, setStartAddress] = useState(programStart);
   const [draftStart, setDraftStart] = useState(formatWord(programStart));
@@ -60,13 +62,13 @@ export default function MemoryPanel({ state, embedded = false }: { state: CometS
     <section className={embedded ? "embedded-panel memory-viewer" : "panel memory-viewer"}>
       {!embedded ? (
         <header className="panel-header">
-          <h2>Memory</h2>
+          <h2>{t("inspector.memory")}</h2>
         </header>
       ) : null}
 
-      <div className="memory-controls" aria-label="Memory range controls">
+      <div className="memory-controls" aria-label={t("accessibility.memoryRangeControls")}>
         <label>
-          Start
+          {t("memory.start")}
           <input
             data-testid="memory-start-input"
             value={draftStart}
@@ -78,7 +80,7 @@ export default function MemoryPanel({ state, embedded = false }: { state: CometS
           />
         </label>
         <label>
-          Rows
+          {t("memory.rows")}
           <select data-testid="memory-row-count" value={rowCount} onChange={(event) => setRowCount(Number(event.target.value))}>
             {ROW_COUNT_OPTIONS.map((option) => (
               <option key={option} value={option}>
@@ -88,13 +90,13 @@ export default function MemoryPanel({ state, embedded = false }: { state: CometS
           </select>
         </label>
         <button className="text-button memory-go" data-testid="memory-go-button" type="button" onClick={applyDraftStart}>
-          Go
+          {t("common.go")}
         </button>
       </div>
 
-      <div className="memory-jumps" aria-label="Memory jump controls">
+      <div className="memory-jumps" aria-label={t("accessibility.memoryJumpControls")}>
         <button className="text-button" data-testid="memory-jump-start" type="button" onClick={() => jumpTo(programStart)}>
-          Program
+          {t("memory.program")}
         </button>
         <button className="text-button" data-testid="memory-jump-pr" type="button" onClick={() => jumpTo(state.pr)}>
           PR
@@ -103,10 +105,10 @@ export default function MemoryPanel({ state, embedded = false }: { state: CometS
           MAR
         </button>
         <button className="text-button" data-testid="memory-jump-read" type="button" disabled={state.lastMemoryReadAddress === undefined} onClick={() => jumpTo(state.lastMemoryReadAddress)}>
-          Read
+          {t("common.read")}
         </button>
         <button className="text-button" data-testid="memory-jump-write" type="button" disabled={state.lastMemoryWriteAddress === undefined} onClick={() => jumpTo(state.lastMemoryWriteAddress)}>
-          Write
+          {t("common.write")}
         </button>
       </div>
 
@@ -114,10 +116,10 @@ export default function MemoryPanel({ state, embedded = false }: { state: CometS
         <table className="data-table memory-table">
           <thead>
             <tr>
-              <th>Addr</th>
-              <th>Value</th>
-              <th>Label</th>
-              <th>Mark</th>
+              <th>{t("table.address")}</th>
+              <th>{t("table.value")}</th>
+              <th>{t("table.label")}</th>
+              <th>{t("table.mark")}</th>
             </tr>
           </thead>
           <tbody>
@@ -125,8 +127,8 @@ export default function MemoryPanel({ state, embedded = false }: { state: CometS
               const markers = [
                 row.isPr ? "PR" : "",
                 row.isMar ? "MAR" : "",
-                row.isLastRead ? "READ" : "",
-                row.isLastWrite ? "WRITE" : ""
+                row.isLastRead ? t("common.read") : "",
+                row.isLastWrite ? t("common.write") : ""
               ].filter(Boolean);
               return (
                 <tr

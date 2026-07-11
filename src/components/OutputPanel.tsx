@@ -14,6 +14,8 @@ import {
 import type { CppToCaslMap } from "../transpiler/cppAst";
 import type { SourceMode } from "../store/useAppStore";
 import { handleHorizontalTabListKeyDown } from "./tabKeyboard";
+import { useI18n } from "../i18n/useI18n";
+import type { TranslationKey } from "../i18n/types";
 
 type OutputPanelProps = {
   lines: string[];
@@ -31,12 +33,12 @@ type OutputPanelProps = {
 
 type OutputTab = "output" | "console" | "messages" | "generated" | "machine";
 
-const tabs: Array<{ id: OutputTab; label: string }> = [
-  { id: "output", label: "Output Log" },
-  { id: "console", label: "Console" },
-  { id: "messages", label: "Messages" },
-  { id: "generated", label: "Generated CASL" },
-  { id: "machine", label: "Machine Code" }
+const tabs: Array<{ id: OutputTab; labelKey: TranslationKey }> = [
+  { id: "output", labelKey: "tabs.outputLog" },
+  { id: "console", labelKey: "tabs.console" },
+  { id: "messages", labelKey: "tabs.messages" },
+  { id: "generated", labelKey: "tabs.generatedCasl" },
+  { id: "machine", labelKey: "tabs.machineCode" }
 ];
 
 function lineTone(line: string): "success" | "danger" | "warn" | "muted" | "default" {
@@ -71,6 +73,7 @@ export default function OutputPanel({
   autoOpenGenerated = false,
   onClear
 }: OutputPanelProps) {
+  const { t } = useI18n();
   const [activeTab, setActiveTab] = useState<OutputTab>(initialTab);
   const lastAutoOpenedSource = useRef("");
   useEffect(() => {
@@ -83,13 +86,13 @@ export default function OutputPanel({
     activeTab === "output"
       ? lines.length
         ? lines
-        : ["Ready. Assemble the program to begin."]
+        : [t("empty.noOutput")]
       : activeTab === "console"
         ? ["Console is reserved for future runtime logs."]
         : activeTab === "messages"
           ? messages.length
             ? messages
-            : ["No diagnostics or system messages."]
+            : [t("empty.noMessages")]
           : activeTab === "machine"
             ? []
           : generatedCaslSource
@@ -114,8 +117,10 @@ export default function OutputPanel({
   return (
     <section className="output-panel">
       <header className="dock-header">
-        <div className="tab-list dock-tabs" role="tablist" aria-label="Output panels" aria-orientation="horizontal" onKeyDown={handleHorizontalTabListKeyDown}>
-          {tabs.map((tab) => (
+        <div className="tab-list dock-tabs" role="tablist" aria-label={t("accessibility.outputPanels")} aria-orientation="horizontal" onKeyDown={handleHorizontalTabListKeyDown}>
+          {tabs.map((tab) => {
+            const label = t(tab.labelKey);
+            return (
             <button
               key={tab.id}
               id={`output-tab-${tab.id}`}
@@ -124,17 +129,18 @@ export default function OutputPanel({
               role="tab"
               aria-selected={activeTab === tab.id}
               aria-controls={`output-panel-${tab.id}`}
-              aria-label={`Open ${tab.label} tab`}
+              aria-label={t("accessibility.openOutputTab", { tab: label })}
               tabIndex={activeTab === tab.id ? 0 : -1}
-              title={tab.label}
+              title={label}
               onClick={() => setActiveTab(tab.id)}
             >
-              {tab.label}
+              {label}
             </button>
-          ))}
+            );
+          })}
         </div>
-        <button className="text-button" onClick={onClear} disabled={activeTab !== "output"} aria-label="Clear output log" title="Clear output log">
-          Clear
+        <button className="text-button" onClick={onClear} disabled={activeTab !== "output"} aria-label={t("accessibility.clearOutput")} title={t("accessibility.clearOutput")}>
+          {t("common.clear")}
         </button>
       </header>
       <div
@@ -142,7 +148,7 @@ export default function OutputPanel({
         className={`console-lines ${activeTab}`}
         role="tabpanel"
         aria-labelledby={`output-tab-${activeTab}`}
-        aria-label={`${activeTab} log`}
+        aria-label={t(tabs.find((tab) => tab.id === activeTab)?.labelKey ?? "tabs.outputLog")}
         data-testid={activeTab === "generated" ? "generated-casl-output" : activeTab === "machine" ? "machine-code-output" : undefined}
       >
         {activeTab === "generated"
@@ -160,10 +166,10 @@ export default function OutputPanel({
                   <div className="code-table generated-casl-table">
                     <div className="code-table-header">
                       <span>Line</span>
-                      <span>Label</span>
+                      <span>{t("table.label")}</span>
                       <span>Opcode</span>
                       <span>Operand</span>
-                      <span>Mapping</span>
+                      <span>{t("table.mapping")}</span>
                       <span>C++</span>
                       <span>Flow</span>
                     </div>
@@ -212,11 +218,11 @@ export default function OutputPanel({
                     <div className="machine-code-content">
                       <div className="code-table machine-code-table">
                         <div className="code-table-header">
-                          <span>Address</span>
+                          <span>{t("table.address")}</span>
                           <span>Word</span>
-                          <span>Source</span>
-                          <span>Label</span>
-                          <span>Meaning</span>
+                          <span>{t("table.source")}</span>
+                          <span>{t("table.label")}</span>
+                          <span>{t("table.meaning")}</span>
                           <span>C++</span>
                         </div>
                         {machineRows.map((row) => {
@@ -264,17 +270,17 @@ export default function OutputPanel({
                           </div>
                           <dl className="machine-code-explanation-summary" data-testid="machine-code-explanation-summary">
                             <div>
-                              <dt>Source</dt>
+                              <dt>{t("table.source")}</dt>
                               <dd className="nowrap-symbol" title={machineExplanation.sourceText || "-"}>{machineExplanation.sourceText || "-"}</dd>
                             </div>
                             <div>
-                              <dt>Meaning</dt>
+                              <dt>{t("table.meaning")}</dt>
                               <dd className="wrap-explanation" title={selectedMachineEdge ? controlFlowMeaning(selectedMachineEdge) : machineExplanation.meaning}>{selectedMachineEdge ? controlFlowMeaning(selectedMachineEdge) : machineExplanation.meaning}</dd>
                             </div>
                           </dl>
                           <dl>
                             <div>
-                              <dt>Address</dt>
+                              <dt>{t("table.address")}</dt>
                               <dd className="mono-value">{formatWord(machineExplanation.address)}</dd>
                             </div>
                             <div>

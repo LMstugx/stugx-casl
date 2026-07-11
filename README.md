@@ -341,6 +341,9 @@ The current backend is shown in the status bar as `Mock Core`, `WASM Core`, or `
 - [docs/phase13c-ui-consistency-accessibility-audit.md](docs/phase13c-ui-consistency-accessibility-audit.md): contrast, keyboard tablist, focus, overflow, state consistency, scroll, and viewport audit for the advanced UI baseline.
 - [docs/phase14a-i18n-architecture.md](docs/phase14a-i18n-architecture.md): typed locale, fallback, persistence, provider, and limited UI pilot migration for `en`, `ja`, and `zh-CN`.
 - [docs/i18n-string-boundary.md](docs/i18n-string-boundary.md): translation boundary for static UI, technical identifiers, diagnostics, lessons, user content, and CASL / Machine Code terminology.
+- [docs/i18n-glossary.md](docs/i18n-glossary.md): approved English, Japanese, and Simplified Chinese terminology, compact labels, and untranslated technical terms.
+- [docs/i18n-short-string-inventory.md](docs/i18n-short-string-inventory.md): module-by-module short UI string status, length guidance, and viewport risk inventory.
+- [docs/phase14b-i18n-glossary-short-strings.md](docs/phase14b-i18n-glossary-short-strings.md): Phase 14B scope, reviewed pilot migration, resource checks, and remaining translation boundaries.
 
 ## Current Limitations
 

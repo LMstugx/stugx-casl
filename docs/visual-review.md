@@ -167,6 +167,11 @@ Use the gallery to inspect:
 - `ui-stopped-state.png` (max-step Stopped state)
 - `ui-keyboard-focus.png` (selected Inspector tab with visible keyboard focus)
 - `ui-locale-selector.png` (Japanese locale selected with intentional English fallback in the Phase 14A pilot)
+- `locale-en-1280.png` (English shell baseline at 1280x720)
+- `locale-ja-1280.png` (Japanese pilot strings at 1280x720)
+- `locale-zh-cn-1280.png` (Simplified Chinese pilot strings at 1280x720)
+- `locale-ja-output-dock.png` (Japanese Output Dock tabs and compact controls)
+- `locale-zh-cn-inspector-memory.png` (Simplified Chinese Inspector Memory controls and bounded table)
 - `observation-cpu-flow.png` (CPU Flow observation mode)
 - `observation-register-stack.png` (Registers / Stack observation mode)
 - `stack-frame-view-preview.png` (FramePlan design preview in Stack Frame View; not runtime state)
@@ -193,6 +198,8 @@ Use the gallery to inspect:
 - `cpp-function-argument-machine-code.png`
 - `cpp-function-arguments-generated-casl.png`
 - `cpp-function-arguments-trace.png`
+
+Phase 14B locale captures verify that Toolbar width remains stable, tabs do not wrap, Inspector labels do not overlap, empty states can wrap safely, and technical source/CASL/value typography does not change. Locale switching must not alter Circuit SVG paths or the clean-wire contract.
 - `cpp-function-arguments-machine-code.png`
 - `cpp-addition-generated-casl.png`
 - `machine-code-explanation.png`

@@ -1,7 +1,9 @@
 import { CometState, formatFlags, formatWord } from "../core/types";
 import { formatRegisterDisplay } from "../core/selectors";
+import { useI18n } from "../i18n/useI18n";
 
 export default function RegisterPanel({ state, embedded = false }: { state: CometState; embedded?: boolean }) {
+  const { t } = useI18n();
   const general = state.registers.filter((register) => register.name.startsWith("GR"));
   const other = state.registers.filter((register) => !register.name.startsWith("GR"));
 
@@ -9,15 +11,15 @@ export default function RegisterPanel({ state, embedded = false }: { state: Come
     <section className={embedded ? "embedded-panel" : "panel"}>
       {!embedded ? (
         <header className="panel-header">
-          <h2>Registers</h2>
+          <h2>{t("inspector.registers")}</h2>
         </header>
       ) : null}
       <h3>General Registers</h3>
       <table className="data-table">
         <thead>
           <tr>
-            <th>Name</th>
-            <th>Value</th>
+            <th>{t("table.name")}</th>
+            <th>{t("table.value")}</th>
             <th>(Dec)</th>
           </tr>
         </thead>

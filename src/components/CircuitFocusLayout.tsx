@@ -358,6 +358,7 @@ function FocusProgramPanel({
 }
 
 function FocusDisplayPanel() {
+  const { t } = useI18n();
   return (
     <section className="panel focus-display-panel" data-testid="focus-display-panel">
       <header className="panel-header">
@@ -365,13 +366,14 @@ function FocusDisplayPanel() {
         <span>OUT</span>
       </header>
       <div className="focus-display-value" data-testid="focus-display-value">
-        No output
+        {t("empty.noOutput")}
       </div>
     </section>
   );
 }
 
 function FocusCurrentInstructionPanel({ state, isSourceDirty, focus }: { state: CometState; isSourceDirty: boolean; focus: FocusInstructionContext }) {
+  const { t } = useI18n();
   const instructionText = focus.instructionText ?? summarizeCurrentInstruction(state);
   const semanticText = instructionMeaning(focus.instructionText, summarizeCurrentInstruction(state), activeVisualPath(state));
 
@@ -404,7 +406,7 @@ function FocusCurrentInstructionPanel({ state, isSourceDirty, focus }: { state: 
           <code className="mono-value">{formatFlags(state.fr)}</code>
           {focus.nextInstructionText ? (
             <>
-              <span className="compact-label">Next</span>
+              <span className="compact-label">{t("table.next")}</span>
               <code className="nowrap-symbol" title={focus.nextInstructionText}>{focus.nextInstructionText}</code>
             </>
           ) : null}
@@ -478,6 +480,7 @@ function memoryWindowCenterAddress(state: CometState): number {
 }
 
 function FocusMemoryWindowPanel({ state, rowCount = 9, title = "Main Memory" }: { state: CometState; rowCount?: number; title?: string }) {
+  const { t } = useI18n();
   const centerAddress = memoryWindowCenterAddress(state);
   const startAddress = wrapAddress(centerAddress - Math.floor(rowCount / 2));
   const rows = Array.from({ length: rowCount }, (_, index) => {
@@ -507,10 +510,10 @@ function FocusMemoryWindowPanel({ state, rowCount = 9, title = "Main Memory" }: 
       </header>
       <div className="focus-memory-window-body">
         <div className="focus-memory-window-row focus-memory-window-head" aria-hidden="true">
-          <span>Addr</span>
-          <span>Value</span>
-          <span>Label</span>
-          <span>Mark</span>
+          <span>{t("table.address")}</span>
+          <span>{t("table.value")}</span>
+          <span>{t("table.label")}</span>
+          <span>{t("table.mark")}</span>
         </div>
         {rows.map((row) => (
           <div
@@ -566,6 +569,7 @@ function FocusGeneratedCaslPanel({
   selectedFrameSlotId?: string;
   onSelectFrameSlot: (mapping: FrameSlotMapping, source: FrameSlotSelectionSource) => void;
 }) {
+  const { t } = useI18n();
   const hasGeneratedCasl = sourceMode === "cpp" && generatedCaslSource.trim().length > 0;
   const rows = hasGeneratedCasl
     ? selectGeneratedCaslRows(generatedCaslSource, cppToCaslMapping, focus.caslLine, focus.cppLine)
@@ -586,17 +590,17 @@ function FocusGeneratedCaslPanel({
     <section className="panel focus-generated-casl-panel" data-testid="focus-generated-casl-panel">
       <header className="panel-header">
         <div>
-          <h2>Generated CASL</h2>
+          <h2>{t("tabs.generatedCasl")}</h2>
           <span>{hasGeneratedCasl ? "C++ lowering output" : "CASL source rows"}</span>
         </div>
       </header>
       <div className="focus-code-table focus-generated-casl-table">
         <div className="focus-code-row focus-code-head" aria-hidden="true">
           <span className="focus-code-cell-primary">Line</span>
-          <span className="focus-code-cell-primary">Label</span>
+          <span className="focus-code-cell-primary">{t("table.label")}</span>
           <span className="focus-code-cell-primary">Op</span>
           <span className="focus-code-cell-primary">Operand</span>
-          <span className="focus-code-cell-secondary">Mapping</span>
+          <span className="focus-code-cell-secondary">{t("table.mapping")}</span>
         </div>
         {rows.slice(0, 18).map((row) => {
           const slotMapping = findFrameSlotMappingInCaslText(frameSlotMappings, `${row.label} ${row.operand}`);
@@ -639,23 +643,24 @@ function FocusGeneratedCaslPanel({
 }
 
 function FocusMachineCodePanel({ state, cppToCaslMapping }: { state: CometState; cppToCaslMapping: CppToCaslMap[] }) {
+  const { t } = useI18n();
   const rows = selectMachineCodeRows(state, cppToCaslMapping);
 
   return (
     <section className="panel focus-machine-code-panel" data-testid="focus-machine-code-panel">
       <header className="panel-header">
         <div>
-          <h2>Machine Code</h2>
+          <h2>{t("tabs.machineCode")}</h2>
           <span>COMET II words</span>
         </div>
         <span>{rows.length}</span>
       </header>
       <div className="focus-code-table focus-machine-code-table">
         <div className="focus-code-row focus-code-head" aria-hidden="true">
-          <span className="focus-code-cell-primary">Addr</span>
+          <span className="focus-code-cell-primary">{t("table.address")}</span>
           <span className="focus-code-cell-primary">Word</span>
-          <span className="focus-code-cell-primary">Source</span>
-          <span className="focus-code-cell-secondary">Meaning</span>
+          <span className="focus-code-cell-primary">{t("table.source")}</span>
+          <span className="focus-code-cell-secondary">{t("table.meaning")}</span>
         </div>
         {rows.slice(0, 18).map((row) => (
           <div
@@ -687,6 +692,7 @@ function FocusSourceMappingPanel({
   selectedFrameSlotId?: string;
   onSelectFrameSlot: (mapping: FrameSlotMapping, source: FrameSlotSelectionSource) => void;
 }) {
+  const { t } = useI18n();
   const addressText = focus.address === undefined ? "----" : formatWord(focus.address);
   const instructionText = focus.instructionText ?? "No active instruction";
 
@@ -699,11 +705,11 @@ function FocusSourceMappingPanel({
         </div>
       </header>
       <div className="focus-source-mapping-body">
-        <span className="compact-label">Address</span>
+        <span className="compact-label">{t("table.address")}</span>
         <code className="mono-value">{addressText}</code>
         <span className="compact-label">CASL</span>
         <code className="nowrap-symbol" title={instructionText}>{instructionText}</code>
-        <span className="compact-label">Source</span>
+        <span className="compact-label">{t("table.source")}</span>
         <code className="nowrap-symbol" title={focus.sourceText}>{focus.sourceText}</code>
         {sourceMode === "cpp" && sourceSlotMappings.length > 0 ? (
           <>
@@ -1050,6 +1056,7 @@ function signalProbeRows(state: CometState, focus: FocusInstructionContext): Pro
 }
 
 function FocusCallStackPanel({ state, focus, density = "normal" }: { state: CometState; focus: FocusInstructionContext; density?: FocusPanelDensity }) {
+  const { t } = useI18n();
   const info = callStackInfo(state, focus);
   const [detailsOpen, setDetailsOpen] = useState(false);
 
@@ -1087,7 +1094,7 @@ function FocusCallStackPanel({ state, focus, density = "normal" }: { state: Come
             aria-controls="call-stack-detail-rows"
             title="Toggle Call Stack detail rows"
           >
-            Details
+            {t("common.details")}
           </summary>
           <div id="call-stack-detail-rows" className="call-stack-detail-rows">
           <div className="call-stack-row">
@@ -1127,6 +1134,7 @@ function FocusSignalProbePanel({
   density?: FocusPanelDensity;
   selectedFrameSlot?: FrameSlotMapping;
 }) {
+  const { t } = useI18n();
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [slotDetailsOpen, setSlotDetailsOpen] = useState(false);
   const rows = signalProbeRows(state, focus);
@@ -1145,7 +1153,7 @@ function FocusSignalProbePanel({
           <h2>Signal Probe</h2>
           <span>Read-only nodes</span>
         </div>
-        <span>compact</span>
+        <span>{t("common.compact")}</span>
       </header>
       <div className="signal-probe-body card-overflow-safe" data-density={density}>
         {selectedFrameSlot ? (
@@ -1214,7 +1222,7 @@ function FocusSignalProbePanel({
               aria-controls="signal-probe-detail-rows"
               title={`Show ${detailRows.length} additional signal probe rows`}
             >
-              + {detailRows.length} more
+              {detailsOpen ? t("common.showLess") : t("common.showMoreCount", { count: detailRows.length })}
             </summary>
             <div id="signal-probe-detail-rows" className="signal-probe-rows detail-rows">
               {detailRows.map((row) => (
@@ -1244,6 +1252,7 @@ function FocusSignalProbePanel({
 }
 
 function FocusStackPreviewPanel({ state }: { state: CometState }) {
+  const { t } = useI18n();
   const rows = stackPreviewRows(state);
   const visualPath = activeVisualPath(state);
   const stackActive =
@@ -1275,8 +1284,8 @@ function FocusStackPreviewPanel({ state }: { state: CometState }) {
       </header>
       <div className="stack-preview-body" data-testid="stack-preview-window">
         <div className="stack-preview-grid stack-preview-head" aria-hidden="true">
-          <span>Addr</span>
-          <span>Value</span>
+          <span>{t("table.address")}</span>
+          <span>{t("table.value")}</span>
           <span>Note</span>
         </div>
         {rows.map((row) => (

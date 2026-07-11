@@ -198,7 +198,7 @@ function StudioShell() {
               <h2>Errors</h2>
               <span>{diagnostics.length}</span>
             </header>
-            {diagnostics.length === 0 ? <p className="muted">No diagnostics.</p> : null}
+            {diagnostics.length === 0 ? <p className="muted">{t("empty.noDiagnostics")}</p> : null}
             {diagnostics.map((diagnostic) => (
               <div key={`${diagnostic.line}-${diagnostic.message}`} className="diagnostic">
                 Line {diagnostic.line}: {diagnostic.message}

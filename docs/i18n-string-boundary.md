@@ -4,7 +4,7 @@
 
 Static application chrome belongs in the typed UI resource layer: commands, panel titles, navigation tabs, modes, short statuses, accessible control names, and shared empty-state labels. Keys describe meaning (`toolbar.run`), not the current English sentence.
 
-Phase 14A includes only a small pilot. Lessons, explanations, and other long copy require terminology review before migration.
+Phase 14A includes only a small pilot. Phase 14B adds reviewed short strings, but Lessons, explanations, and other long copy still require a separate content review before migration.
 
 ## Technical Identifiers That Remain Unchanged
 
@@ -31,7 +31,7 @@ Assembler and transpiler diagnostics remain unchanged in Phase 14A. Future local
 
 ## Lesson And Example Content Strategy
 
-Guided Lessons, demo descriptions, checkpoints, practice tasks, and long help text need a reviewed content model and terminology glossary. They are Phase 14B/14C work, not automatic string extraction. Example source and expected technical identifiers remain verbatim inside translated teaching copy.
+Guided Lessons, demo descriptions, checkpoints, practice tasks, and long help text need a reviewed content model beyond the Phase 14B short-string inventory. They are not automatic string extraction. Example source and expected technical identifiers remain verbatim inside any future translated teaching copy.
 
 ## Machine Code And CASL Terminology Policy
 
@@ -43,4 +43,6 @@ CASL, COMET II, mnemonic, register, address, word, opcode, operand, label, PR, S
 - Components do not contain locale-specific branches.
 - Interpolation returns plain text and never uses `dangerouslySetInnerHTML`.
 - Missing localized strings use the English fallback.
+- Empty localized values are invalid and cannot suppress English fallback.
+- Approved terminology and compact labels come from `i18n-glossary.md`; components do not invent variants.
 - A locale switch changes presentation metadata only; it does not mutate source, execution, Trace, lessons, examples, or FramePlan state.

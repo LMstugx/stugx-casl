@@ -106,11 +106,28 @@ async function captureKeyboardFocusState(page: Page, viewport: Viewport) {
 
 async function captureLocaleSelectorState(page: Page, viewport: Viewport) {
   await openStudio(page, "Mock Core");
+  if (viewport.name === "1280x720") {
+    await capture(page, viewport, "locale-en-1280.png");
+  }
   await page.getByTestId("locale-ja").click();
   await expect(page.locator("html")).toHaveAttribute("lang", "ja");
   await expect(page.getByTestId("locale-ja")).toHaveAttribute("aria-pressed", "true");
-  await expect(page.getByTestId("assemble-button")).toContainText("Assemble");
+  await expect(page.getByTestId("assemble-button")).toContainText("アセンブル");
   await capture(page, viewport, "ui-locale-selector.png");
+  if (viewport.name === "1280x720") {
+    await capture(page, viewport, "locale-ja-1280.png");
+    await selectDemoProgram(page, "cpp-addition");
+    await page.getByTestId("locale-en").click();
+    await assemble(page);
+    await page.getByTestId("locale-ja").click();
+    await capture(page, viewport, "locale-ja-output-dock.png");
+
+    await page.getByTestId("locale-zh-CN").click();
+    await expect(page.locator("html")).toHaveAttribute("lang", "zh-CN");
+    await capture(page, viewport, "locale-zh-cn-1280.png");
+    await page.locator("#inspector-tab-memory").click();
+    await capture(page, viewport, "locale-zh-cn-inspector-memory.png");
+  }
   await page.getByTestId("locale-en").click();
 }
 

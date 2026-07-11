@@ -677,7 +677,7 @@ test("locale switching preserves source execution and FramePlan UI state", async
 
   await assemble(page);
   await step(page);
-  const generatedBefore = await page.getByTestId("generated-casl-output").textContent();
+  const generatedBefore = await page.getByTestId("generated-casl-line-current").textContent();
   await page.getByTestId("circuit-focus-toggle").click();
   await switchObservationMode(page, "code-machine");
   const slotBadge = page.locator('[data-testid="generated-casl-slot-badge"][data-slot-id="add:argument:a:1"]').first();
@@ -685,7 +685,7 @@ test("locale switching preserves source execution and FramePlan UI state", async
 
   const programBefore = await page.getByTestId("focus-program-panel").textContent();
   const traceBefore = await page.getByTestId("focus-trace-panel").textContent();
-  const instructionBefore = await page.getByTestId("focus-current-instruction-panel").textContent();
+  const instructionBefore = await page.getByTestId("focus-current-instruction-panel").locator("code").allTextContents();
   const selectorWidthBefore = (await page.getByTestId("locale-selector").boundingBox())?.width;
 
   const japanese = page.getByTestId("locale-ja");
@@ -693,11 +693,11 @@ test("locale switching preserves source execution and FramePlan UI state", async
   await page.keyboard.press("Enter");
   await expect(japanese).toHaveAttribute("aria-pressed", "true");
   await expect(page.locator("html")).toHaveAttribute("lang", "ja");
-  await expect(page.getByTestId("observation-mode-code-machine")).toContainText("Code / Machine");
+  await expect(page.getByTestId("observation-mode-code-machine")).toContainText("コード / 機械語");
   await expect(slotBadge).toHaveAttribute("aria-pressed", "true");
   expect(await page.getByTestId("focus-program-panel").textContent()).toBe(programBefore);
   expect(await page.getByTestId("focus-trace-panel").textContent()).toBe(traceBefore);
-  expect(await page.getByTestId("focus-current-instruction-panel").textContent()).toBe(instructionBefore);
+  expect(await page.getByTestId("focus-current-instruction-panel").locator("code").allTextContents()).toEqual(instructionBefore);
   expect((await page.getByTestId("locale-selector").boundingBox())?.width).toBe(selectorWidthBefore);
   expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)).toBe(false);
 
@@ -713,12 +713,85 @@ test("locale switching preserves source execution and FramePlan UI state", async
   await expect(page.getByTestId("demo-program-select")).toHaveValue("cpp-function-arguments");
   await expect(page.getByTestId("study-mode-progress")).toHaveText(lessonProgressBefore ?? "");
   expect(await page.getByTestId("source-editor").locator(".view-lines").textContent()).toBe(sourceBefore);
-  expect(await page.getByTestId("generated-casl-output").textContent()).toBe(generatedBefore);
+  expect(await page.getByTestId("generated-casl-line-current").textContent()).toBe(generatedBefore);
 
   await japanese.click();
   await page.reload();
   await expect(page.locator("html")).toHaveAttribute("lang", "ja");
   await expect(page.getByTestId("locale-ja")).toHaveAttribute("aria-pressed", "true");
+});
+
+test("Phase 14B short UI strings translate without changing program state", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await openStudio(page, "Mock Core");
+  await selectDemoProgram(page, "cpp-addition");
+  const sourceBefore = await page.getByTestId("source-editor").locator(".view-lines").textContent();
+  await assemble(page);
+  await step(page);
+
+  const generatedBefore = await page.getByTestId("generated-casl-line-current").textContent();
+  const currentLineBefore = await page.getByTestId("generated-casl-line-current").getAttribute("data-line");
+  const prBefore = await page.getByTestId("register-pr").textContent();
+  const toolbarWidthBefore = (await page.locator(".toolbar").boundingBox())?.width;
+
+  await page.getByTestId("locale-ja").click();
+  await expect(page.locator("html")).toHaveAttribute("lang", "ja");
+  await expect(page.locator("#output-tab-output")).toHaveText("出力ログ");
+  await expect(page.locator("#output-tab-console")).toHaveText("コンソール");
+  await expect(page.locator("#output-tab-generated")).toHaveText("生成CASL");
+  await expect(page.locator("#output-tab-machine")).toHaveText("機械語");
+  await page.locator("#output-tab-messages").click();
+  await expect(page.locator("#output-panel-messages")).toContainText("メッセージなし");
+  await page.locator("#inspector-tab-memory").click();
+  await expect(page.getByTestId("memory-go-button")).toHaveText("移動");
+  await expect(page.getByTestId("memory-jump-start")).toHaveText("プログラム");
+  await expect(page.getByTestId("memory-jump-read")).toHaveText("読み取り");
+  await expect(page.getByTestId("memory-jump-write")).toHaveText("書き込み");
+
+  for (const tab of await page.locator(".dock-tabs [role=tab]").all()) {
+    expect(await tab.evaluate((element) => element.scrollHeight <= element.clientHeight + 1)).toBe(true);
+  }
+  for (const label of await page.locator(".toolbar-actions .tool-button > span").all()) {
+    expect(await label.evaluate((element) => element.scrollHeight <= element.clientHeight + 1)).toBe(true);
+  }
+  for (const tab of await page.locator(".inspector-panel .compact-tabs [role=tab]").all()) {
+    expect(await tab.evaluate((element) => element.scrollHeight <= element.clientHeight + 1)).toBe(true);
+  }
+  const inspectorBoxes = await page.locator(".inspector-panel .compact-tabs [role=tab]").evaluateAll((elements) =>
+    elements.map((element) => {
+      const box = element.getBoundingClientRect();
+      return { left: box.left, right: box.right };
+    })
+  );
+  for (let index = 1; index < inspectorBoxes.length; index += 1) {
+    expect(inspectorBoxes[index - 1].right).toBeLessThanOrEqual(inspectorBoxes[index].left + 1);
+  }
+
+  await page.locator("#output-tab-generated").click();
+  await page.locator("#inspector-tab-registers").click();
+  expect(await page.getByTestId("source-editor").locator(".view-lines").textContent()).toBe(sourceBefore);
+  expect(await page.getByTestId("generated-casl-line-current").textContent()).toBe(generatedBefore);
+  expect(await page.getByTestId("generated-casl-line-current").getAttribute("data-line")).toBe(currentLineBefore);
+  expect(await page.getByTestId("register-pr").textContent()).toBe(prBefore);
+  expect((await page.locator(".toolbar").boundingBox())?.width).toBe(toolbarWidthBefore);
+
+  await page.getByTestId("locale-zh-CN").click();
+  await expect(page.locator("html")).toHaveAttribute("lang", "zh-CN");
+  await expect(page.locator("#output-tab-output")).toHaveText("输出日志");
+  await expect(page.locator("#output-tab-generated")).toHaveText("生成的 CASL");
+  await expect(page.locator("#output-tab-machine")).toHaveText("机器码");
+  await page.locator("#inspector-tab-memory").click();
+  await expect(page.getByTestId("memory-go-button")).toHaveText("转到");
+  await expect(page.getByTestId("memory-jump-read")).toHaveText("读取");
+  await expect(page.getByTestId("memory-jump-write")).toHaveText("写入");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)).toBe(false);
+
+  await page.reload();
+  await expect(page.locator("html")).toHaveAttribute("lang", "zh-CN");
+  await expect(page.getByTestId("locale-zh-CN")).toHaveAttribute("aria-pressed", "true");
+  await page.getByTestId("locale-en").click();
+  await expect(page.locator("html")).toHaveAttribute("lang", "en");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)).toBe(false);
 });
 
 test("Mock backend executes C++ subset if else lowering in the browser UI", async ({ page }) => {

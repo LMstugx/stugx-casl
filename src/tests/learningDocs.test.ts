@@ -57,6 +57,9 @@ import phase13b from "../../docs/phase13b-advanced-ui-application.md?raw";
 import phase13c from "../../docs/phase13c-ui-consistency-accessibility-audit.md?raw";
 import phase14a from "../../docs/phase14a-i18n-architecture.md?raw";
 import i18nStringBoundary from "../../docs/i18n-string-boundary.md?raw";
+import i18nGlossary from "../../docs/i18n-glossary.md?raw";
+import i18nShortStringInventory from "../../docs/i18n-short-string-inventory.md?raw";
+import phase14b from "../../docs/phase14b-i18n-glossary-short-strings.md?raw";
 
 describe("learning use documentation", () => {
   it("learning_guide_exists", () => {
@@ -883,6 +886,26 @@ describe("learning use documentation", () => {
     expect(readme).toContain("docs/phase14a-i18n-architecture.md");
     expect(readme).toContain("docs/i18n-string-boundary.md");
     expect(phase13c).toContain("phase14a-i18n-architecture.md");
+  });
+
+  it("phase14b_glossary_inventory_and_scope_docs_exist", () => {
+    expect(i18nGlossary).toContain("Glossary Principles");
+    expect(i18nGlossary).toContain("Approved Japanese");
+    expect(i18nGlossary).toContain("Approved Simplified Chinese");
+    expect(i18nGlossary).toContain("アセンブル");
+    expect(i18nGlossary).toContain("汇编");
+    expect(i18nGlossary).toContain("Terms That Remain Untranslated");
+    expect(i18nGlossary).toContain("GR0-GR7");
+    expect(i18nShortStringInventory).toContain("Translation key");
+    expect(i18nShortStringInventory).toContain("Migration");
+    expect(i18nShortStringInventory).toContain("viewport risk");
+    expect(i18nShortStringInventory).toContain("deferred-long-content");
+    expect(phase14b).toContain("Phase 14B: I18n Glossary And Short UI Strings");
+    expect(phase14b).toContain("Untranslated Technical Boundary");
+    expect(phase14b).toContain("Phase 14C Recommendation");
+    expect(readme).toContain("docs/i18n-glossary.md");
+    expect(readme).toContain("docs/i18n-short-string-inventory.md");
+    expect(readme).toContain("docs/phase14b-i18n-glossary-short-strings.md");
   });
 
   it("project_overview_uses_learning_wording", () => {

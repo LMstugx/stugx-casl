@@ -4,6 +4,12 @@ import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import Toolbar from "../../components/Toolbar";
+import MemoryPanel from "../../components/MemoryPanel";
+import OutputPanel from "../../components/OutputPanel";
+import RegisterPanel from "../../components/RegisterPanel";
+import SourceMapPanel from "../../components/SourceMapPanel";
+import TracePanel from "../../components/TracePanel";
+import { createEmptyUiCometState } from "../../core/coreStateAdapter";
 import { AppStoreProvider, useAppStore } from "../../store/useAppStore";
 import { I18nProvider } from "../I18nProvider";
 import type { LocaleStorage } from "../localeStorage";
@@ -111,5 +117,42 @@ describe("I18nProvider", () => {
     expect(store!.lessonProgress).toBe(before.lessonProgress);
     expect(store!.cometState).toBe(before.cometState);
     expect(store!.generatedCaslSource).toBe(before.generatedCaslSource);
+  });
+
+  it("output_dock_tabs_translate_to_japanese_and_chinese", async () => {
+    const renderOutput = (locale: SupportedLocale) => (
+      <I18nProvider key={locale} initialLocale={locale} storage={new MemoryLocaleStorage()}>
+        <OutputPanel lines={[]} messages={[]} onClear={() => undefined} />
+      </I18nProvider>
+    );
+    await act(async () => root.render(renderOutput("ja")));
+    expect(container.textContent).toContain("出力ログ");
+    expect(container.textContent).toContain("コンソール");
+    expect(container.textContent).toContain("生成CASL");
+    expect(container.textContent).toContain("機械語");
+    expect(container.textContent).toContain("出力なし");
+
+    await act(async () => root.render(renderOutput("zh-CN")));
+    expect(container.textContent).toContain("输出日志");
+    expect(container.textContent).toContain("控制台");
+    expect(container.textContent).toContain("生成的 CASL");
+    expect(container.textContent).toContain("机器码");
+    expect(container.textContent).toContain("无输出");
+  });
+
+  it("memory_controls_common_table_headings_and_empty_states_translate", async () => {
+    const state = createEmptyUiCometState("Idle", []);
+    await act(async () => root.render(
+      <I18nProvider initialLocale="zh-CN" storage={new MemoryLocaleStorage()}>
+        <MemoryPanel state={state} />
+        <RegisterPanel state={state} />
+        <SourceMapPanel state={state} />
+        <TracePanel state={state} />
+      </I18nProvider>
+    ));
+
+    for (const text of ["起始", "行数", "转到", "程序", "读取", "写入", "名称", "值", "地址", "标签", "标记", "无源码映射", "无跟踪记录"]) {
+      expect(container.textContent).toContain(text);
+    }
   });
 });

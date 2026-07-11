@@ -238,6 +238,11 @@ button {
   box-shadow: none;
 }
 
+.tool-button > span,
+.tab-button {
+  white-space: nowrap;
+}
+
 .tool-button.emphasis:not(:disabled) {
   min-height: 36px;
   padding-inline: 12px;
@@ -3619,6 +3624,16 @@ button {
   .toolbar-actions {
     gap: 4px;
     padding: 0 6px;
+  }
+
+  .compact-tabs {
+    gap: 2px;
+    padding-inline: 5px;
+  }
+
+  .compact-tabs .tab-button {
+    min-width: 0;
+    padding-inline: 4px;
   }
 
   .toolbar-actions .tool-button.group-start {

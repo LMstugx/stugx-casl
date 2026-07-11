@@ -16,6 +16,11 @@ describe("visual review screenshot gallery setup", () => {
     expect(visualReviewSpec).toContain("ui-stopped-state.png");
     expect(visualReviewSpec).toContain("ui-keyboard-focus.png");
     expect(visualReviewSpec).toContain("ui-locale-selector.png");
+    expect(visualReviewSpec).toContain("locale-en-1280.png");
+    expect(visualReviewSpec).toContain("locale-ja-1280.png");
+    expect(visualReviewSpec).toContain("locale-zh-cn-1280.png");
+    expect(visualReviewSpec).toContain("locale-ja-output-dock.png");
+    expect(visualReviewSpec).toContain("locale-zh-cn-inspector-memory.png");
     expect(visualReviewSpec).toContain("casl-gr2-ld.png");
     expect(visualReviewSpec).toContain("enterCircuitFocusMode");
     expect(visualReviewSpec).toContain("logical-add-compare-jov.png");
@@ -92,6 +97,11 @@ describe("visual review screenshot gallery setup", () => {
     expect(visualReviewDoc).toContain("ui-stopped-state.png");
     expect(visualReviewDoc).toContain("ui-keyboard-focus.png");
     expect(visualReviewDoc).toContain("ui-locale-selector.png");
+    expect(visualReviewDoc).toContain("locale-en-1280.png");
+    expect(visualReviewDoc).toContain("locale-ja-1280.png");
+    expect(visualReviewDoc).toContain("locale-zh-cn-1280.png");
+    expect(visualReviewDoc).toContain("locale-ja-output-dock.png");
+    expect(visualReviewDoc).toContain("locale-zh-cn-inspector-memory.png");
     expect(visualReviewDoc).toContain("push-pop-stack-circuit.png");
     expect(visualReviewDoc).toContain("push-pop-stack-machine-code.png");
     expect(visualReviewDoc).toContain("call-return-call.png");

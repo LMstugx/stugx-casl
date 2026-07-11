@@ -79,3 +79,5 @@ The provider depends on `LocaleStorage`, not directly on a desktop API. A future
 ## 15. Phase 14B Plan
 
 Phase 14B should add a reviewed string inventory and reviewed Japanese pilot translations for short shell/navigation strings. It should verify text expansion and terminology before migrating lessons or diagnostics. Translation work must remain separate from layout redesign, runtime changes, and compiler behavior.
+
+Phase 14B is documented in `phase14b-i18n-glossary-short-strings.md`. It adds the reviewed glossary, short-string inventory, resource-integrity checks, and a bounded Japanese and Simplified Chinese pilot while retaining this provider, fallback, storage, and normalization contract.

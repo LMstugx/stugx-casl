@@ -1,4 +1,5 @@
 import { CometState, formatWord } from "../core/types";
+import { useI18n } from "../i18n/useI18n";
 
 function traceChanges(event: CometState["trace"][number]): string {
   const changes: string[] = [];
@@ -73,15 +74,16 @@ function jumpTargetFromSource(source: string): string | undefined {
 }
 
 export default function TracePanel({ state, embedded = false }: { state: CometState; embedded?: boolean }) {
+  const { t } = useI18n();
   return (
     <section className={embedded ? "embedded-panel trace-panel" : "panel trace-panel"}>
       {!embedded ? (
         <header className="panel-header">
-          <h2>Trace</h2>
+          <h2>{t("inspector.trace")}</h2>
         </header>
       ) : null}
       <div className="trace-list" data-testid="trace-list">
-        {state.trace.length === 0 ? <p className="muted">No steps yet.</p> : null}
+        {state.trace.length === 0 ? <p className="muted">{t("empty.noTraceEntries")}</p> : null}
         {state.trace.map((event, index) => (
           <article key={`${event.index}-${event.address}`} className="trace-item" data-testid="trace-item" data-latest={index === 0 ? "true" : "false"}>
             <strong>Step {event.index}</strong>

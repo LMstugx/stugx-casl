@@ -79,3 +79,5 @@ The Phase 14 i18n and diagnostic baseline is internally consistent, compatible w
 ## Phase 15A Consumption Requirements
 
 Phase 15A may begin file/project lifecycle work only if it treats locale as an application preference rather than file content, keeps diagnostics bound to their source unit, clears stale diagnostic selection when source ownership changes, preserves selection on locale-only changes, normalizes legacy/structured payloads through the existing adapter, and does not use localized messages as persistence keys, React keys, equality values, or source-range inputs.
+
+Phase 15A defines that consumption boundary in [file-project-diagnostic-i18n-contract.md](file-project-diagnostic-i18n-contract.md), without changing the frozen Phase 14 baseline or adding file I/O behavior.

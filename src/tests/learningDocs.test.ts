@@ -72,6 +72,11 @@ import phase14g from "../../docs/phase14g-p2-diagnostic-stability-audit.md?raw";
 import diagnosticBaselineV1 from "../../docs/diagnostic-localization-baseline-v1.json?raw";
 import phase14h from "../../docs/phase14h-diagnostic-localization-baseline.md?raw";
 import phase14i from "../../docs/phase14i-i18n-diagnostics-final-quality-gate.md?raw";
+import phase15a from "../../docs/phase15a-file-document-lifecycle-architecture.md?raw";
+import fileIoAdapterContract from "../../docs/file-io-adapter-contract.md?raw";
+import sourceOwnershipContract from "../../docs/source-ownership-contract.md?raw";
+import unsavedChangesContract from "../../docs/unsaved-changes-contract.md?raw";
+import fileProjectDiagnosticI18nContract from "../../docs/file-project-diagnostic-i18n-contract.md?raw";
 
 describe("learning use documentation", () => {
   it("learning_guide_exists", () => {
@@ -1017,6 +1022,30 @@ describe("learning use documentation", () => {
     expect(phase14i).toContain("Runtime registries remain the source of truth");
     expect(phase14i).toContain("Phase 15A Consumption Requirements");
     expect(readme).toContain("docs/phase14i-i18n-diagnostics-final-quality-gate.md");
+  });
+
+  it("phase15a_file_document_lifecycle_architecture_is_documented", () => {
+    expect(phase15a).toContain("Phase 15A: File And Document Lifecycle Architecture");
+    expect(phase15a).toContain("Document Model");
+    expect(phase15a).toContain("Source Ownership And Invalidation");
+    expect(phase15a).toContain("Lifecycle State Machine");
+    expect(phase15a).toContain("Current Store Migration Matrix");
+    expect(phase15a).toContain("Phase 15B Recommendation");
+    expect(fileIoAdapterContract).toContain("No production adapter");
+    expect(fileIoAdapterContract).toContain("1 MiB");
+    expect(sourceOwnershipContract).toContain("SourceUnitId");
+    expect(sourceOwnershipContract).toContain("Generated CASL");
+    expect(unsavedChangesContract).toContain("Dirty documents require a decision");
+    expect(unsavedChangesContract).toContain("built-in example selection");
+    expect(fileProjectDiagnosticI18nContract).toContain("Locale is an application preference");
+    expect(fileProjectDiagnosticI18nContract).toContain("diagnostic-localization-baseline-v1.json");
+    for (const path of [
+      "docs/phase15a-file-document-lifecycle-architecture.md",
+      "docs/file-io-adapter-contract.md",
+      "docs/source-ownership-contract.md",
+      "docs/unsaved-changes-contract.md",
+      "docs/file-project-diagnostic-i18n-contract.md"
+    ]) expect(readme).toContain(path);
   });
 
   it("project_overview_uses_learning_wording", () => {

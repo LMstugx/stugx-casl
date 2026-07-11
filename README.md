@@ -339,6 +339,8 @@ The current backend is shown in the status bar as `Mock Core`, `WASM Core`, or `
 - [docs/phase13a-advanced-ui-design-system.md](docs/phase13a-advanced-ui-design-system.md): shared design token and component style foundation for a more mature engineering-learning UI without changing runtime behavior.
 - [docs/phase13b-advanced-ui-application.md](docs/phase13b-advanced-ui-application.md): application pass for toolbar grouping, state color semantics, panel/table/tab consistency, circuit styling, motion, and viewport behavior.
 - [docs/phase13c-ui-consistency-accessibility-audit.md](docs/phase13c-ui-consistency-accessibility-audit.md): contrast, keyboard tablist, focus, overflow, state consistency, scroll, and viewport audit for the advanced UI baseline.
+- [docs/phase14a-i18n-architecture.md](docs/phase14a-i18n-architecture.md): typed locale, fallback, persistence, provider, and limited UI pilot migration for `en`, `ja`, and `zh-CN`.
+- [docs/i18n-string-boundary.md](docs/i18n-string-boundary.md): translation boundary for static UI, technical identifiers, diagnostics, lessons, user content, and CASL / Machine Code terminology.
 
 ## Current Limitations
 

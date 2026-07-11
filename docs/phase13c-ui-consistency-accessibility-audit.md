@@ -88,3 +88,5 @@ No circuit routing or execution-path semantics changed in Phase 13C.
 ## 11. Recommendation Before I18n
 
 The current UI is safe for a separate Phase 14A i18n architecture design, provided that localization work begins with string inventory, message-key structure, and text-expansion rules. Phase 14A should not combine translation work with layout redesign, file operations, runtime changes, or Circuit routing changes.
+
+Phase 14A now continues this recommendation in [phase14a-i18n-architecture.md](phase14a-i18n-architecture.md) and freezes the technical/string boundary in [i18n-string-boundary.md](i18n-string-boundary.md).

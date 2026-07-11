@@ -20,6 +20,9 @@ import CometCircuitSvg from "../visual/CometCircuitSvg";
 import { summarizeCurrentInstruction } from "../visual/visualState";
 import RegisterPanel from "./RegisterPanel";
 import { handleHorizontalTabListKeyDown } from "./tabKeyboard";
+import { translateRunState } from "../i18n/locale";
+import { useI18n } from "../i18n/useI18n";
+import type { TranslationKey } from "../i18n/types";
 
 type TimelineItem = {
   key: string;
@@ -42,10 +45,10 @@ type CircuitFocusLayoutProps = {
   initialSelectionSource?: FrameSlotSelectionSource;
 };
 
-const observationModes: Array<{ id: ObservationMode; label: string; summary: string }> = [
-  { id: "cpu-flow", label: "CPU Flow", summary: "Circuit / active path / main memory" },
-  { id: "register-stack", label: "Registers / Stack", summary: "GR, PR, SP, FR, stack, memory" },
-  { id: "code-machine", label: "Code / Machine", summary: "Source, CASL, machine code, trace" }
+const observationModes: Array<{ id: ObservationMode; labelKey: TranslationKey; summary: string }> = [
+  { id: "cpu-flow", labelKey: "observation.cpuFlow", summary: "Circuit / active path / main memory" },
+  { id: "register-stack", labelKey: "observation.registerStack", summary: "GR, PR, SP, FR, stack, memory" },
+  { id: "code-machine", labelKey: "observation.codeMachine", summary: "Source, CASL, machine code, trace" }
 ];
 
 type FocusInstructionContext = {
@@ -1721,6 +1724,7 @@ function ObservationModeSelector({
   mode: ObservationMode;
   onChange: (mode: ObservationMode) => void;
 }) {
+  const { t } = useI18n();
   const current = observationModes.find((item) => item.id === mode) ?? observationModes[0];
 
   return (
@@ -1729,8 +1733,10 @@ function ObservationModeSelector({
         <h2 title="Observation Mode">Observation Mode</h2>
         <span>{current.summary}</span>
       </div>
-      <div className="segmented observation-mode-tabs" role="tablist" aria-label="Observation mode" aria-orientation="horizontal" onKeyDown={handleHorizontalTabListKeyDown}>
-        {observationModes.map((item) => (
+      <div className="segmented observation-mode-tabs" role="tablist" aria-label={t("accessibility.observationMode")} aria-orientation="horizontal" onKeyDown={handleHorizontalTabListKeyDown}>
+        {observationModes.map((item) => {
+          const label = t(item.labelKey);
+          return (
           <button
             key={item.id}
             type="button"
@@ -1738,14 +1744,15 @@ function ObservationModeSelector({
             role="tab"
             aria-selected={mode === item.id}
             tabIndex={mode === item.id ? 0 : -1}
-            aria-label={`Observation mode: ${item.label}`}
+            aria-label={`${t("accessibility.observationMode")}: ${label}`}
             title={item.summary}
             data-testid={`observation-mode-${item.id}`}
             onClick={() => onChange(item.id)}
           >
-            {item.label}
+            {label}
           </button>
-        ))}
+          );
+        })}
       </div>
     </section>
   );
@@ -1776,6 +1783,7 @@ export default function CircuitFocusLayout({
   initialSelectedFrameSlotId,
   initialSelectionSource = "source-editor",
 }: CircuitFocusLayoutProps) {
+  const { t } = useI18n();
   const [selectedFrameFunctionName, setSelectedFrameFunctionName] = useState<string | undefined>();
   const [selectedFrameSlot, setSelectedFrameSlot] = useState<SelectedFrameSlot | undefined>();
   const lastAppliedInitialFrameSlotId = useRef<string | undefined>();
@@ -1881,7 +1889,7 @@ export default function CircuitFocusLayout({
                 <h2 title="Circuit Focus Mode">Circuit Focus Mode</h2>
                 <span>{circuitSubtitle}</span>
               </div>
-              <span className={`run-pill ${state.runState.toLowerCase()}`}>Machine: {state.runState}</span>
+              <span className={`run-pill ${state.runState.toLowerCase()}`}>Machine: {translateRunState(t, state.runState)}</span>
             </header>
             <CometCircuitSvg state={state} sourceMapFocus={{ line: focus.caslLine, address: focus.address, instruction: focus.instructionText }} />
           </section>

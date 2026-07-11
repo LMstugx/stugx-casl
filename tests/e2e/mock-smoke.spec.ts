@@ -666,6 +666,61 @@ test("keyboard tab navigation and 1280 viewport remain consistent", async ({ pag
   expect(disabledStyle.color).not.toBe(disabledStyle.backgroundColor);
 });
 
+test("locale switching preserves source execution and FramePlan UI state", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await openStudio(page, "Mock Core");
+  await selectDemoProgram(page, "cpp-function-arguments");
+  await page.getByTestId("guided-lesson-summary").click();
+  await page.getByTestId("study-mode-step-checkbox").first().check();
+  const lessonProgressBefore = await page.getByTestId("study-mode-progress").textContent();
+  const sourceBefore = await page.getByTestId("source-editor").locator(".view-lines").textContent();
+
+  await assemble(page);
+  await step(page);
+  const generatedBefore = await page.getByTestId("generated-casl-output").textContent();
+  await page.getByTestId("circuit-focus-toggle").click();
+  await switchObservationMode(page, "code-machine");
+  const slotBadge = page.locator('[data-testid="generated-casl-slot-badge"][data-slot-id="add:argument:a:1"]').first();
+  await slotBadge.click();
+
+  const programBefore = await page.getByTestId("focus-program-panel").textContent();
+  const traceBefore = await page.getByTestId("focus-trace-panel").textContent();
+  const instructionBefore = await page.getByTestId("focus-current-instruction-panel").textContent();
+  const selectorWidthBefore = (await page.getByTestId("locale-selector").boundingBox())?.width;
+
+  const japanese = page.getByTestId("locale-ja");
+  await japanese.focus();
+  await page.keyboard.press("Enter");
+  await expect(japanese).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator("html")).toHaveAttribute("lang", "ja");
+  await expect(page.getByTestId("observation-mode-code-machine")).toContainText("Code / Machine");
+  await expect(slotBadge).toHaveAttribute("aria-pressed", "true");
+  expect(await page.getByTestId("focus-program-panel").textContent()).toBe(programBefore);
+  expect(await page.getByTestId("focus-trace-panel").textContent()).toBe(traceBefore);
+  expect(await page.getByTestId("focus-current-instruction-panel").textContent()).toBe(instructionBefore);
+  expect((await page.getByTestId("locale-selector").boundingBox())?.width).toBe(selectorWidthBefore);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)).toBe(false);
+
+  const chinese = page.getByTestId("locale-zh-CN");
+  await chinese.focus();
+  await page.keyboard.press("Space");
+  await expect(chinese).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator("html")).toHaveAttribute("lang", "zh-CN");
+  await expect(slotBadge).toHaveAttribute("aria-pressed", "true");
+
+  await page.getByTestId("locale-en").click();
+  await page.getByTestId("circuit-focus-toggle").click();
+  await expect(page.getByTestId("demo-program-select")).toHaveValue("cpp-function-arguments");
+  await expect(page.getByTestId("study-mode-progress")).toHaveText(lessonProgressBefore ?? "");
+  expect(await page.getByTestId("source-editor").locator(".view-lines").textContent()).toBe(sourceBefore);
+  expect(await page.getByTestId("generated-casl-output").textContent()).toBe(generatedBefore);
+
+  await japanese.click();
+  await page.reload();
+  await expect(page.locator("html")).toHaveAttribute("lang", "ja");
+  await expect(page.getByTestId("locale-ja")).toHaveAttribute("aria-pressed", "true");
+});
+
 test("Mock backend executes C++ subset if else lowering in the browser UI", async ({ page }) => {
   await openStudio(page, "Mock Core");
   await page.getByTestId("source-mode-cpp").click();

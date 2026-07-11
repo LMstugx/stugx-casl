@@ -5,30 +5,36 @@ import RegisterPanel from "./RegisterPanel";
 import SourceMapPanel from "./SourceMapPanel";
 import TracePanel from "./TracePanel";
 import { handleHorizontalTabListKeyDown } from "./tabKeyboard";
+import { translateRunState } from "../i18n/locale";
+import { useI18n } from "../i18n/useI18n";
+import type { TranslationKey } from "../i18n/types";
 
 type InspectorTab = "registers" | "memory" | "sourceMap" | "trace";
 
-const tabs: Array<{ id: InspectorTab; label: string }> = [
-  { id: "registers", label: "Registers" },
-  { id: "memory", label: "Memory" },
-  { id: "sourceMap", label: "Source Map" },
-  { id: "trace", label: "Trace" }
+const tabs: Array<{ id: InspectorTab; labelKey: TranslationKey }> = [
+  { id: "registers", labelKey: "inspector.registers" },
+  { id: "memory", labelKey: "inspector.memory" },
+  { id: "sourceMap", labelKey: "inspector.sourceMap" },
+  { id: "trace", labelKey: "inspector.trace" }
 ];
 
 export default function InspectorPanel({ state }: { state: CometState }) {
+  const { t } = useI18n();
   const [activeTab, setActiveTab] = useState<InspectorTab>("registers");
 
   return (
     <section className="panel inspector-panel" data-active-tab={activeTab}>
       <header className="panel-header inspector-header">
         <div>
-          <h2>Inspector</h2>
-          <span>{state.runState}</span>
+          <h2>{t("panel.inspector")}</h2>
+          <span>{translateRunState(t, state.runState)}</span>
         </div>
       </header>
 
-      <div className="tab-list compact-tabs" role="tablist" aria-label="Inspector panels" aria-orientation="horizontal" onKeyDown={handleHorizontalTabListKeyDown}>
-        {tabs.map((tab) => (
+      <div className="tab-list compact-tabs" role="tablist" aria-label={t("accessibility.inspectorPanels")} aria-orientation="horizontal" onKeyDown={handleHorizontalTabListKeyDown}>
+        {tabs.map((tab) => {
+          const label = t(tab.labelKey);
+          return (
           <button
             key={tab.id}
             id={`inspector-tab-${tab.id}`}
@@ -37,14 +43,15 @@ export default function InspectorPanel({ state }: { state: CometState }) {
             role="tab"
             aria-selected={activeTab === tab.id}
             aria-controls={`inspector-panel-${tab.id}`}
-            aria-label={`Open ${tab.label} inspector tab`}
+            aria-label={t("accessibility.openInspectorTab", { tab: label })}
             tabIndex={activeTab === tab.id ? 0 : -1}
-            title={tab.label}
+            title={label}
             onClick={() => setActiveTab(tab.id)}
           >
-            {tab.label}
+            {label}
           </button>
-        ))}
+          );
+        })}
       </div>
 
       <div

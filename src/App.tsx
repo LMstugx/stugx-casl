@@ -15,16 +15,22 @@ import { cppLineForCaslLine } from "./transpiler/cppMapping";
 import { selectFrameSymbolRelations } from "./transpiler/framePlanView";
 import { demoPrograms, getDefaultDemoProgram, getDemoProgram } from "./examples/demoPrograms";
 import { getLearningLesson } from "./examples/learningLessons";
+import { I18nProvider } from "./i18n/I18nProvider";
+import { translateRunState } from "./i18n/locale";
+import { useI18n } from "./i18n/useI18n";
 
 export default function App() {
   return (
-    <AppStoreProvider>
-      <StudioShell />
-    </AppStoreProvider>
+    <I18nProvider>
+      <AppStoreProvider>
+        <StudioShell />
+      </AppStoreProvider>
+    </I18nProvider>
   );
 }
 
 function StudioShell() {
+  const { t } = useI18n();
   const {
     sourceText,
     sourceMode,
@@ -72,9 +78,9 @@ function StudioShell() {
     }
   }, [editorSelectedFrameSlotId, frameSymbolRelations]);
   const timelineItems = useMemo(() => {
-    const compactProgram = state.program && state.program.length > 0 && state.program.length <= 4 ? ["Ready", ...state.program.map((instruction) => instruction.op)] : [];
+    const compactProgram = state.program && state.program.length > 0 && state.program.length <= 4 ? [t("status.ready"), ...state.program.map((instruction) => instruction.op)] : [];
     if (compactProgram.length > 0 || state.trace.length === 0) {
-      const labels = compactProgram.length > 0 ? compactProgram : ["Ready", "LD", "ADDA", "ST", "RET"];
+      const labels = compactProgram.length > 0 ? compactProgram : [t("status.ready"), "LD", "ADDA", "ST", "RET"];
       return labels.map((label, index) => ({
         key: label,
         index,
@@ -91,7 +97,7 @@ function StudioShell() {
         label: event.instruction,
         phase: event.index === state.stepIndex && state.runState !== "Finished" ? "current" : "completed"
       }));
-  }, [state.program, state.runState, state.stepIndex, state.trace]);
+  }, [state.program, state.runState, state.stepIndex, state.trace, t]);
 
   return (
     <div className={isCircuitFocusMode ? "app-shell circuit-focus-active" : "app-shell"}>
@@ -129,7 +135,7 @@ function StudioShell() {
         <section className="left-column">
           <section className="panel source-panel">
             <header className="panel-header">
-              <h2 title="Source Editor">Source</h2>
+              <h2 title="Source Editor">{t("panel.source")}</h2>
               <div className="source-header-actions">
                 <label className="demo-program-picker" title={selectedDemoProgram.name}>
                   <span>Demo</span>
@@ -208,7 +214,7 @@ function StudioShell() {
                 <h2 title="COMET II Simulator">COMET II Simulator</h2>
               <span>{isSourceDirty ? "Modified / Not assembled" : sourceMode === "cpp" ? "Generated CASL driving COMET-II" : "State-driven SVG circuit"}</span>
               </div>
-              <span className={`run-pill ${state.runState.toLowerCase()}`}>{state.runState}</span>
+              <span className={`run-pill ${state.runState.toLowerCase()}`}>{translateRunState(t, state.runState)}</span>
             </header>
             <CometCircuitSvg state={state} />
           </section>

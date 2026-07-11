@@ -55,6 +55,8 @@ import phase12dVisualAudit from "../../docs/phase12d-visual-audit.md?raw";
 import phase13a from "../../docs/phase13a-advanced-ui-design-system.md?raw";
 import phase13b from "../../docs/phase13b-advanced-ui-application.md?raw";
 import phase13c from "../../docs/phase13c-ui-consistency-accessibility-audit.md?raw";
+import phase14a from "../../docs/phase14a-i18n-architecture.md?raw";
+import i18nStringBoundary from "../../docs/i18n-string-boundary.md?raw";
 
 describe("learning use documentation", () => {
   it("learning_guide_exists", () => {
@@ -863,6 +865,26 @@ describe("learning use documentation", () => {
     expect(phase13b).toContain("phase13c-ui-consistency-accessibility-audit.md");
   });
 
+  it("phase14a_i18n_architecture_and_string_boundary_docs_exist", () => {
+    expect(phase14a).toContain("Phase 14A: Internationalization Architecture Foundation");
+    expect(phase14a).toContain("en | ja | zh-CN");
+    expect(phase14a).toContain("default locale is `en`");
+    expect(phase14a).toContain("fallback locale is also `en`");
+    expect(phase14a).toContain("stugx.casl.locale");
+    expect(phase14a).toContain("document.documentElement.lang");
+    expect(phase14a).toContain("intentionally incomplete");
+    expect(phase14a).toContain("does not alter Source Editor language");
+    expect(phase14a).toContain("diagnostics.*");
+    expect(phase14a).toContain("Future Tauri Compatibility");
+    expect(i18nStringBoundary).toContain("Technical Identifiers That Remain Unchanged");
+    expect(i18nStringBoundary).toContain("User-Generated And Runtime Content");
+    expect(i18nStringBoundary).toContain("CASL II mnemonics");
+    expect(i18nStringBoundary).toContain("must not be translated");
+    expect(readme).toContain("docs/phase14a-i18n-architecture.md");
+    expect(readme).toContain("docs/i18n-string-boundary.md");
+    expect(phase13c).toContain("phase14a-i18n-architecture.md");
+  });
+
   it("project_overview_uses_learning_wording", () => {
     expect(projectOverview).toContain("learning studio");
     expect(projectOverview).toContain("Recommended Study Demos");
@@ -903,6 +925,7 @@ describe("learning use documentation", () => {
     expect(readme).toContain("docs/phase12d-visual-audit.md");
     expect(readme).toContain("docs/phase13a-advanced-ui-design-system.md");
     expect(readme).toContain("docs/phase13b-advanced-ui-application.md");
+    expect(readme).toContain("docs/phase14a-i18n-architecture.md");
     expect(readme).toContain("docs/future-custom-circuit-design.md");
     expect(normalized).not.toContain("hackathon");
     expect(normalized).not.toContain("contest submission");

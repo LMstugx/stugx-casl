@@ -166,6 +166,7 @@ Use the gallery to inspect:
 - `ui-cpp-diagnostic-error.png` (C++ subset diagnostic state)
 - `ui-stopped-state.png` (max-step Stopped state)
 - `ui-keyboard-focus.png` (selected Inspector tab with visible keyboard focus)
+- `ui-locale-selector.png` (Japanese locale selected with intentional English fallback in the Phase 14A pilot)
 - `observation-cpu-flow.png` (CPU Flow observation mode)
 - `observation-register-stack.png` (Registers / Stack observation mode)
 - `stack-frame-view-preview.png` (FramePlan design preview in Stack Frame View; not runtime state)

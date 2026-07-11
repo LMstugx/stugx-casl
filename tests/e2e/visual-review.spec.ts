@@ -104,6 +104,16 @@ async function captureKeyboardFocusState(page: Page, viewport: Viewport) {
   await capture(page, viewport, "ui-keyboard-focus.png");
 }
 
+async function captureLocaleSelectorState(page: Page, viewport: Viewport) {
+  await openStudio(page, "Mock Core");
+  await page.getByTestId("locale-ja").click();
+  await expect(page.locator("html")).toHaveAttribute("lang", "ja");
+  await expect(page.getByTestId("locale-ja")).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByTestId("assemble-button")).toContainText("Assemble");
+  await capture(page, viewport, "ui-locale-selector.png");
+  await page.getByTestId("locale-en").click();
+}
+
 async function captureCaslGr2Flow(page: Page, viewport: Viewport) {
   await openStudio(page, "Mock Core");
   await selectDemoProgram(page, "casl-gr2-addition");
@@ -555,6 +565,7 @@ test.describe("visual review screenshot gallery", () => {
       await captureCppDiagnosticState(page, viewport);
       await captureStoppedState(page, viewport);
       await captureKeyboardFocusState(page, viewport);
+      await captureLocaleSelectorState(page, viewport);
       await captureCaslGr2Flow(page, viewport);
       await captureObservationCpuFlow(page, viewport);
       await captureObservationRegisterStack(page, viewport);

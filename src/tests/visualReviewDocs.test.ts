@@ -15,6 +15,7 @@ describe("visual review screenshot gallery setup", () => {
     expect(visualReviewSpec).toContain("ui-cpp-diagnostic-error.png");
     expect(visualReviewSpec).toContain("ui-stopped-state.png");
     expect(visualReviewSpec).toContain("ui-keyboard-focus.png");
+    expect(visualReviewSpec).toContain("ui-locale-selector.png");
     expect(visualReviewSpec).toContain("casl-gr2-ld.png");
     expect(visualReviewSpec).toContain("enterCircuitFocusMode");
     expect(visualReviewSpec).toContain("logical-add-compare-jov.png");
@@ -90,6 +91,7 @@ describe("visual review screenshot gallery setup", () => {
     expect(visualReviewDoc).toContain("ui-cpp-diagnostic-error.png");
     expect(visualReviewDoc).toContain("ui-stopped-state.png");
     expect(visualReviewDoc).toContain("ui-keyboard-focus.png");
+    expect(visualReviewDoc).toContain("ui-locale-selector.png");
     expect(visualReviewDoc).toContain("push-pop-stack-circuit.png");
     expect(visualReviewDoc).toContain("push-pop-stack-machine-code.png");
     expect(visualReviewDoc).toContain("call-return-call.png");

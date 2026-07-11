@@ -255,7 +255,7 @@ describe("advanced UI design system foundation", () => {
   });
 
   it("source_editor_header_does_not_hard_clip_title", () => {
-    expect(appTsx).toContain('<h2 title="Source Editor">Source</h2>');
+    expect(appTsx).toContain('<h2 title="Source Editor">{t("panel.source")}</h2>');
     expect(appCss).toContain(".source-panel .panel-header h2");
     expect(appCss).toContain("min-width: 48px");
   });

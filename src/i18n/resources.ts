@@ -2,7 +2,7 @@ import { FALLBACK_LOCALE } from "./locale";
 import { en } from "./locales/en";
 import { ja } from "./locales/ja";
 import { zhCN } from "./locales/zh-CN";
-import type { PartialTranslationResource, SupportedLocale, Translate, TranslationKey, TranslationParams } from "./types";
+import type { AnyTranslationKey, PartialTranslationResource, SupportedLocale, Translate, TranslationParams } from "./types";
 
 const resources = {
   en,
@@ -18,7 +18,7 @@ function interpolate(template: string, params?: TranslationParams): string {
   });
 }
 
-export function translate(locale: SupportedLocale, key: TranslationKey, params?: TranslationParams): string {
+export function translate(locale: SupportedLocale, key: AnyTranslationKey, params?: TranslationParams): string {
   const localized = (resources[locale] as PartialTranslationResource)[key];
   const fallback = (resources[FALLBACK_LOCALE] as PartialTranslationResource)[key];
   return interpolate(localized ?? fallback ?? key, params);

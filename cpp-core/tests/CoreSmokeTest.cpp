@@ -60,6 +60,13 @@ bool hasError(const casl::AssembleResult& result, std::string_view fragment) {
     return false;
 }
 
+bool hasCode(const casl::AssembleResult& result, std::string_view code) {
+    for (const auto& diagnostic : result.diagnostics) {
+        if (diagnostic.code == code) return true;
+    }
+    return false;
+}
+
 bool assembleHasError(const casl::Assembler& assembler, std::string_view source, std::string_view fragment) {
     const auto result = assembler.assemble(std::string(source));
     return hasError(result, fragment);
@@ -120,6 +127,7 @@ void DuplicateLabel_ShouldError() {
     const auto result = assembler.assemble("MAIN START\nA DC 1\nA DC 2\n END");
     require(!result.ok, "duplicate label should fail");
     require(hasError(result, "Duplicate label"), "duplicate label diagnostic");
+    require(hasCode(result, "assembler.duplicateLabel"), "duplicate label structured code");
 }
 
 void AssembleInvalidRegister() {
@@ -127,6 +135,7 @@ void AssembleInvalidRegister() {
     const auto result = assembler.assemble("MAIN START\n LD GR8,A\nA DC 1\n END");
     require(!result.ok, "invalid register should fail");
     require(hasError(result, "Invalid register"), "invalid register diagnostic");
+    require(hasCode(result, "assembler.invalidRegister"), "invalid register structured code");
 }
 
 void AssembleUndefinedLabel() {
@@ -134,6 +143,7 @@ void AssembleUndefinedLabel() {
     const auto result = assembler.assemble("MAIN START\n LD GR1,MISSING\n RET\n END");
     require(!result.ok, "undefined label should fail");
     require(hasError(result, "Undefined label"), "undefined label diagnostic");
+    require(hasCode(result, "assembler.unknownSymbol"), "undefined label structured code");
 }
 
 void AssembleUnknownOpcode() {
@@ -141,6 +151,7 @@ void AssembleUnknownOpcode() {
     const auto result = assembler.assemble("MAIN START\n BADOP GR1,A\nA DC 1\n END");
     require(!result.ok, "unknown opcode should fail");
     require(hasError(result, "Unknown opcode"), "unknown opcode diagnostic");
+    require(hasCode(result, "assembler.unknownOpcode"), "unknown opcode structured code");
 }
 
 void AssembleInvalidNumericLiteral() {
@@ -156,6 +167,8 @@ void AssembleRequiredDirectivesBoundary() {
     require(!empty.ok, "empty source should fail");
     require(hasError(empty, "START directive"), "empty source START diagnostic");
     require(hasError(empty, "END directive"), "empty source END diagnostic");
+    require(hasCode(empty, "assembler.missingStart"), "missing START structured code");
+    require(hasCode(empty, "assembler.missingEnd"), "missing END structured code");
 
     const auto comments = assembler.assemble("; comment only\n ; another comment");
     require(!comments.ok, "comments-only source should fail");
@@ -1087,6 +1100,21 @@ void Run_ShouldStopAtMaxSteps() {
     require(!result.ok, "run with zero max steps should fail");
     require(result.stoppedAtMaxSteps, "run should report max step guard");
     require(vm.state().runState == casl::RunState::Error, "run max step state");
+    require(!result.diagnostics.empty() && result.diagnostics.front().code == "vm.stepLimitReached", "run max step structured code");
+}
+
+void VmStructuredDiagnostics() {
+    casl::CometVm unloaded;
+    const auto notLoaded = unloaded.step();
+    require(!notLoaded.ok, "unloaded step should fail");
+    require(!notLoaded.diagnostics.empty() && notLoaded.diagnostics.front().code == "vm.notLoaded", "not-loaded structured code");
+
+    casl::CometVm invalidInstruction;
+    invalidInstruction.load(assembleSample());
+    require(invalidInstruction.setProgramCounter(0x0100), "set unused in-range PR");
+    const auto invalid = invalidInstruction.step();
+    require(!invalid.ok, "missing instruction should fail");
+    require(!invalid.diagnostics.empty() && invalid.diagnostics.front().code == "vm.invalidInstruction", "invalid-instruction structured code");
 }
 
 void MemoryAccess_OutOfRange_ShouldError() {
@@ -1164,6 +1192,7 @@ const std::vector<std::pair<std::string_view, TestFunction>>& tests() {
         {"StepRetFinished", StepRetFinished},
         {"ExecuteGr2Program", ExecuteGr2Program},
         {"Run_ShouldStopAtMaxSteps", Run_ShouldStopAtMaxSteps},
+        {"VmStructuredDiagnostics", VmStructuredDiagnostics},
         {"MemoryAccess_OutOfRange_ShouldError", MemoryAccess_OutOfRange_ShouldError},
     };
     return cases;

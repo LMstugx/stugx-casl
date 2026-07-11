@@ -17,7 +17,7 @@ export default function StatusBar({ state, backendInfo }: { state: CometState; b
 
   return (
     <footer className="status-bar">
-      <span>{t("circuit.machine")}: <span data-testid="run-state">{translateRunState(t, state.runState)}</span></span>
+      <span>{t("circuit.machine")}: <span data-testid="run-state" data-run-state={state.runState}>{translateRunState(t, state.runState)}</span></span>
       <span>{t("table.current")}: {currentInstruction}</span>
       <span>{t("instruction.nextPr")}: {formatWord(state.pr)}</span>
       <span>{t("instruction.nextInstruction")}: {nextInstruction ?? "-"}</span>

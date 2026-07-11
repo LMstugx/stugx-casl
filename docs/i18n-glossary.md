@@ -162,3 +162,30 @@ Technical identifiers and machine data remain unchanged. CASL II mnemonics, COME
 ## Terms That Remain Untranslated
 
 `LD`, `ST`, `ADDA`, `CALL`, `RET`, and all other CASL II mnemonics; COMET II instruction names; `GR0-GR7`, `PR`, `SP`, `FR`, `MAR`, `MDR`, `IR`, `EAU`, and `ALU`; hexadecimal addresses; machine words; source code; Generated CASL lines; identifiers, labels, and symbol names; and raw Trace technical payloads remain unchanged in every locale.
+
+## Phase 14D Diagnostic Terms
+
+| Canonical English | Approved Japanese | Approved Simplified Chinese | Context / usage note |
+| --- | --- | --- | --- |
+| Diagnostic | 診断 | 诊断 | Structured compiler/assembler/VM report. |
+| Error | エラー | 错误 | Severity; not a normal execution state. |
+| Warning | 警告 | 警告 | Severity. |
+| Information | 情報 | 信息 | Informational severity. |
+| Unknown symbol | 未定義のシンボル | 未定义符号 | Symbol spelling remains verbatim. |
+| Duplicate label | 重複したラベル | 重复标签 | Label spelling remains verbatim. |
+| Invalid register | 無効なレジスタ | 无效寄存器 | Register token remains verbatim. |
+| Invalid operand | 無効なオペランド | 无效操作数 | Operand token remains verbatim. |
+| Expected | 期待値 | 预期值 | Prefer named count/value parameters. |
+| Actual | 実際の値 | 实际值 | Prefer named count/value parameters. |
+| Missing | 不足 | 缺少 | Diagnostic phrase, not an empty-state label. |
+| Unsupported | 未対応 | 不支持 | Feature/subset boundary. |
+| Out of range | 範囲外 | 超出范围 | Address/literal boundary. |
+| Source location | ソース位置 | 源码位置 | Separate from translated message. |
+| Line | 行 | 行 | User-visible values remain 1-based. |
+| Column | 列 | 列 | Only shown when producer supplies it. |
+| Step limit | ステップ上限 | 步数上限 | Execution guard. |
+| Stack underflow | スタックアンダーフロー | 栈下溢 | Reserved; not currently emitted as a user diagnostic. |
+| Stack overflow | スタックオーバーフロー | 栈溢出 | Reserved; not currently emitted as a user diagnostic. |
+| Invalid memory access | 無効なメモリアクセス | 无效内存访问 | Address remains verbatim. |
+| Argument count | 引数の数 | 参数数量 | Use `expectedCount` and `actualCount`. |
+| Recursion | 再帰 | 递归 | Currently unsupported in the C++ subset. |

@@ -1,4 +1,5 @@
 import type { CometStateDto, DiagnosticDto, SourceRowDto } from "./coreDto";
+import { normalizeDiagnostic } from "../diagnostics/catalog";
 import { MEMORY_VIEW_DEFAULT_ROWS, selectMemoryWindow } from "./selectors";
 import { VisualPathKind, formatWord } from "./types";
 import type { AssembledInstruction, CometState, Diagnostic, FlagsState, MemoryRow, RegisterState, SourceMapEntry, TraceEvent } from "./types";
@@ -13,7 +14,7 @@ type StateFromDtoOptions = {
 };
 
 function diagnosticsFromDto(diagnostics: DiagnosticDto[]): Diagnostic[] {
-  return diagnostics.map((diagnostic) => ({ ...diagnostic }));
+  return diagnostics.map((diagnostic) => normalizeDiagnostic(diagnostic));
 }
 
 function flagsFromDto(dto: CometStateDto): FlagsState {

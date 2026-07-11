@@ -1,4 +1,5 @@
 import type { Diagnostic } from "../core/types";
+import { createStructuredDiagnostic } from "../diagnostics/catalog";
 import type {
   CppAssignment,
   CppCondition,
@@ -68,7 +69,7 @@ export function checkCppSemantics(program: CppProgram | null, parseDiagnostics: 
 
   if (!program) {
     if (diagnostics.length === 0) {
-      diagnostics.push({ line: 0, message: "C++ subset program must define int main().", severity: "error" });
+      diagnostics.push(createStructuredDiagnostic(0, "C++ subset program must define int main().", "semantic.mainFunctionMissing"));
     }
     return { ok: false, diagnostics, variables: [] };
   }
@@ -77,7 +78,7 @@ export function checkCppSemantics(program: CppProgram | null, parseDiagnostics: 
   const functionOrder = new Map<string, number>();
   for (const [index, fn] of program.functions.entries()) {
     if (functionNames.has(fn.name)) {
-      diagnostics.push({ line: fn.line, message: `Duplicate function declaration: ${fn.name}`, severity: "error" });
+      diagnostics.push(createStructuredDiagnostic(fn.line, `Duplicate function declaration: ${fn.name}`, "semantic.duplicateFunction", { function: fn.name }));
       continue;
     }
     functionNames.set(fn.name, fn);
@@ -85,7 +86,7 @@ export function checkCppSemantics(program: CppProgram | null, parseDiagnostics: 
   }
 
   if (!functionNames.has("main")) {
-    diagnostics.push({ line: program.functions[0]?.line ?? 0, message: "C++ subset program must define int main().", severity: "error" });
+    diagnostics.push(createStructuredDiagnostic(program.functions[0]?.line ?? 0, "C++ subset program must define int main().", "semantic.mainFunctionMissing"));
   }
 
   for (const fn of program.functions) {
@@ -124,7 +125,11 @@ function validateFunctionParameters(fn: CppFunction, context: ValidationContext)
   }
 
   if (fn.parameters.length > 3) {
-    context.diagnostics.push({ line: fn.parameters[3].line, message: "only up to three function parameters are supported yet", severity: "error" });
+    context.diagnostics.push(createStructuredDiagnostic(fn.parameters[3].line, "only up to three function parameters are supported yet", "transpiler.tooManyRegisterArguments", {
+      function: fn.name,
+      maximum: 3,
+      actualCount: fn.parameters.length
+    }));
   }
 
   for (const parameter of fn.parameters) {
@@ -197,12 +202,12 @@ function validateStatements(statements: CppStatement[], context: ValidationConte
     }
 
     if (statement.kind === "BreakStatement") {
-      if (context.loopDepth === 0) context.diagnostics.push({ line: statement.line, message: "break is only supported inside a loop", severity: "error" });
+      if (context.loopDepth === 0) context.diagnostics.push(createStructuredDiagnostic(statement.line, "break is only supported inside a loop", "semantic.breakOutsideLoop"));
       continue;
     }
 
     if (statement.kind === "ContinueStatement" && context.loopDepth === 0) {
-      context.diagnostics.push({ line: statement.line, message: "continue is only supported inside a loop", severity: "error" });
+      context.diagnostics.push(createStructuredDiagnostic(statement.line, "continue is only supported inside a loop", "semantic.continueOutsideLoop"));
     }
   }
 }
@@ -211,7 +216,10 @@ function validateVarDecl(statement: CppVarDecl, context: ValidationContext, stor
   const existing = context.variables.get(statement.name);
   if (existing) {
     if (existing.isParameter) {
-      context.diagnostics.push({ line: statement.line, message: "parameter name conflicts with local variable", severity: "error" });
+      context.diagnostics.push(createStructuredDiagnostic(statement.line, "parameter name conflicts with local variable", "semantic.parameterLocalConflict", {
+        function: context.functionName,
+        variable: statement.name
+      }));
       return;
     }
     context.diagnostics.push({ line: statement.line, message: `Duplicate variable declaration: ${statement.name}`, severity: "error" });
@@ -240,7 +248,10 @@ function validateVarDecl(statement: CppVarDecl, context: ValidationContext, stor
 
 function validateAssignment(statement: CppAssignment, context: ValidationContext): void {
   if (!context.variables.has(statement.target)) {
-    context.diagnostics.push({ line: statement.line, message: `Assignment target '${statement.target}' is not declared.`, severity: "error" });
+    context.diagnostics.push(createStructuredDiagnostic(statement.line, `Assignment target '${statement.target}' is not declared.`, "semantic.unknownVariable", {
+      function: context.functionName,
+      variable: statement.target
+    }));
   }
   validateTopLevelExpression(statement.expression, context, "assignment");
   if (statement.loweredFrom === "compound-assignment") validateCompoundAssignment(statement, context.diagnostics);
@@ -284,7 +295,10 @@ function validateForIncrement(statement: CppAssignment, context: ValidationConte
     return;
   }
   if (expression.right.kind === "Identifier" && !context.variables.has(expression.right.name)) {
-    context.diagnostics.push({ line: expression.right.line, message: `Variable '${expression.right.name}' is used before declaration.`, severity: "error" });
+    context.diagnostics.push(createStructuredDiagnostic(expression.right.line, `Variable '${expression.right.name}' is used before declaration.`, "semantic.unknownVariable", {
+      function: context.functionName,
+      variable: expression.right.name
+    }));
   }
 }
 
@@ -306,7 +320,10 @@ function validateTopLevelExpression(expression: CppExpression, context: Validati
 function validateExpression(expression: CppExpression, context: ValidationContext): void {
   if (expression.kind === "Identifier") {
     if (!context.variables.has(expression.name)) {
-      context.diagnostics.push({ line: expression.line, message: `Variable '${expression.name}' is used before declaration.`, severity: "error" });
+      context.diagnostics.push(createStructuredDiagnostic(expression.line, `Variable '${expression.name}' is used before declaration.`, "semantic.unknownVariable", {
+        function: context.functionName,
+        variable: expression.name
+      }));
     }
     return;
   }
@@ -341,14 +358,22 @@ function validateCallExpression(expression: Extract<CppExpression, { kind: "Call
   }
   const callee = context.functionNames.get(expression.callee);
   if (!callee) {
-    context.diagnostics.push({ line: expression.line, message: `Function '${expression.callee}' is not defined.`, severity: "error" });
+    context.diagnostics.push(createStructuredDiagnostic(expression.line, `Function '${expression.callee}' is not defined.`, "semantic.unknownFunction", {
+      function: expression.callee
+    }));
     return;
   }
   if (expression.arguments.length !== callee.parameters.length) {
-    context.diagnostics.push({ line: expression.line, message: "function call argument count mismatch", severity: "error" });
+    context.diagnostics.push(createStructuredDiagnostic(expression.line, "function call argument count mismatch", "semantic.argumentCountMismatch", {
+      function: expression.callee,
+      expectedCount: callee.parameters.length,
+      actualCount: expression.arguments.length
+    }));
   }
   if (expression.callee === context.functionName) {
-    context.diagnostics.push({ line: expression.line, message: "recursive function calls are not supported yet", severity: "error" });
+    context.diagnostics.push(createStructuredDiagnostic(expression.line, "recursive function calls are not supported yet", "semantic.recursionUnsupported", {
+      function: expression.callee
+    }));
   }
   const calleeIndex = context.functionOrder.get(expression.callee) ?? -1;
   if (calleeIndex > context.functionIndex) {
@@ -362,7 +387,10 @@ function validateCallExpression(expression: Extract<CppExpression, { kind: "Call
 
 function validateFunctionCallArgument(argument: CppExpression, context: ValidationContext): void {
   if (argument.kind !== "Identifier" && argument.kind !== "IntegerLiteral") {
-    context.diagnostics.push({ line: argument.line, message: "complex function call arguments are not supported yet", severity: "error" });
+    context.diagnostics.push(createStructuredDiagnostic(argument.line, "complex function call arguments are not supported yet", "transpiler.unsupportedCallArgument", {
+      function: context.functionName,
+      argumentCount: 1
+    }));
   }
   validateExpression(argument, context);
 }

@@ -233,6 +233,9 @@ export type TranslationKey =
   | "common.program"
   | "common.outDisplay"
   | "common.none"
+  | "diagnostic.line"
+  | "diagnostic.code"
+  | "diagnostic.errors"
   | "locale.english"
   | "locale.japanese"
   | "locale.chineseSimplified"
@@ -250,11 +253,43 @@ export type TranslationKey =
   | "accessibility.relatedFrameSymbols"
   | "accessibility.selectFrameSlotForSymbol";
 
-export type TranslationParams = Record<string, string | number>;
-export type Translate = (key: TranslationKey, params?: TranslationParams) => string;
+export type DiagnosticTranslationKey =
+  | "diagnostics.assembler.missingStart"
+  | "diagnostics.assembler.missingEnd"
+  | "diagnostics.assembler.unknownOpcode"
+  | "diagnostics.assembler.unknownSymbol"
+  | "diagnostics.assembler.duplicateLabel"
+  | "diagnostics.assembler.invalidRegister"
+  | "diagnostics.assembler.invalidIndexRegister"
+  | "diagnostics.assembler.malformedOperandList"
+  | "diagnostics.assembler.invalidOperandCount"
+  | "diagnostics.assembler.addressOutOfRange"
+  | "diagnostics.assembler.literalOutOfRange"
+  | "diagnostics.semantic.mainFunctionMissing"
+  | "diagnostics.semantic.duplicateFunction"
+  | "diagnostics.semantic.unknownFunction"
+  | "diagnostics.semantic.unknownVariable"
+  | "diagnostics.semantic.argumentCountMismatch"
+  | "diagnostics.semantic.recursionUnsupported"
+  | "diagnostics.semantic.breakOutsideLoop"
+  | "diagnostics.semantic.continueOutsideLoop"
+  | "diagnostics.semantic.parameterLocalConflict"
+  | "diagnostics.transpiler.tooManyRegisterArguments"
+  | "diagnostics.transpiler.unsupportedCallArgument"
+  | "diagnostics.vm.notLoaded"
+  | "diagnostics.vm.stepLimitReached"
+  | "diagnostics.vm.invalidInstruction"
+  | "diagnostics.vm.invalidMemoryAccess"
+  | "diagnostics.vm.stackUnderflow"
+  | "diagnostics.vm.stackOverflow";
 
-export type CompleteTranslationResource = Readonly<Record<TranslationKey, string>>;
-export type PartialTranslationResource = Readonly<Partial<Record<TranslationKey, string>>>;
+export type AnyTranslationKey = TranslationKey | DiagnosticTranslationKey;
+
+export type TranslationParams = Record<string, string | number | boolean>;
+export type Translate = (key: AnyTranslationKey, params?: TranslationParams) => string;
+
+export type CompleteTranslationResource = Readonly<Record<AnyTranslationKey, string>>;
+export type PartialTranslationResource = Readonly<Partial<Record<AnyTranslationKey, string>>>;
 
 export interface I18nContextValue {
   locale: SupportedLocale;

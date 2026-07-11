@@ -859,6 +859,43 @@ test("Phase 14C localizes Circuit Focus compact UI without changing technical st
   await page.getByTestId("locale-en").click();
 });
 
+test("Phase 14D rerenders structured diagnostics without reassembly or state mutation", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await openStudio(page, "Mock Core");
+  await setSource(page, "MAIN START\n     LD GR1,MISSING\n     END");
+  await page.getByTestId("assemble-button").click();
+
+  const diagnostic = page.locator('.diagnostic[data-diagnostic-code="assembler.unknownSymbol"]').first();
+  await expect(diagnostic).toBeVisible();
+  const sourceBefore = await page.getByTestId("source-editor").locator(".view-lines").textContent();
+  const countBefore = await page.locator(".diagnostic").count();
+  const lineBefore = await diagnostic.locator(".diagnostic-location").textContent();
+  const runStateBefore = await page.getByTestId("run-state").getAttribute("data-run-state");
+
+  await page.getByTestId("locale-ja").click();
+  await expect(diagnostic.locator(".diagnostic-message")).toContainText("MISSING");
+  await expect(diagnostic.locator(".diagnostic-message")).toContainText("未定義");
+  await expect(diagnostic).toHaveAttribute("data-diagnostic-code", "assembler.unknownSymbol");
+  expect(await page.locator(".diagnostic").count()).toBe(countBefore);
+  expect(await page.getByTestId("source-editor").locator(".view-lines").textContent()).toBe(sourceBefore);
+  expect(await page.getByTestId("run-state").getAttribute("data-run-state")).toBe(runStateBefore);
+
+  await page.getByTestId("locale-zh-CN").click();
+  await expect(diagnostic.locator(".diagnostic-message")).toContainText("MISSING");
+  await expect(diagnostic.locator(".diagnostic-message")).toContainText("未定义");
+  expect(await diagnostic.locator(".diagnostic-location").textContent()).not.toBe(lineBefore);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)).toBe(false);
+
+  await page.getByTestId("source-mode-cpp").click();
+  await setSource(page, "int main() {\n  return missing;\n}");
+  await page.getByTestId("assemble-button").click();
+  const cppDiagnostic = page.locator('.diagnostic[data-diagnostic-code="semantic.unknownVariable"]').first();
+  await expect(cppDiagnostic.locator(".diagnostic-message")).toContainText("missing");
+  await expect(cppDiagnostic.locator(".diagnostic-message")).toContainText("未声明");
+  await page.getByTestId("locale-en").click();
+  await expect(cppDiagnostic.locator(".diagnostic-message")).toContainText('Variable "missing" is not declared.');
+});
+
 test("Mock backend executes C++ subset if else lowering in the browser UI", async ({ page }) => {
   await openStudio(page, "Mock Core");
   await page.getByTestId("source-mode-cpp").click();

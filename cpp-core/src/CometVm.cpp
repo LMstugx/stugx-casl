@@ -1,4 +1,5 @@
 #include "CometVm.hpp"
+#include "DiagnosticCatalog.hpp"
 
 #include <utility>
 
@@ -552,6 +553,8 @@ RunResult CometVm::run(int maxSteps) {
         state_.runState = RunState::Error;
         result.stoppedAtMaxSteps = true;
         result.diagnostics.push_back({0, Severity::Error, "Max steps reached before execution"});
+        structureDiagnostic(result.diagnostics.back());
+        result.diagnostics.back().params["stepLimit"] = std::to_string(maxSteps);
         return result;
     }
 
@@ -578,6 +581,8 @@ RunResult CometVm::run(int maxSteps) {
         state_.runState = RunState::Error;
         result.stoppedAtMaxSteps = true;
         result.diagnostics.push_back({0, Severity::Error, "Max steps reached"});
+        structureDiagnostic(result.diagnostics.back());
+        result.diagnostics.back().params["stepLimit"] = std::to_string(maxSteps);
     }
 
     return result;
@@ -639,6 +644,7 @@ void CometVm::fail(StepResult& result, std::string message) {
     state_.visualPath = VisualPathKind::None;
     result.ok = false;
     result.diagnostics.push_back({0, Severity::Error, std::move(message)});
+    structureDiagnostic(result.diagnostics.back());
 }
 
 void CometVm::pushTrace(std::string event) {

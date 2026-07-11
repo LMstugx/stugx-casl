@@ -67,6 +67,14 @@ async function captureCaslDiagnosticState(page: Page, viewport: Viewport) {
   await page.getByTestId("assemble-button").click();
   await expect(page.locator(".diagnostic").first()).toBeVisible();
   await capture(page, viewport, "ui-casl-diagnostic-error.png");
+  await capture(page, viewport, "diagnostics-en-casl.png");
+  await page.getByTestId("locale-ja").click();
+  await capture(page, viewport, "diagnostics-ja-casl.png");
+  if (viewport.name === "1280x720") await capture(page, viewport, "diagnostics-ja-1280.png");
+  await page.getByTestId("locale-zh-CN").click();
+  await capture(page, viewport, "diagnostics-zh-cn-casl.png");
+  if (viewport.name === "1280x720") await capture(page, viewport, "diagnostics-zh-cn-1280.png");
+  await page.getByTestId("locale-en").click();
 }
 
 async function captureCppDiagnosticState(page: Page, viewport: Viewport) {
@@ -76,6 +84,12 @@ async function captureCppDiagnosticState(page: Page, viewport: Viewport) {
   await page.getByTestId("assemble-button").click();
   await expect(page.locator(".diagnostic").first()).toBeVisible();
   await capture(page, viewport, "ui-cpp-diagnostic-error.png");
+  await capture(page, viewport, "diagnostics-en-cpp.png");
+  await page.getByTestId("locale-ja").click();
+  await capture(page, viewport, "diagnostics-ja-cpp.png");
+  await page.getByTestId("locale-zh-CN").click();
+  await capture(page, viewport, "diagnostics-zh-cn-cpp.png");
+  await page.getByTestId("locale-en").click();
 }
 
 async function captureStoppedState(page: Page, viewport: Viewport) {

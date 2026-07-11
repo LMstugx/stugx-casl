@@ -166,6 +166,9 @@ Use the gallery to inspect:
 - `project-overview.png`
 - `ui-casl-diagnostic-error.png` (CASL assembly diagnostic state)
 - `ui-cpp-diagnostic-error.png` (C++ subset diagnostic state)
+- `diagnostics-en-casl.png`, `diagnostics-ja-casl.png`, and `diagnostics-zh-cn-casl.png` (structured CASL diagnostic rendering)
+- `diagnostics-en-cpp.png`, `diagnostics-ja-cpp.png`, and `diagnostics-zh-cn-cpp.png` (structured C++ diagnostic rendering)
+- `diagnostics-ja-1280.png` and `diagnostics-zh-cn-1280.png` (CJK diagnostic wrapping without horizontal overflow)
 - `ui-stopped-state.png` (max-step Stopped state)
 - `ui-keyboard-focus.png` (selected Inspector tab with visible keyboard focus)
 - `ui-locale-selector.png` (Japanese locale selected with intentional English fallback in the Phase 14A pilot)

@@ -48,6 +48,6 @@ Resource tests enforce approved-key presence, nonempty values, matching interpol
 
 Diagnostics need stable codes and parameterized `diagnostics.*` messages before localization. Lessons, Demo Guide content, practice tasks, Machine Code teaching prose, and FramePlan long explanations need separate editorial review. Plural rules and rich localized content are also deferred.
 
-## 13. Phase 14D Recommendation
+## 13. Phase 14D Follow-up
 
-Phase 14D should define a diagnostics localization contract and inventory without translating raw current diagnostic sentences. It should keep execution semantics and technical payloads unchanged, and should not combine diagnostics work with full lesson-content localization.
+Phase 14D defines the structured diagnostic contract and migrates an inventoried high-frequency pilot. Technical parameters remain verbatim, legacy messages remain compatible, and lesson-content localization remains separate. See `diagnostic-code-contract.md` and `phase14d-diagnostic-localization-architecture.md`.

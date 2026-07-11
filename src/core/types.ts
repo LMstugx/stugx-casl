@@ -1,4 +1,7 @@
 import { formatHex16 } from "../utils/format";
+import type { DiagnosticCode, DiagnosticParams, DiagnosticSeverity, SourceRange } from "../diagnostics/types";
+
+export type { DiagnosticCode, DiagnosticParamValue, DiagnosticParams, DiagnosticSeverity, SourceRange } from "../diagnostics/types";
 
 export const WORD_MASK = 0xffff;
 
@@ -121,7 +124,13 @@ export interface TraceEvent {
 export interface Diagnostic {
   line: number;
   message: string;
-  severity: "error" | "warning";
+  severity: DiagnosticSeverity;
+  code?: DiagnosticCode;
+  params?: DiagnosticParams;
+  sourceRange?: SourceRange;
+  fileName?: string;
+  rawContext?: string;
+  fallbackMessage?: string;
 }
 
 export interface AssembledInstruction {

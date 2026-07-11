@@ -18,6 +18,7 @@ import { getLearningLesson } from "./examples/learningLessons";
 import { I18nProvider } from "./i18n/I18nProvider";
 import { translateRunState } from "./i18n/locale";
 import { useI18n } from "./i18n/useI18n";
+import { diagnosticIdentity, renderDiagnostic } from "./diagnostics/renderDiagnostic";
 
 export default function App() {
   return (
@@ -30,7 +31,7 @@ export default function App() {
 }
 
 function StudioShell() {
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
   const {
     sourceText,
     sourceMode,
@@ -65,7 +66,12 @@ function StudioShell() {
   const canRun = !isSourceDirty && state.assembled && canExecute;
   const canStep = !isSourceDirty && state.assembled && canExecute;
   const canReset = !isSourceDirty && !isRunning && (state.assembled || state.runState === "Finished" || state.runState === "Stopped" || state.sourceMap.length > 0);
-  const diagnostics = useMemo(() => storeDiagnostics.filter((diagnostic) => diagnostic.severity === "error"), [storeDiagnostics]);
+  const diagnostics = useMemo(
+    () => storeDiagnostics
+      .filter((diagnostic) => diagnostic.severity === "error")
+      .map((diagnostic, index) => ({ source: diagnostic, rendered: renderDiagnostic(diagnostic, locale), identity: `${diagnosticIdentity(diagnostic)}:${index}` })),
+    [locale, storeDiagnostics]
+  );
   const editorCurrentLine = sourceMode === "cpp" ? cppLineForCaslLine(cppToCaslMapping, state.currentLine) : state.currentLine;
   const selectedDemoProgram = getDemoProgram(selectedDemoProgramId) ?? getDefaultDemoProgram();
   const selectedDemoMatchesSource = selectedDemoProgram.source === sourceText && selectedDemoProgram.mode === sourceMode;
@@ -195,13 +201,15 @@ function StudioShell() {
 
           <section className="panel errors-panel">
             <header className="panel-header">
-              <h2>Errors</h2>
+              <h2>{t("diagnostic.errors")}</h2>
               <span>{diagnostics.length}</span>
             </header>
             {diagnostics.length === 0 ? <p className="muted">{t("empty.noDiagnostics")}</p> : null}
-            {diagnostics.map((diagnostic) => (
-              <div key={`${diagnostic.line}-${diagnostic.message}`} className="diagnostic">
-                Line {diagnostic.line}: {diagnostic.message}
+            {diagnostics.map(({ source, rendered, identity }) => (
+              <div key={identity} className="diagnostic" data-diagnostic-code={source.code ?? "legacy"}>
+                <span className="diagnostic-location">{t("diagnostic.line", { line: source.line })}</span>
+                <span className="diagnostic-message">{rendered.message}</span>
+                {source.code ? <span className="diagnostic-code" title={t("diagnostic.code", { code: source.code })}>{source.code}</span> : null}
               </div>
             ))}
           </section>
@@ -245,7 +253,7 @@ function StudioShell() {
 
       <OutputPanel
         lines={state.output}
-        messages={diagnostics.map((diagnostic) => `Line ${diagnostic.line}: ${diagnostic.message}`)}
+        messages={diagnostics.map(({ source, rendered }) => `${t("diagnostic.line", { line: source.line })}: ${rendered.message}`)}
         generatedCaslSource={generatedCaslSource}
         cppToCaslMapping={cppToCaslMapping}
         currentCaslLine={sourceMode === "cpp" ? state.currentLine : undefined}

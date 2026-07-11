@@ -61,6 +61,9 @@ import i18nGlossary from "../../docs/i18n-glossary.md?raw";
 import i18nShortStringInventory from "../../docs/i18n-short-string-inventory.md?raw";
 import phase14b from "../../docs/phase14b-i18n-glossary-short-strings.md?raw";
 import phase14c from "../../docs/phase14c-circuit-learning-compact-localization.md?raw";
+import diagnosticCodeContract from "../../docs/diagnostic-code-contract.md?raw";
+import i18nDiagnosticInventory from "../../docs/i18n-diagnostic-inventory.md?raw";
+import phase14d from "../../docs/phase14d-diagnostic-localization-architecture.md?raw";
 
 describe("learning use documentation", () => {
   it("learning_guide_exists", () => {
@@ -917,12 +920,30 @@ describe("learning use documentation", () => {
     expect(phase14c).toContain("Stack Preview And Call Stack");
     expect(phase14c).toContain("Stack Frame Compact Labels");
     expect(phase14c).toContain("Untranslated Technical Boundary");
-    expect(phase14c).toContain("Phase 14D Recommendation");
+    expect(phase14c).toContain("Phase 14D Follow-up");
     expect(i18nGlossary).toContain("Phase 14C Circuit And Learning Terms");
     expect(i18nGlossary).toContain("オペランド読出し");
     expect(i18nGlossary).toContain("操作数读取");
     expect(i18nShortStringInventory).toContain("Phase 14C Circuit And Learning Panels");
     expect(readme).toContain("docs/phase14c-circuit-learning-compact-localization.md");
+  });
+
+  it("phase14d_structured_diagnostic_docs_exist", () => {
+    expect(diagnosticCodeContract).toContain("Diagnostic Code Contract");
+    expect(diagnosticCodeContract).toContain("DiagnosticCode");
+    expect(diagnosticCodeContract).toContain("Diagnostic Identity");
+    expect(diagnosticCodeContract).toContain("TS, C++, And WASM Parity");
+    expect(diagnosticCodeContract).toContain("legacy `message`");
+    expect(i18nDiagnosticInventory).toContain("assembler.unknownSymbol");
+    expect(i18nDiagnosticInventory).toContain("semantic.argumentCountMismatch");
+    expect(i18nDiagnosticInventory).toContain("vm.stackUnderflow");
+    expect(i18nDiagnosticInventory).toContain("deferred");
+    expect(phase14d).toContain("Phase 14D: Diagnostic Code And Parameterized Localization Architecture");
+    expect(phase14d).toContain("Locale Switch Behavior");
+    expect(phase14d).toContain("Remaining Raw Diagnostics");
+    expect(readme).toContain("docs/diagnostic-code-contract.md");
+    expect(readme).toContain("docs/i18n-diagnostic-inventory.md");
+    expect(readme).toContain("docs/phase14d-diagnostic-localization-architecture.md");
   });
 
   it("project_overview_uses_learning_wording", () => {

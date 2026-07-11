@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include "InstructionSet.hpp"
@@ -24,6 +25,10 @@ struct Diagnostic {
     int line = 0;
     Severity severity = Severity::Error;
     std::string message;
+    std::string code;
+    std::unordered_map<std::string, std::string> params;
+    std::string rawContext;
+    std::string fallbackMessage;
 };
 
 template <typename T>

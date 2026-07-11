@@ -1,10 +1,17 @@
 import { selectMemoryWindow } from "./selectors";
 import { CometState, Diagnostic, InstructionKind } from "./types";
+import type { DiagnosticParams, DiagnosticSeverity, SourceRange } from "../diagnostics/types";
 
 export interface DiagnosticDto {
   line: number;
   message: string;
-  severity: "error" | "warning";
+  severity: DiagnosticSeverity;
+  code?: string;
+  params?: DiagnosticParams;
+  sourceRange?: SourceRange;
+  fileName?: string;
+  rawContext?: string;
+  fallbackMessage?: string;
 }
 
 export interface SourceRowDto {
@@ -96,7 +103,13 @@ function diagnosticsToDto(diagnostics: Diagnostic[]): DiagnosticDto[] {
   return diagnostics.map((diagnostic) => ({
     line: diagnostic.line,
     message: diagnostic.message,
-    severity: diagnostic.severity
+    severity: diagnostic.severity,
+    ...(diagnostic.code ? { code: diagnostic.code } : {}),
+    ...(diagnostic.params ? { params: diagnostic.params } : {}),
+    ...(diagnostic.sourceRange ? { sourceRange: diagnostic.sourceRange } : {}),
+    ...(diagnostic.fileName ? { fileName: diagnostic.fileName } : {}),
+    ...(diagnostic.rawContext ? { rawContext: diagnostic.rawContext } : {}),
+    ...(diagnostic.fallbackMessage ? { fallbackMessage: diagnostic.fallbackMessage } : {})
   }));
 }
 

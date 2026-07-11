@@ -238,7 +238,20 @@ void writeDiagnostics(std::ostream& output, const std::vector<casl::Diagnostic>&
     if (!diagnostics.empty()) output << "\n";
     for (std::size_t index = 0; index < diagnostics.size(); index += 1) {
         const auto& diagnostic = diagnostics[index];
-        output << pad << "  {\"line\": " << diagnostic.line << ", \"message\": \"" << jsonEscape(diagnostic.message) << "\", \"severity\": \"" << severityName(diagnostic.severity) << "\"}";
+        output << pad << "  {\"line\": " << diagnostic.line << ", \"message\": \"" << jsonEscape(diagnostic.message) << "\", \"severity\": \"" << severityName(diagnostic.severity) << "\"";
+        if (!diagnostic.code.empty()) output << ", \"code\": \"" << jsonEscape(diagnostic.code) << "\"";
+        if (!diagnostic.params.empty()) {
+            output << ", \"params\": {";
+            std::size_t paramIndex = 0;
+            for (const auto& [name, value] : diagnostic.params) {
+                if (paramIndex++ != 0) output << ", ";
+                output << "\"" << jsonEscape(name) << "\": \"" << jsonEscape(value) << "\"";
+            }
+            output << "}";
+        }
+        if (!diagnostic.rawContext.empty()) output << ", \"rawContext\": \"" << jsonEscape(diagnostic.rawContext) << "\"";
+        if (!diagnostic.fallbackMessage.empty()) output << ", \"fallbackMessage\": \"" << jsonEscape(diagnostic.fallbackMessage) << "\"";
+        output << "}";
         if (index + 1 < diagnostics.size()) output << ",";
         output << "\n";
     }

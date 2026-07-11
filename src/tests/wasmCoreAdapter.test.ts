@@ -155,6 +155,7 @@ function wasmArtifactsAvailable(): boolean {
     `${cwd}\\cpp-core\\src\\InstructionSet.cpp`,
     `${cwd}\\cpp-core\\src\\Assembler.cpp`,
     `${cwd}\\cpp-core\\src\\CometVm.cpp`,
+    `${cwd}\\cpp-core\\src\\DiagnosticCatalog.cpp`,
     `${cwd}\\cpp-core\\wasm\\wasm_bridge.cpp`
   ].filter((path) => fs.existsSync(path));
   const outputMtime = Math.min(fs.statSync(js).mtimeMs, fs.statSync(wasm).mtimeMs);
@@ -170,6 +171,21 @@ describe("WASM adapter boundary handling", () => {
         getLastError: () => "bridge detail"
       })
     ).toThrow(/Failed to parse WASM assemble JSON: .*Raw response: \{ invalid.*bridge detail/);
+  });
+
+  it("wasm_structured_and_legacy_diagnostic_payloads_remain_supported", () => {
+    const structured = parseWasmJson<{ diagnostics: Array<{ code?: string; params?: Record<string, string>; message: string }> }>(
+      '{"diagnostics":[{"message":"Undefined label: MISSING","code":"assembler.unknownSymbol","params":{"symbol":"MISSING"}}]}',
+      "assemble",
+      { getLastError: () => "" }
+    );
+    const legacy = parseWasmJson<{ diagnostics: Array<{ code?: string; message: string }> }>(
+      '{"diagnostics":[{"message":"legacy message"}]}',
+      "assemble",
+      { getLastError: () => "" }
+    );
+    expect(structured.diagnostics[0]).toMatchObject({ code: "assembler.unknownSymbol", params: { symbol: "MISSING" } });
+    expect(legacy.diagnostics[0]).toEqual({ message: "legacy message" });
   });
 });
 
@@ -187,6 +203,7 @@ describeWasm("WasmCoreAdapter golden parity", () => {
 
     expect(result.ok).toBe(false);
     expect(result.state.runState).toBe("Error");
+    expect(result.diagnostics.map((diagnostic) => diagnostic.code)).toEqual(["assembler.missingStart", "assembler.missingEnd"]);
     expect(result.diagnostics.map((diagnostic) => diagnostic.message)).toEqual(
       expect.arrayContaining(["CASL source must contain START directive", "CASL source must contain END directive"])
     );

@@ -13,6 +13,7 @@ import {
   word
 } from "./types";
 import { DEFAULT_CASL_SOURCE } from "./defaultSource";
+import { normalizeDiagnostics } from "../diagnostics/catalog";
 
 export { DEFAULT_CASL_SOURCE };
 
@@ -813,7 +814,7 @@ function refreshDerivedState(state: CometState): CometState {
 }
 
 function createState(artifacts: AssembleArtifacts): CometState {
-  const diagnostics = artifacts.diagnostics;
+  const diagnostics = normalizeDiagnostics(artifacts.diagnostics);
   const hasErrors = diagnostics.some((diagnostic) => diagnostic.severity === "error");
   const state: CometState = {
     assembled: !hasErrors,

@@ -1,4 +1,5 @@
 #include "Assembler.hpp"
+#include "DiagnosticCatalog.hpp"
 
 #include <algorithm>
 #include <charconv>
@@ -219,6 +220,7 @@ AssembleResult Assembler::assemble(const std::string& source) const {
     const auto pass1Ok = parseOk && pass1(lines, result.value, result.diagnostics);
     const auto pass2Ok = pass1Ok && pass2(lines, result.value, result.diagnostics);
 
+    structureDiagnostics(result.diagnostics);
     result.ok = parseOk && pass1Ok && pass2Ok && result.diagnostics.empty();
     result.value.state.runState = result.ok ? RunState::Ready : RunState::Error;
     result.value.state.visualPath = result.ok ? VisualPathKind::Ready_PrToMar : VisualPathKind::None;

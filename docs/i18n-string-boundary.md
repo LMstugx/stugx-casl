@@ -4,7 +4,7 @@
 
 Static application chrome belongs in the typed UI resource layer: commands, panel titles, navigation tabs, modes, short statuses, accessible control names, and shared empty-state labels. Keys describe meaning (`toolbar.run`), not the current English sentence.
 
-Phase 14A includes only a small pilot. Phase 14B adds reviewed short strings. Phase 14C adds Circuit Focus and compact learning-panel labels, while Lessons, diagnostics, Demo Guide text, practice tasks, FramePlan prose, and other long copy still require a separate content review.
+Phase 14A includes only a small pilot. Phase 14B adds reviewed short strings. Phase 14C adds Circuit Focus and compact learning-panel labels. Phase 14D adds parameterized localization for an inventoried diagnostic pilot, while Lessons, Demo Guide text, practice tasks, FramePlan prose, and other long copy still require a separate content review.
 
 ## Technical Identifiers That Remain Unchanged
 
@@ -27,7 +27,7 @@ User source, program output, console data, labels, symbols, and runtime Trace pa
 
 ## Diagnostics Strategy
 
-Assembler and transpiler diagnostics remain unchanged in Phase 14A. Future localization requires a separate `diagnostics.*` namespace backed by stable diagnostic codes and named parameters. Raw diagnostic sentences must not be copied into the static UI namespace.
+Phase 14D uses a separate `diagnostics.*` namespace backed by stable diagnostic codes and named parameters. Locale changes rerender messages without rerunning producers. Legacy English messages remain compatibility fallbacks; source ranges and raw context stay outside templates. Raw diagnostic sentences must not be copied into the static UI namespace.
 
 ## Lesson And Example Content Strategy
 

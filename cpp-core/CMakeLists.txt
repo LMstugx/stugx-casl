@@ -15,6 +15,7 @@ add_library(casl_core
   src/SourceMap.cpp
   src/InstructionSet.cpp
   src/Format.cpp
+  src/DiagnosticCatalog.cpp
 )
 
 target_include_directories(casl_core PUBLIC include)
@@ -116,6 +117,7 @@ else()
     StepRetFinished
     ExecuteGr2Program
     Run_ShouldStopAtMaxSteps
+    VmStructuredDiagnostics
     MemoryAccess_OutOfRange_ShouldError
   )
 

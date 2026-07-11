@@ -101,15 +101,16 @@ describe("typed translation resources", () => {
     expect(files).not.toMatch(/locale\s*===\s*["'](?:ja|en|zh-CN)["']/);
   });
 
-  it("technical_payloads_diagnostics_and_lessons_remain_outside_static_ui_resources", () => {
+  it("technical_payloads_and_lessons_remain_outside_localized_diagnostic_templates", () => {
     const keySource = readFileSync("src/i18n/types.ts", "utf8");
     const app = readFileSync("src/App.tsx", "utf8");
     const trace = readFileSync("src/components/TracePanel.tsx", "utf8");
     const demoGuide = readFileSync("src/components/DemoGuidePanel.tsx", "utf8");
     const lessons = readFileSync("src/examples/learningLessons.ts", "utf8");
 
-    expect(keySource).not.toMatch(/"(?:mnemonic|register\.gr0|diagnostics\.|lessons\.)/);
-    expect(app).toContain("diagnostic.message");
+    expect(keySource).not.toMatch(/"(?:mnemonic|register\.gr0|lessons\.)/);
+    expect(keySource).toContain('"diagnostics.assembler.unknownSymbol"');
+    expect(app).toContain("renderDiagnostic(diagnostic, locale)");
     expect(trace).toContain("event.changedRegister");
     expect(trace).toContain('t("empty.noTraceEntries")');
     expect(demoGuide).not.toContain("useI18n");

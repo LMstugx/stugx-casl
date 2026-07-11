@@ -43,3 +43,5 @@ Japanese and Chinese resources are intentionally partial outside the approved pi
 ## 11. Phase 14C Recommendation
 
 Phase 14C should review and migrate compact Circuit Focus and learning-panel labels using the glossary, then separately design parameterized diagnostics. It should not mix long lesson translation with diagnostics or technical payload localization.
+
+Phase 14C completed that bounded compact-label migration in `docs/phase14c-circuit-learning-compact-localization.md`. The glossary and inventory now distinguish migrated Circuit Focus labels from deferred teaching prose.

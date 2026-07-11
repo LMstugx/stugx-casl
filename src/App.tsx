@@ -211,8 +211,8 @@ function StudioShell() {
           <section className="panel circuit-panel">
             <header className="panel-header">
               <div>
-                <h2 title="COMET II Simulator">COMET II Simulator</h2>
-              <span>{isSourceDirty ? "Modified / Not assembled" : sourceMode === "cpp" ? "Generated CASL driving COMET-II" : "State-driven SVG circuit"}</span>
+                <h2 title={t("circuit.simulator")}>{t("circuit.simulator")}</h2>
+              <span>{isSourceDirty ? t("status.dirty") : sourceMode === "cpp" ? t("circuit.generatedCaslDriving") : t("circuit.focusMode")}</span>
               </div>
               <span className={`run-pill ${state.runState.toLowerCase()}`}>{translateRunState(t, state.runState)}</span>
             </header>
@@ -223,8 +223,8 @@ function StudioShell() {
 
           <section className="panel timeline-panel">
             <header className="panel-header">
-              <h2>Step Timeline</h2>
-              <span>{state.trace.length ? `recent / ${state.stepIndex}` : `${state.stepIndex} / 4`}</span>
+              <h2>{t("timeline.title")}</h2>
+              <span>{state.trace.length ? `${t("timeline.recent")} / ${state.stepIndex}` : `${state.stepIndex} / 4`}</span>
             </header>
             <div className="timeline">
               {timelineItems.map((item) => (

@@ -74,7 +74,7 @@ Technical identifiers and machine data remain unchanged. CASL II mnemonics, COME
 | Stack Frame View | スタックフレーム表示 | 栈帧视图 | Design-preview panel. |
 | Frame Slot | フレームスロット | 帧槽位 | Design-only metadata slot. |
 | Design preview | 設計プレビュー | 设计预览 | Must be paired with Not runtime state where needed. |
-| Not runtime state | 実行時状態ではありません | 非运行时状态 | Explicit design-only boundary. |
+| Not runtime state | 実行時状態ではない | 非运行时状态 | Approved compact badge; explanatory prose may use a full sentence. |
 | Current lowering | 現在の変換方式 | 当前转换方式 | Current static-label/register strategy. |
 | Future frame slot | 将来のフレームスロット | 未来帧槽位 | Future design, not a live value. |
 | Related Frame Symbols | 関連フレームシンボル | 相关帧符号 | Compact source relation list. |
@@ -128,6 +128,36 @@ Technical identifiers and machine data remain unchanged. CASL II mnemonics, COME
 - `Generated CASL`, `Machine Code`, `Source Map`, and `Trace` use the approved panel-title forms above everywhere.
 - Long teaching explanations, diagnostics, Lessons, Demo descriptions, and FramePlan prose are deferred. Their eventual translations may use full forms, but must not introduce competing terminology.
 - Empty strings are invalid translations. Partial Japanese and Chinese resources rely on English fallback until a term is reviewed.
+
+## Phase 14C Circuit And Learning Terms
+
+| Canonical English | Approved Japanese | Approved Simplified Chinese | Compact label | Context / usage note |
+| --- | --- | --- | --- | --- |
+| Fetch | フェッチ | 取指 | same | Pipeline stage, not a CASL mnemonic. |
+| Decode | デコード | 译码 | same | Pipeline stage. |
+| Operand Read | オペランド読出し | 操作数读取 | same | Pipeline stage. |
+| Execute | 実行 | 执行 | same | Pipeline stage. |
+| Write Back | 書込み | 写回 | same | Pipeline stage. |
+| Effective Address | 実効アドレス | 有效地址 | EA remains technical | EAU explanation. |
+| Current Source Mapping | 現在のソース対応 | 当前源码映射 | same | Source/CASL/machine relation panel. |
+| Signal Probe | 信号プローブ | 信号探针 | same | Read-only learning panel. |
+| Stack Preview | スタックプレビュー | 栈预览 | same | Live stack memory preview. |
+| Call Stack | コールスタック | 调用栈 | same | Call-depth teaching view. |
+| Stack Frame View | スタックフレーム表示 | 栈帧视图 | same | Design-preview panel only. |
+| Design preview | 設計プレビュー | 设计预览 | same | Must remain paired with the runtime-state boundary. |
+| Not runtime state | 実行時状態ではない | 非运行时状态 | same | Compact badge; never implies live frame slots. |
+| Current lowering | 現在の変換方式 | 当前转换方式 | 現在の変換 / 当前转换 | Static-label/register strategy. |
+| Future storage | 将来の格納先 | 未来存储 | same | Future FramePlan relation. |
+| Program finish | プログラム終了 | 程序结束 | same | Program terminal flow. |
+| Top-level finish | トップレベル終了 | 顶层结束 | same | Top-level RET mode. |
+| Runtime state | 実行時状態 | 运行时状态 | same | State label; values remain technical. |
+| Selection source | 選択元 | 选择来源 | same | Origin of a UI-only FramePlan selection. |
+| Source Editor | ソースエディタ | 源码编辑器 | same | Selection-source value; source content remains unchanged. |
+| Source Context | ソースコンテキスト | 源码上下文 | same | Selection-source value and compact panel title. |
+| Control Flow Target | 制御フロー対象 | 控制流目标 | same | Machine-code explanation heading. |
+| Edge Kind | エッジ種別 | 边类型 | same | Control-flow relation heading. |
+
+`CALL`, `RET`, `FETCH`, `READ`, `WRITE`, `EXEC`, and `FLAG` remain unchanged when they are literal machine mnemonics or technical identifiers. The translated forms above apply only to explanatory labels and pipeline/status UI.
 
 ## Terms That Remain Untranslated
 

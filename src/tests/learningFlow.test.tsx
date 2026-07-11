@@ -62,7 +62,7 @@ describe("LearningFlowPanel control flow", () => {
       />
     );
 
-    expect(markup).toContain("Flow: fallthrough");
+    expect(markup).toContain("Flow: Fallthrough");
     expect(markup).not.toContain("Sequential exe");
   });
 
@@ -82,6 +82,6 @@ describe("LearningFlowPanel control flow", () => {
 
     expect(markup).toContain("nowrap-symbol");
     expect(markup).toContain("secondary-note");
-    expect(markup).toContain("Flow: fallthrough");
+    expect(markup).toContain("Flow: Fallthrough");
   });
 });

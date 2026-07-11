@@ -22,7 +22,7 @@ import RegisterPanel from "./RegisterPanel";
 import { handleHorizontalTabListKeyDown } from "./tabKeyboard";
 import { translateRunState } from "../i18n/locale";
 import { useI18n } from "../i18n/useI18n";
-import type { TranslationKey } from "../i18n/types";
+import type { Translate, TranslationKey } from "../i18n/types";
 
 type TimelineItem = {
   key: string;
@@ -93,7 +93,7 @@ function addressOperandLabel(target: string, index?: string): string {
   return index ? `${target}+${index}` : target;
 }
 
-function instructionMeaning(text: string | undefined, fallback: string, visualPath?: VisualPathKind): string {
+function instructionMeaning(text: string | undefined, fallback: string, visualPath: VisualPathKind | undefined, t?: Translate): string {
   const compact = (text ?? "").replace(/\s+/g, " ").trim();
   const [mnemonic = "", operand = ""] = compact.split(/\s+/, 2);
   const [register = "", target = "", index = ""] = operand.split(",").map((part) => part.trim());
@@ -139,7 +139,7 @@ function instructionMeaning(text: string | undefined, fallback: string, visualPa
     case "JOV":
       return `conditional PR <- ${operand}`;
     case "RET":
-      return visualPath === VisualPathKind.RET_StackToPr ? "PR <- memory[SP]; SP++" : "finish execution";
+      return visualPath === VisualPathKind.RET_StackToPr ? "PR <- memory[SP]; SP++" : t?.("instruction.finishExecution") ?? "finish execution";
     case "NOP":
       return "sequential execution";
     default:
@@ -170,6 +170,19 @@ function timelineStageIndex(state: CometState): number {
 
 function pipelineStageLabel(state: CometState): string {
   return ["Fetch", "Decode", "Operand Read", "Execute", "Write Back", "Next"][timelineStageIndex(state)] ?? "Fetch";
+}
+
+const pipelineStageKeys: TranslationKey[] = [
+  "timeline.fetch",
+  "timeline.decode",
+  "timeline.operandRead",
+  "timeline.execute",
+  "timeline.writeBack",
+  "timeline.next"
+];
+
+function translatedPipelineStage(t: Translate, state: CometState): string {
+  return t(pipelineStageKeys[timelineStageIndex(state)] ?? "timeline.fetch");
 }
 
 function activeVisualPath(state: CometState): VisualPathKind {
@@ -314,8 +327,9 @@ function FocusProgramPanel({
   cppToCaslMapping,
   focus,
 }: Pick<CircuitFocusLayoutProps, "state" | "sourceMode" | "sourceText" | "generatedCaslSource" | "cppToCaslMapping"> & { focus: FocusInstructionContext }) {
+  const { t } = useI18n();
   const hasGeneratedCasl = sourceMode === "cpp" && generatedCaslSource.trim().length > 0;
-  const programTitle = hasGeneratedCasl ? "Generated CASL Program" : sourceMode === "cpp" ? "C++ Program" : "CASL Program";
+  const programTitle = hasGeneratedCasl ? `${t("codeMachine.generated")} CASL` : sourceMode === "cpp" ? "C++" : "CASL";
   const currentLine = hasGeneratedCasl ? focus.caslLine : sourceMode === "cpp" ? focus.cppLine : focus.caslLine;
   const rows = hasGeneratedCasl
     ? selectGeneratedCaslRows(generatedCaslSource, cppToCaslMapping, focus.caslLine, focus.cppLine).map((row) => ({
@@ -335,7 +349,7 @@ function FocusProgramPanel({
     <section className="panel focus-program-panel" data-testid="focus-program-panel">
       <header className="panel-header">
         <div>
-          <h2>Program</h2>
+          <h2>{t("common.program")}</h2>
           <span>{programTitle}</span>
         </div>
       </header>
@@ -362,7 +376,7 @@ function FocusDisplayPanel() {
   return (
     <section className="panel focus-display-panel" data-testid="focus-display-panel">
       <header className="panel-header">
-        <h2>OUT Display</h2>
+        <h2>{t("common.outDisplay")}</h2>
         <span>OUT</span>
       </header>
       <div className="focus-display-value" data-testid="focus-display-value">
@@ -375,13 +389,13 @@ function FocusDisplayPanel() {
 function FocusCurrentInstructionPanel({ state, isSourceDirty, focus }: { state: CometState; isSourceDirty: boolean; focus: FocusInstructionContext }) {
   const { t } = useI18n();
   const instructionText = focus.instructionText ?? summarizeCurrentInstruction(state);
-  const semanticText = instructionMeaning(focus.instructionText, summarizeCurrentInstruction(state), activeVisualPath(state));
+  const semanticText = instructionMeaning(focus.instructionText, summarizeCurrentInstruction(state), activeVisualPath(state), t);
 
   return (
     <section className="panel focus-current-panel" data-testid="focus-current-instruction-panel">
       <header className="panel-header">
-        <h2 title="Current Instruction">Instruction</h2>
-        <span className="pipeline-pill">{isSourceDirty ? "Dirty" : focus.pipelineStage}</span>
+        <h2 title={t("instruction.current")}>{t("instruction.current")}</h2>
+        <span className="pipeline-pill">{isSourceDirty ? t("status.dirty") : translatedPipelineStage(t, state)}</span>
       </header>
       <div className="focus-current-body card-overflow-safe">
         <div className="focus-current-header">
@@ -394,13 +408,13 @@ function FocusCurrentInstructionPanel({ state, isSourceDirty, focus }: { state: 
         <div
           className="focus-current-runtime compact-grid"
           data-testid="focus-current-runtime-summary"
-          aria-label={`Current ${focus.address !== undefined ? formatWord(focus.address) : "----"} / Next PR ${formatWord(state.pr)}${focus.nextInstructionText ? ` / Next ${focus.nextInstructionText}` : ""} / MAR ${formatWord(state.mar)} / FR ${formatFlags(state.fr)}`}
+          aria-label={`${t("instruction.runtimeSummary")}: ${t("instruction.currentPr")} ${focus.address !== undefined ? formatWord(focus.address) : "----"} / ${t("instruction.nextPr")} ${formatWord(state.pr)}${focus.nextInstructionText ? ` / ${t("instruction.nextInstruction")} ${focus.nextInstructionText}` : ""} / MAR ${formatWord(state.mar)} / FR ${formatFlags(state.fr)}`}
         >
-          <span className="compact-label" title="Current PR">Cur PR</span>
+          <span className="compact-label" title={t("instruction.currentPr")}>{t("instruction.currentPr")}</span>
           <code className="mono-value">{focus.address !== undefined ? formatWord(focus.address) : "----"}</code>
           <span className="compact-label">MAR</span>
           <code className="mono-value">{formatWord(state.mar)}</code>
-          <span className="compact-label">Next PR</span>
+          <span className="compact-label">{t("instruction.nextPr")}</span>
           <code className="mono-value">{formatWord(state.pr)}</code>
           <span className="compact-label">FR</span>
           <code className="mono-value">{formatFlags(state.fr)}</code>
@@ -417,24 +431,25 @@ function FocusCurrentInstructionPanel({ state, isSourceDirty, focus }: { state: 
 }
 
 function FocusTimeline({ state, timelineItems }: { state: CometState; timelineItems: TimelineItem[] }) {
-  const stages = ["Fetch", "Decode", "Operand Read", "Execute", "Write Back", "Next"];
+  const { t } = useI18n();
+  const stages = pipelineStageKeys.map((key) => ({ key, label: t(key) }));
   const activeIndex = timelineStageIndex(state);
-  const stageLabel = pipelineStageLabel(state);
+  const stageLabel = translatedPipelineStage(t, state);
 
   return (
     <section className="panel focus-timeline-panel" data-testid="focus-step-timeline">
       <header className="panel-header">
         <div>
-          <h2>Step Timeline</h2>
-          <span>Instruction pipeline view</span>
+          <h2>{t("timeline.title")}</h2>
+          <span>{t("timeline.pipelineView")}</span>
         </div>
-        <span>Pipeline: {stageLabel}</span>
+        <span>{t("timeline.pipeline")}: {stageLabel}</span>
       </header>
       <div className="focus-stage-timeline">
         {stages.map((stage, index) => (
-          <div key={stage} className={`focus-stage ${index < activeIndex ? "completed" : index === activeIndex ? "current" : "pending"}`}>
+          <div key={stage.key} className={`focus-stage ${index < activeIndex ? "completed" : index === activeIndex ? "current" : "pending"}`} title={index < activeIndex ? t("timeline.completed") : index === activeIndex ? t("table.current") : t("timeline.pending")}>
             <span>{index + 1}</span>
-            <strong>{stage}</strong>
+            <strong>{stage.label}</strong>
           </div>
         ))}
       </div>
@@ -443,17 +458,18 @@ function FocusTimeline({ state, timelineItems }: { state: CometState; timelineIt
 }
 
 function FocusTracePanel({ state }: { state: CometState }) {
+  const { t } = useI18n();
   return (
     <section className="panel focus-trace-panel" data-testid="focus-trace-panel">
       <header className="panel-header">
         <div>
-          <h2>Trace</h2>
-          <span>Recent steps</span>
+          <h2>{t("inspector.trace")}</h2>
+          <span>{t("timeline.recent")}</span>
         </div>
         <span>{state.trace.length}</span>
       </header>
       <div className="focus-trace-list">
-        {state.trace.length === 0 ? <p className="muted">No steps yet.</p> : null}
+        {state.trace.length === 0 ? <p className="muted">{t("empty.noTraceEntries")}</p> : null}
         {state.trace.slice(0, 6).map((event, index) => (
           <article
             key={`${event.index}-${event.address}`}
@@ -479,7 +495,7 @@ function memoryWindowCenterAddress(state: CometState): number {
   return activeMemoryAddress(state) ?? state.currentAddress ?? state.pr;
 }
 
-function FocusMemoryWindowPanel({ state, rowCount = 9, title = "Main Memory" }: { state: CometState; rowCount?: number; title?: string }) {
+function FocusMemoryWindowPanel({ state, rowCount = 9, title }: { state: CometState; rowCount?: number; title?: string }) {
   const { t } = useI18n();
   const centerAddress = memoryWindowCenterAddress(state);
   const startAddress = wrapAddress(centerAddress - Math.floor(rowCount / 2));
@@ -503,7 +519,7 @@ function FocusMemoryWindowPanel({ state, rowCount = 9, title = "Main Memory" }: 
     <section className="panel focus-memory-window" data-testid="focus-memory-window">
       <header className="panel-header">
         <div>
-          <h2>{title}</h2>
+          <h2>{title ?? t("registerStack.mainMemory")}</h2>
           <span>{rowCount} row window</span>
         </div>
         <span>@{formatWord(centerAddress)}</span>
@@ -529,7 +545,7 @@ function FocusMemoryWindowPanel({ state, rowCount = 9, title = "Main Memory" }: 
             <code className="mono-value">{formatWord(row.address)}</code>
             <code className="mono-value">{formatWord(row.value)}</code>
             <span className="text-ellipsis" title={row.label}>{row.label}</span>
-            <span className="text-ellipsis" title={row.markers.join(" ")}>{row.markers.join(" ")}</span>
+            <span className="text-ellipsis" title={row.markers.join(" ")}>{row.markers.map((marker) => marker === "READ" ? t("common.read") : marker === "WRITE" ? t("common.write") : marker).join(" ")}</span>
           </div>
         ))}
       </div>
@@ -538,12 +554,13 @@ function FocusMemoryWindowPanel({ state, rowCount = 9, title = "Main Memory" }: 
 }
 
 function FocusRegisterStackDashboard({ state }: { state: CometState }) {
+  const { t } = useI18n();
   return (
     <section className="focus-register-stack-dashboard" data-testid="focus-register-stack-dashboard">
       <section className="panel focus-register-bank" data-testid="focus-register-bank">
         <header className="panel-header">
           <div>
-            <h2>Register Bank</h2>
+            <h2>{t("registerStack.registerBank")}</h2>
             <span>GR0-GR7 / PR / SP / FR</span>
           </div>
         </header>
@@ -596,10 +613,10 @@ function FocusGeneratedCaslPanel({
       </header>
       <div className="focus-code-table focus-generated-casl-table">
         <div className="focus-code-row focus-code-head" aria-hidden="true">
-          <span className="focus-code-cell-primary">Line</span>
+          <span className="focus-code-cell-primary">{t("codeMachine.line")}</span>
           <span className="focus-code-cell-primary">{t("table.label")}</span>
-          <span className="focus-code-cell-primary">Op</span>
-          <span className="focus-code-cell-primary">Operand</span>
+          <span className="focus-code-cell-primary">{t("codeMachine.opcode")}</span>
+          <span className="focus-code-cell-primary">{t("codeMachine.operand")}</span>
           <span className="focus-code-cell-secondary">{t("table.mapping")}</span>
         </div>
         {rows.slice(0, 18).map((row) => {
@@ -658,7 +675,7 @@ function FocusMachineCodePanel({ state, cppToCaslMapping }: { state: CometState;
       <div className="focus-code-table focus-machine-code-table">
         <div className="focus-code-row focus-code-head" aria-hidden="true">
           <span className="focus-code-cell-primary">{t("table.address")}</span>
-          <span className="focus-code-cell-primary">Word</span>
+          <span className="focus-code-cell-primary">{t("codeMachine.word")}</span>
           <span className="focus-code-cell-primary">{t("table.source")}</span>
           <span className="focus-code-cell-secondary">{t("table.meaning")}</span>
         </div>
@@ -694,26 +711,26 @@ function FocusSourceMappingPanel({
 }) {
   const { t } = useI18n();
   const addressText = focus.address === undefined ? "----" : formatWord(focus.address);
-  const instructionText = focus.instructionText ?? "No active instruction";
+  const instructionText = focus.instructionText ?? t("instruction.noActive");
 
   return (
     <section className="panel focus-source-mapping-panel" data-testid="focus-source-mapping-panel">
       <header className="panel-header">
         <div>
-          <h2 title="Current Source Mapping">Current Source Mapping</h2>
+          <h2 title={t("circuit.currentSourceMapping")}>{t("circuit.currentSourceMapping")}</h2>
           <span>{sourceMode === "cpp" ? "C++ -> CASL" : "CASL -> machine"}</span>
         </div>
       </header>
       <div className="focus-source-mapping-body">
-        <span className="compact-label">{t("table.address")}</span>
+        <span className="compact-label">{t("instruction.machineAddress")}</span>
         <code className="mono-value">{addressText}</code>
-        <span className="compact-label">CASL</span>
+        <span className="compact-label">{t("instruction.caslLine")}</span>
         <code className="nowrap-symbol" title={instructionText}>{instructionText}</code>
-        <span className="compact-label">{t("table.source")}</span>
+        <span className="compact-label">{t("instruction.sourceLine")}</span>
         <code className="nowrap-symbol" title={focus.sourceText}>{focus.sourceText}</code>
         {sourceMode === "cpp" && sourceSlotMappings.length > 0 ? (
           <>
-            <span className="compact-label">Slots</span>
+            <span className="compact-label">{t("stackFrame.frameSlot")}</span>
             <div className="source-frame-slot-chips" data-testid="source-frame-slot-chips">
               {sourceSlotMappings.map((mapping) => (
                 <button
@@ -748,11 +765,11 @@ type ProbeRow = {
   active: boolean;
 };
 
-function frameSlotProbeRows(mapping?: FrameSlotMapping): ProbeRow[] {
+function frameSlotProbeRows(mapping: FrameSlotMapping | undefined, t: Translate): ProbeRow[] {
   if (!mapping) return [];
   return mapping.signalProbeRelationRows.slice(0, 3).map((row) => ({
     label: `SLOT_${row.label}`,
-    displayLabel: row.label,
+    displayLabel: row.label === "Slot" ? t("stackFrame.frameSlot") : row.label === "Current" ? t("signalProbe.currentRelation") : row.label === "Future" ? t("signalProbe.futureRelation") : row.label,
     title: row.title,
     value: row.value,
     note: row.note,
@@ -816,7 +833,7 @@ function functionNameFromRoutineLabel(label: string): string | undefined {
   return undefined;
 }
 
-function callStackInfo(state: CometState, focus: FocusInstructionContext): CallStackInfo {
+function callStackInfo(state: CometState, focus: FocusInstructionContext, t: Translate): CallStackInfo {
   const latest = state.trace[0];
   const visualPath = activeVisualPath(state);
   const stackActive =
@@ -834,23 +851,23 @@ function callStackInfo(state: CometState, focus: FocusInstructionContext): CallS
       : undefined;
   const retModeText =
     visualPath === VisualPathKind.RET_StackToPr
-      ? "Stack return"
+      ? t("callStack.stackReturn")
       : state.callDepth > 0
-        ? "Stack return"
-        : "Top-level finish";
+        ? t("callStack.stackReturn")
+        : t("callStack.topLevelFinish");
   const edgeText =
     visualPath === VisualPathKind.CALL_ReturnAddressToStackAndPr
       ? `Call target ${targetLabel ?? (latest?.effectiveAddress !== undefined ? formatWord(latest.effectiveAddress) : "target")}; return ${latest?.returnAddress !== undefined ? formatWord(latest.returnAddress) : "----"}`
       : visualPath === VisualPathKind.RET_StackToPr
         ? `Return to ${latest?.returnAddress !== undefined ? formatWord(latest.returnAddress) : "caller"} from MEM[${latest?.stackAddress !== undefined ? formatWord(latest.stackAddress) : "SP"}]`
         : state.callDepth === 0
-          ? "Program finish"
+          ? t("callStack.programFinish")
           : "Waiting for subroutine RET";
   const stackActivityText =
     visualPath === VisualPathKind.CALL_ReturnAddressToStackAndPr
-      ? "Return address write"
+      ? t("stackPreview.returnAddressWrite")
       : visualPath === VisualPathKind.RET_StackToPr
-        ? "Return address read"
+        ? t("stackPreview.returnAddressRead")
         : state.callDepth === 0
           ? "Stack activity: none"
           : "waiting";
@@ -858,8 +875,8 @@ function callStackInfo(state: CometState, focus: FocusInstructionContext): CallS
   return {
     depthText: String(state.callDepth),
     transitionText,
-    topReturnText: topReturnAddress !== undefined ? formatWord(topReturnAddress) : "none",
-    storedAtText: stackAddress !== undefined ? `MEM[${formatWord(stackAddress)}]` : "none",
+    topReturnText: topReturnAddress !== undefined ? formatWord(topReturnAddress) : t("common.none"),
+    storedAtText: stackAddress !== undefined ? `MEM[${formatWord(stackAddress)}]` : t("common.none"),
     routineText: currentRoutine,
     retModeText,
     edgeText,
@@ -889,7 +906,7 @@ function signalProbePriority(row: ProbeRow, visualPath: VisualPathKind): number 
     if (row.label === "MDR") return 24;
   }
 
-  if (row.note === "selected register") return 10;
+  if (/^GR[0-7]$/.test(row.label)) return 10;
   if (row.label === "EA") return 14;
   if (row.label === "ALU.Y" && row.active) return 16;
   if (row.label === "MDR" && row.active) return 18;
@@ -897,7 +914,7 @@ function signalProbePriority(row: ProbeRow, visualPath: VisualPathKind): number 
   if (row.label === "MEM" && row.active) return 20;
   if (row.label === "FR" && row.active) return 24;
   if (row.label === "BASE") return 56;
-  if (row.note === "index value") return 58;
+  if (row.label === "INDEX") return 58;
   if (row.label === "MAR") return 60;
   if (row.label === "SP") return 68;
   return row.active ? 40 : 90;
@@ -907,7 +924,7 @@ function orderSignalProbeRows(rows: ProbeRow[], visualPath: VisualPathKind): Pro
   return [...rows].sort((left, right) => signalProbePriority(left, visualPath) - signalProbePriority(right, visualPath));
 }
 
-function signalProbeRows(state: CometState, focus: FocusInstructionContext): ProbeRow[] {
+function signalProbeRows(state: CometState, focus: FocusInstructionContext, t: Translate): ProbeRow[] {
   const visualPath = activeVisualPath(state);
   const latest = state.trace[0];
   const registerIndex = activeRegisterIndexFromInstruction(focus.instructionText);
@@ -933,44 +950,44 @@ function signalProbeRows(state: CometState, focus: FocusInstructionContext): Pro
   const rows: ProbeRow[] = [
     {
       label: registerLabel,
-      title: `${registerLabel} selected register`,
+      title: `${registerLabel} ${t("signalProbe.selectedRegister")}`,
       value: registerValue,
-      note: "selected register",
+      note: t("signalProbe.selectedRegister"),
       active: registerIndex !== undefined || latest?.changedRegister === registerLabel
     },
     {
       label: "MDR",
-      title: "Memory data register",
+      title: t("signalProbe.memoryDataRegister"),
       value: formatWord(state.mdr),
-      note: "memory data register",
+      note: t("signalProbe.memoryDataRegister"),
       active: visualPath === VisualPathKind.LD_MemoryToMdrToGr || visualPath === VisualPathKind.ST_GrToMdrToMemory || visualPath === VisualPathKind.ADDA_GrMdrToAluToGr || visualPath === VisualPathKind.SUBA_GrMdrToAluToGr || visualPath === VisualPathKind.CPA_GrMdrToAluToFr || visualPath === VisualPathKind.PUSH_EffectiveAddressToStack || visualPath === VisualPathKind.POP_StackToGr || visualPath === VisualPathKind.CALL_ReturnAddressToStackAndPr || visualPath === VisualPathKind.RET_StackToPr
     },
     {
       label: "ALU.Y",
-      title: "ALU output Y",
+      title: t("signalProbe.aluResult"),
       value: isAluVisualPath(visualPath) ? formatWord(state.gr[probeRegisterIndex] ?? 0) : "inactive",
-      note: "ALU result",
+      note: t("signalProbe.aluResult"),
       active: isAluVisualPath(visualPath)
     },
     {
       label: "FR",
-      title: "Flag register",
+      title: t("signalProbe.flags"),
       value: formatFlags(state.fr),
-      note: "flags",
+      note: t("signalProbe.flags"),
       active: visualPath === VisualPathKind.CPA_GrMdrToAluToFr || visualPath === VisualPathKind.ADDA_GrMdrToAluToGr || visualPath === VisualPathKind.SUBA_GrMdrToAluToGr || visualPath === VisualPathKind.Shift_AddressToAluToGr
     },
     {
       label: "MEM",
-      title: memoryAddress !== undefined ? `Memory target MEM[${formatWord(memoryAddress)}]` : "Memory target",
+      title: memoryAddress !== undefined ? `${t("signalProbe.targetMemory")} MEM[${formatWord(memoryAddress)}]` : t("signalProbe.targetMemory"),
       value: memoryValue,
-      note: memoryAddress !== undefined ? `target MEM[${formatWord(memoryAddress)}]` : "target memory",
+      note: memoryAddress !== undefined ? `${t("signalProbe.targetMemory")} MEM[${formatWord(memoryAddress)}]` : t("signalProbe.targetMemory"),
       active: memoryAddress !== undefined && (state.lastMemoryReadAddress === memoryAddress || state.lastMemoryWriteAddress === memoryAddress || state.changedMemoryAddresses.includes(memoryAddress))
     },
     {
       label: "SP",
-      title: "Stack pointer",
+      title: t("signalProbe.stackPointer"),
       value: stackPointerValue,
-      note: visualPath === VisualPathKind.PUSH_EffectiveAddressToStack || visualPath === VisualPathKind.POP_StackToGr || visualPath === VisualPathKind.CALL_ReturnAddressToStackAndPr || visualPath === VisualPathKind.RET_StackToPr ? "stack pointer" : "stack preview only",
+      note: visualPath === VisualPathKind.PUSH_EffectiveAddressToStack || visualPath === VisualPathKind.POP_StackToGr || visualPath === VisualPathKind.CALL_ReturnAddressToStackAndPr || visualPath === VisualPathKind.RET_StackToPr ? t("signalProbe.stackPointer") : t("signalProbe.stackPreviewOnly"),
       active: visualPath === VisualPathKind.PUSH_EffectiveAddressToStack || visualPath === VisualPathKind.POP_StackToGr || visualPath === VisualPathKind.CALL_ReturnAddressToStackAndPr || visualPath === VisualPathKind.RET_StackToPr
     }
   ];
@@ -978,16 +995,16 @@ function signalProbeRows(state: CometState, focus: FocusInstructionContext): Pro
   if (visualPath === VisualPathKind.PUSH_EffectiveAddressToStack || visualPath === VisualPathKind.POP_StackToGr || visualPath === VisualPathKind.CALL_ReturnAddressToStackAndPr || visualPath === VisualPathKind.RET_StackToPr) {
     rows.push({
       label: "STACK",
-      displayLabel: "Stack",
-      title: visualPath === VisualPathKind.PUSH_EffectiveAddressToStack || visualPath === VisualPathKind.CALL_ReturnAddressToStackAndPr ? "Stack write" : "Stack read",
+      displayLabel: t("signalProbe.stack"),
+      title: visualPath === VisualPathKind.PUSH_EffectiveAddressToStack || visualPath === VisualPathKind.CALL_ReturnAddressToStackAndPr ? t("signalProbe.stackWrite") : t("signalProbe.stackRead"),
       value: memoryAddress !== undefined ? `MEM[${formatWord(memoryAddress)}]` : "inactive",
       note: visualPath === VisualPathKind.PUSH_EffectiveAddressToStack
-        ? "Stack write"
+        ? t("signalProbe.stackWrite")
         : visualPath === VisualPathKind.CALL_ReturnAddressToStackAndPr
-          ? "Return address write"
+          ? t("stackPreview.returnAddressWrite")
           : visualPath === VisualPathKind.RET_StackToPr
-            ? "Return address read"
-            : "Stack read",
+            ? t("stackPreview.returnAddressRead")
+            : t("signalProbe.stackRead"),
       active: true
     });
   }
@@ -996,21 +1013,21 @@ function signalProbeRows(state: CometState, focus: FocusInstructionContext): Pro
     rows.push(
       {
         label: "RETADDR",
-        displayLabel: "Return",
-        title: "Return address",
+        displayLabel: t("callStack.return"),
+        title: t("signalProbe.returnAddress"),
         value: latest?.returnAddress !== undefined ? formatWord(latest.returnAddress) : formatWord(state.pr),
-        note: visualPath === VisualPathKind.CALL_ReturnAddressToStackAndPr ? "return address" : "return target",
+        note: t("signalProbe.returnAddress"),
         active: true
       },
       {
         label: "CALLDEPTH",
-        displayLabel: "Depth",
-        title: "Call depth",
+        displayLabel: t("callStack.depth"),
+        title: t("callStack.depth"),
         value:
           latest?.callDepthBefore !== undefined && latest.callDepthAfter !== undefined
             ? `${latest.callDepthBefore} -> ${latest.callDepthAfter}`
             : String(state.callDepth),
-        note: "call frames",
+        note: t("callStack.depth"),
         active: true
       }
     );
@@ -1022,25 +1039,25 @@ function signalProbeRows(state: CometState, focus: FocusInstructionContext): Pro
       0,
       {
         label: "BASE",
-        displayLabel: "Base",
-        title: "Base address operand",
+        displayLabel: t("signalProbe.base"),
+        title: t("signalProbe.base"),
         value: formatWord(state.lastBaseAddress ?? 0),
-        note: "address operand",
+        note: t("codeMachine.operandAddress"),
         active: true
       },
       {
         label: "INDEX",
-        displayLabel: "Index",
-        title: `Index register GR${state.lastIndexRegister}`,
+        displayLabel: t("signalProbe.index"),
+        title: `${t("signalProbe.index")} GR${state.lastIndexRegister}`,
         value: `GR${state.lastIndexRegister}=${formatWord(state.lastIndexValue ?? 0)}`,
-        note: "index register",
+        note: t("signalProbe.index"),
         active: true
       },
       {
         label: "EA",
-        title: "Effective address",
+        title: t("signalProbe.effectiveAddress"),
         value: formatWord(state.lastEffectiveAddress),
-        note: "base + index",
+        note: `${t("signalProbe.base")} + ${t("signalProbe.index")}`,
         active: true
       },
       {
@@ -1057,27 +1074,27 @@ function signalProbeRows(state: CometState, focus: FocusInstructionContext): Pro
 
 function FocusCallStackPanel({ state, focus, density = "normal" }: { state: CometState; focus: FocusInstructionContext; density?: FocusPanelDensity }) {
   const { t } = useI18n();
-  const info = callStackInfo(state, focus);
+  const info = callStackInfo(state, focus, t);
   const [detailsOpen, setDetailsOpen] = useState(false);
 
   return (
     <section className="panel focus-call-stack" data-testid="focus-call-stack">
       <header className="panel-header">
         <div>
-          <h2>Call Stack</h2>
-          <span>{info.active ? "Return activity" : "Subroutine context"}</span>
+          <h2>{t("callStack.title")}</h2>
+          <span>{info.active ? t("callStack.returnActivity") : t("callStack.subroutineContext")}</span>
         </div>
-        <span>Depth {info.depthText}</span>
+        <span>{t("callStack.depth")} {info.depthText}</span>
       </header>
       <div className="call-stack-body card-overflow-safe" data-active={info.active ? "true" : "false"} data-density={density}>
         <div className="call-stack-summary" data-testid="call-stack-summary">
           <div>
-            <span className="compact-label">Depth</span>
+            <span className="compact-label">{t("callStack.depth")}</span>
             <code data-testid="call-stack-depth">{info.depthText}</code>
-            <small className="secondary-note">{info.transitionText ? "changed" : "current"}</small>
+            <small className="secondary-note">{info.transitionText ? t("callStack.changed") : t("callStack.current")}</small>
           </div>
           <div>
-            <span className="compact-label">Mode</span>
+            <span className="compact-label">{t("callStack.mode")}</span>
             <code data-testid="call-stack-ret-mode">{info.retModeText}</code>
             <small className="secondary-note text-ellipsis" title={info.edgeText}>{info.edgeText}</small>
           </div>
@@ -1098,23 +1115,23 @@ function FocusCallStackPanel({ state, focus, density = "normal" }: { state: Come
           </summary>
           <div id="call-stack-detail-rows" className="call-stack-detail-rows">
           <div className="call-stack-row">
-            <span className="compact-label">Return</span>
+            <span className="compact-label">{t("callStack.return")}</span>
             <code data-testid="call-stack-return-address">{info.topReturnText}</code>
             <small className="secondary-note text-ellipsis" title={info.stackActivityText}>{info.stackActivityText}</small>
           </div>
           <div className="call-stack-row">
-            <span className="compact-label">Stored at</span>
+            <span className="compact-label">{t("callStack.storedAt")}</span>
             <code className="nowrap-symbol" title={info.storedAtText}>{info.storedAtText}</code>
             <small className="secondary-note text-ellipsis" title={info.edgeText}>{info.edgeText}</small>
           </div>
           <div className="call-stack-row">
-            <span className="compact-label">Routine</span>
+            <span className="compact-label">{t("callStack.routine")}</span>
             <code data-testid="call-stack-routine">{info.routineText}</code>
             <small className="secondary-note">current / target</small>
           </div>
           <div className="call-stack-row call-stack-row-wide">
-            <span className="compact-label">Depth change</span>
-            <code className="nowrap-symbol" title={info.transitionText ?? "none"}>{info.transitionText ?? "none"}</code>
+            <span className="compact-label">{t("callStack.depthChange")}</span>
+            <code className="nowrap-symbol" title={info.transitionText ?? t("common.none")}>{info.transitionText ?? t("common.none")}</code>
           </div>
           </div>
         </details>
@@ -1137,21 +1154,21 @@ function FocusSignalProbePanel({
   const { t } = useI18n();
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [slotDetailsOpen, setSlotDetailsOpen] = useState(false);
-  const rows = signalProbeRows(state, focus);
+  const rows = signalProbeRows(state, focus, t);
   const activeRows = rows.filter((row) => row.active);
   const inactiveRows = rows.filter((row) => !row.active);
   const primaryLimit = 3;
   const primaryRows = [...activeRows, ...inactiveRows].slice(0, primaryLimit);
   const detailRows = [...activeRows, ...inactiveRows].slice(primaryLimit);
-  const slotRelationRows = frameSlotProbeRows(selectedFrameSlot);
+  const slotRelationRows = frameSlotProbeRows(selectedFrameSlot, t);
   const recent = density === "compact" ? [] : state.trace.slice(0, 3);
 
   return (
     <section className="panel focus-signal-probe" data-testid="focus-signal-probe">
       <header className="panel-header">
         <div>
-          <h2>Signal Probe</h2>
-          <span>Read-only nodes</span>
+          <h2>{t("signalProbe.title")}</h2>
+          <span>{t("signalProbe.readOnlyNodes")}</span>
         </div>
         <span>{t("common.compact")}</span>
       </header>
@@ -1164,7 +1181,7 @@ function FocusSignalProbePanel({
             title={selectedFrameSlot.explanation}
           >
             <div className="signal-probe-slot-relation-head">
-              <span>Frame slot relation</span>
+              <span>{t("signalProbe.frameSlotRelation")}</span>
               <code title={selectedFrameSlot.symbolName}>{selectedFrameSlot.symbolName}</code>
             </div>
             <div className="signal-probe-rows signal-probe-slot-rows">
@@ -1188,14 +1205,14 @@ function FocusSignalProbePanel({
                 aria-controls="signal-probe-frame-slot-detail-note"
                 title="Toggle design-only frame slot relation details"
               >
-                Design note
+                {t("signalProbe.designNote")}
               </summary>
               <p
                 id="signal-probe-frame-slot-detail-note"
                 className="secondary-note wrap-explanation"
                 title={`${selectedFrameSlot.currentCircuitRelation}. ${selectedFrameSlot.futureCircuitRelation}. Runtime frame value is not available in simple mode.`}
               >
-                {selectedFrameSlot.currentCircuitRelation}. Future: {selectedFrameSlot.futureCircuitRelation}. Runtime frame value: not available.
+                {selectedFrameSlot.currentCircuitRelation}. {t("signalProbe.futureRelation")}: {selectedFrameSlot.futureCircuitRelation}. {t("signalProbe.runtimeValueUnavailable")}.
               </p>
             </details>
           </div>
@@ -1238,12 +1255,12 @@ function FocusSignalProbePanel({
         <div
           className="signal-probe-evolution"
           data-testid="signal-probe-evolution"
-          aria-label={recent.length ? "Recent signal changes" : "No signal changes yet."}
+          aria-label={recent.length ? t("signalProbe.recentChanges") : t("signalProbe.noChanges")}
         >
           {recent.length ? (
             recent.map((event) => <span key={`${event.index}-${event.address}`} title={traceChangeText(event)}>{traceChangeText(event)}</span>)
           ) : (
-            <span title="No signal changes yet.">No signal changes yet.</span>
+            <span title={t("signalProbe.noChanges")}>{t("signalProbe.noChanges")}</span>
           )}
         </div>
       </div>
@@ -1262,23 +1279,23 @@ function FocusStackPreviewPanel({ state }: { state: CometState }) {
     visualPath === VisualPathKind.RET_StackToPr;
   const writeNote =
     visualPath === VisualPathKind.CALL_ReturnAddressToStackAndPr
-      ? "Return address write"
+      ? t("stackPreview.returnAddressWrite")
       : visualPath === VisualPathKind.PUSH_EffectiveAddressToStack
-        ? "Stack write"
-        : "WRITE";
+        ? t("stackPreview.stackWrite")
+        : t("common.write");
   const readNote =
     visualPath === VisualPathKind.RET_StackToPr
-      ? "Return address read"
+      ? t("stackPreview.returnAddressRead")
       : visualPath === VisualPathKind.POP_StackToGr
-        ? "Stack read"
-        : "READ";
+        ? t("stackPreview.stackRead")
+        : t("common.read");
 
   return (
     <section className="panel focus-stack-preview" data-testid="focus-stack-preview">
       <header className="panel-header">
         <div>
-          <h2>Stack Preview</h2>
-          <span>{stackActive ? "Stack path active." : "Stack path preview only."}</span>
+          <h2>{t("stackPreview.title")}</h2>
+          <span>{stackActive ? t("stackPreview.pathActive") : t("stackPreview.pathPreviewOnly")}</span>
         </div>
         <span>SP {formatWord(state.sp)}</span>
       </header>
@@ -1286,7 +1303,7 @@ function FocusStackPreviewPanel({ state }: { state: CometState }) {
         <div className="stack-preview-grid stack-preview-head" aria-hidden="true">
           <span>{t("table.address")}</span>
           <span>{t("table.value")}</span>
-          <span>Note</span>
+          <span>{t("stackPreview.note")}</span>
         </div>
         {rows.map((row) => (
           <div
@@ -1360,21 +1377,25 @@ const FALLBACK_FRAME_SLOTS: FrameSlotPreview[] = [
   }
 ];
 
-function slotKindLabel(slot: FrameSlotPreview): string {
-  switch (slot.kind) {
+function frameSlotKindLabel(kind: FrameSlotPreview["kind"], t: Translate): string {
+  switch (kind) {
     case "return-address":
-      return "return";
+      return t("stackFrame.returnAddress");
     case "saved-fp":
       return "saved FP";
     case "argument":
-      return "argument";
+      return t("stackFrame.argument");
     case "local":
-      return "local";
+      return t("stackFrame.local");
     case "temporary":
-      return "temporary";
+      return t("stackFrame.temporary");
     default:
-      return slot.kind;
+      return kind;
   }
+}
+
+function slotKindLabel(slot: FrameSlotPreview, t: Translate): string {
+  return frameSlotKindLabel(slot.kind, t);
 }
 
 function currentLoweringLabel(slot: FrameSlotPreview): string {
@@ -1395,12 +1416,12 @@ function staticLabelReference(mapping: FrameSlotMapping): string {
   return `${mapping.currentLabelForDebug} DS 1`;
 }
 
-function selectionSourceLabel(source?: FrameSlotSelectionSource): string {
-  if (source === "generated-casl") return "Generated CASL";
-  if (source === "source-editor") return "Source Editor";
-  if (source === "source-context") return "Source Context";
-  if (source === "stack-frame-view") return "Stack Frame View";
-  return "not selected";
+function selectionSourceLabel(source: FrameSlotSelectionSource | undefined, t: Translate): string {
+  if (source === "generated-casl") return t("stackFrame.generatedCasl");
+  if (source === "source-editor") return t("stackFrame.sourceEditor");
+  if (source === "source-context") return t("stackFrame.sourceContext");
+  if (source === "stack-frame-view") return t("stackFrame.title");
+  return t("common.none");
 }
 
 function frameSlotMappingsForSourceText(mappings: FrameSlotMapping[], sourceText: string): FrameSlotMapping[] {
@@ -1429,6 +1450,7 @@ function FrameSlotDetail({
   selectionSource?: FrameSlotSelectionSource;
   emptyText?: string;
 }) {
+  const { t } = useI18n();
   if (!mapping) {
     return (
       <div className="stack-frame-slot-detail stack-frame-slot-detail-empty" data-testid="stack-frame-slot-detail" data-runtime-state="false">
@@ -1438,7 +1460,7 @@ function FrameSlotDetail({
   }
 
   const selectedCurrentLowering = slot ? currentLoweringLabel(slot) : mapping.currentLowering;
-  const sourceLabel = selectionSourceLabel(selectionSource);
+  const sourceLabel = selectionSourceLabel(selectionSource, t);
 
   return (
     <div
@@ -1449,51 +1471,51 @@ function FrameSlotDetail({
       title={mapping.explanation}
     >
       <div className="stack-frame-slot-detail-title">
-        <span>Slot Detail</span>
+        <span>{t("stackFrame.slotDetail")}</span>
         <code title={mapping.symbolName}>{mapping.symbolName}</code>
       </div>
       <div className="stack-frame-slot-detail-grid">
         <div>
-          <span className="compact-label">Symbol</span>
+          <span className="compact-label">{t("stackFrame.symbol")}</span>
           <code title={mapping.symbolName}>{mapping.symbolName}</code>
         </div>
         <div>
-          <span className="compact-label">Kind</span>
-          <code title={mapping.slotKind}>{mapping.slotKind}</code>
+          <span className="compact-label">{t("stackFrame.kind")}</span>
+          <code title={mapping.slotKind}>{frameSlotKindLabel(mapping.slotKind, t)}</code>
         </div>
         <div>
-          <span className="compact-label">Current</span>
+          <span className="compact-label">{t("stackFrame.currentLowering")}</span>
           <code title={selectedCurrentLowering}>{selectedCurrentLowering}</code>
         </div>
         <div>
-          <span className="compact-label">Future</span>
+          <span className="compact-label">{t("stackFrame.futureStorage")}</span>
           <code title={futureStorageLabel(mapping)}>{futureStorageLabel(mapping)}</code>
         </div>
         <div>
-          <span className="compact-label">CASL</span>
+          <span className="compact-label">{t("stackFrame.currentCaslLabel")}</span>
           <code title={staticLabelReference(mapping)}>{staticLabelReference(mapping)}</code>
         </div>
         <div>
-          <span className="compact-label">Source</span>
+          <span className="compact-label">{t("stackFrame.sourceLine")}</span>
           <code title={mapping.sourceLine ? `line ${mapping.sourceLine}` : "not mapped"}>
             {mapping.sourceLine ? `line ${mapping.sourceLine}` : "not mapped"}
           </code>
         </div>
         <div className="stack-frame-slot-detail-wide">
-          <span className="compact-label">Selected</span>
+          <span className="compact-label">{t("stackFrame.selectionSource")}</span>
           <code title={sourceLabel}>{sourceLabel}</code>
         </div>
         <div className="stack-frame-slot-detail-wide">
-          <span className="compact-label">Circuit now</span>
+          <span className="compact-label">{t("stackFrame.circuitNow")}</span>
           <code data-testid="slot-current-circuit-relation" title={mapping.currentCircuitRelation}>{mapping.currentCircuitRelation}</code>
         </div>
         <div className="stack-frame-slot-detail-wide">
-          <span className="compact-label">Circuit future</span>
+          <span className="compact-label">{t("stackFrame.circuitFuture")}</span>
           <code data-testid="slot-future-circuit-relation" title={mapping.futureCircuitRelation}>{mapping.futureCircuitRelation}</code>
         </div>
       </div>
-      <p className="secondary-note wrap-explanation" title="Runtime state: Not available in simple mode.">
-        Runtime state: Not available in simple mode.
+      <p className="secondary-note wrap-explanation" title={`${t("stackFrame.runtimeState")}: ${t("signalProbe.runtimeValueUnavailable")}.`}>
+        {t("stackFrame.runtimeState")}: {t("signalProbe.runtimeValueUnavailable")}.
       </p>
     </div>
   );
@@ -1516,25 +1538,26 @@ function FocusStackFrameViewPanel({
   onSelectFrameSlot: (mapping: FrameSlotMapping, source: FrameSlotSelectionSource) => void;
   onFunctionChange: (functionName: string) => void;
 }) {
+  const { t } = useI18n();
   const [detailsOpen, setDetailsOpen] = useState(false);
   const preferredFunctionName = functionNameFromRoutineLabel(routineLabelForAddress(state, focus.address));
   const activeFunction = preview.activeFunction;
-  const modeText = "Simple static locals";
+  const modeText = t("stackFrame.simpleStaticLocals");
   const argumentText = STACK_FRAME_ARGUMENT_REGISTERS.join(" / ");
   const functionText = preview.selectedFunctionName ?? preferredFunctionName ?? "none";
-  const frameSizeText = activeFunction ? `${activeFunction.frameSizeWords} words` : "not available";
+  const frameSizeText = activeFunction ? `${activeFunction.frameSizeWords} ${t("codeMachine.word")}` : t("stackFrame.unavailable");
   const slotRows = slotRowsForPreview(activeFunction);
   const selectedSlot = slotRows.find((slot) => slot.mappingId === selectedFrameSlotId);
   const selectedMapping = activeFunction?.slotMappings.find((mapping) => mapping.mappingId === selectedSlot?.mappingId);
-  const previewStatus = preview.available ? "available" : preview.reason ?? "not available";
+  const previewStatus = preview.available ? t("stackFrame.available") : preview.reason ?? t("stackFrame.unavailable");
   const warningsText = preview.warnings.join(" ");
 
   return (
     <section className="panel focus-stack-frame-view" data-testid="focus-stack-frame-view">
       <header className="panel-header">
         <div>
-          <h2 title="Stack Frame View">Stack Frame View</h2>
-          <span>{preview.available ? "FramePlan preview" : "Design placeholder"}</span>
+          <h2 title={t("stackFrame.title")}>{t("stackFrame.title")}</h2>
+          <span>{preview.available ? t("stackFrame.framePlanPreview") : t("stackFrame.designPlaceholder")}</span>
         </div>
         <span data-testid="stack-frame-current-mode">{modeText}</span>
       </header>
@@ -1545,41 +1568,41 @@ function FocusStackFrameViewPanel({
         data-runtime-state={preview.isRuntimeState ? "true" : "false"}
         data-has-live-frame="false"
       >
-        <div className="stack-frame-view-badges" aria-label="Stack Frame View preview status">
-          <span data-testid="stack-frame-design-preview-badge" title="FramePlan metadata is a design preview only.">Design preview</span>
-          <span data-testid="stack-frame-not-runtime-state" title="This panel does not display live runtime frame slots.">Not runtime state</span>
+        <div className="stack-frame-view-badges" aria-label={`${t("stackFrame.title")}: ${t("stackFrame.designPreview")}`}>
+          <span data-testid="stack-frame-design-preview-badge" title="FramePlan metadata is a design preview only.">{t("stackFrame.designPreview")}</span>
+          <span data-testid="stack-frame-not-runtime-state" title="This panel does not display live runtime frame slots.">{t("stackFrame.notRuntimeState")}</span>
         </div>
         <p className="stack-frame-view-note wrap-explanation" title="No live stack frame locals yet. Current C++ locals lower to static namespaced labels. FramePlan is preview metadata only.">
           No live stack frame locals yet. C++ locals lower to static labels. FramePlan is preview only.
         </p>
         <div className="stack-frame-view-rows">
           <div className="stack-frame-view-row" data-testid="stack-frame-mode-row">
-            <span className="compact-label">Mode</span>
+            <span className="compact-label">{t("stackFrame.mode")}</span>
             <code className="nowrap-symbol" title={modeText}>{modeText}</code>
             <small className="secondary-note text-ellipsis" title="Current simple lowering mode">static-namespaced-labels</small>
           </div>
           <div className="stack-frame-view-row" data-testid="stack-frame-preview-row">
-            <span className="compact-label">Plan</span>
-            <code className="nowrap-symbol" title={previewStatus}>{preview.available ? "available" : "unavailable"}</code>
+            <span className="compact-label">{t("stackFrame.plan")}</span>
+            <code className="nowrap-symbol" title={previewStatus}>{preview.available ? t("stackFrame.available") : t("stackFrame.unavailable")}</code>
             <small className="secondary-note text-ellipsis" title={previewStatus}>{previewStatus}</small>
           </div>
           <div className="stack-frame-view-row" data-testid="stack-frame-return-register-row">
-            <span className="compact-label">Return</span>
+            <span className="compact-label">{t("stackFrame.returnValue")}</span>
             <code className="mono-value">{activeFunction?.returnValueRegister ?? "GR0"}</code>
             <small className="secondary-note text-ellipsis" title="GR0 carries function return values.">return value</small>
           </div>
           <div className="stack-frame-view-row" data-testid="stack-frame-argument-registers-row">
-            <span className="compact-label">Args</span>
+            <span className="compact-label">{t("stackFrame.arguments")}</span>
             <code className="nowrap-symbol" title={argumentText}>{argumentText}</code>
             <small className="secondary-note text-ellipsis" title="GR1-GR3 are register arguments.">register arguments</small>
           </div>
           <div className="stack-frame-view-row" data-testid="stack-frame-frame-size-row">
-            <span className="compact-label">Frame size</span>
+            <span className="compact-label">{t("stackFrame.frameSize")}</span>
             <code className="nowrap-symbol" title={frameSizeText}>{frameSizeText}</code>
             <small className="secondary-note text-ellipsis" title="Design-only approximate size; not emitted as CASL.">design-only</small>
           </div>
           <div className="stack-frame-view-row" data-testid="stack-frame-static-labels-row">
-            <span className="compact-label">Locals</span>
+            <span className="compact-label">{t("stackFrame.locals")}</span>
             <code className="nowrap-symbol" title="MAIN_X / FUNC_ADD_A / FUNC_ADD_B">static labels</code>
             <small className="secondary-note text-ellipsis" title="Static namespaced labels such as MAIN_X and FUNC_ADD_A.">MAIN_X / FUNC_ADD_A</small>
           </div>
@@ -1591,7 +1614,7 @@ function FocusStackFrameViewPanel({
         </div>
         {preview.available && preview.functions.length > 1 ? (
           <label className="stack-frame-view-function" data-testid="stack-frame-function-control">
-            <span className="compact-label">Function</span>
+            <span className="compact-label">{t("stackFrame.function")}</span>
             <select
               data-testid="stack-frame-function-select"
               aria-label="Stack frame preview function"
@@ -1619,11 +1642,11 @@ function FocusStackFrameViewPanel({
             aria-controls="stack-frame-view-detail-rows"
             title="Toggle Stack Frame View concept details"
           >
-            StackFramePlan / FrameSlot details
+            StackFramePlan / FrameSlot {t("common.details")}
           </summary>
           <div id="stack-frame-view-detail-rows" className="stack-frame-view-detail-rows">
             <div className="stack-frame-view-row">
-              <span className="compact-label">Function</span>
+              <span className="compact-label">{t("stackFrame.function")}</span>
               <code className="nowrap-symbol" title={functionText}>{functionText}</code>
               <small className="secondary-note text-ellipsis" title="Preview selection only; does not affect VM state.">preview selection</small>
             </div>
@@ -1644,7 +1667,7 @@ function FocusStackFrameViewPanel({
                   if (mapping) onSelectFrameSlot(mapping, "stack-frame-view");
                 }}
               >
-                <span className="compact-label" title={slot.kind}>{slotKindLabel(slot)}</span>
+                <span className="compact-label" title={slot.kind}>{slotKindLabel(slot, t)}</span>
                 <code className="nowrap-symbol" title={slot.name}>{slot.name}</code>
                 <small className="secondary-note text-ellipsis" title={`${currentLoweringLabel(slot)} at offset +${slot.offset}`}>
                   +{slot.offset} / {currentLoweringLabel(slot)}
@@ -1654,7 +1677,7 @@ function FocusStackFrameViewPanel({
             <FrameSlotDetail mapping={selectedMapping} slot={selectedSlot} selectionSource={selectionSource} />
             {warningsText ? (
               <div className="stack-frame-view-row stack-frame-view-row-wide" data-testid="stack-frame-warning-row">
-                <span className="compact-label">Warnings</span>
+                <span className="compact-label">{t("stackFrame.warnings")}</span>
                 <code className="nowrap-symbol" title={warningsText}>design-only</code>
                 <small className="secondary-note text-ellipsis" title={warningsText}>{warningsText}</small>
               </div>
@@ -1679,21 +1702,22 @@ function FocusFrameSlotRelationPanel({
   selectedFrameSlotId?: string;
   onSelectFrameSlot: (mapping: FrameSlotMapping, source: FrameSlotSelectionSource) => void;
 }) {
+  const { t } = useI18n();
   const symbolMappings = frameSlotMappings.filter((slot) => slot.slotKind !== "return-address").slice(0, 8);
 
   return (
     <section className="panel focus-frame-slot-relation" data-testid="focus-frame-slot-relation">
       <header className="panel-header">
         <div>
-          <h2>Frame Slot</h2>
-          <span>Design relation</span>
+          <h2>{t("stackFrame.frameSlot")}</h2>
+          <span>{t("signalProbe.currentRelation")}</span>
         </div>
-        <span>Not runtime</span>
+        <span>{t("stackFrame.notRuntimeState")}</span>
       </header>
       <div className="focus-frame-slot-relation-body">
         {symbolMappings.length > 0 ? (
-          <div className="source-editor-frame-symbols focus-related-frame-symbols" data-testid="related-frame-symbols" aria-label="Related FramePlan symbols">
-            <span className="compact-label">Related symbols</span>
+          <div className="source-editor-frame-symbols focus-related-frame-symbols" data-testid="related-frame-symbols" aria-label={t("accessibility.relatedFrameSymbols")}>
+            <span className="compact-label">{t("stackFrame.relatedSymbols")}</span>
             <div className="source-editor-frame-symbol-list">
               {symbolMappings.map((slot) => (
                 <button
@@ -1705,12 +1729,12 @@ function FocusFrameSlotRelationPanel({
                   data-symbol-kind={slot.slotKind}
                   data-selected={selectedFrameSlotId === slot.mappingId ? "true" : "false"}
                   aria-pressed={selectedFrameSlotId === slot.mappingId}
-                  aria-label={`Select FramePlan slot for source editor symbol ${slot.symbolName}`}
+                  aria-label={t("accessibility.selectFrameSlotForSymbol", { symbol: slot.symbolName })}
                   title={`${slot.symbolName}. Current: ${slot.currentCircuitRelation}. Future: ${slot.futureCircuitRelation}. Runtime: not available in simple mode.`}
                   onClick={() => onSelectFrameSlot(slot, "source-editor")}
                 >
                   <code>{slot.symbolName}</code>
-                  <span>{slot.slotKind}</span>
+                  <span>{frameSlotKindLabel(slot.slotKind, t)}</span>
                 </button>
               ))}
             </div>
@@ -1739,7 +1763,7 @@ function ObservationModeSelector({
   return (
     <section className="panel observation-mode-bar" data-testid="observation-mode-selector">
       <div className="observation-mode-copy">
-        <h2 title="Observation Mode">Observation Mode</h2>
+        <h2 title={t("accessibility.observationMode")}>{t("accessibility.observationMode")}</h2>
         <span>{current.summary}</span>
       </div>
       <div className="segmented observation-mode-tabs" role="tablist" aria-label={t("accessibility.observationMode")} aria-orientation="horizontal" onKeyDown={handleHorizontalTabListKeyDown}>
@@ -1768,10 +1792,11 @@ function ObservationModeSelector({
 }
 
 function FocusSourceContextPanel({ focus, sourceMode }: { focus: FocusInstructionContext; sourceMode: SourceMode }) {
+  const { t } = useI18n();
   return (
     <section className="panel focus-source-context" data-testid="focus-source-context">
       <header className="panel-header">
-        <h2>Source Context</h2>
+        <h2>{t("registerStack.sourceContext")}</h2>
         <span>{sourceMode === "cpp" ? "C++" : "CASL"}</span>
       </header>
       <code className="nowrap-symbol" data-testid="focus-source-context-text" title={focus.sourceText}>{focus.sourceText}</code>
@@ -1895,10 +1920,10 @@ export default function CircuitFocusLayout({
           <section className="panel focus-circuit-panel" data-testid="focus-circuit-panel">
             <header className="panel-header">
               <div>
-                <h2 title="Circuit Focus Mode">Circuit Focus Mode</h2>
+                <h2 title={t("circuit.focusMode")}>{t("circuit.focusMode")}</h2>
                 <span>{circuitSubtitle}</span>
               </div>
-              <span className={`run-pill ${state.runState.toLowerCase()}`}>Machine: {translateRunState(t, state.runState)}</span>
+              <span className={`run-pill ${state.runState.toLowerCase()}`}>{t("circuit.machine")}: {translateRunState(t, state.runState)}</span>
             </header>
             <CometCircuitSvg state={state} sourceMapFocus={{ line: focus.caslLine, address: focus.address, instruction: focus.instructionText }} />
           </section>

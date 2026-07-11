@@ -58,7 +58,7 @@ This inventory tracks short UI strings only. Status values are `migrated`, `appr
 | Translation key | English source | Migration | Japanese | Chinese | Max visual length | Compact | Risk | Context |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `toolbar.circuitFocus` | Circuit Focus | migrated | approved | approved | 18 / 10 | yes | high | Entry toggle. |
-| Current Instruction | Current Instruction | pending | approved | approved | 22 / 12 | yes | high | Long teaching title deferred from resources. |
+| `instruction.current` | Current Instruction | migrated | approved | approved | 22 / 12 | yes | high | Compact teaching title; mnemonic remains unchanged. |
 | circuit mnemonics | LD / ST / ADDA / ... | intentionally untranslated | n/a | n/a | technical | no | low | Machine terminology. |
 
 ## Memory Controls
@@ -109,9 +109,9 @@ This inventory tracks short UI strings only. Status values are `migrated`, `appr
 
 | Translation key | English source | Migration | Japanese | Chinese | Max visual length | Compact | Risk | Context |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Stack Preview | Stack Preview | pending | approved | approved | 20 / 10 | yes | medium | Short title; no live values translated. |
-| Stack Frame View | Stack Frame View | deferred-long-content | approved | approved | 22 / 10 | yes | high | Long design-preview copy remains deferred. |
-| Frame Slot | Frame Slot | pending | approved | approved | 16 / 8 | yes | medium | Design metadata. |
+| `stackPreview.title` | Stack Preview | migrated | approved | approved | 20 / 10 | yes | medium | Short title; no live values translated. |
+| `stackFrame.title` | Stack Frame View | migrated | approved | approved | 22 / 10 | yes | high | Compact labels migrated; long design-preview copy remains deferred. |
+| `stackFrame.frameSlot` | Frame Slot | migrated | approved | approved | 16 / 8 | yes | medium | Design metadata; no live values. |
 | FramePlan explanations | Design preview prose | deferred-long-content | pending | pending | flexible | no | high | Phase 14B excludes long copy. |
 
 ## Table Headings
@@ -130,6 +130,22 @@ This inventory tracks short UI strings only. Status values are `migrated`, `appr
 | `table.current` | Current | migrated | approved | approved | 12 / 6 | yes | low | Relation heading. |
 | `table.next` | Next | migrated | approved | approved | 10 / 6 | yes | low | Relation heading. |
 | `table.previous` | Previous | migrated | approved | approved | 12 / 6 | yes | medium | Relation heading. |
+
+## Phase 14C Circuit And Learning Panels
+
+| Module | Key families | Migration | Japanese | Chinese | Max visual length | Compact | Risk | Context |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Circuit modules | `circuit.*` | migrated | approved | approved | 24 / 12 | yes | high | Descriptive labels only; IR/PR/EAU/ALU remain unchanged. |
+| Current instruction | `instruction.*` | migrated | approved | approved | 24 / 14 | yes | high | Addresses, mnemonic, raw instruction, and register values remain unchanged. |
+| Timeline | `timeline.*` | migrated | approved | approved | 20 / 10 | yes | high | Pipeline and control-flow labels. |
+| Signal Probe | `signalProbe.*` | migrated | approved | approved | 24 / 12 | yes | high | Label/value/note grid; technical node names remain unchanged. |
+| Stack Preview | `stackPreview.*` | migrated | approved | approved | 24 / 12 | yes | medium | Headings and notes only. |
+| Call Stack | `callStack.*` | migrated | approved | approved | 22 / 12 | yes | high | Compact summary/detail labels. |
+| Stack Frame | `stackFrame.*` | migrated | approved | approved | 24 / 14 | yes | high | Compact labels only; prose remains `deferred-long-content`. |
+| Code / Machine | `codeMachine.*` | migrated | approved | approved | 24 / 14 | yes | high | Headings only; code, words, labels, and binary values are unchanged. |
+| Register / Stack | `registerStack.*` | migrated | approved | approved | 22 / 12 | yes | medium | Titles/headings only; register names and values are unchanged. |
+
+Phase 14C approved keys are present and nonempty in all three resources. Long FramePlan explanations, diagnostics, Lessons, Demo Guide text, practice tasks, raw Trace payloads, and generated technical content remain deferred or intentionally untranslated.
 
 ## Deferred And Intentionally Untranslated Boundaries
 

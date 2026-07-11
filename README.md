@@ -344,6 +344,7 @@ The current backend is shown in the status bar as `Mock Core`, `WASM Core`, or `
 - [docs/i18n-glossary.md](docs/i18n-glossary.md): approved English, Japanese, and Simplified Chinese terminology, compact labels, and untranslated technical terms.
 - [docs/i18n-short-string-inventory.md](docs/i18n-short-string-inventory.md): module-by-module short UI string status, length guidance, and viewport risk inventory.
 - [docs/phase14b-i18n-glossary-short-strings.md](docs/phase14b-i18n-glossary-short-strings.md): Phase 14B scope, reviewed pilot migration, resource checks, and remaining translation boundaries.
+- [docs/phase14c-circuit-learning-compact-localization.md](docs/phase14c-circuit-learning-compact-localization.md): Circuit Focus, timeline, Signal Probe, stack, FramePlan, and Code / Machine compact-label localization with technical-data boundaries.
 
 ## Current Limitations
 

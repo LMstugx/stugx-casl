@@ -21,6 +21,15 @@ describe("visual review screenshot gallery setup", () => {
     expect(visualReviewSpec).toContain("locale-zh-cn-1280.png");
     expect(visualReviewSpec).toContain("locale-ja-output-dock.png");
     expect(visualReviewSpec).toContain("locale-zh-cn-inspector-memory.png");
+    expect(visualReviewSpec).toContain("locale-en-cpu-flow.png");
+    expect(visualReviewSpec).toContain("locale-ja-cpu-flow.png");
+    expect(visualReviewSpec).toContain("locale-zh-cn-cpu-flow.png");
+    expect(visualReviewSpec).toContain("locale-ja-register-stack.png");
+    expect(visualReviewSpec).toContain("locale-zh-cn-register-stack.png");
+    expect(visualReviewSpec).toContain("locale-ja-code-machine.png");
+    expect(visualReviewSpec).toContain("locale-zh-cn-code-machine.png");
+    expect(visualReviewSpec).toContain("locale-ja-signal-probe.png");
+    expect(visualReviewSpec).toContain("locale-zh-cn-stack-frame.png");
     expect(visualReviewSpec).toContain("casl-gr2-ld.png");
     expect(visualReviewSpec).toContain("enterCircuitFocusMode");
     expect(visualReviewSpec).toContain("logical-add-compare-jov.png");

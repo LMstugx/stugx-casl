@@ -43,6 +43,8 @@ Phase 13A adds an advanced UI design-system foundation. Phase 13B applies that f
 
 Phase 13C adds keyboard, contrast, state-consistency, clipping, and viewport audit coverage. The gallery includes CASL and C++ diagnostic states plus a max-step Stopped state so warning, error, disabled, selected, and active execution treatments can be reviewed together.
 
+Phase 14C adds English, Japanese, and Simplified Chinese Circuit Focus captures across CPU Flow, Register / Stack, and Code / Machine modes. Review translated compact labels for overlap and clipping while confirming that circuit geometry, source, Generated CASL, machine words, register names, addresses, and clean-wire behavior remain unchanged.
+
 ## Open Gallery Locally
 
 After capture, open:
@@ -172,6 +174,12 @@ Use the gallery to inspect:
 - `locale-zh-cn-1280.png` (Simplified Chinese pilot strings at 1280x720)
 - `locale-ja-output-dock.png` (Japanese Output Dock tabs and compact controls)
 - `locale-zh-cn-inspector-memory.png` (Simplified Chinese Inspector Memory controls and bounded table)
+- `locale-en-cpu-flow.png` (English Circuit Focus compact-label baseline)
+- `locale-ja-cpu-flow.png` and `locale-zh-cn-cpu-flow.png` (localized CPU Flow)
+- `locale-ja-register-stack.png` and `locale-zh-cn-register-stack.png` (localized Register / Stack)
+- `locale-ja-code-machine.png` and `locale-zh-cn-code-machine.png` (localized Code / Machine)
+- `locale-ja-signal-probe.png` (Japanese Signal Probe compact grid)
+- `locale-zh-cn-stack-frame.png` (Simplified Chinese Stack Frame compact labels)
 - `observation-cpu-flow.png` (CPU Flow observation mode)
 - `observation-register-stack.png` (Registers / Stack observation mode)
 - `stack-frame-view-preview.png` (FramePlan design preview in Stack Frame View; not runtime state)

@@ -14,13 +14,13 @@ export default function RegisterPanel({ state, embedded = false }: { state: Come
           <h2>{t("inspector.registers")}</h2>
         </header>
       ) : null}
-      <h3>General Registers</h3>
+      <h3>{t("registerStack.generalRegisters")}</h3>
       <table className="data-table">
         <thead>
           <tr>
             <th>{t("table.name")}</th>
             <th>{t("table.value")}</th>
-            <th>(Dec)</th>
+            <th title={t("registerStack.decimal")}>({t("registerStack.decimal")})</th>
           </tr>
         </thead>
         <tbody>
@@ -34,7 +34,7 @@ export default function RegisterPanel({ state, embedded = false }: { state: Come
         </tbody>
       </table>
 
-      <h3>Other Registers</h3>
+      <h3>{t("registerStack.otherRegisters")}</h3>
       <table className="data-table compact">
         <tbody>
           {other.map((register) => (

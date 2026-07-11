@@ -76,6 +76,31 @@ describe("typed translation resources", () => {
     }
   });
 
+  it("phase14c_components_use_semantic_keys_without_locale_conditionals", () => {
+    const files = [
+      "src/components/CircuitFocusLayout.tsx",
+      "src/components/LearningFlowPanel.tsx",
+      "src/components/OutputPanel.tsx",
+      "src/components/RegisterPanel.tsx",
+      "src/components/SourceEditor.tsx",
+      "src/components/StatusBar.tsx",
+      "src/visual/CometCircuitSvg.tsx"
+    ].map((path) => readFileSync(path, "utf8")).join("\n");
+
+    for (const key of [
+      't("instruction.current")',
+      't("timeline.title")',
+      't("signalProbe.title")',
+      't("stackPreview.title")',
+      't("callStack.title")',
+      't("stackFrame.title")',
+      't("codeMachine.machineCode")'
+    ]) {
+      expect(files).toContain(key);
+    }
+    expect(files).not.toMatch(/locale\s*===\s*["'](?:ja|en|zh-CN)["']/);
+  });
+
   it("technical_payloads_diagnostics_and_lessons_remain_outside_static_ui_resources", () => {
     const keySource = readFileSync("src/i18n/types.ts", "utf8");
     const app = readFileSync("src/App.tsx", "utf8");

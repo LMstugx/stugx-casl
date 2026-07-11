@@ -2,6 +2,8 @@ import Editor, { OnMount } from "@monaco-editor/react";
 import { useEffect, useRef } from "react";
 import type { editor } from "monaco-editor";
 import type { FrameSymbolRelation } from "../transpiler/framePlanView";
+import { useI18n } from "../i18n/useI18n";
+import type { Translate } from "../i18n/types";
 
 type SourceEditorProps = {
   source: string;
@@ -22,6 +24,7 @@ export default function SourceEditor({
   selectedFrameSlotId,
   onSelectFrameSymbol
 }: SourceEditorProps) {
+  const { t } = useI18n();
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
   const decorationIds = useRef<string[]>([]);
   const visibleRelations = language === "cpp" ? frameSymbolRelations.slice(0, 8) : [];
@@ -91,8 +94,8 @@ export default function SourceEditor({
         }}
       />
       {visibleRelations.length > 0 ? (
-        <div className="source-editor-frame-symbols" data-testid="source-editor-frame-symbols" aria-label="Related FramePlan symbols">
-          <span className="compact-label">Frame symbols</span>
+        <div className="source-editor-frame-symbols" data-testid="source-editor-frame-symbols" aria-label={t("accessibility.relatedFrameSymbols")}>
+          <span className="compact-label">{t("stackFrame.relatedSymbols")}</span>
           <div className="source-editor-frame-symbol-list">
             {visibleRelations.map((relation) => (
               <button
@@ -104,12 +107,12 @@ export default function SourceEditor({
                 data-symbol-kind={relation.slotKind}
                 data-selected={selectedFrameSlotId === relation.mappingId ? "true" : "false"}
                 aria-pressed={selectedFrameSlotId === relation.mappingId}
-                aria-label={`Select FramePlan slot for source editor symbol ${relation.symbolName}`}
+                aria-label={t("accessibility.selectFrameSlotForSymbol", { symbol: relation.symbolName })}
                 title={relation.title}
                 onClick={() => onSelectFrameSymbol?.(relation)}
               >
                 <code>{relation.symbolName}</code>
-                <span>{relation.slotKind}</span>
+                <span>{frameSymbolKindLabel(relation.slotKind, t)}</span>
               </button>
             ))}
           </div>
@@ -117,4 +120,11 @@ export default function SourceEditor({
       ) : null}
     </div>
   );
+}
+
+function frameSymbolKindLabel(kind: FrameSymbolRelation["slotKind"], t: Translate): string {
+  if (kind === "argument") return t("stackFrame.argument");
+  if (kind === "local") return t("stackFrame.local");
+  if (kind === "temporary") return t("stackFrame.temporary");
+  return t("stackFrame.returnAddress");
 }

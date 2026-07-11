@@ -491,7 +491,7 @@ async function captureCppFunctionCallMachineCode(page: Page, viewport: Viewport)
   await openOutputTab(page, "Machine Code");
   await page.getByTestId("machine-code-output").locator('[data-testid^="machine-code-row-"]').filter({ hasText: "CALL FUNC_ADDONE" }).first().click();
   await expect(page.getByTestId("machine-code-explanation")).toContainText("CALL");
-  await expect(page.getByTestId("machine-code-explanation")).toContainText("Return Addr");
+  await expect(page.getByTestId("machine-code-explanation")).toContainText("Return address");
   await capture(page, viewport, "cpp-function-call-machine-code.png");
 }
 
@@ -526,7 +526,7 @@ async function captureCppFunctionArgumentMachineCode(page: Page, viewport: Viewp
   await openOutputTab(page, "Machine Code");
   await page.getByTestId("machine-code-output").locator('[data-testid^="machine-code-row-"]').filter({ hasText: "CALL FUNC_ADDONE" }).first().click();
   await expect(page.getByTestId("machine-code-explanation")).toContainText("CALL");
-  await expect(page.getByTestId("machine-code-explanation")).toContainText("Return Addr");
+  await expect(page.getByTestId("machine-code-explanation")).toContainText("Return address");
   await capture(page, viewport, "cpp-function-argument-machine-code.png");
 }
 
@@ -569,6 +569,56 @@ async function captureCppFunctionArgumentsMachineCode(page: Page, viewport: View
   await expect(page.getByTestId("focus-machine-code-panel")).toContainText("CALL FUNC_ADD");
   await expect(page.getByTestId("focus-source-mapping-panel").first()).toContainText("result = add(2, 3);");
   await capture(page, viewport, "cpp-function-arguments-machine-code.png");
+}
+
+async function capturePhase14cLocalizedFocus(page: Page, viewport: Viewport) {
+  if (!viewport.primary && viewport.name !== "1280x720") return;
+
+  await openStudio(page, "Mock Core");
+  await selectDemoProgram(page, "cpp-function-arguments");
+  await enterCircuitFocusMode(page);
+  await assemble(page);
+  await step(page);
+  await step(page);
+  await step(page);
+
+  await selectObservationMode(page, "cpu-flow");
+  await capture(page, viewport, "locale-en-cpu-flow.png");
+
+  await page.getByTestId("locale-ja").click();
+  await expect(page.locator("html")).toHaveAttribute("lang", "ja");
+  await expect(page.getByTestId("focus-signal-probe")).toContainText("信号プローブ");
+  await capture(page, viewport, "locale-ja-cpu-flow.png");
+  await capture(page, viewport, "locale-ja-signal-probe.png");
+
+  await selectObservationMode(page, "register-stack");
+  await expect(page.getByTestId("focus-stack-frame-view")).toContainText("スタックフレーム表示");
+  await capture(page, viewport, "locale-ja-register-stack.png");
+
+  await selectObservationMode(page, "code-machine");
+  await expect(page.getByTestId("focus-machine-code-panel")).toContainText("機械語");
+  await capture(page, viewport, "locale-ja-code-machine.png");
+
+  await page.getByTestId("locale-zh-CN").click();
+  await expect(page.locator("html")).toHaveAttribute("lang", "zh-CN");
+  await selectObservationMode(page, "cpu-flow");
+  await capture(page, viewport, "locale-zh-cn-cpu-flow.png");
+
+  await selectObservationMode(page, "register-stack");
+  await expect(page.getByTestId("focus-stack-frame-view")).toContainText("栈帧视图");
+  await capture(page, viewport, "locale-zh-cn-register-stack.png");
+  await capture(page, viewport, "locale-zh-cn-stack-frame.png");
+
+  await selectObservationMode(page, "code-machine");
+  await expect(page.getByTestId("focus-machine-code-panel")).toContainText("机器码");
+  await capture(page, viewport, "locale-zh-cn-code-machine.png");
+
+  if (viewport.name === "1280x720") {
+    await capture(page, viewport, "locale-zh-cn-1280.png");
+    await page.getByTestId("locale-ja").click();
+    await capture(page, viewport, "locale-ja-1280.png");
+  }
+  await page.getByTestId("locale-en").click();
 }
 
 test.describe("visual review screenshot gallery", () => {
@@ -615,6 +665,7 @@ test.describe("visual review screenshot gallery", () => {
       await captureCppFunctionArgumentsGeneratedCasl(page, viewport);
       await captureCppFunctionArgumentsTrace(page, viewport);
       await captureCppFunctionArgumentsMachineCode(page, viewport);
+      await capturePhase14cLocalizedFocus(page, viewport);
     });
   }
 });

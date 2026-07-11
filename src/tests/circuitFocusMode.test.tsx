@@ -138,7 +138,7 @@ function expectFocusAligned(markup: string, instruction: string, line: number, a
   expect(programCurrentLine(markup).replace(/\s+/g, " ")).toContain(instruction);
   expect(currentPanel(markup)).toContain(instruction.split(/\s+/)[0]);
   expect(markup).toContain(`data-testid="source-map-highlight" data-current-line="${line}"`);
-  expect(markup).toContain(`Addr ${address}`);
+  expect(markup).toContain(`Address ${address}`);
   expect(markup).toContain(`CASL ${instruction}`);
   expect(sourceContext(markup).replace(/\s+/g, " ")).toContain(instruction);
   expect(traceLatest(markup)).toContain(instruction.split(/\s+/)[0]);
@@ -183,7 +183,8 @@ describe("Circuit Focus Mode layout", () => {
     expect(markup).toContain('class="panel focus-current-panel"');
     expect(markup).toContain('data-testid="focus-current-mnemonic"');
     expect(currentPanel(markup)).toContain("LD");
-    expect(currentPanel(markup)).toContain("Current 0020");
+    expect(currentPanel(markup)).toContain("Current PR");
+    expect(currentPanel(markup)).toContain("0020");
   });
 
   it("current_instruction_uses_layered_structure", () => {
@@ -194,7 +195,7 @@ describe("Circuit Focus Mode layout", () => {
     expect(current).toContain("focus-current-semantic");
     expect(current).toContain("focus-current-runtime");
     expect(current).toContain('data-testid="focus-current-runtime-summary"');
-    expect(current).toContain("aria-label=\"Current 0020");
+    expect(current).toContain('aria-label="Runtime summary: Current PR 0020');
   });
 
   it("focus_mode_aligns_program_current_instruction_sourcemap_and_source_context", () => {
@@ -206,12 +207,13 @@ describe("Circuit Focus Mode layout", () => {
     expect(normalizedProgram).toContain("LD GR2,A");
     expect(normalizedProgram).not.toContain("ADDA GR2,B");
     expect(currentPanel(markup)).toContain("LD");
-    expect(currentPanel(markup)).toContain("Current 0020");
+    expect(currentPanel(markup)).toContain("Current PR");
+    expect(currentPanel(markup)).toContain("0020");
     expect(currentPanel(markup)).toContain("Next PR 0022");
-    expect(currentPanel(markup)).toContain("Next ADDA GR2,B");
+    expect(currentPanel(markup)).toContain("Next instruction ADDA GR2,B");
     expect(currentPanel(markup)).not.toContain(">Ready<");
     expect(markup).toContain('data-testid="source-map-highlight" data-current-line="2"');
-    expect(markup).toContain("Addr 0020");
+    expect(markup).toContain("Address 0020");
     expect(normalizedSourceContext).toContain("LD GR2,A");
   });
 
@@ -229,7 +231,7 @@ describe("Circuit Focus Mode layout", () => {
     expect(markup).toContain(">Ready<");
     expect(markup).toContain("Current: LD GR2,A");
     expect(markup).toContain("Next PR: 0022");
-    expect(markup).toContain("Next Instruction: ADDA GR2,B");
+    expect(markup).toContain("Next instruction: ADDA GR2,B");
   });
 
   it("focus_mode_separates_machine_state_and_pipeline_stage", () => {
@@ -706,7 +708,7 @@ describe("Circuit Focus Mode layout", () => {
     expect(markup).toContain('data-testid="memory-row-FFFD"');
     expect(markup).toContain('data-write="true"');
     expect(markup).toContain("return 0024");
-    expect(markup).toContain("Call depth");
+    expect(markup).toContain("Depth");
   });
 
   it("call_stack_view_shows_call_depth_and_top_return_address", () => {
@@ -776,7 +778,7 @@ describe("Circuit Focus Mode layout", () => {
 
     expect(markup).toContain('data-testid="focus-call-stack"');
     expect(markup).toContain('data-testid="call-stack-depth">0</code>');
-    expect(markup).toContain('data-testid="call-stack-return-address">none</code>');
+    expect(markup).toContain('data-testid="call-stack-return-address">None</code>');
     expect(markup).toContain('data-testid="call-stack-ret-mode">Top-level finish</code>');
     expect(markup).toContain("Program finish");
   });
@@ -899,7 +901,7 @@ describe("Circuit Focus Mode layout", () => {
     const markup = renderFocus(stepTimes(2));
 
     expect(markup).toContain('data-testid="circuit-status-indicators"');
-    expect(markup).toContain("SIGNALS");
+    expect(markup).toContain("Signals");
     expect(markup).toContain('data-testid="status-indicator-exec" data-active="true"');
     expect(markup).toContain('data-testid="status-indicator-flag" data-active="true"');
     expect(markup).toContain('data-testid="status-indicator-write" data-active="false"');
@@ -930,7 +932,7 @@ describe("Circuit Focus Mode layout", () => {
     expect(activeWireIds(markup)).toContain("eau-to-mar");
     expect(activeWireIds(markup)).not.toContain("index-to-effective");
     expect(markup).toContain('data-testid="signal-probe-row"');
-    expect(markup).toContain("base + index");
+    expect(markup).toContain("Base + Index");
   });
 
   it("effective_address_unit_hidden_or_inactive_for_non_index_instruction", () => {
@@ -1300,7 +1302,7 @@ DONE RET
 
     expect(markup).toContain('data-testid="signal-probe-details"');
     expect(markup).toContain("+ ");
-    expect(markup).toContain("Call depth");
+    expect(markup).toContain("Depth");
   });
 
   it("signal_probe_details_expand_card_height", () => {
@@ -1337,7 +1339,7 @@ DONE RET
     const markup = renderFocus(stepSource(callReturnSource, 2), callReturnSource, "register-stack");
 
     expect(markup).toContain('title="Return address"');
-    expect(markup).toContain('title="Call depth"');
+    expect(markup).toContain('title="Depth"');
     expect(markup).toContain('title="Stack write"');
   });
 
@@ -1359,7 +1361,7 @@ DONE RET
     expect(markup).toContain('data-testid="signal-probe-details"');
     expect(markup).toContain('aria-expanded="false"');
     expect(markup).toContain(">Base<");
-    expect(markup).toContain("index register");
+    expect(markup).toContain("Index");
   });
 
   it("signal_probe_stack_details_collapsed_by_default", () => {
@@ -1424,7 +1426,7 @@ DONE RET
 
     expect(markup).toContain("SP");
     expect(markup).toContain("FFFE");
-    expect(markup).toContain("stack preview only");
+    expect(markup).toContain("Stack preview only");
     expect(markup).toContain('data-testid="signal-probe-row" data-active="false"');
   });
 
@@ -1502,7 +1504,7 @@ DONE RET
     expect(state.runState).toBe("Finished");
     expect(state.sp).toBe(0xfffe);
     expect(markup).toContain('title="FFFE"');
-    expect(markup).toContain("stack preview only");
+    expect(markup).toContain("Stack preview only");
     expect(activeWireIds(markup)).not.toContain("sp-to-mar-preview");
     expect(activeWireIds(markup)).not.toContain("mar-to-stack-memory-preview");
   });
@@ -1756,7 +1758,7 @@ A    DC    3
     expect(markup).toContain('class="data-table"');
     expect(markup).toContain("<th>Name</th>");
     expect(markup).toContain("<th>Value</th>");
-    expect(markup).toContain("<th>(Dec)</th>");
+    expect(markup).toContain('<th title="Decimal">(Decimal)</th>');
     expect(markup).toContain('class="hex mono-value"');
     expect(markup).toContain('class="text-ellipsis"');
   });
@@ -1821,8 +1823,7 @@ A    DC    3
   it("current_instruction_title_not_uselessly_truncated", () => {
     const markup = renderFocus(stepSource(callReturnSource, 2), callReturnSource);
 
-    expect(markup).toContain('<h2 title="Current Instruction">Instruction</h2>');
-    expect(markup).not.toContain(">Current Instruction</h2>");
+    expect(markup).toContain('<h2 title="Current Instruction">Current Instruction</h2>');
   });
 
   it("current_instruction_runtime_summary_uses_stable_rows", () => {

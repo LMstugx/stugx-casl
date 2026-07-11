@@ -4,6 +4,8 @@ import { controlFlowMeaning, controlFlowTargetText, selectControlFlowForMachineR
 import type { SourceMode } from "../store/useAppStore";
 import type { CppToCaslMap } from "../transpiler/cppAst";
 import { cppLineForCaslLine } from "../transpiler/cppMapping";
+import { useI18n } from "../i18n/useI18n";
+import type { Translate } from "../i18n/types";
 
 type LearningFlowPanelProps = {
   state: CometState;
@@ -34,21 +36,32 @@ function currentMachineWords(state: CometState, mapping: CppToCaslMap[]): string
   return `${formatWord(current.address)} : ${formatWord(current.word)} | ${mnemonic}${register}${operand}`;
 }
 
-function compactControlFlowSummary(edge: ReturnType<typeof selectCurrentControlFlowEdge> | undefined): string {
-  if (!edge) return "Flow: fallthrough";
+function compactControlFlowSummary(t: Translate, edge: ReturnType<typeof selectCurrentControlFlowEdge> | undefined): string {
+  if (!edge) return `${t("timeline.flow")}: ${t("timeline.fallthrough")}`;
   const target = edge.targetLabel ?? (edge.toAddress !== undefined ? formatWord(edge.toAddress) : "unresolved");
-  if (edge.kind === "unconditional-jump") return `Flow: jump -> ${target}`;
-  if (edge.kind === "break") return `Flow: break -> ${target}`;
-  if (edge.kind === "continue") return `Flow: continue -> ${target}`;
-  if (edge.kind === "loop-back") return `Flow: loop -> ${target}`;
-  if (edge.kind === "call") return `Flow: call -> ${target}`;
-  return `Flow: ${edge.kind} -> ${target}`;
+  if (edge.kind === "unconditional-jump") return `${t("timeline.flow")}: ${t("timeline.jump")} -> ${target}`;
+  if (edge.kind === "break") return `${t("timeline.flow")}: ${t("timeline.break")} -> ${target}`;
+  if (edge.kind === "continue") return `${t("timeline.flow")}: ${t("timeline.continue")} -> ${target}`;
+  if (edge.kind === "loop-back") return `${t("timeline.flow")}: ${t("timeline.loop")} -> ${target}`;
+  if (edge.kind === "call") return `${t("timeline.flow")}: ${t("timeline.call")} -> ${target}`;
+  return `${t("timeline.flow")}: ${edge.kind} -> ${target}`;
 }
 
-function currentInstructionText(state: CometState): string {
+function currentInstructionText(t: Translate, state: CometState): string {
   const latest = state.trace[0];
-  if (latest?.instruction === "RET" && state.runState === "Finished") return "Flow: finish";
+  if (latest?.instruction === "RET" && state.runState === "Finished") return `${t("timeline.flow")}: ${t("timeline.programFinish")}`;
   return state.currentInstruction ?? state.runState;
+}
+
+function edgeKindLabel(t: Translate, kind?: string): string {
+  if (!kind) return t("timeline.fallthrough");
+  if (kind === "unconditional-jump") return t("timeline.jump");
+  if (kind === "break") return t("timeline.break");
+  if (kind === "continue") return t("timeline.continue");
+  if (kind === "loop-back") return t("timeline.loop");
+  if (kind === "call") return t("timeline.call");
+  if (kind.includes("branch")) return t("timeline.branch");
+  return kind;
 }
 
 export default function LearningFlowPanel({
@@ -58,6 +71,7 @@ export default function LearningFlowPanel({
   generatedCaslSource,
   cppToCaslMapping,
 }: LearningFlowPanelProps) {
+  const { t } = useI18n();
   const cppLine = sourceMode === "cpp" ? cppLineForCaslLine(cppToCaslMapping, state.currentLine) : state.currentLine;
   const codeText = sourceMode === "cpp" ? sourceLineText(sourceText, cppLine) : sourceLineText(sourceText, state.currentLine);
   const caslText = sourceMode === "cpp" ? generatedCaslLine(generatedCaslSource, state.currentLine) : state.currentInstruction ?? codeText;
@@ -66,14 +80,14 @@ export default function LearningFlowPanel({
   const currentMachineRow = machineRows.find((row) => row.isCurrentPr) ?? machineRows.find((row) => row.isCurrentIr) ?? machineRows.find((row) => row.address === state.currentAddress);
   const currentMachineEdge = currentMachineRow ? selectControlFlowForMachineRow(currentMachineRow, controlFlowGraph) : undefined;
   const currentEdge = currentMachineEdge ?? selectCurrentControlFlowEdge(state, controlFlowGraph);
-  const controlFlowSummary = compactControlFlowSummary(currentEdge);
+  const controlFlowSummary = compactControlFlowSummary(t, currentEdge);
   const controlFlowDetail = currentEdge ? `${currentEdge.sourceText} / ${controlFlowTargetText(currentEdge)}` : "fallthrough";
   const controlFlowNote = currentEdge ? controlFlowMeaning(currentEdge) : "fallthrough";
 
   return (
-    <section className="learning-flow" aria-label="Code Machine Execution">
+    <section className="learning-flow" aria-label={`${t("codeMachine.code")} / ${t("codeMachine.machineCode")}`}>
       <article className="flow-card">
-        <span>Code</span>
+        <span>{t("codeMachine.code")}</span>
         <strong>{sourceMode === "cpp" ? "C++ subset" : "CASL II"}</strong>
         <code className="nowrap-symbol" title={codeText}>{codeText}</code>
       </article>
@@ -81,24 +95,24 @@ export default function LearningFlowPanel({
         &rarr;
       </div>
       <article className="flow-card">
-        <span>CASL II Assembly</span>
-        <strong>{sourceMode === "cpp" ? "Generated" : "Source"}</strong>
+        <span>{t("codeMachine.caslAssembly")}</span>
+        <strong>{sourceMode === "cpp" ? t("codeMachine.generated") : t("table.source")}</strong>
         <code className="nowrap-symbol" title={caslText}>{caslText}</code>
       </article>
       <div className="flow-arrow" aria-hidden="true">
         &rarr;
       </div>
       <article className="flow-card">
-        <span>COMET II Machine Code</span>
-        <strong>Address / Word</strong>
+        <span>{t("codeMachine.machineCode")}</span>
+        <strong>{t("codeMachine.addressWord")}</strong>
         <code className="nowrap-symbol" title={currentMachineWords(state, cppToCaslMapping)}>{currentMachineWords(state, cppToCaslMapping)}</code>
       </article>
       <div className="flow-arrow" aria-hidden="true">
         &rarr;
       </div>
       <article className="flow-card control-flow-card" data-testid="learning-flow-control-flow">
-        <span>Control Flow</span>
-        <strong>{currentEdge ? currentEdge.kind : "fallthrough"}</strong>
+        <span>{t("codeMachine.controlFlow")}</span>
+        <strong>{edgeKindLabel(t, currentEdge?.kind)}</strong>
         <code className="nowrap-symbol" title={controlFlowDetail}>{controlFlowSummary}</code>
         <small className="secondary-note" title={controlFlowNote}>{controlFlowNote}</small>
       </article>
@@ -106,9 +120,9 @@ export default function LearningFlowPanel({
         &rarr;
       </div>
       <article className="flow-card now-card">
-        <span>Now Executing</span>
+        <span>{t("codeMachine.nowExecuting")}</span>
         <strong>PC {formatWord(state.pr)}</strong>
-        <code className="nowrap-symbol" title={currentInstructionText(state)}>{currentInstructionText(state)}</code>
+        <code className="nowrap-symbol" title={currentInstructionText(t, state)}>{currentInstructionText(t, state)}</code>
       </article>
     </section>
   );

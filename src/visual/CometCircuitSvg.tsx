@@ -5,6 +5,8 @@ import { CIRCUIT_MEMORY_ROW_COUNT, CIRCUIT_VIEWBOX, circuitAnchors, circuitLayou
 import { resolveActiveWireIds, resolveVisualPath } from "./visualPathResolver";
 import { buildWirePaths, pointIsOnRoute, type WirePath } from "./wirePaths";
 import type { ReactNode } from "react";
+import { translateRunState } from "../i18n/locale";
+import { useI18n } from "../i18n/useI18n";
 
 type ModuleProps = {
   layout: RectLayout;
@@ -76,24 +78,25 @@ function AnchorPoint({ id, x, y }: { id: string; x: number; y: number }) {
 }
 
 function StatusIndicators({ activeWireIds, state }: { activeWireIds: Set<string>; state: CometState }) {
+  const { t } = useI18n();
   const indicators = [
-    { label: "FETCH", active: activeWireIds.has("pr-to-mar") || activeWireIds.has("pr-to-plus2") },
-    { label: "READ", active: state.lastMemoryReadAddress !== undefined || activeWireIds.has("memory-to-mdr") },
-    { label: "WRITE", active: state.lastMemoryWriteAddress !== undefined || activeWireIds.has("mdr-to-memory") },
-    { label: "EXEC", active: activeWireIds.has("gr-to-alu") || activeWireIds.has("mdr-to-alu") },
-    { label: "FLAG", active: activeWireIds.has("alu-to-fr") }
+    { id: "fetch", label: t("circuit.fetch"), active: activeWireIds.has("pr-to-mar") || activeWireIds.has("pr-to-plus2") },
+    { id: "read", label: t("circuit.read"), active: state.lastMemoryReadAddress !== undefined || activeWireIds.has("memory-to-mdr") },
+    { id: "write", label: t("circuit.write"), active: state.lastMemoryWriteAddress !== undefined || activeWireIds.has("mdr-to-memory") },
+    { id: "exec", label: t("circuit.execute"), active: activeWireIds.has("gr-to-alu") || activeWireIds.has("mdr-to-alu") },
+    { id: "flag", label: t("circuit.flag"), active: activeWireIds.has("alu-to-fr") }
   ];
 
   return (
     <g className="status-indicators" data-testid="circuit-status-indicators">
       <text className="status-indicator-title" x="36" y="452">
-        SIGNALS
+        {t("circuit.signals")}
       </text>
       {indicators.map((indicator, index) => {
         const x = 38 + (index % 2) * 82;
         const y = 464 + Math.floor(index / 2) * 22;
         return (
-          <g key={indicator.label} className={indicator.active ? "status-light active" : "status-light"} data-testid={`status-indicator-${indicator.label.toLowerCase()}`} data-active={indicator.active ? "true" : "false"}>
+          <g key={indicator.id} className={indicator.active ? "status-light active" : "status-light"} data-testid={`status-indicator-${indicator.id}`} data-active={indicator.active ? "true" : "false"}>
             <circle cx={x} cy={y} r="4" />
             <text x={x + 10} y={y + 4}>
               {indicator.label}
@@ -141,11 +144,12 @@ function addEffectiveAddressUnitWires(activeWireIds: Set<string>, visualPath: Vi
 }
 
 function DecoderModule({ state }: { state: CometState }) {
+  const { t } = useI18n();
   const op = (state.ir >> 12) & 0xf;
   const gr = (state.ir >> 4) & 0xf;
   const xr = state.ir & 0xf;
   return (
-    <Module layout={circuitLayout.decoder} title="Decoder" testId="module-decoder" layer="control">
+    <Module layout={circuitLayout.decoder} title={t("circuit.decoder")} testId="module-decoder" layer="control">
       {[
         ["OP", op.toString(16).toUpperCase()],
         ["GR", gr.toString(16).toUpperCase()],
@@ -167,25 +171,27 @@ function DecoderModule({ state }: { state: CometState }) {
 }
 
 function ControllerModule({ state }: { state: CometState }) {
+  const { t } = useI18n();
   return (
-    <Module layout={circuitLayout.controller} title="Controller" testId="module-controller" layer="control">
+    <Module layout={circuitLayout.controller} title={t("circuit.controller")} testId="module-controller" layer="control">
       <text className="module-small" x={circuitLayout.controller.x + 28} y={circuitLayout.controller.y + 52}>
-        Step
+        {t("circuit.step")}
       </text>
       <text className="module-small module-green" x={circuitLayout.controller.x + 104} y={circuitLayout.controller.y + 52} textAnchor="middle">
         {state.stepIndex.toString().padStart(2, "0")}
       </text>
       <text className="module-small" x={circuitLayout.controller.x + 28} y={circuitLayout.controller.y + 78}>
-        Machine
+        {t("circuit.machine")}
       </text>
       <text className="module-small module-green" x={circuitLayout.controller.x + 104} y={circuitLayout.controller.y + 78} textAnchor="middle">
-        {state.runState}
+        {translateRunState(t, state.runState)}
       </text>
     </Module>
   );
 }
 
 function EffectiveAddressUnitModule({ state, active }: { state: CometState; active: boolean }) {
+  const { t } = useI18n();
   const base = formatWord(state.lastBaseAddress ?? 0);
   const hasIndex = state.lastIndexRegister !== undefined && state.lastIndexValue !== undefined;
   const indexRegister = state.lastIndexRegister ?? 0;
@@ -215,7 +221,7 @@ function EffectiveAddressUnitModule({ state, active }: { state: CometState; acti
         EAU
       </text>
       <text className="module-small module-muted eau-subtitle" x={circuitLayout.eau.x + 52} y={circuitLayout.eau.y + 18}>
-        Address Unit
+        {t("circuit.addressUnit")}
       </text>
       {active ? (
         <g data-testid="effective-address-chip">
@@ -256,12 +262,13 @@ function EffectiveAddressUnitModule({ state, active }: { state: CometState; acti
 }
 
 function GeneralRegisters({ state }: { state: CometState }) {
+  const { t } = useI18n();
   const activeInstruction = state.lastStep?.executedInstruction ?? state.currentInstruction ?? "";
   const activeRegister = /GR([0-7])/i.exec(activeInstruction)?.[0]?.toUpperCase();
   const indexRegister = state.lastIndexRegister;
 
   return (
-    <Module layout={circuitLayout.gr} title="General Registers" testId="module-gr" layer="execution">
+    <Module layout={circuitLayout.gr} title={t("circuit.generalRegisters")} testId="module-gr" layer="execution">
       {state.gr.map((value, index) => {
         const changed = state.changedRegisters.includes(`GR${index}`);
         const isIndex = indexRegister === index;
@@ -368,6 +375,7 @@ function AluModule({ state, registerIndex, visualPath }: { state: CometState; re
 }
 
 function MemoryModule({ state, focusAddress, windowStart, visualPath }: { state: CometState; focusAddress: number; windowStart: number; visualPath: VisualPathKind }) {
+  const { t } = useI18n();
   const rows = selectMemoryWindow(state, windowStart, windowStart + CIRCUIT_MEMORY_ROW_COUNT - 1).slice(0, CIRCUIT_MEMORY_ROW_COUNT);
   const activeMemory =
     visualPath === VisualPathKind.LD_MemoryToMdrToGr ||
@@ -378,10 +386,10 @@ function MemoryModule({ state, focusAddress, windowStart, visualPath }: { state:
     visualPath === VisualPathKind.RET_StackToPr ||
     state.changedMemoryAddresses.length > 0;
   return (
-    <Module layout={circuitLayout.memory} title="Memory" accent={activeMemory} testId="module-memory" layer="memory">
+    <Module layout={circuitLayout.memory} title={t("circuit.memory")} accent={activeMemory} testId="module-memory" layer="memory">
       <rect className="memory-target-shell" data-testid="memory-target-badge" x={circuitLayout.memory.x + 18} y={circuitLayout.memory.y + 28} width={circuitLayout.memory.w - 36} height="18" rx="3" />
       <text className="memory-target-badge" x={circuitLayout.memory.x + circuitLayout.memory.w / 2} y={circuitLayout.memory.y + 41} textAnchor="middle">
-        Target @{formatWord(focusAddress)}
+        {t("circuit.targetAddress", { address: formatWord(focusAddress) })}
       </text>
       {rows.map((row, index) => {
         const isPr = row.address === state.pr;
@@ -430,6 +438,7 @@ type SourceMapFocus = {
 };
 
 function CometCircuitSvg({ state, sourceMapFocus }: { state: CometState; sourceMapFocus?: SourceMapFocus }) {
+  const { t } = useI18n();
   const registerIndex = activeRegisterIndex(state);
   const memoryAddress = activeMemoryAddress(state);
   const memoryWindowStart = circuitMemoryWindowStart(state, memoryAddress);
@@ -450,7 +459,7 @@ function CometCircuitSvg({ state, sourceMapFocus }: { state: CometState; sourceM
   const sourceMapInstruction = compactInstructionText(sourceMapFocus?.instruction ?? state.currentInstruction);
 
   return (
-    <svg className="comet-circuit" viewBox={`0 0 ${CIRCUIT_VIEWBOX.width} ${CIRCUIT_VIEWBOX.height}`} role="img" aria-label="COMET II circuit" data-testid="comet-circuit-svg">
+    <svg className="comet-circuit" viewBox={`0 0 ${CIRCUIT_VIEWBOX.width} ${CIRCUIT_VIEWBOX.height}`} role="img" aria-label={t("circuit.simulator")} data-testid="comet-circuit-svg">
       <g className="bus-labels" aria-hidden="true">
         <text x="430" y="112">DATA BUS</text>
         <text x="615" y="22">ADDR BUS</text>
@@ -510,9 +519,9 @@ function CometCircuitSvg({ state, sourceMapFocus }: { state: CometState; sourceM
       <Module layout={circuitLayout.ir} title="IR" value={formatWord(state.ir)} accent={state.changedRegisters.includes("IR")} testId="module-ir" layer="control" />
       <DecoderModule state={state} />
       <ControllerModule state={state} />
-      <Module layout={circuitLayout.display} title="Display Device" testId="module-display" layer="status">
+      <Module layout={circuitLayout.display} title={t("circuit.displayDevice")} testId="module-display" layer="status">
         <text className="display-text" x={circuitLayout.display.x + circuitLayout.display.w / 2} y={circuitLayout.display.y + 62} textAnchor="middle">
-          No output
+          {t("empty.noOutput")}
         </text>
       </Module>
       <Module layout={circuitLayout.pr} title="PR" value={formatWord(state.pr)} accent={state.changedRegisters.includes("PR")} testId="module-pr" layer="control" />
@@ -536,15 +545,15 @@ function CometCircuitSvg({ state, sourceMapFocus }: { state: CometState; sourceM
       </Module>
       <MemoryModule state={state} focusAddress={memoryAddress} windowStart={memoryWindowStart} visualPath={visualPath} />
       <StatusIndicators activeWireIds={activeWireIds} state={state} />
-      <Module layout={circuitLayout.sourceMap} title="Current Source Mapping" testId="module-source-map" layer="status">
+      <Module layout={circuitLayout.sourceMap} title={t("circuit.currentSourceMapping")} testId="module-source-map" layer="status">
         <g data-testid="source-map-highlight" data-current-line={sourceMapLine ?? ""}>
           <rect x={circuitLayout.sourceMap.x + 12} y={circuitLayout.sourceMap.y + 32} width={circuitLayout.sourceMap.w - 24} height="34" rx="3" />
         </g>
         <text className="module-small module-blue" x={circuitLayout.sourceMap.x + 18} y={circuitLayout.sourceMap.y + 47}>
-          Addr {sourceMapAddress !== undefined ? formatWord(sourceMapAddress) : "----"}
+          {t("table.address")} {sourceMapAddress !== undefined ? formatWord(sourceMapAddress) : "----"}
         </text>
         <text className="module-small" x={circuitLayout.sourceMap.x + 18} y={circuitLayout.sourceMap.y + 61}>
-          CASL {sourceMapInstruction ?? "No active line"}
+          CASL {sourceMapInstruction ?? t("circuit.noActiveLine")}
         </text>
       </Module>
 

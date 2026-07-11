@@ -155,7 +155,7 @@ export default function OutputPanel({
           ? (
               <>
                 <div className="generated-casl-title" data-testid="generated-casl-title">
-                  Generated CASL II Assembly
+                  {t("codeMachine.generated")} {t("codeMachine.caslAssembly")}
                 </div>
                 {generatedCaslSource && sourceMode === "cpp" ? (
                   <div className="generated-casl-heading" data-testid="generated-casl-heading">
@@ -165,13 +165,13 @@ export default function OutputPanel({
                 {generatedCaslSource ? (
                   <div className="code-table generated-casl-table">
                     <div className="code-table-header">
-                      <span>Line</span>
+                      <span>{t("codeMachine.line")}</span>
                       <span>{t("table.label")}</span>
-                      <span>Opcode</span>
-                      <span>Operand</span>
+                      <span>{t("codeMachine.opcode")}</span>
+                      <span>{t("codeMachine.operand")}</span>
                       <span>{t("table.mapping")}</span>
-                      <span>C++</span>
-                      <span>Flow</span>
+                      <span title={t("codeMachine.relatedCppLine")} aria-label={t("codeMachine.relatedCppLine")}>C++</span>
+                      <span>{t("timeline.flow")}</span>
                     </div>
                     {generatedRows.map((row) => {
                       const label = labelByCaslLine.get(row.lineNumber);
@@ -213,17 +213,17 @@ export default function OutputPanel({
           : activeTab === "machine"
             ? (
                 <>
-                  <div className="generated-casl-title">COMET II Machine Code</div>
+                  <div className="generated-casl-title">{t("codeMachine.machineCode")}</div>
                   {machineRows.length ? (
                     <div className="machine-code-content">
                       <div className="code-table machine-code-table">
                         <div className="code-table-header">
                           <span>{t("table.address")}</span>
-                          <span>Word</span>
+                          <span>{t("codeMachine.word")}</span>
                           <span>{t("table.source")}</span>
                           <span>{t("table.label")}</span>
                           <span>{t("table.meaning")}</span>
-                          <span>C++</span>
+                          <span title={t("codeMachine.relatedCppLine")} aria-label={t("codeMachine.relatedCppLine")}>C++</span>
                         </div>
                         {machineRows.map((row) => {
                           const isSelected = selectedMachineRow?.address === row.address;
@@ -264,9 +264,9 @@ export default function OutputPanel({
                         })}
                       </div>
                       {machineExplanation ? (
-                        <section className="machine-code-explanation" data-testid="machine-code-explanation" aria-label="Selected word explanation">
+                        <section className="machine-code-explanation" data-testid="machine-code-explanation" aria-label={t("codeMachine.selectedWordExplanation")}>
                           <div className="machine-code-explanation-title">
-                            Selected Word Explanation
+                            {t("codeMachine.selectedWordExplanation")}
                           </div>
                           <dl className="machine-code-explanation-summary" data-testid="machine-code-explanation-summary">
                             <div>
@@ -284,31 +284,31 @@ export default function OutputPanel({
                               <dd className="mono-value">{formatWord(machineExplanation.address)}</dd>
                             </div>
                             <div>
-                              <dt>Word</dt>
+                              <dt>{t("codeMachine.word")}</dt>
                               <dd className="mono-value">{formatWord(machineExplanation.word)}</dd>
                             </div>
                             <div>
-                              <dt>Role</dt>
+                              <dt>{t("codeMachine.role")}</dt>
                               <dd className="text-ellipsis" title={machineExplanation.wordRole === "instruction" ? "instruction word" : machineExplanation.wordRole === "operand" ? "operand word" : machineExplanation.wordRole === "data" ? "data word" : "reserved word"}>{machineExplanation.wordRole === "instruction" ? "instruction word" : machineExplanation.wordRole === "operand" ? "operand word" : machineExplanation.wordRole === "data" ? "data word" : "reserved word"}</dd>
                             </div>
                             <div>
-                              <dt>Opcode</dt>
+                              <dt>{t("codeMachine.opcode")}</dt>
                               <dd className="nowrap-symbol" title={machineExplanation.opcode !== undefined ? `${formatWord(machineExplanation.opcode, 2)} = ${machineExplanation.mnemonic ?? "unknown"}` : "-"}>{machineExplanation.opcode !== undefined ? `${formatWord(machineExplanation.opcode, 2)} = ${machineExplanation.mnemonic ?? "unknown"}` : "-"}</dd>
                             </div>
                             <div>
-                              <dt>Register</dt>
+                              <dt>{t("codeMachine.register")}</dt>
                               <dd className="nowrap-symbol" title={machineExplanation.register !== undefined ? `GR${machineExplanation.register}` : "-"}>{machineExplanation.register !== undefined ? `GR${machineExplanation.register}` : "-"}</dd>
                             </div>
                             <div>
-                              <dt>Index x</dt>
+                              <dt>{t("codeMachine.index")}</dt>
                               <dd className="nowrap-symbol" title={machineExplanation.indexRegister !== undefined ? `x = GR${machineExplanation.indexRegister}` : "x = none"}>{machineExplanation.indexRegister !== undefined ? `x = GR${machineExplanation.indexRegister}` : "x = none"}</dd>
                             </div>
                             <div>
-                              <dt>Index Value</dt>
+                              <dt>{t("codeMachine.indexValue")}</dt>
                               <dd className="mono-value">{machineExplanation.indexValue !== undefined ? formatWord(machineExplanation.indexValue) : "-"}</dd>
                             </div>
                             <div>
-                              <dt>Operand</dt>
+                              <dt>{t("codeMachine.operandAddress")}</dt>
                               <dd className="text-ellipsis" title={machineExplanation.operandAddress !== undefined
                                   ? `${formatWord(machineExplanation.operandAddress)}${machineExplanation.resolvedLabel ? ` = address of ${machineExplanation.resolvedLabel}` : ""}`
                                   : "-"}>
@@ -318,7 +318,7 @@ export default function OutputPanel({
                               </dd>
                             </div>
                             <div>
-                              <dt>Effective</dt>
+                              <dt>{t("signalProbe.effectiveAddress")}</dt>
                               <dd className="text-ellipsis" title={machineExplanation.effectiveAddress !== undefined
                                   ? `${formatWord(machineExplanation.effectiveAddress)}${machineExplanation.effectiveLabel ? ` = ${machineExplanation.effectiveLabel}` : ""}`
                                   : "-"}>
@@ -328,15 +328,15 @@ export default function OutputPanel({
                               </dd>
                             </div>
                             <div>
-                              <dt>Return Addr</dt>
+                              <dt>{t("signalProbe.returnAddress")}</dt>
                               <dd className="mono-value" title={machineExplanation.returnAddress !== undefined ? formatWord(machineExplanation.returnAddress) : "-"}>{machineExplanation.returnAddress !== undefined ? formatWord(machineExplanation.returnAddress) : "-"}</dd>
                             </div>
                             <div>
-                              <dt>Stack Addr</dt>
+                              <dt>{t("signalProbe.stack")} {t("table.address")}</dt>
                               <dd className="nowrap-symbol" title={machineExplanation.stackAddress !== undefined ? `MEM[${formatWord(machineExplanation.stackAddress)}]` : "-"}>{machineExplanation.stackAddress !== undefined ? `MEM[${formatWord(machineExplanation.stackAddress)}]` : "-"}</dd>
                             </div>
                             <div>
-                              <dt>Call Depth</dt>
+                              <dt>{t("callStack.depth")}</dt>
                               <dd
                                 className="nowrap-symbol"
                                 title={machineExplanation.callDepthBefore !== undefined && machineExplanation.callDepthAfter !== undefined
@@ -353,19 +353,19 @@ export default function OutputPanel({
                               </dd>
                             </div>
                             <div>
-                              <dt>RET Mode</dt>
+                              <dt>RET {t("callStack.mode")}</dt>
                               <dd className="text-ellipsis" title={machineExplanation.mnemonic === "RET" ? (machineExplanation.isStackReturnContext ? "stack return" : "top-level finish") : "-"}>{machineExplanation.mnemonic === "RET" ? (machineExplanation.isStackReturnContext ? "stack return" : "top-level finish") : "-"}</dd>
                             </div>
                             <div>
-                              <dt>Binary</dt>
+                              <dt>{t("codeMachine.binary")}</dt>
                               <dd className="mono-value" title={machineExplanation.binaryText}>{machineExplanation.binaryText}</dd>
                             </div>
                             <div className="machine-code-explanation-wide">
-                              <dt>Control Flow Target</dt>
+                              <dt>{t("codeMachine.controlFlowTarget")}</dt>
                               <dd className="text-ellipsis" data-testid="machine-code-control-flow-target" title={selectedMachineEdge ? controlFlowTargetText(selectedMachineEdge) : "-"}>{selectedMachineEdge ? controlFlowTargetText(selectedMachineEdge) : "-"}</dd>
                             </div>
                             <div className="machine-code-explanation-wide">
-                              <dt>Edge Kind</dt>
+                              <dt>{t("codeMachine.edgeKind")}</dt>
                               <dd className="text-ellipsis">{selectedMachineEdge?.kind ?? "-"}</dd>
                             </div>
                           </dl>

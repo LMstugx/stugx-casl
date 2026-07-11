@@ -4,7 +4,7 @@
 
 Static application chrome belongs in the typed UI resource layer: commands, panel titles, navigation tabs, modes, short statuses, accessible control names, and shared empty-state labels. Keys describe meaning (`toolbar.run`), not the current English sentence.
 
-Phase 14A includes only a small pilot. Phase 14B adds reviewed short strings, but Lessons, explanations, and other long copy still require a separate content review before migration.
+Phase 14A includes only a small pilot. Phase 14B adds reviewed short strings. Phase 14C adds Circuit Focus and compact learning-panel labels, while Lessons, diagnostics, Demo Guide text, practice tasks, FramePlan prose, and other long copy still require a separate content review.
 
 ## Technical Identifiers That Remain Unchanged
 
@@ -46,3 +46,4 @@ CASL, COMET II, mnemonic, register, address, word, opcode, operand, label, PR, S
 - Empty localized values are invalid and cannot suppress English fallback.
 - Approved terminology and compact labels come from `i18n-glossary.md`; components do not invent variants.
 - A locale switch changes presentation metadata only; it does not mutate source, execution, Trace, lessons, examples, or FramePlan state.
+- Compact Circuit Focus labels may be translated around technical values, but mnemonics, register names, addresses, Generated CASL, machine words, and raw Trace payloads remain verbatim.

@@ -228,9 +228,9 @@ describe("advanced UI design system foundation", () => {
 
   it("long_panel_titles_do_not_hard_clip", () => {
     expect(appTsx).toContain('<h2 title="Current Instruction">Current Instruction</h2>');
-    expect(appTsx).toContain('<h2 title="COMET II Simulator">COMET II Simulator</h2>');
-    expect(focusLayoutTsx).toContain('<h2 title="Current Source Mapping">Current Source Mapping</h2>');
-    expect(focusLayoutTsx).toContain('<h2 title="Stack Frame View">Stack Frame View</h2>');
+    expect(appTsx).toContain('<h2 title={t("circuit.simulator")}>{t("circuit.simulator")}</h2>');
+    expect(focusLayoutTsx).toContain('<h2 title={t("circuit.currentSourceMapping")}>{t("circuit.currentSourceMapping")}</h2>');
+    expect(focusLayoutTsx).toContain('<h2 title={t("stackFrame.title")}>{t("stackFrame.title")}</h2>');
   });
 
   it("mono_values_do_not_wrap", () => {
@@ -266,6 +266,17 @@ describe("advanced UI design system foundation", () => {
     expect(marker).toContain("border: 1px solid var(--color-empty-border)");
     expect(marker).toContain("background: var(--color-surface)");
     expect(marker).toContain("color: var(--color-text-secondary)");
+  });
+
+  it("frame_symbol_chips_keep_cjk_labels_on_one_line", () => {
+    const marker = cssBlock(".source-editor-frame-symbol-marker {");
+    const markerLabel = cssBlock(".source-editor-frame-symbol-marker span {");
+    const markerList = cssBlock(".source-editor-frame-symbol-list {");
+
+    expect(marker).toContain("min-width: 64px");
+    expect(markerList).toContain("flex-wrap: wrap");
+    expect(markerLabel).toContain("text-overflow: ellipsis");
+    expect(markerLabel).toContain("white-space: nowrap");
   });
 
   it("circuit_active_state_uses_shared_tokens", () => {

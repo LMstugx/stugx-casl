@@ -1918,12 +1918,14 @@ button {
 .source-editor-frame-symbol-list {
   min-width: 0;
   display: flex;
+  flex-wrap: wrap;
   gap: 5px;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .source-editor-frame-symbol-marker {
-  min-width: 0;
+  flex: 0 1 96px;
+  min-width: 64px;
   display: inline-grid;
   grid-template-columns: minmax(0, auto) auto;
   gap: 4px;
@@ -1951,8 +1953,12 @@ button {
 }
 
 .source-editor-frame-symbol-marker span {
+  min-width: 0;
+  overflow: hidden;
   color: var(--color-muted);
   font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .source-editor-frame-symbol-marker:hover,

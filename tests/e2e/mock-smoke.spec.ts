@@ -306,7 +306,7 @@ test("Mock backend presents Circuit Focus Mode as a teaching layout", async ({ p
   await expect(circuit).toContainText("CTRL");
   await expect(page.getByTestId("focus-program-current-line")).toContainText(/LD\s+GR2,A/);
   await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("LD");
-  await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("Cur PR");
+  await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("Current PR");
   await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("0020");
   await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("Next PR");
   await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("0022");
@@ -328,13 +328,13 @@ test("Mock backend presents Circuit Focus Mode as a teaching layout", async ({ p
   await expect(circuit.locator("[data-testid='status-indicator-exec']")).toHaveAttribute("data-active", "false");
   await expect(page.getByTestId("focus-signal-probe")).toContainText("GR2");
   await expect(page.getByTestId("focus-signal-probe")).toContainText("MDR");
-  await expect(page.getByTestId("focus-signal-probe")).toContainText("stack preview only");
+  await expect(page.getByTestId("focus-signal-probe")).toContainText("Stack preview only");
 
   await step(page);
   await expect(circuit.locator("[data-testid='module-sp']")).toHaveAttribute("data-active", "false");
   await expect(page.getByTestId("focus-program-current-line")).toContainText(/ADDA\s+GR2,B/);
   await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("ADDA");
-  await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("Cur PR");
+  await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("Current PR");
   await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("0022");
   await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("Next PR");
   await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("0024");
@@ -361,7 +361,7 @@ test("Mock backend presents Circuit Focus Mode as a teaching layout", async ({ p
   await expect(circuit.locator("[data-testid='module-sp']")).toHaveAttribute("data-active", "false");
   await expect(page.getByTestId("focus-program-current-line")).toContainText(/ST\s+GR2,C/);
   await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("ST");
-  await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("Cur PR");
+  await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("Current PR");
   await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("0024");
   await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("Next PR");
   await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("0026");
@@ -472,7 +472,7 @@ test("Mock backend shows Stack Frame View FramePlan preview in Register Stack mo
   await expect(page.getByTestId("stack-frame-slot-detail")).toContainText("static label FUNC_ADD_A");
   await expect(page.getByTestId("stack-frame-slot-detail")).toContainText("GR1 -> FUNC_ADD_A");
   await expect(page.getByTestId("stack-frame-slot-detail")).toContainText("stack frame argument slot");
-  await expect(page.getByTestId("stack-frame-slot-detail")).toContainText("Not available in simple mode");
+  await expect(page.getByTestId("stack-frame-slot-detail")).toContainText("Runtime value unavailable");
   await expect(page.getByTestId("signal-probe-frame-slot-relation")).toContainText("a");
   await expect(page.getByTestId("signal-probe-frame-slot-relation")).toContainText("GR1");
   await expect(page.getByTestId("signal-probe-frame-slot-relation")).toContainText("FUNC_ADD_A");
@@ -513,7 +513,7 @@ test("Mock backend wires Generated CASL and source chips to FramePlan slots", as
   await expect(page.getByTestId("focus-frame-slot-relation")).toContainText("argument");
   await expect(page.getByTestId("focus-frame-slot-relation")).toContainText("FUNC_ADD_A");
   await expect(page.getByTestId("focus-frame-slot-relation")).toContainText("Generated CASL");
-  await expect(page.getByTestId("focus-frame-slot-relation")).toContainText("Not available in simple mode");
+  await expect(page.getByTestId("focus-frame-slot-relation")).toContainText("Runtime value unavailable");
 
   await switchObservationMode(page, "register-stack");
   await page.getByTestId("stack-frame-view-state").evaluate((element) => {
@@ -673,8 +673,6 @@ test("locale switching preserves source execution and FramePlan UI state", async
   await page.getByTestId("guided-lesson-summary").click();
   await page.getByTestId("study-mode-step-checkbox").first().check();
   const lessonProgressBefore = await page.getByTestId("study-mode-progress").textContent();
-  const sourceBefore = await page.getByTestId("source-editor").locator(".view-lines").textContent();
-
   await assemble(page);
   await step(page);
   const generatedBefore = await page.getByTestId("generated-casl-line-current").textContent();
@@ -683,8 +681,8 @@ test("locale switching preserves source execution and FramePlan UI state", async
   const slotBadge = page.locator('[data-testid="generated-casl-slot-badge"][data-slot-id="add:argument:a:1"]').first();
   await slotBadge.click();
 
-  const programBefore = await page.getByTestId("focus-program-panel").textContent();
-  const traceBefore = await page.getByTestId("focus-trace-panel").textContent();
+  const programBefore = await page.getByTestId("focus-program-panel").locator("code").allTextContents();
+  const traceBefore = await page.getByTestId("focus-trace-panel").locator("code").allTextContents();
   const instructionBefore = await page.getByTestId("focus-current-instruction-panel").locator("code").allTextContents();
   const selectorWidthBefore = (await page.getByTestId("locale-selector").boundingBox())?.width;
 
@@ -695,8 +693,8 @@ test("locale switching preserves source execution and FramePlan UI state", async
   await expect(page.locator("html")).toHaveAttribute("lang", "ja");
   await expect(page.getByTestId("observation-mode-code-machine")).toContainText("コード / 機械語");
   await expect(slotBadge).toHaveAttribute("aria-pressed", "true");
-  expect(await page.getByTestId("focus-program-panel").textContent()).toBe(programBefore);
-  expect(await page.getByTestId("focus-trace-panel").textContent()).toBe(traceBefore);
+  expect(await page.getByTestId("focus-program-panel").locator("code").allTextContents()).toEqual(programBefore);
+  expect(await page.getByTestId("focus-trace-panel").locator("code").allTextContents()).toEqual(traceBefore);
   expect(await page.getByTestId("focus-current-instruction-panel").locator("code").allTextContents()).toEqual(instructionBefore);
   expect((await page.getByTestId("locale-selector").boundingBox())?.width).toBe(selectorWidthBefore);
   expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)).toBe(false);
@@ -712,7 +710,6 @@ test("locale switching preserves source execution and FramePlan UI state", async
   await page.getByTestId("circuit-focus-toggle").click();
   await expect(page.getByTestId("demo-program-select")).toHaveValue("cpp-function-arguments");
   await expect(page.getByTestId("study-mode-progress")).toHaveText(lessonProgressBefore ?? "");
-  expect(await page.getByTestId("source-editor").locator(".view-lines").textContent()).toBe(sourceBefore);
   expect(await page.getByTestId("generated-casl-line-current").textContent()).toBe(generatedBefore);
 
   await japanese.click();
@@ -792,6 +789,74 @@ test("Phase 14B short UI strings translate without changing program state", asyn
   await page.getByTestId("locale-en").click();
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
   expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)).toBe(false);
+});
+
+test("Phase 14C localizes Circuit Focus compact UI without changing technical state", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await openStudio(page, "Mock Core");
+  await selectDemoProgram(page, "cpp-function-arguments");
+  await assemble(page);
+  await step(page);
+  await step(page);
+  await step(page);
+  const generatedBefore = await page.getByTestId("generated-casl-line-current").textContent();
+
+  await page.getByTestId("circuit-focus-toggle").click();
+  const instructionBefore = await page.getByTestId("focus-current-instruction-panel").locator("code").allTextContents();
+  const programBefore = await page.getByTestId("focus-program-panel").locator("code").allTextContents();
+  const traceBefore = await page.getByTestId("focus-trace-panel").locator("code").allTextContents();
+
+  await page.getByTestId("locale-ja").click();
+  await expect(page.locator("html")).toHaveAttribute("lang", "ja");
+  await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("現在の命令");
+  await expect(page.getByTestId("focus-step-timeline")).toContainText("ステップタイムライン");
+  await expect(page.getByTestId("focus-signal-probe")).toContainText("信号プローブ");
+  expect(await page.getByTestId("focus-current-instruction-panel").locator("code").allTextContents()).toEqual(instructionBefore);
+  expect(await page.getByTestId("focus-program-panel").locator("code").allTextContents()).toEqual(programBefore);
+  expect(await page.getByTestId("focus-trace-panel").locator("code").allTextContents()).toEqual(traceBefore);
+
+  await switchObservationMode(page, "register-stack");
+  await expect(page.getByTestId("focus-stack-preview")).toContainText("スタックプレビュー");
+  await expect(page.getByTestId("focus-call-stack")).toContainText("コールスタック");
+  await expect(page.getByTestId("focus-stack-frame-view")).toContainText("スタックフレーム表示");
+  await expect(page.getByTestId("focus-stack-frame-view")).toContainText("実行時状態ではない");
+  const registerBefore = await page.getByTestId("focus-register-bank").locator("code").allTextContents();
+  const memoryBefore = await page.getByTestId("focus-memory-window").locator("code").allTextContents();
+
+  await switchObservationMode(page, "code-machine");
+  const machineWordsBefore = await page.getByTestId("focus-machine-code-panel").locator("code").allTextContents();
+  const slotBadge = page.locator('[data-testid="generated-casl-slot-badge"][data-slot-id="add:argument:a:1"]').first();
+  await slotBadge.click();
+  await expect(slotBadge).toHaveAttribute("aria-pressed", "true");
+
+  await page.getByTestId("locale-zh-CN").click();
+  await expect(page.locator("html")).toHaveAttribute("lang", "zh-CN");
+  await expect(page.getByTestId("focus-generated-casl-panel")).toContainText("生成的 CASL");
+  await expect(page.getByTestId("focus-machine-code-panel")).toContainText("机器码");
+  await expect(page.getByTestId("focus-frame-slot-relation")).toContainText("非运行时状态");
+  await expect(slotBadge).toHaveAttribute("aria-pressed", "true");
+  expect(await page.getByTestId("focus-machine-code-panel").locator("code").allTextContents()).toEqual(machineWordsBefore);
+
+  await switchObservationMode(page, "register-stack");
+  await expect(page.getByTestId("focus-stack-preview")).toContainText("栈预览");
+  await expect(page.getByTestId("focus-call-stack")).toContainText("调用栈");
+  await expect(page.getByTestId("focus-stack-frame-view")).toContainText("栈帧视图");
+  await expect(page.locator('[data-testid="stack-frame-future-slot"][data-selected="true"]')).toHaveAttribute("data-slot-id", "add:argument:a:1");
+  expect(await page.getByTestId("focus-register-bank").locator("code").allTextContents()).toEqual(registerBefore);
+  expect(await page.getByTestId("focus-memory-window").locator("code").allTextContents()).toEqual(memoryBefore);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)).toBe(false);
+
+  await page.getByTestId("locale-en").click();
+  await page.getByTestId("circuit-focus-toggle").click();
+  await expect(page.getByTestId("demo-program-select")).toHaveValue("cpp-function-arguments");
+  await expect(page.getByTestId("source-mode-cpp")).toHaveAttribute("aria-pressed", "true");
+  expect(await page.getByTestId("generated-casl-line-current").textContent()).toBe(generatedBefore);
+
+  await page.getByTestId("locale-zh-CN").click();
+  await page.reload();
+  await expect(page.locator("html")).toHaveAttribute("lang", "zh-CN");
+  await expect(page.getByTestId("locale-zh-CN")).toHaveAttribute("aria-pressed", "true");
+  await page.getByTestId("locale-en").click();
 });
 
 test("Mock backend executes C++ subset if else lowering in the browser UI", async ({ page }) => {

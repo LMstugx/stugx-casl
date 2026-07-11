@@ -9,7 +9,7 @@ function compactInstructionText(text?: string): string | undefined {
 
 export default function StatusBar({ state, backendInfo }: { state: CometState; backendInfo: CoreBackendInfo }) {
   const { t } = useI18n();
-  const currentInstruction = compactInstructionText(state.lastStep?.executedInstruction ?? state.currentInstruction) ?? "No active instruction";
+  const currentInstruction = compactInstructionText(state.lastStep?.executedInstruction ?? state.currentInstruction) ?? t("instruction.noActive");
   const nextInstruction =
     state.lastStep && state.currentInstruction && compactInstructionText(state.currentInstruction) !== currentInstruction
       ? compactInstructionText(state.currentInstruction)
@@ -17,12 +17,12 @@ export default function StatusBar({ state, backendInfo }: { state: CometState; b
 
   return (
     <footer className="status-bar">
-      <span>Machine: <span data-testid="run-state">{translateRunState(t, state.runState)}</span></span>
-      <span>Current: {currentInstruction}</span>
-      <span>Next PR: {formatWord(state.pr)}</span>
-      <span>{nextInstruction ? `Next Instruction: ${nextInstruction}` : "Next Instruction: -"}</span>
+      <span>{t("circuit.machine")}: <span data-testid="run-state">{translateRunState(t, state.runState)}</span></span>
+      <span>{t("table.current")}: {currentInstruction}</span>
+      <span>{t("instruction.nextPr")}: {formatWord(state.pr)}</span>
+      <span>{t("instruction.nextInstruction")}: {nextInstruction ?? "-"}</span>
       <span data-testid="backend-label" title={backendInfo.errorMessage ?? backendInfo.label}>{backendInfo.label}</span>
-      <span>COMET II Simulator</span>
+      <span>{t("circuit.simulator")}</span>
     </footer>
   );
 }

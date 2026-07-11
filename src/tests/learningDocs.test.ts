@@ -60,6 +60,7 @@ import i18nStringBoundary from "../../docs/i18n-string-boundary.md?raw";
 import i18nGlossary from "../../docs/i18n-glossary.md?raw";
 import i18nShortStringInventory from "../../docs/i18n-short-string-inventory.md?raw";
 import phase14b from "../../docs/phase14b-i18n-glossary-short-strings.md?raw";
+import phase14c from "../../docs/phase14c-circuit-learning-compact-localization.md?raw";
 
 describe("learning use documentation", () => {
   it("learning_guide_exists", () => {
@@ -906,6 +907,22 @@ describe("learning use documentation", () => {
     expect(readme).toContain("docs/i18n-glossary.md");
     expect(readme).toContain("docs/i18n-short-string-inventory.md");
     expect(readme).toContain("docs/phase14b-i18n-glossary-short-strings.md");
+  });
+
+  it("phase14c_circuit_learning_localization_docs_exist", () => {
+    expect(phase14c).toContain("Phase 14C: Circuit Focus And Compact Learning Text Localization");
+    expect(phase14c).toContain("Migrated Circuit Focus Labels");
+    expect(phase14c).toContain("Timeline And Learning Flow");
+    expect(phase14c).toContain("Signal Probe");
+    expect(phase14c).toContain("Stack Preview And Call Stack");
+    expect(phase14c).toContain("Stack Frame Compact Labels");
+    expect(phase14c).toContain("Untranslated Technical Boundary");
+    expect(phase14c).toContain("Phase 14D Recommendation");
+    expect(i18nGlossary).toContain("Phase 14C Circuit And Learning Terms");
+    expect(i18nGlossary).toContain("オペランド読出し");
+    expect(i18nGlossary).toContain("操作数读取");
+    expect(i18nShortStringInventory).toContain("Phase 14C Circuit And Learning Panels");
+    expect(readme).toContain("docs/phase14c-circuit-learning-compact-localization.md");
   });
 
   it("project_overview_uses_learning_wording", () => {

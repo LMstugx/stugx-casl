@@ -7,6 +7,10 @@ export interface CppToken {
   value: string;
   line: number;
   column: number;
+  endLine: number;
+  endColumn: number;
+  startOffset: number;
+  endOffset: number;
 }
 
 export interface LexResult {
@@ -37,8 +41,8 @@ export function lexCpp(source: string): LexResult {
     return ch;
   };
 
-  const push = (kind: CppTokenKind, value: string, tokenLine: number, tokenColumn: number) => {
-    tokens.push({ kind, value, line: tokenLine, column: tokenColumn });
+  const push = (kind: CppTokenKind, value: string, tokenLine: number, tokenColumn: number, startOffset: number) => {
+    tokens.push({ kind, value, line: tokenLine, column: tokenColumn, endLine: line, endColumn: column, startOffset, endOffset: index });
   };
 
   while (index < source.length) {
@@ -56,11 +60,21 @@ export function lexCpp(source: string): LexResult {
 
     if (ch === "/" && peek(1) === "*") {
       const startLine = line;
+      const startColumn = column;
+      const startOffset = index;
       advance();
       advance();
       while (index < source.length && !(peek() === "*" && peek(1) === "/")) advance();
       if (index >= source.length) {
-        diagnostics.push({ line: startLine, message: "Unterminated block comment.", severity: "error" });
+        diagnostics.push({
+          line: startLine,
+          message: "Unterminated block comment.",
+          severity: "error",
+          sourceRange: {
+            start: { line: startLine, column: startColumn, offset: startOffset },
+            end: { line, column, offset: index }
+          }
+        });
         break;
       }
       advance();
@@ -71,39 +85,58 @@ export function lexCpp(source: string): LexResult {
     if (/[A-Za-z_]/.test(ch)) {
       const startLine = line;
       const startColumn = column;
+      const startOffset = index;
       let value = "";
       while (/[A-Za-z0-9_]/.test(peek())) value += advance();
-      push(keywords.has(value) ? "keyword" : "identifier", value, startLine, startColumn);
+      push(keywords.has(value) ? "keyword" : "identifier", value, startLine, startColumn, startOffset);
       continue;
     }
 
     if (/[0-9]/.test(ch)) {
       const startLine = line;
       const startColumn = column;
+      const startOffset = index;
       let value = "";
       while (/[0-9]/.test(peek())) value += advance();
-      push("integer", value, startLine, startColumn);
+      push("integer", value, startLine, startColumn, startOffset);
       continue;
     }
 
     const twoChar = `${ch}${peek(1)}`;
     if (twoChar === "==" || twoChar === "!=" || twoChar === "<=" || twoChar === ">=" || twoChar === "++" || twoChar === "--" || twoChar === "+=" || twoChar === "-=") {
-      push("symbol", twoChar, line, column);
+      const startLine = line;
+      const startColumn = column;
+      const startOffset = index;
       advance();
       advance();
+      push("symbol", twoChar, startLine, startColumn, startOffset);
       continue;
     }
 
     if (symbols.has(ch)) {
-      push("symbol", ch, line, column);
+      const startLine = line;
+      const startColumn = column;
+      const startOffset = index;
       advance();
+      push("symbol", ch, startLine, startColumn, startOffset);
       continue;
     }
 
-    diagnostics.push({ line, message: `Unsupported character '${ch}' in C++ subset source.`, severity: "error" });
+    const startLine = line;
+    const startColumn = column;
+    const startOffset = index;
     advance();
+    diagnostics.push({
+      line: startLine,
+      message: `Unsupported character '${ch}' in C++ subset source.`,
+      severity: "error",
+      sourceRange: {
+        start: { line: startLine, column: startColumn, offset: startOffset },
+        end: { line, column, offset: index }
+      }
+    });
   }
 
-  tokens.push({ kind: "eof", value: "", line, column });
+  tokens.push({ kind: "eof", value: "", line, column, endLine: line, endColumn: column, startOffset: index, endOffset: index });
   return { tokens, diagnostics };
 }

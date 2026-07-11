@@ -48,4 +48,4 @@ Source code, identifiers, labels, symbols, mnemonics, register names, opcodes, a
 
 ## Future Extensions
 
-Future phases may add parser token ranges, a typed parameter schema per code, stable wrappers for browser/WASM loader failures, and additional P1/P2 diagnostics. Plural rules and rich diagnostic help are not part of Phase 14D.
+Phase 14E adds the per-code typed schema, runtime payload validation, source ranges, related locations, and editor selection described in [diagnostic-parameter-schema.md](diagnostic-parameter-schema.md) and [source-range-contract.md](source-range-contract.md). Future phases may structure remaining raw parser messages and stable browser/WASM loader wrappers. Plural rules and rich diagnostic help remain out of scope.

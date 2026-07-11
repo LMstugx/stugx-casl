@@ -348,6 +348,9 @@ The current backend is shown in the status bar as `Mock Core`, `WASM Core`, or `
 - [docs/diagnostic-code-contract.md](docs/diagnostic-code-contract.md): stable diagnostic codes, named parameters, identity, fallback, and TS/C++/WASM compatibility.
 - [docs/i18n-diagnostic-inventory.md](docs/i18n-diagnostic-inventory.md): diagnostic producer, severity, parameter, parity, localization status, and migration-priority inventory.
 - [docs/phase14d-diagnostic-localization-architecture.md](docs/phase14d-diagnostic-localization-architecture.md): Phase 14D structured diagnostic pilot, localized rendering, compatibility boundaries, and remaining raw diagnostics.
+- [docs/diagnostic-parameter-schema.md](docs/diagnostic-parameter-schema.md): strict code-to-parameter mapping, runtime payload validation, placeholder checks, and technical-value formatting.
+- [docs/source-range-contract.md](docs/source-range-contract.md): 1-based line/column, UTF-16 offsets, exclusive ends, related locations, and TS/C++/WASM range parity.
+- [docs/phase14e-diagnostic-schema-source-range.md](docs/phase14e-diagnostic-schema-source-range.md): Phase 14E schema, source-range, identity, UI selection, compatibility, and remaining limitations.
 
 ## Current Limitations
 

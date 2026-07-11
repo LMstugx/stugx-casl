@@ -67,6 +67,13 @@ bool hasCode(const casl::AssembleResult& result, std::string_view code) {
     return false;
 }
 
+const casl::Diagnostic* findCode(const casl::AssembleResult& result, std::string_view code) {
+    for (const auto& diagnostic : result.diagnostics) {
+        if (diagnostic.code == code) return &diagnostic;
+    }
+    return nullptr;
+}
+
 bool assembleHasError(const casl::Assembler& assembler, std::string_view source, std::string_view fragment) {
     const auto result = assembler.assemble(std::string(source));
     return hasError(result, fragment);
@@ -128,6 +135,11 @@ void DuplicateLabel_ShouldError() {
     require(!result.ok, "duplicate label should fail");
     require(hasError(result, "Duplicate label"), "duplicate label diagnostic");
     require(hasCode(result, "assembler.duplicateLabel"), "duplicate label structured code");
+    const auto* diagnostic = findCode(result, "assembler.duplicateLabel");
+    require(diagnostic != nullptr && diagnostic->sourceRange.has_value(), "duplicate label source range");
+    require(diagnostic->sourceRange->start.line == 3 && diagnostic->sourceRange->start.column == 1, "duplicate label primary location");
+    require(diagnostic->relatedLocations.size() == 1, "duplicate label related location");
+    require(diagnostic->relatedLocations.front().sourceRange.start.line == 2, "duplicate label first declaration location");
 }
 
 void AssembleInvalidRegister() {
@@ -136,6 +148,9 @@ void AssembleInvalidRegister() {
     require(!result.ok, "invalid register should fail");
     require(hasError(result, "Invalid register"), "invalid register diagnostic");
     require(hasCode(result, "assembler.invalidRegister"), "invalid register structured code");
+    const auto* diagnostic = findCode(result, "assembler.invalidRegister");
+    require(diagnostic != nullptr && diagnostic->sourceRange.has_value(), "invalid register source range");
+    require(diagnostic->sourceRange->start.line == 2 && diagnostic->sourceRange->start.column == 5, "invalid register token location");
 }
 
 void AssembleUndefinedLabel() {
@@ -144,6 +159,9 @@ void AssembleUndefinedLabel() {
     require(!result.ok, "undefined label should fail");
     require(hasError(result, "Undefined label"), "undefined label diagnostic");
     require(hasCode(result, "assembler.unknownSymbol"), "undefined label structured code");
+    const auto* diagnostic = findCode(result, "assembler.unknownSymbol");
+    require(diagnostic != nullptr && diagnostic->sourceRange.has_value(), "undefined label source range");
+    require(diagnostic->sourceRange->start.line == 2 && diagnostic->sourceRange->start.column == 9, "undefined label token location");
 }
 
 void AssembleUnknownOpcode() {
@@ -152,6 +170,9 @@ void AssembleUnknownOpcode() {
     require(!result.ok, "unknown opcode should fail");
     require(hasError(result, "Unknown opcode"), "unknown opcode diagnostic");
     require(hasCode(result, "assembler.unknownOpcode"), "unknown opcode structured code");
+    const auto* diagnostic = findCode(result, "assembler.unknownOpcode");
+    require(diagnostic != nullptr && diagnostic->sourceRange.has_value(), "unknown opcode source range");
+    require(diagnostic->sourceRange->start.line == 2 && diagnostic->sourceRange->start.column == 8, "unknown opcode token location");
 }
 
 void AssembleInvalidNumericLiteral() {
@@ -169,6 +190,9 @@ void AssembleRequiredDirectivesBoundary() {
     require(hasError(empty, "END directive"), "empty source END diagnostic");
     require(hasCode(empty, "assembler.missingStart"), "missing START structured code");
     require(hasCode(empty, "assembler.missingEnd"), "missing END structured code");
+    const auto* missingEndDiagnostic = findCode(empty, "assembler.missingEnd");
+    require(missingEndDiagnostic != nullptr && missingEndDiagnostic->sourceRange.has_value(), "missing END insertion range");
+    require(missingEndDiagnostic->sourceRange->start.offset == missingEndDiagnostic->sourceRange->end.offset, "missing END empty range");
 
     const auto comments = assembler.assemble("; comment only\n ; another comment");
     require(!comments.ok, "comments-only source should fail");

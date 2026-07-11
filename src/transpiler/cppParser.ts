@@ -484,6 +484,14 @@ class Parser {
   }
 
   private error(token: CppToken, message: string) {
-    this.diagnostics.push({ line: token.line, message, severity: "error" });
+    this.diagnostics.push({
+      line: token.line,
+      message,
+      severity: "error",
+      sourceRange: {
+        start: { line: token.line, column: token.column, offset: token.startOffset },
+        end: { line: token.endLine, column: token.endColumn, offset: token.endOffset }
+      }
+    });
   }
 }

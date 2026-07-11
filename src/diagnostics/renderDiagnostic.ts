@@ -2,7 +2,8 @@ import type { Diagnostic } from "../core/types";
 import { translate } from "../i18n/resources";
 import type { AnyTranslationKey, SupportedLocale } from "../i18n/types";
 import { normalizeDiagnostic } from "./catalog";
-import type { DiagnosticCode, DiagnosticParams, RenderedDiagnostic } from "./types";
+import { formatDiagnosticParam } from "./formatDiagnosticParam";
+import type { AnyDiagnosticParams, DiagnosticCode, RenderedDiagnostic } from "./types";
 
 const diagnosticTranslationKeys = {
   "assembler.missingStart": "diagnostics.assembler.missingStart",
@@ -43,10 +44,12 @@ export function renderDiagnostic(diagnostic: Diagnostic, locale: SupportedLocale
     const localized = translate(locale, diagnosticTranslationKeys[normalized.code], paramsForTranslation(normalized.params));
     const message = /\{[a-zA-Z][a-zA-Z0-9_]*\}/.test(localized) ? fallbackMessage : localized;
     return {
+      line: normalized.line,
       code: normalized.code,
       severity: normalized.severity,
       params: normalized.params ?? {},
       sourceRange: normalized.sourceRange,
+      relatedLocations: normalized.relatedLocations,
       fileName: normalized.fileName,
       rawContext: normalized.rawContext,
       fallbackMessage,
@@ -63,9 +66,18 @@ export function diagnosticIdentity(diagnostic: Diagnostic): string {
   const range = normalized.sourceRange
     ? `${normalized.sourceRange.start.line}:${normalized.sourceRange.start.column}-${normalized.sourceRange.end.line}:${normalized.sourceRange.end.column}`
     : `line:${normalized.line}`;
-  return JSON.stringify([normalized.code ?? "legacy", normalized.severity, range, params, normalized.fileName ?? ""]);
+  const related = (normalized.relatedLocations ?? []).map((location) => [
+    location.sourceRange.start.line,
+    location.sourceRange.start.column,
+    location.sourceRange.start.offset ?? null,
+    location.sourceRange.end.line,
+    location.sourceRange.end.column,
+    location.sourceRange.end.offset ?? null,
+    location.fileName ?? ""
+  ]);
+  return JSON.stringify([normalized.code ?? "legacy", normalized.severity, range, params, related, normalized.fileName ?? ""]);
 }
 
-function paramsForTranslation(params: DiagnosticParams | undefined): Record<string, string | number | boolean> {
-  return { ...(params ?? {}) };
+function paramsForTranslation(params: AnyDiagnosticParams | undefined): Record<string, string | number | boolean> {
+  return Object.fromEntries(Object.entries(params ?? {}).map(([name, value]) => [name, formatDiagnosticParam(name, value)]));
 }

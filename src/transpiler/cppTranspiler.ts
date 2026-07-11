@@ -5,7 +5,7 @@ import type { TranspileResult } from "./cppAst";
 
 export function transpileCppToCasl(source: string): TranspileResult {
   const parsed = parseCpp(source);
-  const semantic = checkCppSemantics(parsed.program, parsed.diagnostics);
+  const semantic = checkCppSemantics(parsed.program, parsed.diagnostics, source);
   if (!parsed.program || !semantic.ok) {
     return {
       ok: false,

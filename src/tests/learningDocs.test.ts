@@ -64,6 +64,9 @@ import phase14c from "../../docs/phase14c-circuit-learning-compact-localization.
 import diagnosticCodeContract from "../../docs/diagnostic-code-contract.md?raw";
 import i18nDiagnosticInventory from "../../docs/i18n-diagnostic-inventory.md?raw";
 import phase14d from "../../docs/phase14d-diagnostic-localization-architecture.md?raw";
+import diagnosticParameterSchema from "../../docs/diagnostic-parameter-schema.md?raw";
+import sourceRangeContract from "../../docs/source-range-contract.md?raw";
+import phase14e from "../../docs/phase14e-diagnostic-schema-source-range.md?raw";
 
 describe("learning use documentation", () => {
   it("learning_guide_exists", () => {
@@ -944,6 +947,26 @@ describe("learning use documentation", () => {
     expect(readme).toContain("docs/diagnostic-code-contract.md");
     expect(readme).toContain("docs/i18n-diagnostic-inventory.md");
     expect(readme).toContain("docs/phase14d-diagnostic-localization-architecture.md");
+  });
+
+  it("phase14e_schema_and_source_range_docs_exist", () => {
+    expect(diagnosticParameterSchema).toContain("Diagnostic Parameter Schema");
+    expect(diagnosticParameterSchema).toContain("validateDiagnosticPayload");
+    expect(diagnosticParameterSchema).toContain("prototype");
+    expect(diagnosticParameterSchema).toContain("Template Placeholder Contract");
+    expect(sourceRangeContract).toContain("Source Range Contract");
+    expect(sourceRangeContract).toContain("1-based");
+    expect(sourceRangeContract).toContain("UTF-16");
+    expect(sourceRangeContract).toContain("ends exclusively");
+    expect(sourceRangeContract).toContain("Related Locations");
+    expect(phase14e).toContain("Phase 14E: Diagnostic Schema And Source-Range Hardening");
+    expect(phase14e).toContain("Runtime Validation");
+    expect(phase14e).toContain("Remaining Limitations");
+    expect(i18nDiagnosticInventory).toContain("Phase 14E Schema And Range Verification");
+    expect(i18nDiagnosticInventory).toContain("legacy-only");
+    expect(readme).toContain("docs/diagnostic-parameter-schema.md");
+    expect(readme).toContain("docs/source-range-contract.md");
+    expect(readme).toContain("docs/phase14e-diagnostic-schema-source-range.md");
   });
 
   it("project_overview_uses_learning_wording", () => {

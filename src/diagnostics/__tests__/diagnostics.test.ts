@@ -34,7 +34,7 @@ describe("structured diagnostic contract", () => {
     const range = { start: { line: 3, column: 4 }, end: { line: 3, column: 11 } };
     const input: Diagnostic[] = [
       { ...createStructuredDiagnostic(3, "first", "assembler.unknownOpcode", { opcode: "BAD" }, "warning"), sourceRange: range },
-      createStructuredDiagnostic(7, "second", "assembler.missingEnd")
+      createStructuredDiagnostic(7, "second", "assembler.missingEnd", {})
     ];
     const normalized = normalizeDiagnostics(input);
     expect(normalized.map((entry) => entry.message)).toEqual(["first", "second"]);
@@ -52,7 +52,13 @@ describe("structured diagnostic contract", () => {
   });
 
   it("missing_params_and_unknown_messages_do_not_crash", () => {
-    const missingParam = createStructuredDiagnostic(1, "English fallback", "assembler.unknownSymbol");
+    const missingParam = normalizeDiagnostic({
+      line: 1,
+      message: "English fallback",
+      severity: "error",
+      code: "assembler.unknownSymbol",
+      params: {}
+    });
     expect(renderDiagnostic(missingParam, "ja").message).toBe("English fallback");
     const raw: Diagnostic = { line: 0, message: "raw internal detail", severity: "error", rawContext: "stack trace" };
     expect(renderDiagnostic(raw, "zh-CN")).toMatchObject({ message: "raw internal detail", rawContext: "stack trace" });

@@ -236,6 +236,8 @@ export const zhCN = {
   "diagnostic.line": "第 {line} 行",
   "diagnostic.code": "代码：{code}",
   "diagnostic.errors": "错误",
+  "diagnostic.relatedLocations": "相关位置",
+  "diagnostic.firstDeclaredHere": "首次声明位置",
   "locale.english": "英语",
   "locale.japanese": "日语",
   "locale.chineseSimplified": "简体中文",

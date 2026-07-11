@@ -1,0 +1,48 @@
+import type { DiagnosticCode, DiagnosticParamValue } from "./types";
+
+export type DiagnosticParamType = "string" | "number" | "boolean" | "string-or-number";
+export interface DiagnosticSchema {
+  required: Readonly<Record<string, DiagnosticParamType>>;
+  optional: Readonly<Record<string, DiagnosticParamType>>;
+}
+
+const none = Object.freeze({});
+export const diagnosticSchemas = {
+  "assembler.missingStart": { required: none, optional: none },
+  "assembler.missingEnd": { required: none, optional: none },
+  "assembler.unknownOpcode": { required: { opcode: "string" }, optional: { line: "number" } },
+  "assembler.unknownSymbol": { required: { symbol: "string" }, optional: { line: "number" } },
+  "assembler.duplicateLabel": { required: { label: "string" }, optional: { firstLine: "number", duplicateLine: "number" } },
+  "assembler.invalidRegister": { required: { register: "string" }, optional: none },
+  "assembler.invalidIndexRegister": { required: { indexRegister: "string" }, optional: none },
+  "assembler.malformedOperandList": { required: none, optional: none },
+  "assembler.invalidOperandCount": { required: { mnemonic: "string" }, optional: { expectedCount: "number", actualCount: "number" } },
+  "assembler.addressOutOfRange": { required: none, optional: { value: "string-or-number", minimum: "number", maximum: "number" } },
+  "assembler.literalOutOfRange": { required: none, optional: { value: "string-or-number", minimum: "number", maximum: "number" } },
+  "semantic.mainFunctionMissing": { required: none, optional: none },
+  "semantic.duplicateFunction": { required: { function: "string" }, optional: { firstLine: "number", duplicateLine: "number" } },
+  "semantic.unknownFunction": { required: { function: "string" }, optional: none },
+  "semantic.unknownVariable": { required: { variable: "string" }, optional: { function: "string" } },
+  "semantic.argumentCountMismatch": { required: { function: "string", expectedCount: "number", actualCount: "number" }, optional: none },
+  "semantic.recursionUnsupported": { required: { function: "string" }, optional: none },
+  "semantic.breakOutsideLoop": { required: none, optional: none },
+  "semantic.continueOutsideLoop": { required: none, optional: none },
+  "semantic.parameterLocalConflict": { required: { variable: "string" }, optional: { function: "string", parameterLine: "number", localLine: "number" } },
+  "transpiler.tooManyRegisterArguments": { required: { function: "string", maximum: "number" }, optional: { actualCount: "number" } },
+  "transpiler.unsupportedCallArgument": { required: { argumentCount: "number" }, optional: { function: "string" } },
+  "vm.notLoaded": { required: none, optional: none },
+  "vm.stepLimitReached": { required: { stepLimit: "number" }, optional: none },
+  "vm.invalidInstruction": { required: none, optional: { address: "number" } },
+  "vm.invalidMemoryAccess": { required: { address: "number" }, optional: none },
+  "vm.stackUnderflow": { required: none, optional: none },
+  "vm.stackOverflow": { required: none, optional: none }
+} as const satisfies Record<DiagnosticCode, DiagnosticSchema>;
+
+export function getDiagnosticTemplateSchema(code: DiagnosticCode): DiagnosticSchema {
+  return diagnosticSchemas[code];
+}
+
+export function matchesParamType(value: DiagnosticParamValue, type: DiagnosticParamType): boolean {
+  if (type === "string-or-number") return typeof value === "string" || typeof value === "number";
+  return typeof value === type;
+}

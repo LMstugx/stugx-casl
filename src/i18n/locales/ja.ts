@@ -236,6 +236,8 @@ export const ja = {
   "diagnostic.line": "{line}行目",
   "diagnostic.code": "コード: {code}",
   "diagnostic.errors": "エラー",
+  "diagnostic.relatedLocations": "関連する場所",
+  "diagnostic.firstDeclaredHere": "最初の宣言",
   "locale.english": "英語",
   "locale.japanese": "日本語",
   "locale.chineseSimplified": "簡体字中国語",

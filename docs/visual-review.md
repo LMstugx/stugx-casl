@@ -223,6 +223,8 @@ Phase 14B locale captures verify that Toolbar width remains stable, tabs do not 
 
 ## Current Limitations
 
+Phase 14E adds `diagnostic-range-casl.png`, `diagnostic-range-cpp.png`, `diagnostic-related-location.png`, `diagnostic-eof.png`, `diagnostic-ja-long.png`, `diagnostic-zh-cn-long.png`, and `diagnostic-1280.png`. Review these for precise token/insertion selection, related-location hierarchy, safe CJK wrapping, stable editor geometry, and no horizontal overflow. Circuit clean-wire geometry remains unaffected.
+
 - This is a review gallery, not a pixel-diff visual regression suite.
 - Screenshots are generated artifacts and are not committed to git.
 - The gallery is local only unless you use an existing tunnel tool.

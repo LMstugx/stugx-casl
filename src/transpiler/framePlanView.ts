@@ -375,7 +375,7 @@ export function selectStackFramePreviewState(
 
   try {
     const parsed = parseCpp(sourceText);
-    const semantic = checkCppSemantics(parsed.program, parsed.diagnostics);
+    const semantic = checkCppSemantics(parsed.program, parsed.diagnostics, sourceText);
     if (!parsed.program || !semantic.ok) {
       return unavailable(firstDiagnosticMessage(semantic.diagnostics));
     }

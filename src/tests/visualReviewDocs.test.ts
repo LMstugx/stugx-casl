@@ -19,6 +19,13 @@ describe("visual review screenshot gallery setup", () => {
     expect(visualReviewSpec).toContain("diagnostics-en-cpp.png");
     expect(visualReviewSpec).toContain("diagnostics-ja-cpp.png");
     expect(visualReviewSpec).toContain("diagnostics-zh-cn-cpp.png");
+    expect(visualReviewSpec).toContain("diagnostic-range-casl.png");
+    expect(visualReviewSpec).toContain("diagnostic-range-cpp.png");
+    expect(visualReviewSpec).toContain("diagnostic-related-location.png");
+    expect(visualReviewSpec).toContain("diagnostic-eof.png");
+    expect(visualReviewSpec).toContain("diagnostic-ja-long.png");
+    expect(visualReviewSpec).toContain("diagnostic-zh-cn-long.png");
+    expect(visualReviewSpec).toContain("diagnostic-1280.png");
     expect(visualReviewSpec).toContain("ui-stopped-state.png");
     expect(visualReviewSpec).toContain("ui-keyboard-focus.png");
     expect(visualReviewSpec).toContain("ui-locale-selector.png");

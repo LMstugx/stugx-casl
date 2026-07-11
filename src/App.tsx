@@ -19,6 +19,7 @@ import { I18nProvider } from "./i18n/I18nProvider";
 import { translateRunState } from "./i18n/locale";
 import { useI18n } from "./i18n/useI18n";
 import { diagnosticIdentity, renderDiagnostic } from "./diagnostics/renderDiagnostic";
+import type { SourceRange } from "./diagnostics/types";
 
 export default function App() {
   return (
@@ -61,6 +62,7 @@ function StudioShell() {
   } = useAppStore();
   const [isCircuitFocusMode, setCircuitFocusMode] = useState(false);
   const [editorSelectedFrameSlotId, setEditorSelectedFrameSlotId] = useState<string | undefined>();
+  const [selectedDiagnosticId, setSelectedDiagnosticId] = useState<string | undefined>();
   const isRunning = state.runState === "Running";
   const canExecute = state.runState === "Ready" || (state.runState === "Stopped" && runStopReason === "manual");
   const canRun = !isSourceDirty && state.assembled && canExecute;
@@ -69,10 +71,19 @@ function StudioShell() {
   const diagnostics = useMemo(
     () => storeDiagnostics
       .filter((diagnostic) => diagnostic.severity === "error")
-      .map((diagnostic, index) => ({ source: diagnostic, rendered: renderDiagnostic(diagnostic, locale), identity: `${diagnosticIdentity(diagnostic)}:${index}` })),
+      .map((diagnostic) => ({
+        source: diagnostic,
+        rendered: renderDiagnostic(diagnostic, locale),
+        identity: diagnosticIdentity(diagnostic),
+        displayLine: diagnostic.sourceRange?.start.line ?? diagnostic.line
+      })),
     [locale, storeDiagnostics]
   );
   const editorCurrentLine = sourceMode === "cpp" ? cppLineForCaslLine(cppToCaslMapping, state.currentLine) : state.currentLine;
+  const selectedDiagnosticRange: SourceRange | undefined = diagnostics.find((diagnostic) => diagnostic.identity === selectedDiagnosticId)?.source.sourceRange;
+  useEffect(() => {
+    if (selectedDiagnosticId && !diagnostics.some((diagnostic) => diagnostic.identity === selectedDiagnosticId)) setSelectedDiagnosticId(undefined);
+  }, [diagnostics, selectedDiagnosticId]);
   const selectedDemoProgram = getDemoProgram(selectedDemoProgramId) ?? getDefaultDemoProgram();
   const selectedDemoMatchesSource = selectedDemoProgram.source === sourceText && selectedDemoProgram.mode === sourceMode;
   const selectedLesson = selectedDemoMatchesSource ? getLearningLesson(selectedDemoProgram.id) : undefined;
@@ -174,7 +185,11 @@ function StudioShell() {
               source={sourceText}
               language={sourceMode}
               currentLine={editorCurrentLine}
-              onChange={setSourceText}
+              onChange={(nextSource) => {
+                setSelectedDiagnosticId(undefined);
+                setSourceText(nextSource);
+              }}
+              diagnosticRange={selectedDiagnosticRange}
               frameSymbolRelations={frameSymbolRelations}
               selectedFrameSlotId={editorSelectedFrameSlotId}
               onSelectFrameSymbol={(relation) => setEditorSelectedFrameSlotId(relation.mappingId)}
@@ -205,11 +220,29 @@ function StudioShell() {
               <span>{diagnostics.length}</span>
             </header>
             {diagnostics.length === 0 ? <p className="muted">{t("empty.noDiagnostics")}</p> : null}
-            {diagnostics.map(({ source, rendered, identity }) => (
-              <div key={identity} className="diagnostic" data-diagnostic-code={source.code ?? "legacy"}>
-                <span className="diagnostic-location">{t("diagnostic.line", { line: source.line })}</span>
-                <span className="diagnostic-message">{rendered.message}</span>
-                {source.code ? <span className="diagnostic-code" title={t("diagnostic.code", { code: source.code })}>{source.code}</span> : null}
+            {diagnostics.map(({ source, rendered, identity, displayLine }) => (
+              <div key={identity} className="diagnostic-entry" data-selected={selectedDiagnosticId === identity ? "true" : "false"}>
+                <button
+                  type="button"
+                  className="diagnostic"
+                  data-diagnostic-code={source.code ?? "legacy"}
+                  aria-pressed={selectedDiagnosticId === identity}
+                  onClick={() => setSelectedDiagnosticId(identity)}
+                >
+                  <span className="diagnostic-location">{t("diagnostic.line", { line: displayLine })}</span>
+                  <span className="diagnostic-message">{rendered.message}</span>
+                  {source.code ? <span className="diagnostic-code" title={t("diagnostic.code", { code: source.code })}>{source.code}</span> : null}
+                </button>
+                {source.relatedLocations?.length ? (
+                  <details className="diagnostic-related">
+                    <summary>{t("diagnostic.relatedLocations")}</summary>
+                    {source.relatedLocations.map((location, relatedIndex) => (
+                      <span key={`${location.sourceRange.start.line}:${location.sourceRange.start.column}:${relatedIndex}`}>
+                        {t("diagnostic.firstDeclaredHere")} - {t("diagnostic.line", { line: location.sourceRange.start.line })}
+                      </span>
+                    ))}
+                  </details>
+                ) : null}
               </div>
             ))}
           </section>
@@ -253,7 +286,7 @@ function StudioShell() {
 
       <OutputPanel
         lines={state.output}
-        messages={diagnostics.map(({ source, rendered }) => `${t("diagnostic.line", { line: source.line })}: ${rendered.message}`)}
+        messages={diagnostics.map(({ rendered, displayLine }) => `${t("diagnostic.line", { line: displayLine })}: ${rendered.message}`)}
         generatedCaslSource={generatedCaslSource}
         cppToCaslMapping={cppToCaslMapping}
         currentCaslLine={sourceMode === "cpp" ? state.currentLine : undefined}

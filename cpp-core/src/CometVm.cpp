@@ -554,7 +554,7 @@ RunResult CometVm::run(int maxSteps) {
         result.stoppedAtMaxSteps = true;
         result.diagnostics.push_back({0, Severity::Error, "Max steps reached before execution"});
         structureDiagnostic(result.diagnostics.back());
-        result.diagnostics.back().params["stepLimit"] = std::to_string(maxSteps);
+        result.diagnostics.back().params["stepLimit"] = maxSteps;
         return result;
     }
 
@@ -582,7 +582,7 @@ RunResult CometVm::run(int maxSteps) {
         result.stoppedAtMaxSteps = true;
         result.diagnostics.push_back({0, Severity::Error, "Max steps reached"});
         structureDiagnostic(result.diagnostics.back());
-        result.diagnostics.back().params["stepLimit"] = std::to_string(maxSteps);
+        result.diagnostics.back().params["stepLimit"] = maxSteps;
     }
 
     return result;

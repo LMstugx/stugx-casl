@@ -52,3 +52,19 @@ Localization status is one of `structured`, `localized`, `pending-structure`, `i
 ## Technical Boundary
 
 Source text, symbol spelling, opcode/mnemonic, register name, address, numeric literal, machine word, filename, `rawContext`, browser exception, stack trace, and runtime Trace payload remain unchanged in all locales. Lessons, Demo Guide, practice tasks, and FramePlan long explanations remain deferred.
+
+## Phase 14E Schema And Range Verification
+
+| Pilot group | Parameter schema | Required / optional params | Primary range policy | Related location policy | TS range | C++ range | WASM range | Schema validation | Parity status |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Missing START / END | verified | none | first meaningful insertion / EOF | none | verified | verified | verified | verified | verified |
+| Unknown opcode / symbol | verified | `opcode` / `symbol` required | offending token | none | verified | verified for supported ASCII CASL | verified | verified | verified |
+| Duplicate label | verified | `label` required; first/duplicate line optional | duplicate label | first label declaration | verified | verified | verified | verified | verified |
+| Invalid register / index | verified | register token required | offending register | none | verified | verified | verified | verified | verified |
+| Malformed comma | verified | none | malformed comma | none | verified | verified | verified | verified | verified |
+| Address / literal range | verified | rejected value and limits optional for legacy producers | token when retained | none | partial | partial | partial | verified | partial |
+| C++ semantic pilot | verified | code-specific | identifier, keyword, or call target | duplicate function and parameter/local conflict | verified | n/a | n/a | verified | verified within TS producer |
+| VM pilot | verified | step limit numeric; runtime address optional/required by code | reliable mapping only | none | partial | partial | partial | verified | legacy location only |
+| Raw parser/internal messages | legacy-only | not yet structured | existing line/token where available | none | partial | n/a | n/a | deferred | deferred |
+
+`verified` means exercised by automated tests. `partial` means the producer cannot reliably retain every value or source range. `legacy-only` means the old message remains the supported contract; no location is fabricated.

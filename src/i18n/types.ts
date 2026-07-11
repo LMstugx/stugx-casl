@@ -236,6 +236,8 @@ export type TranslationKey =
   | "diagnostic.line"
   | "diagnostic.code"
   | "diagnostic.errors"
+  | "diagnostic.relatedLocations"
+  | "diagnostic.firstDeclaredHere"
   | "locale.english"
   | "locale.japanese"
   | "locale.chineseSimplified"

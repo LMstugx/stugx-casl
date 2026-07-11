@@ -1,5 +1,6 @@
 import type { Diagnostic } from "../core/types";
 import { createStructuredDiagnostic } from "../diagnostics/catalog";
+import { eofInsertionRange, rangeForLastTextOnLine, rangeForTextOnLine } from "../diagnostics/sourceRange";
 import type {
   CppAssignment,
   CppCondition,
@@ -60,16 +61,19 @@ type ValidationContext = {
   functionOrder: Map<string, number>;
   useScopedLabels: boolean;
   loopDepth: number;
+  source: string;
 };
 
-export function checkCppSemantics(program: CppProgram | null, parseDiagnostics: Diagnostic[] = []): SemanticResult {
+export function checkCppSemantics(program: CppProgram | null, parseDiagnostics: Diagnostic[] = [], source = ""): SemanticResult {
   const diagnostics = [...parseDiagnostics];
   const variables: CppVariableSymbol[] = [];
   const usedLabels = new Set<string>();
 
   if (!program) {
     if (diagnostics.length === 0) {
-      diagnostics.push(createStructuredDiagnostic(0, "C++ subset program must define int main().", "semantic.mainFunctionMissing"));
+      diagnostics.push(createStructuredDiagnostic(0, "C++ subset program must define int main().", "semantic.mainFunctionMissing", {}, "error", {
+        sourceRange: eofInsertionRange(source)
+      }));
     }
     return { ok: false, diagnostics, variables: [] };
   }
@@ -78,7 +82,17 @@ export function checkCppSemantics(program: CppProgram | null, parseDiagnostics: 
   const functionOrder = new Map<string, number>();
   for (const [index, fn] of program.functions.entries()) {
     if (functionNames.has(fn.name)) {
-      diagnostics.push(createStructuredDiagnostic(fn.line, `Duplicate function declaration: ${fn.name}`, "semantic.duplicateFunction", { function: fn.name }));
+      const first = functionNames.get(fn.name)!;
+      const sourceRange = functionNameRange(source, program.functions, index);
+      const firstRange = functionNameRange(source, program.functions, program.functions.indexOf(first));
+      diagnostics.push(createStructuredDiagnostic(fn.line, `Duplicate function declaration: ${fn.name}`, "semantic.duplicateFunction", {
+        function: fn.name,
+        firstLine: first.line,
+        duplicateLine: fn.line
+      }, "error", {
+        ...(sourceRange ? { sourceRange } : {}),
+        ...(firstRange ? { relatedLocations: [{ label: "diagnostic.firstDeclaredHere", sourceRange: firstRange }] } : {})
+      }));
       continue;
     }
     functionNames.set(fn.name, fn);
@@ -86,7 +100,9 @@ export function checkCppSemantics(program: CppProgram | null, parseDiagnostics: 
   }
 
   if (!functionNames.has("main")) {
-    diagnostics.push(createStructuredDiagnostic(program.functions[0]?.line ?? 0, "C++ subset program must define int main().", "semantic.mainFunctionMissing"));
+    diagnostics.push(createStructuredDiagnostic(program.functions[0]?.line ?? 0, "C++ subset program must define int main().", "semantic.mainFunctionMissing", {}, "error", {
+      sourceRange: eofInsertionRange(source)
+    }));
   }
 
   for (const fn of program.functions) {
@@ -110,7 +126,8 @@ export function checkCppSemantics(program: CppProgram | null, parseDiagnostics: 
       functionNames,
       functionOrder,
       useScopedLabels,
-      loopDepth: 0
+      loopDepth: 0,
+      source
     };
     validateFunctionParameters(fn, context);
     validateStatements(fn.body, context);
@@ -129,7 +146,7 @@ function validateFunctionParameters(fn: CppFunction, context: ValidationContext)
       function: fn.name,
       maximum: 3,
       actualCount: fn.parameters.length
-    }));
+    }, "error", metadataForText(context.source, fn.parameters[3].line, fn.parameters[3].name)));
   }
 
   for (const parameter of fn.parameters) {
@@ -202,12 +219,12 @@ function validateStatements(statements: CppStatement[], context: ValidationConte
     }
 
     if (statement.kind === "BreakStatement") {
-      if (context.loopDepth === 0) context.diagnostics.push(createStructuredDiagnostic(statement.line, "break is only supported inside a loop", "semantic.breakOutsideLoop"));
+      if (context.loopDepth === 0) context.diagnostics.push(createStructuredDiagnostic(statement.line, "break is only supported inside a loop", "semantic.breakOutsideLoop", {}, "error", metadataForText(context.source, statement.line, "break")));
       continue;
     }
 
     if (statement.kind === "ContinueStatement" && context.loopDepth === 0) {
-      context.diagnostics.push(createStructuredDiagnostic(statement.line, "continue is only supported inside a loop", "semantic.continueOutsideLoop"));
+      context.diagnostics.push(createStructuredDiagnostic(statement.line, "continue is only supported inside a loop", "semantic.continueOutsideLoop", {}, "error", metadataForText(context.source, statement.line, "continue")));
     }
   }
 }
@@ -218,8 +235,10 @@ function validateVarDecl(statement: CppVarDecl, context: ValidationContext, stor
     if (existing.isParameter) {
       context.diagnostics.push(createStructuredDiagnostic(statement.line, "parameter name conflicts with local variable", "semantic.parameterLocalConflict", {
         function: context.functionName,
-        variable: statement.name
-      }));
+        variable: statement.name,
+        parameterLine: existing.declarationLine,
+        localLine: statement.line
+      }, "error", metadataForText(context.source, statement.line, statement.name, existing.declarationLine)));
       return;
     }
     context.diagnostics.push({ line: statement.line, message: `Duplicate variable declaration: ${statement.name}`, severity: "error" });
@@ -251,7 +270,7 @@ function validateAssignment(statement: CppAssignment, context: ValidationContext
     context.diagnostics.push(createStructuredDiagnostic(statement.line, `Assignment target '${statement.target}' is not declared.`, "semantic.unknownVariable", {
       function: context.functionName,
       variable: statement.target
-    }));
+    }, "error", metadataForText(context.source, statement.line, statement.target)));
   }
   validateTopLevelExpression(statement.expression, context, "assignment");
   if (statement.loweredFrom === "compound-assignment") validateCompoundAssignment(statement, context.diagnostics);
@@ -298,7 +317,7 @@ function validateForIncrement(statement: CppAssignment, context: ValidationConte
     context.diagnostics.push(createStructuredDiagnostic(expression.right.line, `Variable '${expression.right.name}' is used before declaration.`, "semantic.unknownVariable", {
       function: context.functionName,
       variable: expression.right.name
-    }));
+    }, "error", metadataForText(context.source, expression.right.line, expression.right.name)));
   }
 }
 
@@ -323,7 +342,7 @@ function validateExpression(expression: CppExpression, context: ValidationContex
       context.diagnostics.push(createStructuredDiagnostic(expression.line, `Variable '${expression.name}' is used before declaration.`, "semantic.unknownVariable", {
         function: context.functionName,
         variable: expression.name
-      }));
+      }, "error", metadataForText(context.source, expression.line, expression.name)));
     }
     return;
   }
@@ -360,7 +379,7 @@ function validateCallExpression(expression: Extract<CppExpression, { kind: "Call
   if (!callee) {
     context.diagnostics.push(createStructuredDiagnostic(expression.line, `Function '${expression.callee}' is not defined.`, "semantic.unknownFunction", {
       function: expression.callee
-    }));
+    }, "error", metadataForLastText(context.source, expression.line, expression.callee)));
     return;
   }
   if (expression.arguments.length !== callee.parameters.length) {
@@ -368,12 +387,12 @@ function validateCallExpression(expression: Extract<CppExpression, { kind: "Call
       function: expression.callee,
       expectedCount: callee.parameters.length,
       actualCount: expression.arguments.length
-    }));
+    }, "error", metadataForLastText(context.source, expression.line, expression.callee)));
   }
   if (expression.callee === context.functionName) {
     context.diagnostics.push(createStructuredDiagnostic(expression.line, "recursive function calls are not supported yet", "semantic.recursionUnsupported", {
       function: expression.callee
-    }));
+    }, "error", metadataForLastText(context.source, expression.line, expression.callee)));
   }
   const calleeIndex = context.functionOrder.get(expression.callee) ?? -1;
   if (calleeIndex > context.functionIndex) {
@@ -390,7 +409,7 @@ function validateFunctionCallArgument(argument: CppExpression, context: Validati
     context.diagnostics.push(createStructuredDiagnostic(argument.line, "complex function call arguments are not supported yet", "transpiler.unsupportedCallArgument", {
       function: context.functionName,
       argumentCount: 1
-    }));
+    }, "error", metadataForText(context.source, argument.line, expressionText(argument))));
   }
   validateExpression(argument, context);
 }
@@ -432,4 +451,32 @@ export function hasExplicitReturn(statements: CppStatement[]): boolean {
 export function functionLabel(name: string): string {
   if (name === "main") return "MAIN";
   return `FUNC_${name.toUpperCase().replace(/[^A-Z0-9_]/g, "_")}`;
+}
+
+function metadataForText(source: string, line: number, text: string, relatedLine?: number): Pick<Diagnostic, "sourceRange" | "relatedLocations"> {
+  const sourceRange = rangeForTextOnLine(source, line, text, relatedLine === line ? 1 : 0);
+  const relatedRange = relatedLine === undefined ? undefined : rangeForTextOnLine(source, relatedLine, text);
+  return {
+    ...(sourceRange ? { sourceRange } : {}),
+    ...(relatedRange ? { relatedLocations: [{ label: "diagnostic.firstDeclaredHere", sourceRange: relatedRange }] } : {})
+  };
+}
+
+function metadataForLastText(source: string, line: number, text: string): Pick<Diagnostic, "sourceRange"> {
+  const sourceRange = rangeForLastTextOnLine(source, line, text);
+  return sourceRange ? { sourceRange } : {};
+}
+
+function functionNameRange(source: string, functions: readonly CppFunction[], targetIndex: number) {
+  const fn = functions[targetIndex];
+  if (!fn) return undefined;
+  const occurrence = functions.slice(0, targetIndex).filter((candidate) => candidate.line === fn.line && candidate.name === fn.name).length;
+  return rangeForTextOnLine(source, fn.line, fn.name, occurrence);
+}
+
+function expressionText(expression: CppExpression): string {
+  if (expression.kind === "Identifier") return expression.name;
+  if (expression.kind === "IntegerLiteral") return expression.raw;
+  if (expression.kind === "CallExpression") return expression.callee;
+  return expressionText(expression.left);
 }

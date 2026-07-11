@@ -5,6 +5,7 @@
 #include <optional>
 #include <string>
 #include <unordered_map>
+#include <variant>
 #include <vector>
 
 #include "InstructionSet.hpp"
@@ -21,14 +22,35 @@ enum class Severity {
     Error
 };
 
+using DiagnosticParamValue = std::variant<std::string, int, bool>;
+
+struct SourcePosition {
+    int line = 1;
+    int column = 1;
+    std::optional<std::size_t> offset;
+};
+
+struct SourceRange {
+    SourcePosition start;
+    SourcePosition end;
+};
+
+struct DiagnosticRelatedLocation {
+    std::string label;
+    SourceRange sourceRange;
+    std::string fileName;
+};
+
 struct Diagnostic {
     int line = 0;
     Severity severity = Severity::Error;
     std::string message;
     std::string code;
-    std::unordered_map<std::string, std::string> params;
+    std::unordered_map<std::string, DiagnosticParamValue> params;
     std::string rawContext;
     std::string fallbackMessage;
+    std::optional<SourceRange> sourceRange;
+    std::vector<DiagnosticRelatedLocation> relatedLocations;
 };
 
 template <typename T>

@@ -236,6 +236,8 @@ export const en = {
   "diagnostic.line": "Line {line}",
   "diagnostic.code": "Code: {code}",
   "diagnostic.errors": "Errors",
+  "diagnostic.relatedLocations": "Related locations",
+  "diagnostic.firstDeclaredHere": "First declared here",
   "locale.english": "English",
   "locale.japanese": "Japanese",
   "locale.chineseSimplified": "Simplified Chinese",

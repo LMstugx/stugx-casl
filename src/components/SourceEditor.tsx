@@ -4,6 +4,7 @@ import type { editor } from "monaco-editor";
 import type { FrameSymbolRelation } from "../transpiler/framePlanView";
 import { useI18n } from "../i18n/useI18n";
 import type { Translate } from "../i18n/types";
+import type { SourceRange } from "../diagnostics/types";
 
 type SourceEditorProps = {
   source: string;
@@ -13,6 +14,7 @@ type SourceEditorProps = {
   frameSymbolRelations?: FrameSymbolRelation[];
   selectedFrameSlotId?: string;
   onSelectFrameSymbol?: (relation: FrameSymbolRelation) => void;
+  diagnosticRange?: SourceRange;
 };
 
 export default function SourceEditor({
@@ -22,11 +24,13 @@ export default function SourceEditor({
   onChange,
   frameSymbolRelations = [],
   selectedFrameSlotId,
-  onSelectFrameSymbol
+  onSelectFrameSymbol,
+  diagnosticRange
 }: SourceEditorProps) {
   const { t } = useI18n();
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
   const decorationIds = useRef<string[]>([]);
+  const diagnosticDecorationIds = useRef<string[]>([]);
   const visibleRelations = language === "cpp" ? frameSymbolRelations.slice(0, 8) : [];
 
   const handleMount: OnMount = (editorInstance, monaco) => {
@@ -71,6 +75,28 @@ export default function SourceEditor({
         : []
     );
   }, [currentLine]);
+
+  useEffect(() => {
+    const editorInstance = editorRef.current;
+    if (!editorInstance) return;
+    const safeRange = diagnosticRange ? toEditorRange(editorInstance, diagnosticRange) : undefined;
+    diagnosticDecorationIds.current = editorInstance.deltaDecorations(
+      diagnosticDecorationIds.current,
+      safeRange
+        ? [{
+            range: safeRange,
+            options: {
+              className: "diagnostic-source-range",
+              inlineClassName: "diagnostic-source-range-inline",
+              glyphMarginClassName: "diagnostic-source-range-glyph"
+            }
+          }]
+        : []
+    );
+    if (!safeRange) return;
+    editorInstance.setSelection(safeRange);
+    editorInstance.revealRangeInCenterIfOutsideViewport(safeRange);
+  }, [diagnosticRange]);
 
   return (
     <div className="source-editor" data-testid="source-editor">
@@ -120,6 +146,20 @@ export default function SourceEditor({
       ) : null}
     </div>
   );
+}
+
+function toEditorRange(editorInstance: editor.IStandaloneCodeEditor, range: SourceRange) {
+  const model = editorInstance.getModel();
+  if (!model) return undefined;
+  const lineCount = model.getLineCount();
+  const startLineNumber = Math.min(Math.max(1, range.start.line), lineCount);
+  const endLineNumber = Math.min(Math.max(startLineNumber, range.end.line), lineCount);
+  const startColumn = Math.min(Math.max(1, range.start.column), model.getLineMaxColumn(startLineNumber));
+  const endColumn = Math.min(
+    Math.max(endLineNumber === startLineNumber ? startColumn : 1, range.end.column),
+    model.getLineMaxColumn(endLineNumber)
+  );
+  return { startLineNumber, startColumn, endLineNumber, endColumn };
 }
 
 function frameSymbolKindLabel(kind: FrameSymbolRelation["slotKind"], t: Translate): string {

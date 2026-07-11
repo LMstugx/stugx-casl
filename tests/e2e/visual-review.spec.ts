@@ -66,15 +66,32 @@ async function captureCaslDiagnosticState(page: Page, viewport: Viewport) {
   await setSource(page, "MAIN START\n     LD GR1\n     END");
   await page.getByTestId("assemble-button").click();
   await expect(page.locator(".diagnostic").first()).toBeVisible();
+  await page.locator(".diagnostic").first().click();
   await capture(page, viewport, "ui-casl-diagnostic-error.png");
   await capture(page, viewport, "diagnostics-en-casl.png");
+  if (viewport.primary) await capture(page, viewport, "diagnostic-range-casl.png");
+  if (viewport.name === "1280x720") await capture(page, viewport, "diagnostic-1280.png");
   await page.getByTestId("locale-ja").click();
   await capture(page, viewport, "diagnostics-ja-casl.png");
+  if (viewport.primary) await capture(page, viewport, "diagnostic-ja-long.png");
   if (viewport.name === "1280x720") await capture(page, viewport, "diagnostics-ja-1280.png");
   await page.getByTestId("locale-zh-CN").click();
   await capture(page, viewport, "diagnostics-zh-cn-casl.png");
+  if (viewport.primary) await capture(page, viewport, "diagnostic-zh-cn-long.png");
   if (viewport.name === "1280x720") await capture(page, viewport, "diagnostics-zh-cn-1280.png");
   await page.getByTestId("locale-en").click();
+  if (viewport.primary) {
+    await setSource(page, "MAIN START\nA DC 1\nA DC 2\n END");
+    await page.getByTestId("assemble-button").click();
+    const duplicate = page.locator('.diagnostic[data-diagnostic-code="assembler.duplicateLabel"]').first();
+    await duplicate.click();
+    await duplicate.locator("..").locator(".diagnostic-related summary").click();
+    await capture(page, viewport, "diagnostic-related-location.png");
+    await setSource(page, "MAIN START\n RET");
+    await page.getByTestId("assemble-button").click();
+    await page.locator('.diagnostic[data-diagnostic-code="assembler.missingEnd"]').first().click();
+    await capture(page, viewport, "diagnostic-eof.png");
+  }
 }
 
 async function captureCppDiagnosticState(page: Page, viewport: Viewport) {
@@ -83,8 +100,10 @@ async function captureCppDiagnosticState(page: Page, viewport: Viewport) {
   await setSource(page, "int main() {\n  return missing;\n}");
   await page.getByTestId("assemble-button").click();
   await expect(page.locator(".diagnostic").first()).toBeVisible();
+  await page.locator(".diagnostic").first().click();
   await capture(page, viewport, "ui-cpp-diagnostic-error.png");
   await capture(page, viewport, "diagnostics-en-cpp.png");
+  if (viewport.primary) await capture(page, viewport, "diagnostic-range-cpp.png");
   await page.getByTestId("locale-ja").click();
   await capture(page, viewport, "diagnostics-ja-cpp.png");
   await page.getByTestId("locale-zh-CN").click();

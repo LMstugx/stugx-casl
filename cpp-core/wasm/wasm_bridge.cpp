@@ -5,6 +5,7 @@
 #include <optional>
 #include <sstream>
 #include <string>
+#include <type_traits>
 #include <unordered_map>
 #include <vector>
 
@@ -92,6 +93,28 @@ std::string severityName(casl::Severity severity) {
     return severity == casl::Severity::Error ? "error" : "warning";
 }
 
+void writeDiagnosticParam(std::ostream& output, const casl::DiagnosticParamValue& value) {
+    std::visit([&output](const auto& typed) {
+        using T = std::decay_t<decltype(typed)>;
+        if constexpr (std::is_same_v<T, std::string>) output << "\"" << jsonEscape(typed) << "\"";
+        else if constexpr (std::is_same_v<T, bool>) output << boolText(typed);
+        else output << typed;
+    }, value);
+}
+
+void writeSourceRange(std::ostream& output, const casl::SourceRange& range) {
+    const auto writePosition = [&output](const casl::SourcePosition& position) {
+        output << "{\"line\": " << position.line << ", \"column\": " << position.column;
+        if (position.offset.has_value()) output << ", \"offset\": " << *position.offset;
+        output << "}";
+    };
+    output << "{\"start\": ";
+    writePosition(range.start);
+    output << ", \"end\": ";
+    writePosition(range.end);
+    output << "}";
+}
+
 std::string normalizeInstructionText(std::string source) {
     std::string normalized;
     normalized.reserve(source.size());
@@ -170,7 +193,8 @@ void writeDiagnostics(std::ostream& output, const std::vector<casl::Diagnostic>&
             std::size_t paramIndex = 0;
             for (const auto& [name, value] : diagnostic.params) {
                 if (paramIndex++ != 0) output << ", ";
-                output << "\"" << jsonEscape(name) << "\": \"" << jsonEscape(value) << "\"";
+                output << "\"" << jsonEscape(name) << "\": ";
+                writeDiagnosticParam(output, value);
             }
             output << "}";
         }
@@ -179,6 +203,22 @@ void writeDiagnostics(std::ostream& output, const std::vector<casl::Diagnostic>&
         }
         if (!diagnostic.fallbackMessage.empty()) {
             output << ", \"fallbackMessage\": \"" << jsonEscape(diagnostic.fallbackMessage) << "\"";
+        }
+        if (diagnostic.sourceRange.has_value()) {
+            output << ", \"sourceRange\": ";
+            writeSourceRange(output, *diagnostic.sourceRange);
+        }
+        if (!diagnostic.relatedLocations.empty()) {
+            output << ", \"relatedLocations\": [";
+            for (std::size_t relatedIndex = 0; relatedIndex < diagnostic.relatedLocations.size(); ++relatedIndex) {
+                if (relatedIndex != 0) output << ", ";
+                const auto& location = diagnostic.relatedLocations[relatedIndex];
+                output << "{\"label\": \"" << jsonEscape(location.label) << "\", \"sourceRange\": ";
+                writeSourceRange(output, location.sourceRange);
+                if (!location.fileName.empty()) output << ", \"fileName\": \"" << jsonEscape(location.fileName) << "\"";
+                output << "}";
+            }
+            output << "]";
         }
         output << "}";
         if (index + 1 < diagnostics.size()) output << ",";

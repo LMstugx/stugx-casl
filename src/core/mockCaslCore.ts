@@ -13,7 +13,7 @@ import {
   word
 } from "./types";
 import { DEFAULT_CASL_SOURCE } from "./defaultSource";
-import { normalizeDiagnostics } from "../diagnostics/catalog";
+import { normalizeAssemblerDiagnostics, normalizeDiagnostics } from "../diagnostics/catalog";
 
 export { DEFAULT_CASL_SOURCE };
 
@@ -64,6 +64,7 @@ type ParsedLine = {
   source: string;
   label?: string;
   op?: InstructionKind;
+  unknownOpcode?: string;
   operands: string[];
   parserDiagnostics?: Diagnostic[];
   address?: number;
@@ -144,6 +145,7 @@ function parseLine(raw: string, index: number): ParsedLine {
     source: source.trim(),
     label: tokens[0],
     op: SUPPORTED_OPS.has(op) ? (op as InstructionKind) : undefined,
+    unknownOpcode: !SUPPORTED_OPS.has(op) ? tokens[1] : undefined,
     operands: tokens.slice(2),
     parserDiagnostics
   };
@@ -298,7 +300,11 @@ function assembleArtifacts(source: string): AssembleArtifacts {
 
   for (const line of lines) {
     if (!line.op) {
-      diagnostics.push({ line: line.line, message: "Unsupported or missing operation", severity: "error" });
+      diagnostics.push({
+        line: line.line,
+        message: line.unknownOpcode ? `Unknown opcode: ${line.unknownOpcode}` : "Unsupported or missing operation",
+        severity: "error"
+      });
       continue;
     }
 
@@ -570,7 +576,7 @@ function assembleArtifacts(source: string): AssembleArtifacts {
     }
   }
 
-  return { memory, sourceMap, program, symbols, diagnostics };
+  return { memory, sourceMap, program, symbols, diagnostics: normalizeAssemblerDiagnostics(diagnostics, source) };
 }
 
 function getMemory(memory: Record<number, number>, address: number): number {

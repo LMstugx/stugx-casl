@@ -44,4 +44,4 @@ Lexer/parser grammar sentences, low-frequency assembler boundaries without relia
 
 ## Phase 14E Recommendation
 
-Phase 14E should audit parser token/range diagnostics and remaining P1 inventory entries. It should add typed per-code parameter schemas before broad migration and keep lesson content as a separate editorial phase.
+Phase 14E completed the typed per-code parameter schema, source-range audit, related-location pilot, and runtime validation boundary. Remaining raw parser diagnostics and P1/P2 producers should migrate incrementally; lesson content remains a separate editorial phase.

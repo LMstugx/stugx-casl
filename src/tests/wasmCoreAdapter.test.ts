@@ -9,6 +9,7 @@ import simpleStep3 from "../../tests/golden/simple.step3.json";
 import subaStep1 from "../../tests/golden/suba.step1.json";
 import type { CometStateDto } from "../core/coreDto";
 import { DEFAULT_CASL_SOURCE } from "../core/defaultSource";
+import { mockCaslCore } from "../core/mockCaslCore";
 import { parseWasmJson, WasmCoreAdapter } from "../core/wasmCoreAdapter";
 import { transpileCppToCasl } from "../transpiler/cppTranspiler";
 
@@ -174,8 +175,8 @@ describe("WASM adapter boundary handling", () => {
   });
 
   it("wasm_structured_and_legacy_diagnostic_payloads_remain_supported", () => {
-    const structured = parseWasmJson<{ diagnostics: Array<{ code?: string; params?: Record<string, string>; message: string }> }>(
-      '{"diagnostics":[{"message":"Undefined label: MISSING","code":"assembler.unknownSymbol","params":{"symbol":"MISSING"}}]}',
+    const structured = parseWasmJson<{ diagnostics: Array<{ code?: string; params?: Record<string, string | number | boolean>; sourceRange?: unknown; relatedLocations?: unknown[]; message: string }> }>(
+      '{"diagnostics":[{"message":"Undefined label: MISSING","code":"assembler.unknownSymbol","params":{"symbol":"MISSING"},"sourceRange":{"start":{"line":2,"column":9,"offset":19},"end":{"line":2,"column":16,"offset":26}},"relatedLocations":[]}]}',
       "assemble",
       { getLastError: () => "" }
     );
@@ -185,6 +186,7 @@ describe("WASM adapter boundary handling", () => {
       { getLastError: () => "" }
     );
     expect(structured.diagnostics[0]).toMatchObject({ code: "assembler.unknownSymbol", params: { symbol: "MISSING" } });
+    expect(structured.diagnostics[0].sourceRange).toEqual({ start: { line: 2, column: 9, offset: 19 }, end: { line: 2, column: 16, offset: 26 } });
     expect(legacy.diagnostics[0]).toEqual({ message: "legacy message" });
   });
 });
@@ -207,6 +209,37 @@ describeWasm("WasmCoreAdapter golden parity", () => {
     expect(result.diagnostics.map((diagnostic) => diagnostic.message)).toEqual(
       expect.arrayContaining(["CASL source must contain START directive", "CASL source must contain END directive"])
     );
+    await adapter.dispose();
+  });
+
+  it("wasm structured ranges and related locations match the diagnostic contract", async () => {
+    const adapter = new WasmCoreAdapter();
+    const source = "MAIN START\n LD GR1,MISSING\n END";
+    const unknown = await adapter.assemble(source);
+    const symbol = unknown.diagnostics.find((diagnostic) => diagnostic.code === "assembler.unknownSymbol");
+    expect(symbol?.sourceRange).toEqual({
+      start: { line: 2, column: 9, offset: 19 },
+      end: { line: 2, column: 16, offset: 26 }
+    });
+    expect(symbol?.sourceRange).toEqual(mockCaslCore.assemble(source).diagnostics.find((diagnostic) => diagnostic.code === "assembler.unknownSymbol")?.sourceRange);
+
+    const duplicate = await adapter.assemble("MAIN START\nA DC 1\nA DC 2\n END");
+    const label = duplicate.diagnostics.find((diagnostic) => diagnostic.code === "assembler.duplicateLabel");
+    expect(label?.sourceRange?.start.line).toBe(3);
+    expect(label?.relatedLocations?.[0].sourceRange.start.line).toBe(2);
+
+    for (const [pilotSource, code] of [
+      ["MAIN START\nX BADOP\n END", "assembler.unknownOpcode"],
+      ["MAIN START\n LD GR8,A\nA DC 1\n END", "assembler.invalidRegister"],
+      ["MAIN START\n LD GR1,A,\nA DC 1\n END", "assembler.malformedOperandList"],
+      ["MAIN START\n RET", "assembler.missingEnd"]
+    ] as const) {
+      const wasmResult = await adapter.assemble(pilotSource);
+      const mockResult = mockCaslCore.assemble(pilotSource);
+      expect(wasmResult.diagnostics.find((diagnostic) => diagnostic.code === code)?.sourceRange, code).toEqual(
+        mockResult.diagnostics.find((diagnostic) => diagnostic.code === code)?.sourceRange
+      );
+    }
     await adapter.dispose();
   });
 

@@ -15,6 +15,7 @@ type SourceEditorProps = {
   selectedFrameSlotId?: string;
   onSelectFrameSymbol?: (relation: FrameSymbolRelation) => void;
   diagnosticRange?: SourceRange;
+  diagnosticMessage?: string;
 };
 
 export default function SourceEditor({
@@ -25,7 +26,8 @@ export default function SourceEditor({
   frameSymbolRelations = [],
   selectedFrameSlotId,
   onSelectFrameSymbol,
-  diagnosticRange
+  diagnosticRange,
+  diagnosticMessage
 }: SourceEditorProps) {
   const { t } = useI18n();
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
@@ -88,7 +90,8 @@ export default function SourceEditor({
             options: {
               className: "diagnostic-source-range",
               inlineClassName: "diagnostic-source-range-inline",
-              glyphMarginClassName: "diagnostic-source-range-glyph"
+              glyphMarginClassName: "diagnostic-source-range-glyph",
+              hoverMessage: diagnosticMessage ? { value: escapeMonacoMarkdown(diagnosticMessage), isTrusted: false } : undefined
             }
           }]
         : []
@@ -96,7 +99,7 @@ export default function SourceEditor({
     if (!safeRange) return;
     editorInstance.setSelection(safeRange);
     editorInstance.revealRangeInCenterIfOutsideViewport(safeRange);
-  }, [diagnosticRange]);
+  }, [diagnosticMessage, diagnosticRange]);
 
   return (
     <div className="source-editor" data-testid="source-editor">
@@ -146,6 +149,10 @@ export default function SourceEditor({
       ) : null}
     </div>
   );
+}
+
+function escapeMonacoMarkdown(value: string): string {
+  return value.replace(/[\\`*_{}\[\]()#+\-.!]/g, "\\$&");
 }
 
 function toEditorRange(editorInstance: editor.IStandaloneCodeEditor, range: SourceRange) {

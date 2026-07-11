@@ -70,4 +70,4 @@ Storage-allocation diagnostics need producer-owned rejected allocation metadata 
 
 ## Phase 14H Recommendation
 
-Phase 14H should freeze the diagnostic localization baseline and run compatibility/QA review. It should not create new VM events or broaden syntax merely to reduce the remaining partial count.
+Phase 14H freezes the resulting 55-code baseline and runs structured/legacy/internal compatibility plus Errors/editor UX QA. It does not create new VM events or broaden syntax merely to reduce the remaining partial count.

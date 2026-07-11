@@ -55,3 +55,7 @@ Phase 14E adds the per-code typed schema, runtime payload validation, source ran
 ## P2 Admission Rule
 
 A P2 code is not promoted because a raw English sentence exists. It needs a stable semantic identity, producer, strict parameters, reliable primary location, locale-safe templates, and an explicit backend ownership statement. `transpiler.generatedLabelConflict` meets that rule with `function` and generated `label` parameters. The original exception text of a lowerer or WASM/browser failure remains `rawContext`, not a localized parser or semantic message.
+
+## Baseline Freeze
+
+Phase 14H freezes 55 structured codes in `diagnostic-localization-baseline-v1.json`. Runtime registries remain authoritative; tests compare the snapshot against code order, producer allowlists, schemas, locale resources, backend ownership, and parity scope. The v1 manifest is never imported by runtime code. A future intentional contract change requires a reviewed new baseline version.

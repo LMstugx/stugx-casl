@@ -1001,6 +1001,50 @@ test("Phase 14G stable P2 diagnostic localizes without changing identity or sour
   expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)).toBe(false);
 });
 
+test("Phase 14H diagnostic baseline keeps accessible selection related navigation and insertion markers", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await openStudio(page, "Mock Core");
+  await page.getByTestId("source-mode-cpp").click();
+  const source = "int foo() { return 0; } int FOO() { return 0; } int main() { return 0; }";
+  await setSource(page, source);
+  await page.getByTestId("assemble-button").click();
+
+  const list = page.getByRole("listbox", { name: "Errors" });
+  const diagnostic = page.locator('.diagnostic[data-diagnostic-code="transpiler.generatedLabelConflict"]').first();
+  const details = diagnostic.locator("..").locator(".diagnostic-related");
+  await expect(list).toBeVisible();
+  await expect(diagnostic).toHaveRole("option");
+  await expect(diagnostic).toHaveAccessibleName(/Error.*FOO.*FUNC_FOO/);
+  await expect(details).not.toHaveAttribute("open", "");
+  await expect(diagnostic).not.toContainText("transpiler.generatedLabelConflict");
+  await diagnostic.click();
+  await expect(diagnostic).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator(".diagnostic-source-range-inline")).toContainText("FOO");
+
+  await details.locator("summary").press("Enter");
+  await expect(details.locator(".diagnostic-technical-detail").first()).toContainText("transpiler.generatedLabelConflict");
+  const related = details.getByRole("button", { name: /First declared here.*Line 1/ });
+  await related.focus();
+  await page.keyboard.press("Enter");
+  await expect(page.locator(".diagnostic-source-range-inline")).toContainText("foo");
+  await expect(diagnostic).toHaveAttribute("aria-selected", "true");
+
+  await page.getByTestId("locale-ja").click();
+  await expect(diagnostic).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator(".diagnostic-source-range-inline")).toContainText("foo");
+  await page.getByTestId("locale-zh-CN").click();
+  await expect(diagnostic).toHaveAttribute("aria-selected", "true");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)).toBe(false);
+
+  await page.getByTestId("locale-en").click();
+  await setSource(page, "int main() { int value = 1 return value; }");
+  await page.getByTestId("assemble-button").click();
+  const insertionDiagnostic = page.locator('.diagnostic[data-diagnostic-code="cppParser.missingSemicolon"]').first();
+  await insertionDiagnostic.click();
+  await expect(page.locator(".diagnostic-source-range-glyph")).toBeVisible();
+  await expect(insertionDiagnostic).toHaveAttribute("aria-selected", "true");
+});
+
 test("Mock backend executes C++ subset if else lowering in the browser UI", async ({ page }) => {
   await openStudio(page, "Mock Core");
   await page.getByTestId("source-mode-cpp").click();

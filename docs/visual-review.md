@@ -229,6 +229,8 @@ Phase 14F adds `diagnostics-parser-en.png`, `diagnostics-parser-ja.png`, `diagno
 
 Phase 14G replaces the obsolete generated-label legacy capture with `diagnostic-p2-en.png`, `diagnostic-p2-ja.png`, `diagnostic-p2-zh-cn.png`, `diagnostic-p2-related-location.png`, and `diagnostic-long-technical-token.png`. Review the localized sentence, verbatim function/CASL label, stable primary and related locations, safe long-label wrapping, and 1280px horizontal containment. Only the actually migrated P2 diagnostic is captured.
 
+Phase 14H adds `diagnostic-baseline-en.png`, `diagnostic-baseline-ja.png`, `diagnostic-baseline-zh-cn.png`, `diagnostic-generated-label-conflict.png`, `diagnostic-legacy-fallback.png`, `diagnostic-multiple-errors-1280.png`, and `diagnostic-details-expanded-1280.png`. Review severity/message/location hierarchy, related controls, long technical wrapping, insertion presentation, collapsed developer detail, and selection consistency. The internal lowering wrapper has no valid source trigger and remains unit/contract tested rather than exposed through demo-only capture logic.
+
 - This is a review gallery, not a pixel-diff visual regression suite.
 - Screenshots are generated artifacts and are not committed to git.
 - The gallery is local only unless you use an existing tunnel tool.

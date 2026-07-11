@@ -69,14 +69,17 @@ async function captureCaslDiagnosticState(page: Page, viewport: Viewport) {
   await page.locator(".diagnostic").first().click();
   await capture(page, viewport, "ui-casl-diagnostic-error.png");
   await capture(page, viewport, "diagnostics-en-casl.png");
+  await capture(page, viewport, "diagnostic-baseline-en.png");
   if (viewport.primary) await capture(page, viewport, "diagnostic-range-casl.png");
   if (viewport.name === "1280x720") await capture(page, viewport, "diagnostic-1280.png");
   await page.getByTestId("locale-ja").click();
   await capture(page, viewport, "diagnostics-ja-casl.png");
+  await capture(page, viewport, "diagnostic-baseline-ja.png");
   if (viewport.primary) await capture(page, viewport, "diagnostic-ja-long.png");
   if (viewport.name === "1280x720") await capture(page, viewport, "diagnostics-ja-1280.png");
   await page.getByTestId("locale-zh-CN").click();
   await capture(page, viewport, "diagnostics-zh-cn-casl.png");
+  await capture(page, viewport, "diagnostic-baseline-zh-cn.png");
   if (viewport.primary) await capture(page, viewport, "diagnostic-zh-cn-long.png");
   if (viewport.name === "1280x720") await capture(page, viewport, "diagnostics-zh-cn-1280.png");
   await page.getByTestId("locale-en").click();
@@ -91,6 +94,19 @@ async function captureCaslDiagnosticState(page: Page, viewport: Viewport) {
     await page.getByTestId("assemble-button").click();
     await page.locator('.diagnostic[data-diagnostic-code="assembler.missingEnd"]').first().click();
     await capture(page, viewport, "diagnostic-eof.png");
+  }
+  await setSource(page, "MAIN START\nA DS 65505\n END");
+  await page.getByTestId("assemble-button").click();
+  await expect(page.locator(".diagnostic").first()).toBeVisible();
+  await capture(page, viewport, "diagnostic-legacy-fallback.png");
+  if (viewport.name === "1280x720") {
+    await setSource(page, " BAD GR9");
+    await page.getByTestId("assemble-button").click();
+    await expect(page.locator(".diagnostic").first()).toBeVisible();
+    await capture(page, viewport, "diagnostic-multiple-errors-1280.png");
+    await page.locator(".diagnostic").first().click();
+    await page.locator(".diagnostic-entry").first().locator(".diagnostic-related summary").click();
+    await capture(page, viewport, "diagnostic-details-expanded-1280.png");
   }
 }
 
@@ -121,6 +137,7 @@ async function captureCppDiagnosticState(page: Page, viewport: Viewport) {
   await expect(p2Conflict).toBeVisible();
   await p2Conflict.click();
   await capture(page, viewport, "diagnostic-p2-en.png");
+  await capture(page, viewport, "diagnostic-generated-label-conflict.png");
   await page.getByTestId("locale-ja").click();
   await capture(page, viewport, "diagnostic-p2-ja.png");
   await page.getByTestId("locale-zh-CN").click();

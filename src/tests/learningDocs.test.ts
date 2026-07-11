@@ -69,6 +69,8 @@ import sourceRangeContract from "../../docs/source-range-contract.md?raw";
 import phase14e from "../../docs/phase14e-diagnostic-schema-source-range.md?raw";
 import phase14f from "../../docs/phase14f-remaining-diagnostic-migration.md?raw";
 import phase14g from "../../docs/phase14g-p2-diagnostic-stability-audit.md?raw";
+import diagnosticBaselineV1 from "../../docs/diagnostic-localization-baseline-v1.json?raw";
+import phase14h from "../../docs/phase14h-diagnostic-localization-baseline.md?raw";
 
 describe("learning use documentation", () => {
   it("learning_guide_exists", () => {
@@ -993,6 +995,18 @@ describe("learning use documentation", () => {
     expect(phase14g).toContain("TypeScript C++ subset only; C++ core parity is not claimed");
     expect(phase14g).toContain("emits identical CASL");
     expect(readme).toContain("docs/phase14g-p2-diagnostic-stability-audit.md");
+  });
+
+  it("phase14h_diagnostic_localization_baseline_is_documented", () => {
+    expect(JSON.parse(diagnosticBaselineV1).baselineVersion).toBe("diagnostic-localization-v1");
+    expect(phase14h).toContain("Phase 14H: Diagnostic Localization Baseline Freeze And UX Compatibility QA");
+    expect(phase14h).toContain("55 structured codes");
+    expect(phase14h).toContain("Legacy Compatibility");
+    expect(phase14h).toContain("Internal And Raw Policy");
+    expect(phase14h).toContain("Related-Location Policy");
+    expect(phase14h).toContain("Prohibited Future Regressions");
+    expect(readme).toContain("docs/diagnostic-localization-baseline-v1.json");
+    expect(readme).toContain("docs/phase14h-diagnostic-localization-baseline.md");
   });
 
   it("project_overview_uses_learning_wording", () => {

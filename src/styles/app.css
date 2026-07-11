@@ -2223,6 +2223,14 @@ button {
   font-size: 12px;
 }
 
+.diagnostic-list {
+  min-width: 0;
+}
+
+.diagnostic-empty-state {
+  padding: var(--space-8) 0;
+}
+
 .diagnostic-entry {
   color: var(--color-danger);
   background: var(--color-danger-soft);
@@ -2272,6 +2280,45 @@ button {
   overflow-wrap: anywhere;
 }
 
+.diagnostic-related-location {
+  width: 100%;
+  margin-top: var(--space-4);
+  padding: var(--space-6) var(--space-8);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-8);
+  color: var(--color-text-secondary);
+  background: var(--color-surface-muted);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  text-align: left;
+}
+
+.diagnostic-related-location:hover {
+  border-color: var(--color-border-strong);
+}
+
+.diagnostic-related-location span {
+  padding: 0;
+}
+
+.diagnostic-related-location code,
+.diagnostic-raw-context code,
+.diagnostic-technical-detail {
+  font-family: var(--font-family-mono);
+  overflow-wrap: anywhere;
+}
+
+.diagnostic-raw-context strong,
+.diagnostic-raw-context code {
+  display: block;
+}
+
+.diagnostic-raw-context strong {
+  padding: 0 0 var(--space-2);
+}
+
 .diagnostic-related strong {
   display: block;
   padding-top: var(--space-6);
@@ -2296,6 +2343,18 @@ button {
 .diagnostic-code {
   grid-column: 2;
   font-family: var(--font-family-mono);
+}
+
+.visually-hidden {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0 0 0 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
 }
 
 .circuit-panel {

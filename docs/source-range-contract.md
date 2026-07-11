@@ -46,3 +46,7 @@ Mock, C++ direct, and WASM pilot tests verify unknown opcode/symbol, duplicate l
 ## Phase 14G Generated-Label Location
 
 For `transpiler.generatedLabelConflict`, the primary range covers the later C++ function name and a related location covers the first function name that projected to the same generated CASL label. The generated label itself is a parameter, not a fabricated C++ source range. Program-memory, `DS`, and `DC` allocation overflows remain line-level/partial because no single rejected token is reliable across producers.
+
+## Baseline Presentation
+
+Phase 14H does not alter producer coordinates. The editor renders a stable gutter marker for a zero-length insertion range and a token decoration for non-empty ranges. Related-location activation swaps the presentation range only; identity and primary metadata remain unchanged. Locale-current hover text is presentation-only and cannot calculate or move a range.

@@ -114,3 +114,7 @@ Source text, symbol spelling, opcode/mnemonic, register name, address, numeric l
 | Remaining P2 parser/internal messages | audited | producer-specific | reliable location only | reliable location only | verified decision | n/a | n/a | verified decision | see Phase 14G table |
 
 `verified` means exercised by automated tests. `partial` means the producer cannot reliably retain every value or source range. `legacy-only` means the old message remains the supported contract; no location is fabricated.
+
+## Phase 14H Baseline Freeze
+
+The 55 structured codes above are frozen by `diagnostic-localization-baseline-v1.json`. Tests compare code order, producer allowlists, parameter schemas, locale coverage, backend ownership, and parity scope. Internal/raw payload classes are excluded from user localization. The three reserved VM codes remain `userVisible: false`; `transpiler.generatedLabelConflict` remains `ts-only`.

@@ -19,6 +19,7 @@ import { I18nProvider } from "./i18n/I18nProvider";
 import { translateRunState } from "./i18n/locale";
 import { useI18n } from "./i18n/useI18n";
 import { diagnosticIdentity, renderDiagnostic } from "./diagnostics/renderDiagnostic";
+import { formatDiagnosticDeveloperDetail } from "./diagnostics/presentation";
 import type { SourceRange } from "./diagnostics/types";
 
 export default function App() {
@@ -63,6 +64,7 @@ function StudioShell() {
   const [isCircuitFocusMode, setCircuitFocusMode] = useState(false);
   const [editorSelectedFrameSlotId, setEditorSelectedFrameSlotId] = useState<string | undefined>();
   const [selectedDiagnosticId, setSelectedDiagnosticId] = useState<string | undefined>();
+  const [diagnosticNavigationRange, setDiagnosticNavigationRange] = useState<SourceRange | undefined>();
   const isRunning = state.runState === "Running";
   const canExecute = state.runState === "Ready" || (state.runState === "Stopped" && runStopReason === "manual");
   const canRun = !isSourceDirty && state.assembled && canExecute;
@@ -80,9 +82,14 @@ function StudioShell() {
     [locale, storeDiagnostics]
   );
   const editorCurrentLine = sourceMode === "cpp" ? cppLineForCaslLine(cppToCaslMapping, state.currentLine) : state.currentLine;
-  const selectedDiagnosticRange: SourceRange | undefined = diagnostics.find((diagnostic) => diagnostic.identity === selectedDiagnosticId)?.source.sourceRange;
+  const selectedDiagnostic = diagnostics.find((diagnostic) => diagnostic.identity === selectedDiagnosticId);
+  const selectedDiagnosticRange: SourceRange | undefined = diagnosticNavigationRange ?? selectedDiagnostic?.source.sourceRange;
+  const selectedDiagnosticMessage = selectedDiagnostic?.rendered.message;
   useEffect(() => {
-    if (selectedDiagnosticId && !diagnostics.some((diagnostic) => diagnostic.identity === selectedDiagnosticId)) setSelectedDiagnosticId(undefined);
+    if (selectedDiagnosticId && !diagnostics.some((diagnostic) => diagnostic.identity === selectedDiagnosticId)) {
+      setSelectedDiagnosticId(undefined);
+      setDiagnosticNavigationRange(undefined);
+    }
   }, [diagnostics, selectedDiagnosticId]);
   const selectedDemoProgram = getDemoProgram(selectedDemoProgramId) ?? getDefaultDemoProgram();
   const selectedDemoMatchesSource = selectedDemoProgram.source === sourceText && selectedDemoProgram.mode === sourceMode;
@@ -187,9 +194,11 @@ function StudioShell() {
               currentLine={editorCurrentLine}
               onChange={(nextSource) => {
                 setSelectedDiagnosticId(undefined);
+                setDiagnosticNavigationRange(undefined);
                 setSourceText(nextSource);
               }}
               diagnosticRange={selectedDiagnosticRange}
+              diagnosticMessage={selectedDiagnosticMessage}
               frameSymbolRelations={frameSymbolRelations}
               selectedFrameSlotId={editorSelectedFrameSlotId}
               onSelectFrameSymbol={(relation) => setEditorSelectedFrameSlotId(relation.mappingId)}
@@ -217,38 +226,58 @@ function StudioShell() {
           <section className="panel errors-panel">
             <header className="panel-header">
               <h2>{t("diagnostic.errors")}</h2>
-              <span>{diagnostics.length}</span>
+              <span aria-label={`${t("diagnostic.errors")}: ${diagnostics.length}`}>{diagnostics.length}</span>
             </header>
-            {diagnostics.length === 0 ? <p className="muted">{t("empty.noDiagnostics")}</p> : null}
-            {diagnostics.map(({ source, rendered, identity, displayLine }) => (
-              <div key={identity} className="diagnostic-entry" data-selected={selectedDiagnosticId === identity ? "true" : "false"}>
+            {diagnostics.length === 0 ? <p className="muted diagnostic-empty-state">{t("empty.noDiagnostics")}</p> : null}
+            <div className="diagnostic-list" role="listbox" aria-label={t("diagnostic.errors")}>
+            {diagnostics.map(({ source, rendered, identity, displayLine }) => {
+              const isSelected = selectedDiagnosticId === identity;
+              const developerDetail = formatDiagnosticDeveloperDetail(source.rawContext);
+              return (
+              <div key={identity} className="diagnostic-entry" data-selected={isSelected ? "true" : "false"}>
                 <button
                   type="button"
                   className="diagnostic"
+                  role="option"
                   data-diagnostic-code={source.code ?? "legacy"}
-                  aria-pressed={selectedDiagnosticId === identity}
-                  onClick={() => setSelectedDiagnosticId(identity)}
+                  aria-selected={isSelected}
+                  aria-label={`${t("status.error")}. ${t("diagnostic.line", { line: displayLine })}. ${rendered.message}`}
+                  onClick={() => {
+                    setSelectedDiagnosticId(identity);
+                    setDiagnosticNavigationRange(source.sourceRange);
+                  }}
                 >
+                  <span className="visually-hidden">{t("status.error")}</span>
                   <span className="diagnostic-location">{t("diagnostic.line", { line: displayLine })}</span>
-                  <span className="diagnostic-message">{rendered.message}</span>
-                  {source.code ? <span className="diagnostic-code" title={t("diagnostic.code", { code: source.code })}>{source.code}</span> : null}
+                  <span className="diagnostic-message" title={rendered.message}>{rendered.message}</span>
                 </button>
                 {source.code || source.producer || source.rawContext || source.relatedLocations?.length ? (
                   <details className="diagnostic-related">
                     <summary>{t("common.details")}</summary>
-                    {source.code ? <span>{t("diagnostic.code", { code: source.code })}</span> : null}
-                    {source.producer ? <span>{t("diagnostic.producer", { producer: source.producer })}</span> : null}
-                    {source.rawContext ? <span title={source.rawContext}>{t("diagnostic.rawContext")}: {source.rawContext}</span> : null}
+                    {source.code ? <span className="diagnostic-technical-detail" title={source.code}>{t("diagnostic.code", { code: source.code })}</span> : null}
+                    {source.producer ? <span className="diagnostic-technical-detail" title={source.producer}>{t("diagnostic.producer", { producer: source.producer })}</span> : null}
+                    {developerDetail ? <span className="diagnostic-raw-context"><strong>{t("diagnostic.rawContext")}</strong><code title={developerDetail}>{developerDetail}</code></span> : null}
                     {source.relatedLocations?.length ? <strong>{t("diagnostic.relatedLocations")}</strong> : null}
                     {source.relatedLocations?.map((location, relatedIndex) => (
-                      <span key={`${location.sourceRange.start.line}:${location.sourceRange.start.column}:${relatedIndex}`}>
-                        {location.label === "diagnostic.openingDelimiterHere" ? t("diagnostic.openingDelimiterHere") : t("diagnostic.firstDeclaredHere")} - {t("diagnostic.line", { line: location.sourceRange.start.line })}
-                      </span>
+                      <button
+                        key={`${location.sourceRange.start.line}:${location.sourceRange.start.column}:${relatedIndex}`}
+                        type="button"
+                        className="diagnostic-related-location"
+                        aria-label={`${location.label === "diagnostic.openingDelimiterHere" ? t("diagnostic.openingDelimiterHere") : t("diagnostic.firstDeclaredHere")}, ${t("diagnostic.line", { line: location.sourceRange.start.line })}`}
+                        onClick={() => {
+                          setSelectedDiagnosticId(identity);
+                          setDiagnosticNavigationRange(location.sourceRange);
+                        }}
+                      >
+                        <span>{location.label === "diagnostic.openingDelimiterHere" ? t("diagnostic.openingDelimiterHere") : t("diagnostic.firstDeclaredHere")}</span>
+                        <code>{t("diagnostic.line", { line: location.sourceRange.start.line })}</code>
+                      </button>
                     ))}
                   </details>
                 ) : null}
               </div>
-            ))}
+            )})}
+            </div>
           </section>
         </section>
 

@@ -221,3 +221,11 @@ Technical identifiers and machine data remain unchanged. CASL II mnemonics, COME
 | Generated label conflict | 生成ラベルの競合 | 生成标签冲突 | P2 transpiler diagnostic category, not a C++ syntax error. |
 | Allocation boundary | 割当て境界 | 分配边界 | Storage diagnostic term; no rejected token is implied. |
 | Internal invariant | 内部不変条件 | 内部不变量 | Developer-only failure; raw detail is not a localized user message. |
+
+## Phase 14H Related-Location Terms
+
+| Canonical English | Approved Japanese | Approved Simplified Chinese | Context / usage note |
+| --- | --- | --- | --- |
+| First declared here | 最初の宣言 | 首次声明位置 | Keyboard target for the first reliable declaration. |
+| Related location | 関連箇所 | 相关位置 | Secondary source location; not a second error marker. |
+| Technical context | 技術的な詳細 | 技术详情 | Collapsed, sanitized developer information. |

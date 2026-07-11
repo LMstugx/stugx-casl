@@ -29,6 +29,13 @@ describe("visual review screenshot gallery setup", () => {
     expect(visualReviewSpec).toContain("diagnostic-p2-zh-cn.png");
     expect(visualReviewSpec).toContain("diagnostic-p2-related-location.png");
     expect(visualReviewSpec).toContain("diagnostic-long-technical-token.png");
+    expect(visualReviewSpec).toContain("diagnostic-baseline-en.png");
+    expect(visualReviewSpec).toContain("diagnostic-baseline-ja.png");
+    expect(visualReviewSpec).toContain("diagnostic-baseline-zh-cn.png");
+    expect(visualReviewSpec).toContain("diagnostic-generated-label-conflict.png");
+    expect(visualReviewSpec).toContain("diagnostic-legacy-fallback.png");
+    expect(visualReviewSpec).toContain("diagnostic-multiple-errors-1280.png");
+    expect(visualReviewSpec).toContain("diagnostic-details-expanded-1280.png");
     expect(visualReviewSpec).toContain("diagnostics-long-token.png");
     expect(visualReviewSpec).toContain("diagnostics-1280-ja.png");
     expect(visualReviewSpec).toContain("diagnostics-1280-zh-cn.png");

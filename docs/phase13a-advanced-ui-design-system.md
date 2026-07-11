@@ -126,6 +126,8 @@ This phase does not introduce a component library, CSS-in-JS, theme editor, dark
 
 ## Future Phase 13B
 
+Phase 13B applies this foundation across the main UI in [phase13b-advanced-ui-application.md](phase13b-advanced-ui-application.md). It keeps the same runtime and clean-wire constraints while tightening toolbar grouping, state color semantics, panel density, table rows, typography, and visual review coverage.
+
 Recommended next work:
 
 - audit remaining raw detail colors and migrate high-traffic components

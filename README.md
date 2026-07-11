@@ -337,6 +337,7 @@ The current backend is shown in the status bar as `Mock Core`, `WASM Core`, or `
 - [docs/v1-security-audit-notes.md](docs/v1-security-audit-notes.md): Phase 12D-SEC notes for the dev dependency audit blocker, patched Vite / Vitest / esbuild versions, validation result, and final tag requirement.
 - [docs/phase12d-visual-audit.md](docs/phase12d-visual-audit.md): comprehensive Circuit SVG visual self-audit for marker, arrow, Memory routing, animation, and scroll rules before final v1.0.
 - [docs/phase13a-advanced-ui-design-system.md](docs/phase13a-advanced-ui-design-system.md): shared design token and component style foundation for a more mature engineering-learning UI without changing runtime behavior.
+- [docs/phase13b-advanced-ui-application.md](docs/phase13b-advanced-ui-application.md): application pass for toolbar grouping, state color semantics, panel/table/tab consistency, circuit styling, motion, and viewport behavior.
 
 ## Current Limitations
 

@@ -63,7 +63,12 @@ describe("visual review screenshot gallery setup", () => {
     expect(visualReviewDoc).toContain("active-flow wires only");
     expect(visualReviewDoc).toContain("Inspector Memory uses bounded internal scrolling");
     expect(visualReviewDoc).toContain("advanced UI design-system foundation");
+    expect(visualReviewDoc).toContain("Phase 13B applies");
     expect(visualReviewDoc).toContain("shared token vocabulary");
+    expect(visualReviewDoc).toContain("Toolbar actions are visually grouped");
+    expect(visualReviewDoc).toContain("Selected, active execution, changed");
+    expect(visualReviewDoc).toContain("FramePlan and slot-relation panels");
+    expect(visualReviewDoc).toContain("Empty states use compact shared wording");
     expect(visualReviewDoc).toContain("DATA BUS");
     expect(visualReviewDoc).toContain("LD / ST data-bypass paths avoid the ALU body");
     expect(visualReviewDoc).toContain("ST writeback lands at the Memory row edge");

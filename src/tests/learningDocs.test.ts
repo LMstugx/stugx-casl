@@ -53,6 +53,7 @@ import v1ManualSignoff from "../../docs/v1-manual-signoff.md?raw";
 import v1SecurityAuditNotes from "../../docs/v1-security-audit-notes.md?raw";
 import phase12dVisualAudit from "../../docs/phase12d-visual-audit.md?raw";
 import phase13a from "../../docs/phase13a-advanced-ui-design-system.md?raw";
+import phase13b from "../../docs/phase13b-advanced-ui-application.md?raw";
 
 describe("learning use documentation", () => {
   it("learning_guide_exists", () => {
@@ -826,6 +827,26 @@ describe("learning use documentation", () => {
     expect(circuitVisualContract).toContain("src/styles/tokens.css");
   });
 
+  it("phase13b_advanced_ui_application_doc_exists", () => {
+    expect(phase13b).toContain("Phase 13B: Advanced UI Application Pass");
+    expect(phase13b).toContain("Visual Audit Scope");
+    expect(phase13b).toContain("Toolbar Grouping");
+    expect(phase13b).toContain("Panel, Table, And Tab Application");
+    expect(phase13b).toContain("Circuit Styling");
+    expect(phase13b).toContain("State Color Semantics");
+    expect(phase13b).toContain("Typography");
+    expect(phase13b).toContain("Motion");
+    expect(phase13b).toContain("1280x720");
+    expect(phase13b).toContain("no arrows");
+    expect(phase13b).toContain("no circular markers");
+    expect(phase13b).toContain("no ghost inactive wires");
+    expect(phase13b).toContain("FramePlan remains design preview");
+    expect(readme).toContain("docs/phase13b-advanced-ui-application.md");
+    expect(phase13a).toContain("phase13b-advanced-ui-application.md");
+    expect(circuitVisualContract).toContain("Selected/navigation state");
+    expect(circuitVisualContract).toContain("Red should be reserved");
+  });
+
   it("project_overview_uses_learning_wording", () => {
     expect(projectOverview).toContain("learning studio");
     expect(projectOverview).toContain("Recommended Study Demos");
@@ -865,6 +886,7 @@ describe("learning use documentation", () => {
     expect(readme).toContain("docs/release-candidate-notes.md");
     expect(readme).toContain("docs/phase12d-visual-audit.md");
     expect(readme).toContain("docs/phase13a-advanced-ui-design-system.md");
+    expect(readme).toContain("docs/phase13b-advanced-ui-application.md");
     expect(readme).toContain("docs/future-custom-circuit-design.md");
     expect(normalized).not.toContain("hackathon");
     expect(normalized).not.toContain("contest submission");

@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 const tokensCss = readFileSync("src/styles/tokens.css", "utf8");
 const appCss = readFileSync("src/styles/app.css", "utf8");
 const circuitSvg = readFileSync("src/visual/CometCircuitSvg.tsx", "utf8");
+const appTsx = readFileSync("src/App.tsx", "utf8");
 
 function cssBlock(selector: string): string {
   const index = appCss.indexOf(selector);
@@ -149,5 +150,84 @@ describe("advanced UI design system foundation", () => {
     expect(appCss).toContain(".memory-table-scroll");
     expect(appCss).toContain("max-height: min(480px, calc(100vh - 410px))");
     expect(appCss).toContain("scrollbar-gutter: stable");
+  });
+
+  it("toolbar_actions_are_visually_grouped", () => {
+    expect(appCss).toContain(".toolbar-actions .tool-button:nth-of-type(4)");
+    expect(appCss).toContain(".toolbar-actions .tool-button:nth-of-type(5)");
+    expect(appCss).toContain("content: \"\"");
+    expect(appCss).toContain("left: calc(-1 * var(--space-8))");
+  });
+
+  it("selected_active_changed_states_are_distinct", () => {
+    expect(tokensCss).toContain("--color-state-selected-bg");
+    expect(tokensCss).toContain("--color-state-active-bg");
+    expect(tokensCss).toContain("--color-state-changed-bg");
+    expect(tokensCss).toContain("--color-state-write-bg");
+    expect(appCss).toContain("background: var(--color-state-selected-bg)");
+    expect(appCss).toContain("background: var(--color-state-active-bg)");
+    expect(appCss).toContain("background: var(--color-state-changed-bg)");
+    expect(appCss).toContain("background: var(--color-state-write-bg)");
+  });
+
+  it("inspector_tabs_share_bounded_layout", () => {
+    expect(appCss).toContain(".tab-list");
+    expect(appCss).toContain(".compact-tabs");
+    expect(appCss).toContain(".inspector-panel");
+    expect(appCss).toContain("max-height: calc(100vh - 176px)");
+  });
+
+  it("bottom_dock_tabs_share_visual_contract", () => {
+    expect(appCss).toContain(".dock-tabs");
+    expect(appCss).toContain(".dock-header .text-button");
+    expect(appCss).toContain("background: var(--color-surface-muted)");
+    expect(appCss).toContain(".console-lines.generated");
+  });
+
+  it("source_editor_header_does_not_hard_clip_title", () => {
+    expect(appTsx).toContain('<h2 title="Source Editor">Source</h2>');
+    expect(appCss).toContain(".source-panel .panel-header h2");
+    expect(appCss).toContain("min-width: 48px");
+  });
+
+  it("frame_symbol_chips_use_secondary_style", () => {
+    const marker = cssBlock(".source-editor-frame-symbol-marker {");
+
+    expect(marker).toContain("border: 1px solid var(--color-empty-border)");
+    expect(marker).toContain("background: var(--color-surface)");
+    expect(marker).toContain("color: var(--color-text-secondary)");
+  });
+
+  it("circuit_active_state_uses_shared_tokens", () => {
+    expect(tokensCss).toContain("--color-circuit-module-active-fill: var(--color-state-active-bg)");
+    expect(tokensCss).toContain("--color-circuit-module-active-border: var(--color-state-active-border)");
+    expect(appCss).toContain("background: var(--color-state-active-bg)");
+    expect(appCss).toContain("stroke: var(--color-circuit-module-active-border)");
+  });
+
+  it("empty_states_use_shared_pattern", () => {
+    expect(tokensCss).toContain("--color-empty-bg");
+    expect(tokensCss).toContain("--color-empty-border");
+    expect(appCss).toContain("background: var(--color-empty-bg)");
+    expect(appCss).toContain("border: 1px dashed var(--color-empty-border)");
+  });
+
+  it("typography_tokens_are_applied", () => {
+    expect(appCss).toContain("font-family: var(--font-family-ui)");
+    expect(appCss).toContain("font-family: var(--font-family-mono)");
+    expect(appCss).toContain("font-size: var(--font-size-panel-title)");
+    expect(appCss).toContain("font-size: var(--font-size-table-cell)");
+  });
+
+  it("reduced_motion_remains_supported", () => {
+    expect(appCss).toContain("@media (prefers-reduced-motion: reduce)");
+    expect(appCss).toContain(".visual-review-static .circuit-wire--flow");
+    expect(appCss).toContain("animation: none");
+  });
+
+  it("viewport_1280_has_no_horizontal_overflow_contract", () => {
+    expect(appCss).toContain("@media (max-width: 1320px), (max-height: 760px)");
+    expect(appCss).toContain(".toolbar-actions .tool-button:nth-of-type(4)::before");
+    expect(appCss).toContain("grid-template-columns: clamp(230px, 17vw, 280px) minmax(620px, 1fr) clamp(260px, 20vw, 315px)");
   });
 });

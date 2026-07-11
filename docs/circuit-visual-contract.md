@@ -450,6 +450,10 @@ Layout:
 - no important text is covered by wires or arrows.
 - inactive wires are de-emphasized.
 - Signal Probe, Call Stack, and Trace remain compact.
+- Circuit Focus surfaces should use the shared design tokens from `src/styles/tokens.css`.
+- Selected/navigation state, active execution state, changed-value state, read state, write state, warning, error, and disabled state must remain visually distinct.
+- Red should be reserved for error, Stop, and write/critical operations; ordinary active execution should use the restrained execution token rather than an alarm-like fill.
+- FramePlan and slot-relation cards are tertiary design-preview teaching notes until real stack-frame lowering exists.
 - `1280x720`, `1440x900`, and `1920x1080` desktop viewports remain usable.
 - Native details summaries, tabs, toolbar buttons, and machine-code rows have visible keyboard focus.
 - Ellipsized instruction, symbol, mapping, trace, and explanation text exposes the complete value through `title` or `aria-label`.

@@ -39,7 +39,7 @@ The screenshot spec uses the Mock backend for stable visual output.
 
 Circuit Focus Mode normally uses a lightweight signal-flow animation on active wires. The visual review spec adds a `visual-review-static` class before each screenshot so the active path remains highlighted but the animation is frozen for stable review.
 
-Phase 13A adds an advanced UI design-system foundation. Visual review should confirm that toolbar controls, panel cards, tabs, tables, circuit modules, and active circuit rows use the shared token vocabulary and still preserve the Phase 12D clean-wire contract: no arrows, no dots, no ghost inactive wires, and active-flow wires only.
+Phase 13A adds an advanced UI design-system foundation. Phase 13B applies that foundation across the main UI. Visual review should confirm that toolbar controls, panel cards, tabs, tables, circuit modules, and active circuit rows use the shared token vocabulary and still preserve the Phase 12D clean-wire contract: no arrows, no dots, no ghost inactive wires, and active-flow wires only.
 
 ## Open Gallery Locally
 
@@ -137,6 +137,10 @@ Use the gallery to inspect:
 - Call Stack details should use readable wording such as `Return`, `Stored at`, `Routine`, and `Depth change` instead of terse internal abbreviations.
 - Signal Probe and Call Stack details can be focused and opened with the keyboard.
 - Focus rings are visible on toolbar buttons, tabs, details summaries, and machine-code rows without dominating the layout.
+- Toolbar actions are visually grouped into file, mode, execution, and utility areas without crowding the 1280x720 layout.
+- Selected, active execution, changed, read, write, warning, error, and disabled states remain visually distinct.
+- FramePlan and slot-relation panels read as tertiary design-preview teaching notes, not as primary runtime state.
+- Empty states use compact shared wording and muted surfaces rather than large blank panels.
 - Inspector Memory uses bounded internal scrolling for large row counts and must not stretch the main Circuit panel or create a large blank page below the SVG.
 - Ellipsized labels, instructions, operands, and explanation text expose the full value through native `title` text.
 - Trace rows show main event, primary effect, and secondary note without overflowing the card.

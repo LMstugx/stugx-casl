@@ -129,7 +129,7 @@ function StudioShell() {
         <section className="left-column">
           <section className="panel source-panel">
             <header className="panel-header">
-              <h2>Source Editor</h2>
+              <h2 title="Source Editor">Source</h2>
               <div className="source-header-actions">
                 <label className="demo-program-picker" title={selectedDemoProgram.name}>
                   <span>Demo</span>

@@ -159,11 +159,11 @@ button {
   height: 50px;
   border-radius: var(--radius-md);
   color: var(--color-surface);
-  background: linear-gradient(145deg, color-mix(in srgb, var(--color-primary) 92%, white) 0%, var(--color-primary) 68%, #184b95 100%);
+  background: color-mix(in srgb, var(--color-primary) 92%, var(--color-text-primary));
   font-weight: 800;
   font-size: 13px;
   letter-spacing: 0;
-  box-shadow: inset 0 -6px 10px rgba(15, 23, 42, 0.2);
+  box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.16);
 }
 
 .brand h1 {
@@ -188,6 +188,22 @@ button {
   padding: 0 12px;
   border-left: 1px solid var(--color-border);
   border-right: 1px solid var(--color-border);
+}
+
+.toolbar-actions .tool-button:nth-of-type(4),
+.toolbar-actions .tool-button:nth-of-type(5) {
+  margin-left: var(--space-8);
+}
+
+.toolbar-actions .tool-button:nth-of-type(4)::before,
+.toolbar-actions .tool-button:nth-of-type(5)::before {
+  content: "";
+  position: absolute;
+  top: 7px;
+  bottom: 7px;
+  left: calc(-1 * var(--space-8));
+  width: 1px;
+  background: var(--color-border);
 }
 
 .tool-button,
@@ -215,6 +231,7 @@ button {
 }
 
 .tool-button {
+  position: relative;
   gap: var(--space-6);
   min-height: 35px;
   padding: 0 10px;
@@ -277,9 +294,9 @@ button {
 }
 
 .tool-button.primary.emphasis:not(:disabled) {
-  color: var(--color-surface);
-  background: var(--color-primary);
-  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
+  border-color: color-mix(in srgb, var(--color-primary) 34%, var(--color-border));
 }
 
 .tool-button.success {
@@ -288,20 +305,20 @@ button {
 
 .tool-button.success.emphasis:not(:disabled) {
   color: var(--color-surface);
-  background: var(--color-success);
-  border-color: var(--color-success);
+  background: color-mix(in srgb, var(--color-success) 90%, var(--color-text-primary));
+  border-color: color-mix(in srgb, var(--color-success) 88%, var(--color-border));
 }
 
 .tool-button.success.active {
   color: var(--color-surface);
-  background: var(--color-success);
-  border-color: var(--color-success);
+  background: color-mix(in srgb, var(--color-success) 88%, var(--color-text-primary));
+  border-color: color-mix(in srgb, var(--color-success) 82%, var(--color-border));
 }
 
 .tool-button.active:not(:disabled):not(.success) {
   color: var(--color-surface);
-  background: var(--color-text-secondary);
-  border-color: var(--color-text-secondary);
+  background: color-mix(in srgb, var(--color-text-secondary) 92%, var(--color-primary));
+  border-color: color-mix(in srgb, var(--color-text-secondary) 88%, var(--color-border));
 }
 
 .tool-button.danger {
@@ -597,13 +614,13 @@ button {
 }
 
 .focus-current-panel {
-  border-color: #d99b9b;
-  background: #fffafa;
+  border-color: var(--color-state-active-border);
+  background: var(--color-state-active-bg);
 }
 
 .focus-current-panel .panel-header {
-  background: #fff6f6;
-  border-bottom-color: #efc2c2;
+  background: color-mix(in srgb, var(--color-state-active-bg) 72%, var(--color-surface));
+  border-bottom-color: color-mix(in srgb, var(--color-state-active-border) 46%, var(--color-border));
 }
 
 .focus-current-header {
@@ -614,7 +631,7 @@ button {
 }
 
 .focus-current-body strong {
-  color: var(--color-danger);
+  color: color-mix(in srgb, var(--color-active-data) 82%, var(--color-text-primary));
   font-size: 22px;
   line-height: 1;
 }
@@ -638,7 +655,7 @@ button {
   gap: 3px 7px;
   align-items: center;
   padding-top: 2px;
-  border-top: 1px solid #f0caca;
+  border-top: 1px solid color-mix(in srgb, var(--color-state-active-border) 32%, var(--color-border));
 }
 
 .focus-current-body span,
@@ -649,13 +666,13 @@ button {
 
 .focus-circuit-panel {
   min-height: 500px;
-  border-color: #8ea5bf;
-  background: #e9eff6;
+  border-color: color-mix(in srgb, var(--color-circuit-module-border) 74%, var(--color-border));
+  background: var(--color-circuit-background);
 }
 
 .focus-circuit-panel .panel-header {
-  background: #e5ebf3;
-  border-bottom-color: #aebbd0;
+  background: color-mix(in srgb, var(--color-circuit-background) 84%, var(--color-surface));
+  border-bottom-color: color-mix(in srgb, var(--color-circuit-module-border) 42%, var(--color-border));
 }
 
 .focus-circuit-panel .comet-circuit {
@@ -664,10 +681,10 @@ button {
   min-height: 420px;
   aspect-ratio: 1120 / 536;
   background:
-    linear-gradient(rgba(196, 208, 224, 0.12) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(196, 208, 224, 0.12) 1px, transparent 1px),
-    linear-gradient(90deg, transparent 0, transparent 279px, rgba(121, 143, 172, 0.12) 280px, transparent 281px),
-    linear-gradient(transparent 0, transparent 132px, rgba(121, 143, 172, 0.12) 133px, transparent 134px),
+    linear-gradient(rgba(196, 208, 224, 0.075) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(196, 208, 224, 0.075) 1px, transparent 1px),
+    linear-gradient(90deg, transparent 0, transparent 279px, rgba(121, 143, 172, 0.08) 280px, transparent 281px),
+    linear-gradient(transparent 0, transparent 132px, rgba(121, 143, 172, 0.08) 133px, transparent 134px),
     #f5f8fc;
   background-size: 40px 40px, 40px 40px, 100% 100%, 100% 100%;
 }
@@ -959,10 +976,10 @@ button {
 }
 
 .focus-stage.current {
-  color: var(--color-danger);
-  background: #fff7f7;
-  border-color: #f3b6b6;
-  box-shadow: inset 3px 0 0 var(--color-active-red);
+  color: color-mix(in srgb, var(--color-active-data) 82%, var(--color-text-primary));
+  background: var(--color-state-active-bg);
+  border-color: var(--color-state-active-border);
+  box-shadow: inset 3px 0 0 var(--color-state-active-border);
 }
 
 .focus-inspector-content {
@@ -982,17 +999,17 @@ button {
 }
 
 .focus-stack-frame-view {
-  background: #f7f9fc;
-  border-color: #c7d1df;
+  background: var(--color-surface-muted);
+  border-color: color-mix(in srgb, var(--color-border) 84%, var(--color-border-strong));
 }
 
 .focus-frame-slot-relation {
-  background: #f7f9fc;
-  border-color: #c7d1df;
+  background: var(--color-surface-muted);
+  border-color: color-mix(in srgb, var(--color-border) 84%, var(--color-border-strong));
 }
 
 .focus-frame-slot-relation .panel-header {
-  background: #f2f6fb;
+  background: color-mix(in srgb, var(--color-surface-muted) 76%, var(--color-surface));
 }
 
 .focus-frame-slot-relation-body {
@@ -1000,13 +1017,13 @@ button {
   overflow: auto;
   align-content: start;
   padding: 6px 10px 6px 7px;
-  background: #f8fafc;
+  background: var(--color-empty-bg);
   scrollbar-gutter: stable;
   scrollbar-width: thin;
 }
 
 .focus-stack-frame-view .panel-header {
-  background: #f2f6fb;
+  background: color-mix(in srgb, var(--color-surface-muted) 76%, var(--color-surface));
 }
 
 .focus-stack-frame-view .panel-header > span {
@@ -1019,7 +1036,7 @@ button {
   grid-template-rows: auto auto auto auto auto;
   gap: 4px;
   padding: 5px 7px;
-  background: #f8fafc;
+  background: var(--color-empty-bg);
   overflow: visible;
 }
 
@@ -1035,9 +1052,9 @@ button {
   min-width: 0;
   overflow: hidden;
   padding: 1px 5px;
-  border: 1px solid #ccd7e6;
+  border: 1px solid var(--color-empty-border);
   border-radius: 999px;
-  background: #ffffff;
+  background: var(--color-surface);
   color: #475569;
   font-size: 9.5px;
   font-weight: 800;
@@ -1071,9 +1088,9 @@ button {
   align-items: center;
   min-height: 18px;
   padding: 1px 4px;
-  border: 1px solid #dbe3ee;
+  border: 1px solid var(--color-empty-border);
   border-radius: 4px;
-  background: #ffffff;
+  background: var(--color-surface);
   color: #334155;
   font-size: 10px;
 }
@@ -1114,14 +1131,14 @@ button {
 }
 
 .stack-frame-view-slot-row:hover {
-  border-color: #b9c8dc;
-  background: #f8fbff;
+  border-color: var(--color-state-selected-border);
+  background: color-mix(in srgb, var(--color-state-selected-bg) 58%, var(--color-surface));
 }
 
 .stack-frame-view-slot-row[data-selected="true"] {
-  border-color: #7c9fc9;
-  background: #eef5ff;
-  box-shadow: inset 2px 0 0 #4776ad;
+  border-color: var(--color-state-selected-border);
+  background: var(--color-state-selected-bg);
+  box-shadow: inset 2px 0 0 var(--color-primary);
 }
 
 .stack-frame-view-slot-row:focus-visible {
@@ -1136,9 +1153,9 @@ button {
   gap: 5px;
   align-items: center;
   padding: 1px 4px;
-  border: 1px solid #dbe3ee;
+  border: 1px solid var(--color-empty-border);
   border-radius: 4px;
-  background: #ffffff;
+  background: var(--color-surface);
 }
 
 .stack-frame-view-function select {
@@ -1188,17 +1205,18 @@ button {
   display: grid;
   gap: 4px;
   padding: 4px 5px;
-  border: 1px solid #ccd7e6;
+  border: 1px solid var(--color-empty-border);
   border-radius: 4px;
-  background: #f8fbff;
+  background: color-mix(in srgb, var(--color-state-selected-bg) 36%, var(--color-surface));
 }
 
 .stack-frame-slot-detail-empty {
   min-height: 0;
   gap: 2px;
   padding: 5px 6px;
+  border: 1px dashed var(--color-empty-border);
   border-style: dashed;
-  background: #ffffff;
+  background: var(--color-surface);
 }
 
 .stack-frame-slot-detail-title {
@@ -1262,7 +1280,7 @@ button {
   gap: 5px;
   overflow: visible;
   padding: 6px 8px;
-  background: #f8fafc;
+  background: var(--color-empty-bg);
 }
 
 .signal-probe-body[data-density="compact"] {
@@ -1276,9 +1294,9 @@ button {
   display: grid;
   gap: 4px;
   padding: 4px 5px;
-  border: 1px dashed #b9c8de;
+  border: 1px dashed var(--color-empty-border);
   border-radius: 5px;
-  background: #f7fbff;
+  background: color-mix(in srgb, var(--color-state-selected-bg) 30%, var(--color-surface));
 }
 
 .signal-probe-slot-relation-head {
@@ -1308,8 +1326,8 @@ button {
 
 .signal-probe-slot-relation .signal-probe-row {
   min-height: 22px;
-  border-color: #d3deeb;
-  background: #ffffff;
+  border-color: var(--color-empty-border);
+  background: var(--color-surface);
   opacity: 1;
 }
 
@@ -1348,9 +1366,9 @@ button {
 
 .signal-probe-row[data-active="true"] {
   opacity: 1;
-  background: #fff7f7;
-  border-color: #f3b6b6;
-  box-shadow: inset 2px 0 0 var(--color-active-red);
+  background: var(--color-state-active-bg);
+  border-color: var(--color-state-active-border);
+  box-shadow: inset 2px 0 0 var(--color-state-active-border);
 }
 
 .signal-probe-row code {
@@ -1439,7 +1457,7 @@ button {
 }
 
 .call-stack-body[data-active="true"] {
-  background: #fffdf8;
+  background: var(--color-state-active-bg);
 }
 
 .call-stack-summary {
@@ -1505,8 +1523,8 @@ button {
 
 .call-stack-body[data-active="true"] .call-stack-summary > div,
 .call-stack-body[data-active="true"] .call-stack-row {
-  border-color: #d9c9a4;
-  box-shadow: inset 2px 0 0 #b7791f;
+  border-color: var(--color-state-active-border);
+  box-shadow: inset 2px 0 0 var(--color-state-active-border);
 }
 
 .call-stack-row span,
@@ -1595,9 +1613,9 @@ button {
 
 .stack-preview-row.write {
   color: #10233d;
-  background: #fff1f1;
+  background: var(--color-state-write-bg);
   border-color: transparent;
-  box-shadow: inset 0 0 0 1px #f3b6b6, inset 2px 0 0 var(--color-active-red);
+  box-shadow: inset 0 0 0 1px var(--color-state-write-border), inset 2px 0 0 var(--color-danger);
 }
 
 .stack-preview-row code {
@@ -1644,8 +1662,8 @@ button {
 
 .focus-trace-item.latest {
   min-height: 50px;
-  border-left-color: var(--color-active-red);
-  background: #fffafa;
+  border-left-color: var(--color-state-active-border);
+  background: var(--color-state-active-bg);
   opacity: 1;
 }
 
@@ -1654,7 +1672,7 @@ button {
 }
 
 .focus-trace-item strong {
-  color: var(--color-danger);
+  color: color-mix(in srgb, var(--color-active-data) 82%, var(--color-text-primary));
   font-size: 11px;
 }
 
@@ -1804,6 +1822,11 @@ button {
   min-width: 0;
 }
 
+.source-panel .panel-header h2 {
+  flex: 0 0 auto;
+  min-width: 48px;
+}
+
 .source-header-actions > span {
   max-width: 92px;
   overflow: hidden;
@@ -1885,8 +1908,8 @@ button {
   gap: 6px;
   align-items: center;
   padding: 5px 8px;
-  border-top: 1px solid #d8e2ef;
-  background: #f7fbff;
+  border-top: 1px solid var(--color-empty-border);
+  background: var(--color-empty-bg);
 }
 
 .source-editor-frame-symbol-list {
@@ -1905,10 +1928,10 @@ button {
   max-width: 112px;
   min-height: 22px;
   padding: 2px 6px;
-  border: 1px solid #c9d7e8;
+  border: 1px solid var(--color-empty-border);
   border-radius: 4px;
-  background: #ffffff;
-  color: #24415f;
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
   cursor: pointer;
   font-size: 10px;
   font-weight: 800;
@@ -1917,7 +1940,7 @@ button {
 .source-editor-frame-symbol-marker code {
   min-width: 0;
   overflow: hidden;
-  color: #0f2f50;
+  color: var(--color-text-strong);
   font-family: "Cascadia Mono", Consolas, monospace;
   font-size: 10px;
   text-overflow: ellipsis;
@@ -1925,16 +1948,16 @@ button {
 }
 
 .source-editor-frame-symbol-marker span {
-  color: #64748b;
+  color: var(--color-muted);
   font-size: 9px;
 }
 
 .source-editor-frame-symbol-marker:hover,
 .source-editor-frame-symbol-marker[data-selected="true"],
 .source-editor-frame-symbol-marker[aria-pressed="true"] {
-  border-color: #8fb4df;
-  background: #edf6ff;
-  color: #173d66;
+  border-color: var(--color-state-selected-border);
+  background: var(--color-state-selected-bg);
+  color: var(--color-primary);
 }
 
 .source-editor-frame-symbol-marker:focus-visible {
@@ -1946,7 +1969,7 @@ button {
   grid-template-columns: 78px minmax(0, 1fr);
   padding: 3px 0 5px;
   border-top: 0;
-  border-bottom: 1px solid #e1e8f1;
+  border-bottom: 1px solid var(--color-empty-border);
   background: transparent;
 }
 
@@ -2319,7 +2342,7 @@ button {
 
 .memory-svg-row.write rect {
   fill: var(--color-circuit-write-fill);
-  stroke: color-mix(in srgb, var(--color-danger) 36%, var(--color-border));
+  stroke: color-mix(in srgb, var(--color-danger) 42%, var(--color-border));
 }
 
 .alu-module polygon {
@@ -2447,7 +2470,7 @@ button {
 }
 
 .module-red {
-  fill: var(--color-danger);
+  fill: var(--color-active-data);
 }
 
 .module-muted {
@@ -2482,7 +2505,7 @@ button {
 
 .register-row.write rect {
   fill: var(--color-circuit-write-fill);
-  stroke: color-mix(in srgb, var(--color-danger) 34%, var(--color-border));
+  stroke: color-mix(in srgb, var(--color-danger) 42%, var(--color-border));
 }
 
 .bus-labels text {
@@ -2591,8 +2614,8 @@ button {
 }
 
 .wire-active {
-  stroke-width: 2.6;
-  opacity: 0.96;
+  stroke-width: 2.35;
+  opacity: 0.92;
   filter: none;
 }
 
@@ -2609,20 +2632,20 @@ button {
 }
 
 .circuit-wire--flow {
-  stroke-dasharray: 10 8;
+  stroke-dasharray: 12 10;
   stroke-dashoffset: 0;
-  animation: circuitSignalFlow var(--wire-flow-duration, 2.35s) linear infinite;
+  animation: circuitSignalFlow var(--wire-flow-duration, 3.4s) linear infinite;
   will-change: stroke-dashoffset;
 }
 
 .circuit-wire--addr-flow,
 .circuit-wire--ctrl-flow {
-  stroke-dasharray: 9 8;
+  stroke-dasharray: 11 10;
 }
 
 .circuit-wire--flag-flow {
-  stroke-dasharray: 7 7;
-  animation-duration: calc(var(--wire-flow-duration, 2.35s) + 0.35s);
+  stroke-dasharray: 9 9;
+  animation-duration: calc(var(--wire-flow-duration, 3.4s) + 0.55s);
 }
 
 .circuit-wire--flow[data-path-id="index-to-eau"] {
@@ -2669,13 +2692,13 @@ button {
 }
 
 .status-light.active circle {
-  fill: #dc5b5b;
-  stroke: #a72f2f;
+  fill: var(--color-state-active-bg);
+  stroke: var(--color-state-active-border);
   opacity: 0.95;
 }
 
 .status-light.active text {
-  fill: #a72f2f;
+  fill: color-mix(in srgb, var(--color-active-data) 82%, var(--color-text-primary));
   opacity: 0.92;
 }
 
@@ -3040,18 +3063,18 @@ button {
 
 .data-table tr.changed td,
 .data-table tr.current td {
-  background: var(--color-memory-highlight);
-  box-shadow: inset 3px 0 0 var(--color-active-red);
+  background: var(--color-state-changed-bg);
+  box-shadow: inset 3px 0 0 var(--color-state-changed-border);
   animation: rowFlash var(--motion-slow) var(--ease-standard);
 }
 
 .data-table tr.memory-pr td {
-  background: var(--color-primary-soft);
+  background: var(--color-state-selected-bg);
   box-shadow: inset 3px 0 0 var(--color-primary);
 }
 
 .data-table tr.memory-mar td {
-  outline: 1px solid #a78bfa;
+  outline: 1px solid color-mix(in srgb, var(--color-active-control) 42%, var(--color-border));
   outline-offset: -1px;
 }
 
@@ -3060,7 +3083,7 @@ button {
 }
 
 .data-table tr.memory-write td {
-  background: var(--color-danger-soft);
+  background: var(--color-state-write-bg);
   box-shadow: inset 3px 0 0 var(--color-danger);
 }
 
@@ -3098,7 +3121,7 @@ button {
 }
 
 .trace-item strong {
-  color: var(--color-danger);
+  color: color-mix(in srgb, var(--color-active-data) 82%, var(--color-text-primary));
   font-size: 11px;
 }
 
@@ -3165,6 +3188,8 @@ button {
 
 .dock-header .text-button {
   flex: 0 0 auto;
+  color: var(--color-muted);
+  background: var(--color-surface-muted);
 }
 
 .text-button {
@@ -3178,7 +3203,7 @@ button {
   overflow: auto;
   min-height: 0;
   padding: 9px 14px 9px 12px;
-  background: #f8fafc;
+  background: var(--color-empty-bg);
   font-family: "Cascadia Mono", Consolas, monospace;
   font-size: 12px;
   line-height: 1.38;
@@ -3199,7 +3224,7 @@ button {
   gap: 10px;
   align-items: start;
   min-height: 21px;
-  color: #334155;
+  color: var(--color-text-secondary);
 }
 
 .console-prefix {
@@ -3209,11 +3234,11 @@ button {
 }
 
 .console-line.success {
-  color: #166534;
+  color: var(--color-success);
 }
 
 .console-line.warn {
-  color: #92400e;
+  color: color-mix(in srgb, var(--color-warning) 72%, var(--color-text-primary));
 }
 
 .console-line.danger {
@@ -3226,8 +3251,8 @@ button {
 
 .generated-casl-title {
   margin-bottom: 6px;
-  color: #10233d;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: var(--color-text-strong);
+  font-family: var(--font-family-ui);
   font-size: 12px;
   font-weight: 800;
 }
@@ -3235,7 +3260,7 @@ button {
 .generated-casl-heading {
   margin-bottom: 6px;
   color: var(--color-muted);
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: var(--font-family-ui);
   font-size: 11px;
   font-weight: 750;
   text-transform: uppercase;
@@ -3268,7 +3293,7 @@ button {
 
 .code-table-header {
   color: var(--color-muted);
-  background: #eef2f7;
+  background: color-mix(in srgb, var(--color-surface-muted) 84%, var(--color-border));
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm) var(--radius-sm) 0 0;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -3278,8 +3303,8 @@ button {
 }
 
 .code-table-row {
-  color: #334155;
-  border-bottom: 1px solid #edf0f5;
+  color: var(--color-text-secondary);
+  border-bottom: 1px solid var(--color-border-subtle);
 }
 
 .generated-casl-table .code-table-header,
@@ -3300,13 +3325,13 @@ button {
 }
 
 .generated-casl-line.related {
-  background: rgba(37, 99, 235, 0.07);
+  background: color-mix(in srgb, var(--color-state-selected-bg) 58%, transparent);
   border-radius: var(--radius-sm);
 }
 
 .generated-casl-line.current {
   color: var(--color-primary);
-  background: var(--color-active-bg);
+  background: var(--color-state-selected-bg);
   box-shadow: inset 3px 0 0 var(--color-primary);
   border-radius: var(--radius-sm);
   font-weight: 750;
@@ -3325,9 +3350,9 @@ button {
   padding: 0 4px;
   border: 1px solid var(--color-border);
   border-radius: 3px;
-  color: #334155;
-  background: #eef2f7;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: var(--color-text-secondary);
+  background: var(--color-surface-muted);
+  font-family: var(--font-family-ui);
   font-size: 9px;
   font-weight: 800;
 }
@@ -3359,7 +3384,7 @@ button {
 }
 
 .machine-code-row.current-pr {
-  background: var(--color-active-bg);
+  background: var(--color-state-selected-bg);
   box-shadow: inset 3px 0 0 var(--color-primary);
   font-weight: 750;
 }
@@ -3380,20 +3405,22 @@ button {
 }
 
 .machine-code-row.current-ir {
-  background: rgba(37, 99, 235, 0.08);
+  background: var(--color-state-active-bg);
+  box-shadow: inset 3px 0 0 var(--color-state-active-border);
 }
 
 .machine-code-row.control-target {
-  outline: 1px dashed #7c3aed;
+  outline: 1px dashed color-mix(in srgb, var(--color-active-control) 54%, var(--color-border));
   outline-offset: -2px;
 }
 
 .machine-code-row.read {
-  background: #e8f6ed;
+  background: var(--color-success-soft);
 }
 
 .machine-code-row.written {
-  background: #fcecec;
+  background: var(--color-state-write-bg);
+  box-shadow: inset 3px 0 0 var(--color-danger);
 }
 
 .machine-code-explanation {
@@ -3568,6 +3595,16 @@ button {
   .toolbar-actions {
     gap: 4px;
     padding: 0 6px;
+  }
+
+  .toolbar-actions .tool-button:nth-of-type(4),
+  .toolbar-actions .tool-button:nth-of-type(5) {
+    margin-left: var(--space-6);
+  }
+
+  .toolbar-actions .tool-button:nth-of-type(4)::before,
+  .toolbar-actions .tool-button:nth-of-type(5)::before {
+    left: calc(-1 * var(--space-6));
   }
 
   .tool-button {

@@ -53,3 +53,7 @@ CASL, COMET II, mnemonic, register, address, word, opcode, operand, label, PR, S
 - Approved terminology and compact labels come from `i18n-glossary.md`; components do not invent variants.
 - A locale switch changes presentation metadata only; it does not mutate source, execution, Trace, lessons, examples, or FramePlan state.
 - Compact Circuit Focus labels may be translated around technical values, but mnemonics, register names, addresses, Generated CASL, machine words, and raw Trace payloads remain verbatim.
+
+## Phase 14 Final Gate
+
+Phase 14I closes the current locale and diagnostic boundary with a `PASS`; see [phase14i-i18n-diagnostics-final-quality-gate.md](phase14i-i18n-diagnostics-final-quality-gate.md). File/project lifecycle work must preserve locale as an application preference and keep localized diagnostic text out of source ownership, identity, and persistence keys.

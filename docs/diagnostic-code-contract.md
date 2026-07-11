@@ -59,3 +59,5 @@ A P2 code is not promoted because a raw English sentence exists. It needs a stab
 ## Baseline Freeze
 
 Phase 14H freezes 55 structured codes in `diagnostic-localization-baseline-v1.json`. Runtime registries remain authoritative; tests compare the snapshot against code order, producer allowlists, schemas, locale resources, backend ownership, and parity scope. The v1 manifest is never imported by runtime code. A future intentional contract change requires a reviewed new baseline version.
+
+Phase 14I records the final quality-gate result in [phase14i-i18n-diagnostics-final-quality-gate.md](phase14i-i18n-diagnostics-final-quality-gate.md). Future file/project lifecycle code consumes this contract through runtime adapters and must not read the manifest as business configuration.

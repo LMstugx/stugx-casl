@@ -4,7 +4,7 @@ import { resources } from "../../i18n/resources";
 import { createStructuredDiagnostic, normalizeDiagnostic } from "../catalog";
 import { formatDiagnosticDeveloperDetail } from "../presentation";
 import { diagnosticIdentity, renderDiagnostic } from "../renderDiagnostic";
-import { diagnosticSchemas } from "../schema";
+import { diagnosticSchemas, type DiagnosticParamType } from "../schema";
 import { diagnosticCodes, diagnosticProducers, inferDiagnosticProducer, type DiagnosticCode } from "../types";
 import { validateDiagnosticPayload } from "../validation";
 
@@ -29,6 +29,11 @@ const baseline = JSON.parse(baselineRaw) as {
   internalRawPolicy: { includedAsLocalizedDiagnostics: boolean; prohibitedPrimaryContent: string[] };
   structuredDiagnostics: BaselineEntry[];
 };
+const runtimeSourceModules = import.meta.glob("../../**/*.{ts,tsx}", {
+  eager: true,
+  query: "?raw",
+  import: "default"
+}) as Readonly<Record<string, string>>;
 
 describe("Phase 14H diagnostic localization baseline", () => {
   it("diagnostic_baseline_manifest_exists_and_version_is_frozen", () => {
@@ -38,6 +43,7 @@ describe("Phase 14H diagnostic localization baseline", () => {
   });
 
   it("baseline_codes_and_producers_match_runtime_registry", () => {
+    expect(baseline.structuredDiagnostics).toHaveLength(55);
     expect(baseline.structuredDiagnostics.map((entry) => entry.code)).toEqual(diagnosticCodes);
     expect(baseline.producers).toEqual(diagnosticProducers);
     for (const entry of baseline.structuredDiagnostics) {
@@ -53,7 +59,17 @@ describe("Phase 14H diagnostic localization baseline", () => {
       expect(entry.optionalParams, `${entry.code}.optional`).toEqual(Object.keys(schema.optional).sort());
       expect(entry.rangePolicy).not.toBe("");
       expect(entry.relatedLocationPolicy).not.toBe("");
+      expect(entry.requiredParams).toEqual([...entry.requiredParams].sort());
+      expect(entry.optionalParams).toEqual([...entry.optionalParams].sort());
     }
+  });
+
+  it("baseline_manifest_is_not_a_runtime_source", () => {
+    const runtimeImports = Object.entries(runtimeSourceModules)
+      .filter(([file]) => !file.includes("/__tests__/") && !file.includes("/tests/") && !/\.(?:test|spec)\.(?:ts|tsx)$/.test(file))
+      .filter(([, source]) => source.includes("diagnostic-localization-baseline-v1"))
+      .map(([file]) => file);
+    expect(runtimeImports).toEqual([]);
   });
 
   it("baseline_locale_coverage_matches_resources", () => {
@@ -81,6 +97,21 @@ describe("Phase 14H diagnostic localization baseline", () => {
     expect(baseline.internalRawPolicy.includedAsLocalizedDiagnostics).toBe(false);
     expect(baseline.internalRawPolicy.prohibitedPrimaryContent).toContain("stack trace");
     expect(baseline.diagnosticDefaults.rawContextPolicy).toBe("collapsed-details-only");
+  });
+
+  it("all_structured_templates_render_without_unresolved_placeholders", () => {
+    for (const code of diagnosticCodes) {
+      const schema = diagnosticSchemas[code];
+      const params = Object.fromEntries(
+        [...Object.entries(schema.required), ...Object.entries(schema.optional)]
+          .map(([name, type]) => [name, sampleParam(type)])
+      );
+      const validated = validateDiagnosticPayload({ line: 1, message: code, severity: "error", code, params });
+      expect(validated.kind, code).toBe("structured");
+      for (const locale of ["en", "ja", "zh-CN"] as const) {
+        expect(renderDiagnostic(validated.diagnostic, locale).message, `${locale}.${code}`).not.toMatch(/\{[a-zA-Z][a-zA-Z0-9_]*\}/);
+      }
+    }
   });
 });
 
@@ -138,3 +169,9 @@ describe("Phase 14H payload compatibility", () => {
     expect(legacy.sourceRange).toBeUndefined();
   });
 });
+
+function sampleParam(type: DiagnosticParamType): string | number | boolean {
+  if (type === "number") return 7;
+  if (type === "boolean") return true;
+  return "TECHNICAL_TOKEN";
+}

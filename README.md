@@ -355,6 +355,7 @@ The current backend is shown in the status bar as `Mock Core`, `WASM Core`, or `
 - [docs/phase14g-p2-diagnostic-stability-audit.md](docs/phase14g-p2-diagnostic-stability-audit.md): evidence-based P2 admission decisions, generated-label conflict localization, blocked storage metadata, and internal/legacy boundaries.
 - [docs/diagnostic-localization-baseline-v1.json](docs/diagnostic-localization-baseline-v1.json): non-runtime v1 snapshot of diagnostic codes, producers, schemas, range policies, backend ownership, parity, and compatibility defaults.
 - [docs/phase14h-diagnostic-localization-baseline.md](docs/phase14h-diagnostic-localization-baseline.md): Phase 14H baseline freeze, structured/legacy/internal compatibility, Errors/editor UX, accessibility, and viewport QA.
+- [docs/phase14i-i18n-diagnostics-final-quality-gate.md](docs/phase14i-i18n-diagnostics-final-quality-gate.md): final Phase 14 manifest, locale, invariance, compatibility, security, accessibility, and visual quality gate.
 
 ## Current Limitations
 

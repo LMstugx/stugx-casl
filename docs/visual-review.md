@@ -231,6 +231,8 @@ Phase 14G replaces the obsolete generated-label legacy capture with `diagnostic-
 
 Phase 14H adds `diagnostic-baseline-en.png`, `diagnostic-baseline-ja.png`, `diagnostic-baseline-zh-cn.png`, `diagnostic-generated-label-conflict.png`, `diagnostic-legacy-fallback.png`, `diagnostic-multiple-errors-1280.png`, and `diagnostic-details-expanded-1280.png`. Review severity/message/location hierarchy, related controls, long technical wrapping, insertion presentation, collapsed developer detail, and selection consistency. The internal lowering wrapper has no valid source trigger and remains unit/contract tested rather than exposed through demo-only capture logic.
 
+Phase 14I reuses the frozen Phase 14H scenes as the final quality gate. The gallery must pass at all three viewports with stable EN/JA/zh-CN hierarchy, source-coordinate markers, related controls, long-token containment, collapsed raw details, and unchanged Circuit clean-wire behavior. No Phase 14I-only demo logic or screenshots are added.
+
 - This is a review gallery, not a pixel-diff visual regression suite.
 - Screenshots are generated artifacts and are not committed to git.
 - The gallery is local only unless you use an existing tunnel tool.

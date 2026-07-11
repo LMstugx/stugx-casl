@@ -102,6 +102,10 @@ describe("I18nProvider", () => {
     });
     const before = {
       sourceText: store!.sourceText,
+      lastAssembledSource: store!.lastAssembledSource,
+      isSourceDirty: store!.isSourceDirty,
+      diagnostics: store!.diagnostics,
+      assembleStatus: store!.assembleStatus,
       selectedDemoProgramId: store!.selectedDemoProgramId,
       observationMode: store!.observationMode,
       lessonProgress: store!.lessonProgress,
@@ -112,6 +116,10 @@ describe("I18nProvider", () => {
     await act(async () => i18n!.setLocale("ja"));
 
     expect(store!.sourceText).toBe(before.sourceText);
+    expect(store!.lastAssembledSource).toBe(before.lastAssembledSource);
+    expect(store!.isSourceDirty).toBe(before.isSourceDirty);
+    expect(store!.diagnostics).toBe(before.diagnostics);
+    expect(store!.assembleStatus).toBe(before.assembleStatus);
     expect(store!.selectedDemoProgramId).toBe(before.selectedDemoProgramId);
     expect(store!.observationMode).toBe(before.observationMode);
     expect(store!.lessonProgress).toBe(before.lessonProgress);

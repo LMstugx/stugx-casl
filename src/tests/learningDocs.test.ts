@@ -71,6 +71,7 @@ import phase14f from "../../docs/phase14f-remaining-diagnostic-migration.md?raw"
 import phase14g from "../../docs/phase14g-p2-diagnostic-stability-audit.md?raw";
 import diagnosticBaselineV1 from "../../docs/diagnostic-localization-baseline-v1.json?raw";
 import phase14h from "../../docs/phase14h-diagnostic-localization-baseline.md?raw";
+import phase14i from "../../docs/phase14i-i18n-diagnostics-final-quality-gate.md?raw";
 
 describe("learning use documentation", () => {
   it("learning_guide_exists", () => {
@@ -1007,6 +1008,15 @@ describe("learning use documentation", () => {
     expect(phase14h).toContain("Prohibited Future Regressions");
     expect(readme).toContain("docs/diagnostic-localization-baseline-v1.json");
     expect(readme).toContain("docs/phase14h-diagnostic-localization-baseline.md");
+  });
+
+  it("phase14i_i18n_diagnostics_final_quality_gate_is_documented", () => {
+    expect(phase14i).toContain("Phase 14I: I18n And Diagnostics Final Quality Gate");
+    expect(phase14i).toContain("Final Result: PASS");
+    expect(phase14i).toContain("55 structured diagnostic codes");
+    expect(phase14i).toContain("Runtime registries remain the source of truth");
+    expect(phase14i).toContain("Phase 15A Consumption Requirements");
+    expect(readme).toContain("docs/phase14i-i18n-diagnostics-final-quality-gate.md");
   });
 
   it("project_overview_uses_learning_wording", () => {

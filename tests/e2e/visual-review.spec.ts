@@ -701,6 +701,57 @@ async function capturePhase14cLocalizedFocus(page: Page, viewport: Viewport) {
   await page.getByTestId("locale-en").click();
 }
 
+async function setOpenFile(page: Page, fileName: string, text: string) {
+  const chooserPromise = page.waitForEvent("filechooser");
+  await page.getByTestId("open-file-button").click();
+  const chooser = await chooserPromise;
+  await chooser.setFiles({ name: fileName, mimeType: "text/plain", buffer: Buffer.from(text, "utf8") });
+}
+
+async function captureBrowserOpenFileStates(page: Page, viewport: Viewport) {
+  if (!viewport.primary && viewport.name !== "1280x720") return;
+
+  await openStudio(page, "Mock Core");
+  await setOpenFile(page, "external.cpp", "int main() {\n  return 7;\n}\n");
+  await expect(page.locator(".source-file-name")).toHaveText("external.cpp");
+  await capture(page, viewport, "open-clean-document.png");
+  await capture(page, viewport, "external-cpp-loaded.png");
+
+  await setSource(page, "int main() { return 8; }");
+  await page.getByTestId("open-file-button").click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await capture(page, viewport, "open-dirty-guard-en.png");
+  await page.getByRole("button", { name: "Cancel" }).click();
+  await page.getByTestId("locale-ja").click();
+  await page.getByTestId("open-file-button").click();
+  await capture(page, viewport, "open-dirty-guard-ja.png");
+  await page.getByRole("button", { name: "キャンセル" }).click();
+  await page.getByTestId("locale-zh-CN").click();
+  await page.getByTestId("open-file-button").click();
+  await capture(page, viewport, "open-dirty-guard-zh-cn.png");
+  await page.getByRole("button", { name: "取消" }).click();
+  await page.getByTestId("locale-en").click();
+
+  await page.reload();
+  await expect(page.getByTestId("source-editor")).toBeVisible();
+  const invalidChooserPromise = page.waitForEvent("filechooser");
+  await page.getByTestId("open-file-button").click();
+  const invalidChooser = await invalidChooserPromise;
+  await invalidChooser.setFiles({ name: "program.txt", mimeType: "text/plain", buffer: Buffer.from("text", "utf8") });
+  await expect(page.getByTestId("file-operation-notice")).toBeVisible();
+  await capture(page, viewport, "open-invalid-extension.png");
+  await page.getByRole("button", { name: "Dismiss" }).click();
+
+  const longName = `${"long_external_source_name_".repeat(5)}.cpp`;
+  await setOpenFile(page, longName, "int main() { return 0; }");
+  await expect(page.locator(".source-file-name")).toHaveText(longName);
+  if (viewport.name === "1280x720") await capture(page, viewport, "open-long-filename-1280.png");
+
+  await setOpenFile(page, "external.cas", "MAIN START\n RET\n END");
+  await expect(page.locator(".source-file-name")).toHaveText("external.cas");
+  await capture(page, viewport, "external-casl-loaded.png");
+}
+
 test.describe("visual review screenshot gallery", () => {
   for (const viewport of viewports) {
     test(`captures visual review gallery at ${viewport.name}`, async ({ page }) => {
@@ -746,6 +797,7 @@ test.describe("visual review screenshot gallery", () => {
       await captureCppFunctionArgumentsTrace(page, viewport);
       await captureCppFunctionArgumentsMachineCode(page, viewport);
       await capturePhase14cLocalizedFocus(page, viewport);
+      await captureBrowserOpenFileStates(page, viewport);
     });
   }
 });

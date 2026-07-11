@@ -2,7 +2,7 @@
 
 ## Scope
 
-Phase 15A introduces a pure, unconnected document/file lifecycle scaffold. It defines identity, revisions, origins, text validation, adapter results, source ownership, invalidation, async operation guards, and unsaved decisions. It does not implement file pickers, downloads, filesystem calls, projects, session persistence, or user-visible New/Open/Save behavior.
+Phase 15A introduced the pure document/file lifecycle scaffold. Phase 15B now consumes its Open subset through the browser adapter and store bridge; the definitions in this document remain the architectural baseline.
 
 Parser/assembler acceptance, ASTs, emitted CASL, C++ lowering, diagnostic triggers/order/severity, and VM transitions are unchanged.
 
@@ -33,7 +33,7 @@ Edits increment revision. Save success copies revision to saved revision. Save A
 
 ## Adapter Boundary
 
-See [file-io-adapter-contract.md](file-io-adapter-contract.md). `TextFileAdapter` has open/save methods and success/cancel/failure results. It has no store, parser, assembler, locale, or DOM dependency. Phase 15A uses fake adapters only in tests.
+See [file-io-adapter-contract.md](file-io-adapter-contract.md). `TextFileAdapter` has open/save methods and success/cancel/failure results. It has no store, parser, assembler, locale, or DOM dependency. Phase 15B provides the browser Open implementation while Save remains unsupported.
 
 ## Validation And Encoding
 
@@ -67,18 +67,18 @@ External filenames are plain text with directory information removed. Raw except
 
 | Current field/surface | Future owner | Classification | Replacement invalidation | Phase 15A action |
 | --- | --- | --- | --- | --- |
-| `sourceText` | `SourceDocument.content` | document-owned | replace | model only |
-| `sourceMode` | `SourceDocument.language` | document-owned | replace | model only |
-| filename/display name | `SourceDocument` | document-owned | replace/update on Save As | new contract |
+| `sourceText` | `SourceDocument.content` | document-owned | replace | Phase 15B synchronized bridge |
+| `sourceMode` | `SourceDocument.language` | document-owned | replace | Phase 15B synchronized bridge |
+| filename/display name | `SourceDocument` | document-owned | replace/update on Save As | Phase 15B Source header |
 | `lastAssembledSource` | source unit/runtime | runtime-derived | clear | documented |
-| `isSourceDirty` | revision helper | document-derived | recompute | current store unchanged |
-| `diagnostics` | `SourceDerivedState` | source-owned | clear | simulation helper |
-| App diagnostic selection/marker | `SourceDerivedState` | source-owned presentation | clear | simulation helper |
-| `generatedCaslSource` | `SourceDerivedState` | source-owned derived | clear | simulation helper |
-| machine code / `cppToCaslMapping` | `SourceDerivedState` | source-owned derived | clear | simulation helper |
-| `assembleResult` / `cometState` | `SourceDerivedState` | runtime-derived | invalidate | simulation helper |
-| Trace/output tied to execution | `SourceDerivedState` | runtime-derived | clear | simulation helper |
-| FramePlan preview/slot selection | `SourceDerivedState` | source-owned teaching state | clear | simulation helper |
+| document Dirty | revision helper | document-derived | recompute | Phase 15B derived alongside assembly staleness |
+| `diagnostics` | `SourceDerivedState` | source-owned | clear | Phase 15B atomic replacement |
+| App diagnostic selection/marker | `SourceDerivedState` | source-owned presentation | clear | Phase 15B source-unit reset |
+| `generatedCaslSource` | `SourceDerivedState` | source-owned derived | clear | Phase 15B atomic replacement |
+| machine code / `cppToCaslMapping` | `SourceDerivedState` | source-owned derived | clear | Phase 15B atomic replacement |
+| `assembleResult` / `cometState` | `SourceDerivedState` | runtime-derived | invalidate | Phase 15B atomic replacement |
+| Trace/output tied to execution | `SourceDerivedState` | runtime-derived | clear | Phase 15B atomic replacement |
+| FramePlan preview/slot selection | `SourceDerivedState` | source-owned teaching state | clear | Phase 15B source-unit reset |
 | `selectedDemoProgramId` | document provenance/UI | example selection | replacement | guard deferred |
 | `lessonProgress` | application learning state | not source content | preserve by policy | unchanged |
 | `observationMode` | application UI state | preference | preserve | unchanged |
@@ -86,7 +86,7 @@ External filenames are plain text with directory information removed. Raw except
 
 ## Deferred Implementation
 
-No current store field is replaced in Phase 15A. There is no production adapter, picker, save command, guard dialog, project model, session restore, path persistence, multi-file support, reload identity, or UI loading state. Current demo selection behavior is intentionally unchanged until a complete guard flow is available.
+Phase 15B minimally bridges `SourceDocument` into the current store and adds the browser Open picker, guard, and loading state. There is still no save command, project model, session restore, path persistence, multi-file support, or reload identity. Current demo selection behavior remains unchanged.
 
 ## Phase 15B Recommendation
 

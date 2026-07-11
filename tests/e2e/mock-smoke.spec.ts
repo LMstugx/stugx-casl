@@ -1,5 +1,12 @@
 import { test, expect, type Page } from "@playwright/test";
-import { assemble, expectCurrentSourceInstruction, expectRegister, openStudio, run, selectDemoProgram, setSource, step } from "./caslSmokeHelpers";
+import { assemble, expectCurrentSourceInstruction, expectRegister, expectSourceContains, openStudio, run, selectDemoProgram, setSource, step } from "./caslSmokeHelpers";
+
+async function chooseTextFile(page: Page, fileName: string, text: string) {
+  const chooserPromise = page.waitForEvent("filechooser");
+  await page.getByTestId("open-file-button").click();
+  const chooser = await chooserPromise;
+  await chooser.setFiles({ name: fileName, mimeType: "text/plain", buffer: Buffer.from(text, "utf8") });
+}
 
 async function switchObservationMode(page: Page, mode: "cpu-flow" | "register-stack" | "code-machine") {
   await page.getByTestId(`observation-mode-${mode}`).click();
@@ -17,6 +24,58 @@ test("Mock backend completes assemble and first step in the browser UI", async (
   await expectRegister(page, "register-gr2", "0003");
   await expectRegister(page, "register-pr", "0022");
   await expectCurrentSourceInstruction(page, /ADDA\s+GR2,B/);
+});
+
+test("Browser Open replaces one document atomically and guards dirty source", async ({ page }) => {
+  await openStudio(page, "Mock Core");
+  await selectDemoProgram(page, "cpp-addition");
+  await assemble(page);
+  await expect(page.getByTestId("generated-casl-output")).toContainText("MAIN");
+
+  await chooseTextFile(page, "external.cpp", "int main() {\r\n  return 7;\r\n}\r\n");
+  await expect(page.locator(".source-file-name")).toHaveText("external.cpp");
+  await expect(page.locator('input[type="file"]')).toHaveCount(0);
+  await expectSourceContains(page, "return 7;");
+  await expect(page.getByTestId("source-mode-cpp")).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByTestId("run-state")).toHaveText("Idle");
+  await expect(page.getByTestId("run-button")).toBeDisabled();
+  await expect(page.getByTestId("step-button")).toBeDisabled();
+  await expect(page.getByTestId("generated-casl-output")).not.toContainText("MAIN START");
+  await expect(page.locator(".diagnostic")).toHaveCount(0);
+  await expect(page.getByTestId("demo-program-select")).toHaveValue("");
+
+  await setSource(page, "int main() { return 8; }");
+  await expect(page.locator(".source-dirty-indicator")).toBeVisible();
+  await page.getByTestId("open-file-button").click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await page.getByRole("button", { name: "Cancel" }).click();
+  await expectSourceContains(page, "return 8;");
+
+  await page.getByTestId("open-file-button").click();
+  const cancelChooserPromise = page.waitForEvent("filechooser");
+  await page.getByTestId("discard-and-open").click();
+  const cancelledChooser = await cancelChooserPromise;
+  await cancelledChooser.setFiles([]);
+  await expectSourceContains(page, "return 8;");
+  await expect(page.locator(".source-dirty-indicator")).toBeVisible();
+
+  await page.getByTestId("open-file-button").click();
+  const caslChooserPromise = page.waitForEvent("filechooser");
+  await page.getByTestId("discard-and-open").click();
+  const caslChooser = await caslChooserPromise;
+  await caslChooser.setFiles({ name: "external.cas", mimeType: "text/plain", buffer: Buffer.from("MAIN START\n RET\n END", "utf8") });
+  await expect(page.locator(".source-file-name")).toHaveText("external.cas");
+  await expectSourceContains(page, "MAIN START");
+  await expect(page.getByTestId("source-mode-casl")).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator(".source-dirty-indicator")).toHaveCount(0);
+
+  const sourceBeforeLocale = await page.evaluate(() => (window as unknown as { monaco?: { editor: { getModels(): Array<{ getValue(): string }> } } }).monaco?.editor.getModels().at(-1)?.getValue());
+  await page.getByTestId("locale-ja").click();
+  await page.getByTestId("locale-zh-CN").click();
+  await expect(page.locator(".source-file-name")).toHaveText("external.cas");
+  expect(await page.evaluate(() => (window as unknown as { monaco?: { editor: { getModels(): Array<{ getValue(): string }> } } }).monaco?.editor.getModels().at(-1)?.getValue())).toBe(sourceBeforeLocale);
+  await page.setViewportSize({ width: 1280, height: 720 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
 });
 
 test("Mock backend shows project overview and keeps learning demo views working", async ({ page }) => {

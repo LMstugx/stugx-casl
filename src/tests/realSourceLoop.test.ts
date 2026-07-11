@@ -78,6 +78,7 @@ describe("real source loop", () => {
     const assembled = mockCaslCore.assemble(changedConstantsSource);
     const ready = appStoreReducer(initial, {
       type: "assembled",
+      sourceUnitId: initial.currentDocument.sourceUnitId,
       sourceText: changedConstantsSource,
       cometState: assembled,
       assembleStatus: "success"

@@ -79,7 +79,7 @@ export function validateTextFileCandidate(
   if (!Number.isFinite(byteLength) || byteLength < 0 || byteLength > options.maxBytes) {
     return { status: "failure", kind: "too-large" };
   }
-  if (candidate.text.includes("\0")) return { status: "failure", kind: "invalid-encoding" };
+  if (candidate.text.includes("\0")) return { status: "failure", kind: "binary" };
 
   const normalized = normalizeTextForEditor(candidate.text);
   return {

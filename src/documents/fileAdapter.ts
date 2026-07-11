@@ -41,6 +41,7 @@ export type FileOperationFailureKind =
   | "unsupported"
   | "invalid-extension"
   | "invalid-encoding"
+  | "binary"
   | "too-large"
   | "io"
   | "unknown";

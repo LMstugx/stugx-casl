@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Toolbar from "./components/Toolbar";
 import SourceEditor from "./components/SourceEditor";
 import InspectorPanel from "./components/InspectorPanel";
@@ -13,7 +13,7 @@ import { summarizeCurrentInstruction } from "./visual/visualState";
 import { AppStoreProvider, useAppStore } from "./store/useAppStore";
 import { cppLineForCaslLine } from "./transpiler/cppMapping";
 import { selectFrameSymbolRelations } from "./transpiler/framePlanView";
-import { demoPrograms, getDefaultDemoProgram, getDemoProgram } from "./examples/demoPrograms";
+import { demoPrograms, getDemoProgram } from "./examples/demoPrograms";
 import { getLearningLesson } from "./examples/learningLessons";
 import { I18nProvider } from "./i18n/I18nProvider";
 import { translateRunState } from "./i18n/locale";
@@ -21,18 +21,28 @@ import { useI18n } from "./i18n/useI18n";
 import { diagnosticIdentity, renderDiagnostic } from "./diagnostics/renderDiagnostic";
 import { formatDiagnosticDeveloperDetail } from "./diagnostics/presentation";
 import type { SourceRange } from "./diagnostics/types";
+import FileOperationNotice from "./components/FileOperationNotice";
+import UnsavedOpenDialog from "./components/UnsavedOpenDialog";
+import { BrowserTextFileAdapter } from "./documents/browserTextFileAdapter";
+import { DocumentSessionController } from "./documents/documentSessionController";
+import { createSequentialDocumentIdFactory } from "./documents/idFactory";
+import { createIdleFileLifecycleState, type SafeFileFailure } from "./documents/lifecycle";
+import type { TextFileAdapter } from "./documents/fileAdapter";
 
-export default function App() {
+type AppProps = { fileAdapter?: TextFileAdapter };
+
+export default function App({ fileAdapter }: AppProps = {}) {
+  const resolvedFileAdapter = useMemo(() => fileAdapter ?? new BrowserTextFileAdapter(), [fileAdapter]);
   return (
     <I18nProvider>
       <AppStoreProvider>
-        <StudioShell />
+        <StudioShell fileAdapter={resolvedFileAdapter} />
       </AppStoreProvider>
     </I18nProvider>
   );
 }
 
-function StudioShell() {
+function StudioShell({ fileAdapter }: { fileAdapter: TextFileAdapter }) {
   const { locale, t } = useI18n();
   const {
     sourceText,
@@ -48,6 +58,10 @@ function StudioShell() {
     selectedDemoProgramId,
     lessonProgress,
     observationMode,
+    currentDocument,
+    documentDirty,
+    sourceUnitId,
+    fileLifecycle,
     setSourceText,
     setSourceMode,
     selectDemoProgram,
@@ -59,12 +73,67 @@ function StudioShell() {
     clearOutput,
     toggleLessonStep,
     resetLessonProgress,
-    setObservationMode
+    setObservationMode,
+    replaceCurrentDocument,
+    setFileLifecycle
   } = useAppStore();
   const [isCircuitFocusMode, setCircuitFocusMode] = useState(false);
   const [editorSelectedFrameSlotId, setEditorSelectedFrameSlotId] = useState<string | undefined>();
   const [selectedDiagnosticId, setSelectedDiagnosticId] = useState<string | undefined>();
   const [diagnosticNavigationRange, setDiagnosticNavigationRange] = useState<SourceRange | undefined>();
+  const [showUnsavedOpenGuard, setShowUnsavedOpenGuard] = useState(false);
+  const [fileFailure, setFileFailure] = useState<SafeFileFailure | null>(null);
+  const openIdsRef = useRef(createSequentialDocumentIdFactory("browser-open"));
+  const currentDocumentRef = useRef(currentDocument);
+  const mountedRef = useRef(true);
+  const documentController = useMemo(() => new DocumentSessionController(fileAdapter, openIdsRef.current), [fileAdapter]);
+  currentDocumentRef.current = currentDocument;
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      documentController.invalidateActiveOperation();
+      if (fileAdapter instanceof BrowserTextFileAdapter) fileAdapter.dispose();
+    };
+  }, [documentController, fileAdapter]);
+
+  const performOpen = useCallback(async (allowDiscard: boolean) => {
+    const snapshot = currentDocumentRef.current;
+    setFileFailure(null);
+    const pending = documentController.requestOpen({
+      currentDocument: snapshot,
+      allowDiscard,
+      isCurrentDocument: (documentId) => currentDocumentRef.current.documentId === documentId
+    });
+    const operationId = documentController.operationId;
+    if (operationId) {
+      setFileLifecycle({ status: "opening", operationId, pendingDocumentId: snapshot.documentId, lastFailure: null });
+    }
+    const result = await pending;
+    if (!mountedRef.current) return;
+    if (result.status === "opened" && currentDocumentRef.current.documentId === snapshot.documentId) {
+      setSelectedDiagnosticId(undefined);
+      setDiagnosticNavigationRange(undefined);
+      setEditorSelectedFrameSlotId(undefined);
+      replaceCurrentDocument(result.document);
+      return;
+    }
+    if (result.status === "failed") {
+      setFileFailure(result.failure);
+      setFileLifecycle({ ...createIdleFileLifecycleState(), lastFailure: result.failure });
+      return;
+    }
+    setFileLifecycle(createIdleFileLifecycleState());
+  }, [documentController, replaceCurrentDocument, setFileLifecycle]);
+
+  const requestOpen = useCallback(() => {
+    if (documentDirty) {
+      setShowUnsavedOpenGuard(true);
+      return;
+    }
+    void performOpen(false);
+  }, [documentDirty, performOpen]);
   const isRunning = state.runState === "Running";
   const canExecute = state.runState === "Ready" || (state.runState === "Stopped" && runStopReason === "manual");
   const canRun = !isSourceDirty && state.assembled && canExecute;
@@ -91,10 +160,15 @@ function StudioShell() {
       setDiagnosticNavigationRange(undefined);
     }
   }, [diagnostics, selectedDiagnosticId]);
-  const selectedDemoProgram = getDemoProgram(selectedDemoProgramId) ?? getDefaultDemoProgram();
-  const selectedDemoMatchesSource = selectedDemoProgram.source === sourceText && selectedDemoProgram.mode === sourceMode;
-  const selectedLesson = selectedDemoMatchesSource ? getLearningLesson(selectedDemoProgram.id) : undefined;
-  const selectedLessonProgress = selectedLesson ? (lessonProgress[selectedDemoProgram.id] ?? {}) : {};
+  useEffect(() => {
+    setSelectedDiagnosticId(undefined);
+    setDiagnosticNavigationRange(undefined);
+    setEditorSelectedFrameSlotId(undefined);
+  }, [sourceUnitId]);
+  const selectedDemoProgram = getDemoProgram(selectedDemoProgramId);
+  const selectedDemoMatchesSource = Boolean(selectedDemoProgram && selectedDemoProgram.source === sourceText && selectedDemoProgram.mode === sourceMode);
+  const selectedLesson = selectedDemoProgram && selectedDemoMatchesSource ? getLearningLesson(selectedDemoProgram.id) : undefined;
+  const selectedLessonProgress = selectedDemoProgram && selectedLesson ? (lessonProgress[selectedDemoProgram.id] ?? {}) : {};
   const frameSymbolRelations = useMemo(() => selectFrameSymbolRelations(sourceMode, sourceText), [sourceMode, sourceText]);
   useEffect(() => {
     if (editorSelectedFrameSlotId && !frameSymbolRelations.some((relation) => relation.mappingId === editorSelectedFrameSlotId)) {
@@ -133,15 +207,28 @@ function StudioShell() {
         isRunning={isRunning}
         isCircuitFocusMode={isCircuitFocusMode}
         onToggleCircuitFocusMode={() => setCircuitFocusMode((value) => !value)}
+        isOpeningFile={fileLifecycle.status === "opening"}
+        onOpenFile={requestOpen}
         onAssemble={assemble}
         onRun={() => run()}
         onStep={step}
         onReset={reset}
         onStop={stop}
       />
+      <UnsavedOpenDialog
+        open={showUnsavedOpenGuard}
+        displayName={currentDocument.displayName}
+        onCancel={() => setShowUnsavedOpenGuard(false)}
+        onDiscard={() => {
+          setShowUnsavedOpenGuard(false);
+          void performOpen(true);
+        }}
+      />
+      <FileOperationNotice failure={fileFailure} onDismiss={() => setFileFailure(null)} />
 
       {isCircuitFocusMode ? (
         <CircuitFocusLayout
+          key={sourceUnitId}
           state={state}
           sourceMode={sourceMode}
           sourceText={sourceText}
@@ -161,15 +248,16 @@ function StudioShell() {
             <header className="panel-header">
               <h2 title="Source Editor">{t("panel.source")}</h2>
               <div className="source-header-actions">
-                <label className="demo-program-picker" title={selectedDemoProgram.name}>
+                <label className="demo-program-picker" title={selectedDemoProgram?.name ?? t("file.externalFile")}>
                   <span>Demo</span>
                   <select
                     data-testid="demo-program-select"
                     value={selectedDemoProgramId}
-                    title={selectedDemoProgram.name}
-                    aria-label={`Demo program: ${selectedDemoProgram.name}`}
+                    title={selectedDemoProgram?.name ?? t("file.externalFile")}
+                    aria-label={`Demo program: ${selectedDemoProgram?.name ?? t("file.externalFile")}`}
                     onChange={(event) => selectDemoProgram(event.target.value)}
                   >
+                    {!selectedDemoProgram ? <option value="">{t("file.externalFile")}</option> : null}
                     {demoPrograms.map((program) => (
                       <option key={program.id} value={program.id}>
                         {program.name}
@@ -182,11 +270,14 @@ function StudioShell() {
                     CASL
                   </button>
                   <button type="button" className={sourceMode === "cpp" ? "selected" : ""} data-testid="source-mode-cpp" aria-pressed={sourceMode === "cpp"} title="Use C++ subset source mode" onClick={() => setSourceMode("cpp")}>
-                    C++ subset
+                    <span className="source-mode-full">C++ subset</span><span className="source-mode-compact">C++</span>
                   </button>
                 </div>
-                <span className="source-file-label" title={sourceMode === "cpp" ? "example.cpp" : "example.casl"}>{sourceMode === "cpp" ? "example.cpp" : "example.casl"}</span>
               </div>
+              <span className="source-document-label" title={currentDocument.displayName} aria-label={`${currentDocument.displayName}${documentDirty ? `, ${t("status.dirty")}` : ""}`}>
+                <span className="source-file-name">{currentDocument.displayName}</span>
+                {documentDirty ? <span className="source-dirty-indicator" aria-hidden="true">*</span> : null}
+              </span>
             </header>
             <SourceEditor
               source={sourceText}
@@ -215,13 +306,15 @@ function StudioShell() {
             </div>
           </section>
 
-          <DemoGuidePanel
-            program={selectedDemoProgram}
-            lesson={selectedLesson}
-            lessonProgress={selectedLessonProgress}
-            onToggleLessonStep={toggleLessonStep}
-            onResetLessonProgress={resetLessonProgress}
-          />
+          {selectedDemoProgram ? (
+            <DemoGuidePanel
+              program={selectedDemoProgram}
+              lesson={selectedLesson}
+              lessonProgress={selectedLessonProgress}
+              onToggleLessonStep={toggleLessonStep}
+              onResetLessonProgress={resetLessonProgress}
+            />
+          ) : null}
 
           <section className="panel errors-panel">
             <header className="panel-header">

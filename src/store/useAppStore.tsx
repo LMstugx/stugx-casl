@@ -7,6 +7,11 @@ import { coreBridge, getCoreBackendInfo, type CoreBackendInfo } from "../core/co
 import { createCometStateFromDto, createEmptyUiCometState } from "../core/coreStateAdapter";
 import { CometState, Diagnostic } from "../core/types";
 import { getDefaultDemoProgram, getDemoProgram, type DemoProgram } from "../examples/demoPrograms";
+import { createExampleDocument, editDocument, isDocumentDirty } from "../documents/documentModel";
+import { createSequentialDocumentIdFactory } from "../documents/idFactory";
+import { createIdleFileLifecycleState, type FileLifecycleState } from "../documents/lifecycle";
+import { languageToExtension } from "../documents/validation";
+import type { DocumentIdFactory, SourceDocument, SourceUnitId } from "../documents/types";
 import { CppToCaslMap, transpileCppToCasl } from "../transpiler/cppTranspiler";
 
 type AssembleStatus = "default" | "running" | "success" | "error";
@@ -37,6 +42,8 @@ export type PreparedCoreSource =
     };
 
 type AppStoreState = {
+  currentDocument: SourceDocument;
+  fileLifecycle: FileLifecycleState;
   sourceText: string;
   sourceMode: SourceMode;
   lastAssembledSource: string;
@@ -67,22 +74,29 @@ type AppStoreActions = {
   toggleLessonStep: (exampleId: string, stepId: string) => void;
   resetLessonProgress: (exampleId: string) => void;
   setObservationMode: (mode: ObservationMode) => void;
+  replaceCurrentDocument: (document: SourceDocument) => void;
+  setFileLifecycle: (lifecycle: FileLifecycleState) => void;
 };
 
-type AppStore = AppStoreState & AppStoreActions;
+type AppStore = AppStoreState & AppStoreActions & {
+  documentDirty: boolean;
+  sourceUnitId: SourceUnitId;
+};
 
 export type AppStoreAction =
   | { type: "setSourceText"; sourceText: string }
   | { type: "setSourceMode"; sourceMode: SourceMode }
-  | { type: "demoProgramSelected"; program: DemoProgram }
-  | { type: "assembled"; sourceText: string; cometState: CometState; assembleStatus: AssembleStatus; generatedCaslSource?: string; cppToCaslMapping?: CppToCaslMap[] }
-  | { type: "transpileFailed"; diagnostics: Diagnostic[]; generatedCaslSource: string; cppToCaslMapping: CppToCaslMap[]; output: string[] }
+  | { type: "demoProgramSelected"; program: DemoProgram; document: SourceDocument }
+  | { type: "currentDocumentReplaced"; document: SourceDocument }
+  | { type: "fileLifecycleSet"; lifecycle: FileLifecycleState }
+  | { type: "assembled"; sourceUnitId: SourceUnitId; sourceText: string; cometState: CometState; assembleStatus: AssembleStatus; generatedCaslSource?: string; cppToCaslMapping?: CppToCaslMap[] }
+  | { type: "transpileFailed"; sourceUnitId: SourceUnitId; diagnostics: Diagnostic[]; generatedCaslSource: string; cppToCaslMapping: CppToCaslMap[]; output: string[] }
   | { type: "runStarted"; cometState: CometState }
   | { type: "runProgress"; cometState: CometState }
   | { type: "runStopped"; cometState: CometState; reason: RunStopReason }
   | { type: "stepped"; cometState: CometState }
   | { type: "reset"; cometState: CometState }
-  | { type: "coreError"; message: string }
+  | { type: "coreError"; sourceUnitId: SourceUnitId; message: string }
   | { type: "clearOutput" }
   | { type: "lessonStepToggled"; exampleId: string; stepId: string }
   | { type: "lessonProgressReset"; exampleId: string }
@@ -96,9 +110,12 @@ type AppStoreProviderProps = {
 const AppStoreContext = createContext<AppStore | null>(null);
 const AppEventBusContext = createContext<EventBus<AppEvents> | null>(null);
 
-export function createInitialAppState(): AppStoreState {
+export function createInitialAppState(ids: DocumentIdFactory = createSequentialDocumentIdFactory("app")): AppStoreState {
   const initialDemo = getDefaultDemoProgram();
+  const currentDocument = createExampleDocument(initialDemo, ids);
   return {
+    currentDocument,
+    fileLifecycle: createIdleFileLifecycleState(),
     sourceText: initialDemo.source,
     sourceMode: initialDemo.mode,
     lastAssembledSource: initialDemo.source,
@@ -156,6 +173,7 @@ export function appStoreReducer(state: AppStoreState, action: AppStoreAction): A
     if (action.sourceText === state.sourceText) return state;
     return {
       ...state,
+      currentDocument: editDocument(state.currentDocument, action.sourceText),
       sourceText: action.sourceText,
       isSourceDirty: true,
       assembleResult: null,
@@ -172,6 +190,13 @@ export function appStoreReducer(state: AppStoreState, action: AppStoreAction): A
     if (action.sourceMode === state.sourceMode) return state;
     return {
       ...state,
+      currentDocument: {
+        ...state.currentDocument,
+        language: action.sourceMode,
+        extension: languageToExtension(action.sourceMode),
+        revision: state.currentDocument.revision + 1,
+        saveCapability: "save-as-only"
+      },
       sourceMode: action.sourceMode,
       isSourceDirty: true,
       assembleResult: null,
@@ -187,6 +212,8 @@ export function appStoreReducer(state: AppStoreState, action: AppStoreAction): A
   if (action.type === "demoProgramSelected") {
     return {
       ...state,
+      currentDocument: action.document,
+      fileLifecycle: createIdleFileLifecycleState(),
       sourceText: action.program.source,
       sourceMode: action.program.mode,
       isSourceDirty: true,
@@ -201,7 +228,32 @@ export function appStoreReducer(state: AppStoreState, action: AppStoreAction): A
     };
   }
 
+  if (action.type === "currentDocumentReplaced") {
+    return {
+      ...state,
+      currentDocument: action.document,
+      fileLifecycle: createIdleFileLifecycleState(),
+      sourceText: action.document.content,
+      sourceMode: action.document.language,
+      lastAssembledSource: "",
+      isSourceDirty: false,
+      assembleResult: null,
+      cometState: createEmptyUiCometState("Idle", []),
+      diagnostics: [],
+      assembleStatus: "default",
+      runStopReason: null,
+      generatedCaslSource: "",
+      cppToCaslMapping: [],
+      selectedDemoProgramId: ""
+    };
+  }
+
+  if (action.type === "fileLifecycleSet") {
+    return state.fileLifecycle === action.lifecycle ? state : { ...state, fileLifecycle: action.lifecycle };
+  }
+
   if (action.type === "assembled") {
+    if (action.sourceUnitId !== state.currentDocument.sourceUnitId) return state;
     const diagnostics = action.cometState.diagnostics;
     const ok = action.assembleStatus === "success";
     return {
@@ -220,6 +272,7 @@ export function appStoreReducer(state: AppStoreState, action: AppStoreAction): A
   }
 
   if (action.type === "transpileFailed") {
+    if (action.sourceUnitId !== state.currentDocument.sourceUnitId) return state;
     return {
       ...state,
       assembleResult: null,
@@ -272,6 +325,7 @@ export function appStoreReducer(state: AppStoreState, action: AppStoreAction): A
   }
 
   if (action.type === "coreError") {
+    if (action.sourceUnitId !== state.currentDocument.sourceUnitId) return state;
     const diagnostic: Diagnostic = { line: 0, message: action.message, severity: "error" };
     return {
       ...state,
@@ -328,7 +382,8 @@ export function appStoreReducer(state: AppStoreState, action: AppStoreAction): A
 
 export function AppStoreProvider({ children, eventBus: providedEventBus }: AppStoreProviderProps) {
   const eventBus = useMemo(() => providedEventBus ?? createAppEventBus(), [providedEventBus]);
-  const [state, dispatch] = useReducer(appStoreReducer, undefined, createInitialAppState);
+  const documentIdsRef = useRef(createSequentialDocumentIdFactory("app"));
+  const [state, dispatch] = useReducer(appStoreReducer, documentIdsRef.current, createInitialAppState);
   const runControlRef = useRef({ runId: 0, stopRequested: false });
 
   const actions = useMemo<AppStoreActions>(
@@ -345,10 +400,11 @@ export function AppStoreProvider({ children, eventBus: providedEventBus }: AppSt
         const program = getDemoProgram(programId);
         if (!program) return;
         runControlRef.current.stopRequested = true;
-        dispatch({ type: "demoProgramSelected", program });
+        dispatch({ type: "demoProgramSelected", program, document: createExampleDocument(program, documentIdsRef.current) });
       },
       assemble: () => {
         void (async () => {
+          const sourceUnitId = state.currentDocument.sourceUnitId;
           try {
             eventBus.emit(AppEvent.CoreAssembleStarted, { sourceLength: state.sourceText.length });
             const prepared = prepareSourceForCoreAssembly(state.sourceText, state.sourceMode);
@@ -356,6 +412,7 @@ export function AppStoreProvider({ children, eventBus: providedEventBus }: AppSt
               eventBus.emit(AppEvent.CoreAssembleFailed, { diagnostics: prepared.diagnostics });
               dispatch({
                 type: "transpileFailed",
+                sourceUnitId,
                 diagnostics: prepared.diagnostics,
                 generatedCaslSource: prepared.generatedCaslSource,
                 cppToCaslMapping: prepared.mapping,
@@ -376,6 +433,7 @@ export function AppStoreProvider({ children, eventBus: providedEventBus }: AppSt
             }
             dispatch({
               type: "assembled",
+              sourceUnitId,
               sourceText: state.sourceText,
               cometState,
               assembleStatus: cometState.runState === "Error" ? "error" : "success",
@@ -385,13 +443,14 @@ export function AppStoreProvider({ children, eventBus: providedEventBus }: AppSt
           } catch (error) {
             const message = coreErrorMessage(error);
             eventBus.emit(AppEvent.VmError, { message });
-            dispatch({ type: "coreError", message });
+            dispatch({ type: "coreError", sourceUnitId, message });
           }
         })();
       },
       step: () => {
         if (state.isSourceDirty || !state.cometState.assembled || !canExecuteFromCurrentState(state.cometState, state.runStopReason)) return;
         void (async () => {
+          const sourceUnitId = state.currentDocument.sourceUnitId;
           try {
             const result = await coreBridge.step();
             const output = [...state.cometState.output];
@@ -416,7 +475,7 @@ export function AppStoreProvider({ children, eventBus: providedEventBus }: AppSt
           } catch (error) {
             const message = coreErrorMessage(error);
             eventBus.emit(AppEvent.VmError, { message });
-            dispatch({ type: "coreError", message });
+            dispatch({ type: "coreError", sourceUnitId, message });
           }
         })();
       },
@@ -425,6 +484,7 @@ export function AppStoreProvider({ children, eventBus: providedEventBus }: AppSt
         const requestedMaxSteps = typeof maxSteps === "number" && Number.isFinite(maxSteps) ? maxSteps : DEFAULT_RUN_MAX_STEPS;
         const boundedMaxSteps = Math.max(1, Math.floor(requestedMaxSteps));
         const runId = runControlRef.current.runId + 1;
+        const sourceUnitId = state.currentDocument.sourceUnitId;
         runControlRef.current = { runId, stopRequested: false };
         void (async () => {
           let executedSteps = 0;
@@ -490,13 +550,14 @@ export function AppStoreProvider({ children, eventBus: providedEventBus }: AppSt
             const message = coreErrorMessage(error);
             eventBus.emit(AppEvent.VmError, { message });
             eventBus.emit(AppEvent.VmRunStopped, { reason: "error" });
-            dispatch({ type: "coreError", message });
+            dispatch({ type: "coreError", sourceUnitId, message });
           }
         })();
       },
       reset: () => {
         if (state.isSourceDirty || !state.assembleResult || state.cometState.runState === "Running") return;
         runControlRef.current.stopRequested = true;
+        const sourceUnitId = state.currentDocument.sourceUnitId;
         void (async () => {
           try {
             const dto = await coreBridge.reset();
@@ -509,7 +570,7 @@ export function AppStoreProvider({ children, eventBus: providedEventBus }: AppSt
           } catch (error) {
             const message = coreErrorMessage(error);
             eventBus.emit(AppEvent.VmError, { message });
-            dispatch({ type: "coreError", message });
+            dispatch({ type: "coreError", sourceUnitId, message });
           }
         })();
       },
@@ -520,12 +581,22 @@ export function AppStoreProvider({ children, eventBus: providedEventBus }: AppSt
       clearOutput: () => dispatch({ type: "clearOutput" }),
       toggleLessonStep: (exampleId, stepId) => dispatch({ type: "lessonStepToggled", exampleId, stepId }),
       resetLessonProgress: (exampleId) => dispatch({ type: "lessonProgressReset", exampleId }),
-      setObservationMode: (mode) => dispatch({ type: "observationModeSet", mode })
+      setObservationMode: (mode) => dispatch({ type: "observationModeSet", mode }),
+      replaceCurrentDocument: (document) => {
+        runControlRef.current = { runId: runControlRef.current.runId + 1, stopRequested: true };
+        dispatch({ type: "currentDocumentReplaced", document });
+      },
+      setFileLifecycle: (lifecycle) => dispatch({ type: "fileLifecycleSet", lifecycle })
     }),
     [eventBus, state.assembleResult, state.cometState, state.isSourceDirty, state.runStopReason, state.sourceMode, state.sourceText]
   );
 
-  const value = useMemo<AppStore>(() => ({ ...state, ...actions }), [state, actions]);
+  const value = useMemo<AppStore>(() => ({
+    ...state,
+    ...actions,
+    documentDirty: isDocumentDirty(state.currentDocument),
+    sourceUnitId: state.currentDocument.sourceUnitId
+  }), [state, actions]);
   return (
     <AppEventBusContext.Provider value={eventBus}>
       <AppStoreContext.Provider value={value}>{children}</AppStoreContext.Provider>

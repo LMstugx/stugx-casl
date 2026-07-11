@@ -2,7 +2,7 @@
 
 ## Purpose
 
-`TextFileAdapter` is the replaceable boundary between document lifecycle logic and a future browser or Tauri file implementation. Phase 15A defines this boundary and fake-adapter tests only. No production adapter, picker, download, filesystem API, directory operation, URL load, or network fetch is implemented.
+`TextFileAdapter` is the replaceable boundary between document lifecycle logic and browser or future Tauri file implementations. Phase 15B implements browser Open with a temporary hidden file input and strict byte decoding. No download, save picker, persistent file handle, filesystem API, directory operation, URL load, or network fetch is implemented.
 
 ## Operations
 
@@ -14,7 +14,7 @@ Only `.cas` and `.cpp` text files are in scope. The default maximum is 1 MiB. Ex
 
 - `success` contains validated text/file metadata.
 - `cancelled` is a normal user outcome, not an error diagnostic.
-- `failure` has a stable kind: `permission`, `unsupported`, `invalid-extension`, `invalid-encoding`, `too-large`, `io`, or `unknown`.
+- `failure` has a stable kind: `permission`, `unsupported`, `invalid-extension`, `invalid-encoding`, `binary`, `too-large`, `io`, or `unknown`.
 - `safeMessage` is optional presentation-safe context, not a diagnostic identity.
 - `rawContext` is optional developer detail and follows the Phase 14 sanitization/collapse policy.
 
@@ -45,4 +45,4 @@ The lifecycle layer, not the adapter, owns `operationId`. A stale completion is 
 
 ## Future Implementations
 
-Phase 15B may provide a browser implementation behind this interface. A future Tauri adapter must return the same normalized result types and must not leak platform paths or locale into document content.
+Phase 15B provides browser Open behind this interface; browser Save returns `unsupported`. A future Tauri adapter must return the same normalized result types and must not leak platform paths or locale into document content.

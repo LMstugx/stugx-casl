@@ -142,6 +142,7 @@ Use the gallery to inspect:
 - Signal Probe and Call Stack details can be focused and opened with the keyboard.
 - Focus rings are visible on toolbar buttons, tabs, details summaries, and machine-code rows without dominating the layout.
 - Toolbar actions are visually grouped into file, mode, execution, and utility areas without crowding the 1280x720 layout.
+- Phase 15B captures browser Open states with an intercepted file input: clean external `.cpp`/`.cas`, EN/JA/zh-CN dirty guards, invalid extension notice, and a long filename at 1280x720. No operating-system picker or generated file is required.
 - Selected, active execution, changed, read, write, warning, error, and disabled states remain visually distinct.
 - FramePlan and slot-relation panels read as tertiary design-preview teaching notes, not as primary runtime state.
 - Empty states use compact shared wording and muted surfaces rather than large blank panels.

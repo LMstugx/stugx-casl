@@ -94,7 +94,7 @@ describe("Phase 15A text validation and encoding", () => {
   });
 
   it("binary_nul_content_is_rejected", () => {
-    expect(validateTextFileCandidate({ fileName: "main.cas", text: "A\0B" })).toEqual({ status: "failure", kind: "invalid-encoding" });
+    expect(validateTextFileCandidate({ fileName: "main.cas", text: "A\0B" })).toEqual({ status: "failure", kind: "binary" });
   });
 
   it("oversized_content_is_rejected", () => {

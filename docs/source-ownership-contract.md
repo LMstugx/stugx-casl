@@ -19,7 +19,7 @@ The following values belong to one `SourceUnitId`:
 - assembly result and VM-loaded status;
 - FramePlan preview and selected frame slot.
 
-`SourceDerivedState` is the Phase 15A simulation boundary. It is not wired into the current UI store yet.
+`SourceDerivedState` remains the complete contract model. Phase 15B minimally wires its invalidation policy into the existing store's atomic Open replacement action without restructuring every runtime field as `SourceOwned<T>`.
 
 ## Invalidation
 
@@ -33,6 +33,7 @@ Filename-only changes, Save, Save As metadata updates, locale changes, diagnosti
 
 A selected diagnostic or related location can navigate only when its owner equals the current document's `SourceUnitId`. A related generated CASL location must not be presented as a C++ source location. Locale/rendered text is never used to decide ownership.
 
-## Phase 15B Rule
+## Phase 15B Implementation
 
-Any asynchronous parse/assemble/file completion must carry or verify source ownership before committing. A stale result for an old source unit is discarded rather than merged into the current document.
+The Open controller verifies the pending `DocumentId`, creates a new `SourceUnitId`, and discards stale completion. The replacement action clears old diagnostics, markers, Generated CASL, machine/source maps, Trace, VM state, and FramePlan selection in one reducer transition.
+Assemble/transpile/core-error completion also carries its initiating source unit and is rejected by the reducer after replacement.

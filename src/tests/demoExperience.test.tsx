@@ -9,6 +9,7 @@ import OutputPanel from "../components/OutputPanel";
 import { mockCaslCore } from "../core/mockCaslCore";
 import { demoPrograms, getDemoProgram } from "../examples/demoPrograms";
 import { getLearningLesson } from "../examples/learningLessons";
+import { createExampleDocument, createSequentialDocumentIdFactory } from "../documents";
 import { appStoreReducer, createInitialAppState, prepareSourceForCoreAssembly } from "../store/useAppStore";
 import { transpileCppToCasl } from "../transpiler/cppTranspiler";
 
@@ -61,7 +62,7 @@ describe("demo recording experience", () => {
     const program = getDemoProgram("casl-gr2-addition");
     expect(program).toBeDefined();
 
-    const state = appStoreReducer(createInitialAppState(), { type: "demoProgramSelected", program: program! });
+    const state = appStoreReducer(createInitialAppState(), { type: "demoProgramSelected", program: program!, document: createExampleDocument(program!, createSequentialDocumentIdFactory("test-casl")) });
 
     expect(state.sourceMode).toBe("casl");
     expect(state.sourceText).toContain("LD    GR2,A");
@@ -71,7 +72,7 @@ describe("demo recording experience", () => {
     const program = getDemoProgram("cpp-addition");
     expect(program).toBeDefined();
 
-    const state = appStoreReducer(createInitialAppState(), { type: "demoProgramSelected", program: program! });
+    const state = appStoreReducer(createInitialAppState(), { type: "demoProgramSelected", program: program!, document: createExampleDocument(program!, createSequentialDocumentIdFactory("test-cpp")) });
 
     expect(state.sourceMode).toBe("cpp");
     expect(state.sourceText).toContain("int main()");
@@ -81,7 +82,7 @@ describe("demo recording experience", () => {
     const program = getDemoProgram("cpp-if-else");
     expect(program).toBeDefined();
 
-    const state = appStoreReducer(createInitialAppState(), { type: "demoProgramSelected", program: program! });
+    const state = appStoreReducer(createInitialAppState(), { type: "demoProgramSelected", program: program!, document: createExampleDocument(program!, createSequentialDocumentIdFactory("test-dirty")) });
 
     expect(state.isSourceDirty).toBe(true);
     expect(state.assembleResult).toBeNull();
@@ -308,8 +309,10 @@ describe("demo recording experience", () => {
 
   it("observation_mode_switch_does_not_reset_vm_state", () => {
     const assembled = mockCaslCore.assemble(getDemoProgram("casl-gr2-addition")!.source);
-    const initial = appStoreReducer(createInitialAppState(), {
+    const base = createInitialAppState();
+    const initial = appStoreReducer(base, {
       type: "assembled",
+      sourceUnitId: base.currentDocument.sourceUnitId,
       sourceText: getDemoProgram("casl-gr2-addition")!.source,
       cometState: assembled,
       assembleStatus: "success"

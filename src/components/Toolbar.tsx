@@ -12,6 +12,8 @@ type ToolbarProps = {
   isRunning: boolean;
   isCircuitFocusMode?: boolean;
   onToggleCircuitFocusMode?: () => void;
+  isOpeningFile?: boolean;
+  onOpenFile?: () => void;
   onAssemble: () => void;
   onRun: () => void;
   onStep: () => void;
@@ -31,6 +33,7 @@ type ButtonProps = {
   groupStart?: boolean;
   loading?: boolean;
   title?: string;
+  accessibleLabel?: string;
   onClick?: () => void;
 };
 
@@ -40,7 +43,7 @@ const localeOptions: ReadonlyArray<{ locale: SupportedLocale; shortLabel: string
   { locale: "zh-CN", shortLabel: "CN", languageKey: "locale.chineseSimplified" }
 ];
 
-function ToolButton({ label, icon, testId, variant, emphasis, disabled, active, pressed, groupStart, loading, title, onClick }: ButtonProps) {
+function ToolButton({ label, icon, testId, variant, emphasis, disabled, active, pressed, groupStart, loading, title, accessibleLabel, onClick }: ButtonProps) {
   return (
     <button
       data-testid={testId}
@@ -48,8 +51,9 @@ function ToolButton({ label, icon, testId, variant, emphasis, disabled, active, 
       disabled={disabled}
       onClick={onClick}
       title={title ?? label}
-      aria-label={title ?? label}
+      aria-label={accessibleLabel ?? title ?? label}
       aria-pressed={pressed}
+      aria-busy={loading || undefined}
     >
       {loading ? <Loader2 className="spinner" size={17} /> : icon}
       <span>{label}</span>
@@ -65,6 +69,8 @@ export default function Toolbar({
   isRunning,
   isCircuitFocusMode = false,
   onToggleCircuitFocusMode = () => undefined,
+  isOpeningFile = false,
+  onOpenFile = () => undefined,
   onAssemble,
   onRun,
   onStep,
@@ -95,7 +101,16 @@ export default function Toolbar({
 
       <nav className="toolbar-actions" aria-label={t("accessibility.primaryCommands")}>
         <ToolButton label={t("toolbar.new")} icon={<Plus size={18} />} disabled title="New file is not implemented in Phase 2B" />
-        <ToolButton label={t("toolbar.open")} icon={<FolderOpen size={18} />} disabled title="File open is not implemented in Phase 2B" />
+        <ToolButton
+          label={isOpeningFile ? t("file.opening") : t("toolbar.open")}
+          icon={<FolderOpen size={18} />}
+          disabled={isOpeningFile || isRunning || assembleStatus === "running"}
+          loading={isOpeningFile}
+          testId="open-file-button"
+          onClick={onOpenFile}
+          title={t("file.supportedFiles")}
+          accessibleLabel={t("file.openFile")}
+        />
         <ToolButton label={t("toolbar.save")} icon={<Save size={18} />} disabled title="File save is not implemented in Phase 2B" />
         <ToolButton
           label={t("toolbar.circuitFocus")}

@@ -1,4 +1,6 @@
 export * from "./documentModel";
+export * from "./browserTextFileAdapter";
+export * from "./documentSessionController";
 export * from "./fileAdapter";
 export * from "./idFactory";
 export * from "./lifecycle";

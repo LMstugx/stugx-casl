@@ -357,6 +357,9 @@ The current backend is shown in the status bar as `Mock Core`, `WASM Core`, or `
 - [docs/phase14h-diagnostic-localization-baseline.md](docs/phase14h-diagnostic-localization-baseline.md): Phase 14H baseline freeze, structured/legacy/internal compatibility, Errors/editor UX, accessibility, and viewport QA.
 - [docs/phase14i-i18n-diagnostics-final-quality-gate.md](docs/phase14i-i18n-diagnostics-final-quality-gate.md): final Phase 14 manifest, locale, invariance, compatibility, security, accessibility, and visual quality gate.
 - [docs/phase15a-file-document-lifecycle-architecture.md](docs/phase15a-file-document-lifecycle-architecture.md): pure Document/Source Unit model, revisions, lifecycle state machine, store migration matrix, and Phase 15B boundary.
+- [docs/phase15b-browser-open-file-mvp.md](docs/phase15b-browser-open-file-mvp.md): single-file browser Open flow, Dirty guard, atomic source replacement, failure presentation, and Phase 15C boundary.
+- [docs/browser-text-file-adapter.md](docs/browser-text-file-adapter.md): hidden-input browser adapter, strict UTF-8 byte handling, cleanup, cancellation, and test injection.
+- [docs/document-session-controller.md](docs/document-session-controller.md): guarded Open orchestration, operation identity, stale-result protection, and atomic store commit boundary.
 - [docs/file-io-adapter-contract.md](docs/file-io-adapter-contract.md): replaceable browser/Tauri text adapter interface, result, validation, cancellation, security, and concurrency contract.
 - [docs/source-ownership-contract.md](docs/source-ownership-contract.md): source-unit ownership and atomic invalidation rules for diagnostics, markers, generated output, VM/Trace, and FramePlan state.
 - [docs/unsaved-changes-contract.md](docs/unsaved-changes-contract.md): pure save/discard/cancel decision rules for future New/Open/project replacement flows.

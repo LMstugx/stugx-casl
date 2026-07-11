@@ -1825,6 +1825,16 @@ button {
   min-width: 0;
 }
 
+.source-panel > .panel-header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-4) var(--space-8);
+}
+
+.source-panel .source-header-actions {
+  justify-self: end;
+}
+
 .source-panel .panel-header h2 {
   flex: 0 0 auto;
   min-width: 48px;
@@ -1873,8 +1883,122 @@ button {
   font-weight: 750;
 }
 
-.source-file-label {
-  flex: 0 1 92px;
+.source-document-label {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 2px;
+  grid-column: 1 / -1;
+  width: 100%;
+  min-width: 0;
+  color: var(--color-muted);
+  font: 650 var(--font-size-caption) / 1.2 var(--font-family-mono);
+}
+
+.source-mode-compact {
+  display: none;
+}
+
+.source-file-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.source-dirty-indicator {
+  flex: 0 0 auto;
+  color: var(--color-warning-text);
+  font-weight: 800;
+}
+
+.file-operation-notice {
+  position: fixed;
+  z-index: 900;
+  top: 84px;
+  left: 50%;
+  width: min(calc(100% - 32px), 620px);
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-12);
+  margin: 0;
+  padding: var(--space-8) var(--space-12);
+  border: 1px solid color-mix(in srgb, var(--color-warning) 38%, var(--color-border));
+  border-radius: var(--radius-sm);
+  background: var(--color-warning-soft);
+  color: var(--color-text);
+}
+
+.file-operation-notice > div {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.file-operation-notice span {
+  overflow-wrap: anywhere;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-caption);
+}
+
+.file-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: var(--space-20);
+  background: color-mix(in srgb, var(--color-text-strong) 38%, transparent);
+}
+
+.file-dialog {
+  width: min(100%, 480px);
+  padding: var(--space-20);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: var(--shadow-floating);
+}
+
+.file-dialog-heading {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-12);
+  align-items: start;
+}
+
+.file-dialog-heading > svg {
+  margin-top: 2px;
+  color: var(--color-warning-text);
+}
+
+.file-dialog h2 {
+  margin: 0;
+  color: var(--color-text-strong);
+  font-size: var(--font-size-panel-title);
+}
+
+.file-dialog p {
+  margin: var(--space-6) 0 0;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.file-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: var(--space-8);
+  margin-top: var(--space-20);
+}
+
+.text-button.destructive {
+  border-color: color-mix(in srgb, var(--color-danger) 42%, var(--color-border));
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
 }
 
 .panel-header span {
@@ -3723,6 +3847,26 @@ button {
 }
 
 @media (max-width: 1320px), (max-height: 760px) {
+  .demo-program-picker > span {
+    display: none;
+  }
+
+  .demo-program-picker select {
+    width: clamp(100px, 10vw, 132px);
+    min-width: 100px;
+  }
+
+  .source-mode-full {
+    display: none;
+  }
+
+  .source-mode-compact {
+    display: inline;
+  }
+
+  .source-mode button {
+    min-width: 40px;
+  }
   .app-shell {
     gap: 6px;
     padding: 7px;

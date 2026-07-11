@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Phase 15A defines the unsaved decision model without adding a dialog or changing the current Demo selector behavior.
+Phase 15A defined the unsaved decision model. Phase 15B applies it to browser Open with an app-owned dialog and leaves the current Demo selector behavior unchanged.
 
 ## Guarded Intents
 
@@ -24,4 +24,4 @@ Dirty is derived from `revision` and `savedRevision`, not maintained as an indep
 
 ## Deferred UI
 
-Phase 15B may add a decision dialog and connect guarded operations. It must use this decision model and keep the existing behavior until the complete guard flow is available. No partial dialog or demo-only branch belongs in Phase 15A.
+Because Save is not implemented, the Phase 15B dialog exposes only Cancel and Discard changes and open. Discard is provisional: picker cancellation or validation failure preserves the current Dirty document. The internal `save` decision remains reserved for Phase 15C.

@@ -73,6 +73,9 @@ import diagnosticBaselineV1 from "../../docs/diagnostic-localization-baseline-v1
 import phase14h from "../../docs/phase14h-diagnostic-localization-baseline.md?raw";
 import phase14i from "../../docs/phase14i-i18n-diagnostics-final-quality-gate.md?raw";
 import phase15a from "../../docs/phase15a-file-document-lifecycle-architecture.md?raw";
+import phase15b from "../../docs/phase15b-browser-open-file-mvp.md?raw";
+import browserTextFileAdapter from "../../docs/browser-text-file-adapter.md?raw";
+import documentSessionController from "../../docs/document-session-controller.md?raw";
 import fileIoAdapterContract from "../../docs/file-io-adapter-contract.md?raw";
 import sourceOwnershipContract from "../../docs/source-ownership-contract.md?raw";
 import unsavedChangesContract from "../../docs/unsaved-changes-contract.md?raw";
@@ -1031,7 +1034,7 @@ describe("learning use documentation", () => {
     expect(phase15a).toContain("Lifecycle State Machine");
     expect(phase15a).toContain("Current Store Migration Matrix");
     expect(phase15a).toContain("Phase 15B Recommendation");
-    expect(fileIoAdapterContract).toContain("No production adapter");
+    expect(fileIoAdapterContract).toContain("browser Open");
     expect(fileIoAdapterContract).toContain("1 MiB");
     expect(sourceOwnershipContract).toContain("SourceUnitId");
     expect(sourceOwnershipContract).toContain("Generated CASL");
@@ -1046,6 +1049,17 @@ describe("learning use documentation", () => {
       "docs/unsaved-changes-contract.md",
       "docs/file-project-diagnostic-i18n-contract.md"
     ]) expect(readme).toContain(path);
+  });
+
+  it("phase15b_browser_open_file_mvp_is_documented", () => {
+    expect(phase15b).toContain("Phase 15B: Browser Open File MVP");
+    expect(phase15b).toContain("Dirty Guard And Cancellation");
+    expect(phase15b).toContain("SourceUnitId");
+    expect(phase15b).toContain("Phase 15C Recommendation");
+    expect(browserTextFileAdapter).toContain("ArrayBuffer");
+    expect(browserTextFileAdapter).toContain("Strict UTF-8");
+    expect(documentSessionController).toContain("stale-ignored");
+    expect(readme).toContain("docs/phase15b-browser-open-file-mvp.md");
   });
 
   it("project_overview_uses_learning_wording", () => {

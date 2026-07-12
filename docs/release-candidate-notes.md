@@ -176,3 +176,7 @@ See [v1-scope-freeze.md](v1-scope-freeze.md) for the frozen v1.0 included scope,
 See [v1-release-qa-evidence.md](v1-release-qa-evidence.md) for the latest automated QA gate results, visual review gallery status, and PASS / BLOCKED release-candidate outcome.
 
 See [releases/v1.0-rc1.md](releases/v1.0-rc1.md) for the v1.0-rc1 release candidate notes. The `v1.0-rc1` tag is created in Phase 12C and points to the Phase 12C documentation commit.
+
+## Phase 17A Production Readiness Reference
+
+The current production candidate is built by the WASM-first `pnpm build` pipeline and verified as a static root and configurable-subpath bundle. It includes deterministic metadata, deployment manifest, size budget/report, source-map exclusion, local package/checksum, safe capability/error fallback, and provider-neutral cache/header contracts. Phase 17A performs no upload and creates no release tag; see [phase17a-production-deployment-readiness.md](phase17a-production-deployment-readiness.md).

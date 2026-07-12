@@ -1,0 +1,9 @@
+{
+  "baselineVersion": 1,
+  "maxInitialJsBytes": 3150000,
+  "maxTotalJsBytes": 3400000,
+  "maxCssBytes": 175000,
+  "maxWasmBytes": 300000,
+  "maxTotalDistBytes": 3900000,
+  "warningThresholdPercent": 85
+}

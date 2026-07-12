@@ -1,11 +1,23 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
+import "./production/configureMonaco";
 import App from "./App";
+import { detectBrowserCapabilities, hasRequiredProductionCapabilities } from "./production/browserCapabilities";
+import { ProductionErrorBoundary, ProductionFailureScreen } from "./production/ProductionFailure";
 import "./styles/tokens.css";
 import "./styles/app.css";
 
-ReactDOM.createRoot(document.getElementById("root")!).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
+const root = ReactDOM.createRoot(document.getElementById("root")!);
+const capabilities = detectBrowserCapabilities();
+
+root.render(
+  hasRequiredProductionCapabilities(capabilities)
+    ? (
+        <React.StrictMode>
+          <ProductionErrorBoundary>
+            <App />
+          </ProductionErrorBoundary>
+        </React.StrictMode>
+      )
+    : <ProductionFailureScreen kind="webassembly" />
 );

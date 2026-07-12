@@ -39,6 +39,7 @@ import { StartupSelectionController } from "./startupSelection/controller";
 import { WebLocalStorageStartupSelectionStorage, type StartupSelectionStorage } from "./startupSelection/storage";
 import { LessonProgressController } from "./lessonProgress/controller";
 import { WebLocalStorageLessonProgressStorage, type LessonProgressStorage } from "./lessonProgress/storage";
+import { ProductionFailureScreen } from "./production/ProductionFailure";
 
 type AppProps = {
   fileAdapter?: TextFileAdapter;
@@ -158,6 +159,7 @@ function StudioShell({
     circuitFocusEnabled,
     inspectorActiveTab,
     outputDockActiveTab,
+    applicationFailure,
     currentDocument,
     currentWriteBinding,
     documentDirty,
@@ -378,6 +380,10 @@ function StudioShell({
         phase: event.index === state.stepIndex && state.runState !== "Finished" ? "current" : "completed"
       }));
   }, [state.program, state.runState, state.stepIndex, state.trace, t]);
+
+  if (applicationFailure) {
+    return <ProductionFailureScreen kind={backendInfo.kind === "wasm" ? "wasm-initialization" : "unexpected"} locale={locale} />;
+  }
 
   return (
     <div className={circuitFocusEnabled ? "app-shell circuit-focus-active" : "app-shell"}>

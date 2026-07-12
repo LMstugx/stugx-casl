@@ -69,6 +69,7 @@ type AppStoreState = {
   circuitFocusEnabled: boolean;
   inspectorActiveTab: InspectorActiveTab;
   outputDockActiveTab: OutputDockActiveTab;
+  applicationFailure: "core-unavailable" | null;
 };
 
 type AppStoreActions = {
@@ -110,7 +111,7 @@ export type AppStoreAction =
   | { type: "runStopped"; cometState: CometState; reason: RunStopReason }
   | { type: "stepped"; cometState: CometState }
   | { type: "reset"; cometState: CometState }
-  | { type: "coreError"; sourceUnitId: SourceUnitId; message: string }
+  | { type: "coreError"; sourceUnitId: SourceUnitId }
   | { type: "clearOutput" }
   | { type: "lessonStepToggled"; exampleId: string; stepId: string }
   | { type: "lessonProgressReset"; exampleId: string }
@@ -164,7 +165,8 @@ export function createInitialAppState(
     observationMode: preferences.observationMode,
     circuitFocusEnabled: preferences.circuitFocusEnabled,
     inspectorActiveTab: preferences.inspectorActiveTab,
-    outputDockActiveTab: preferences.outputDockActiveTab
+    outputDockActiveTab: preferences.outputDockActiveTab,
+    applicationFailure: null
   };
 }
 
@@ -261,7 +263,8 @@ export function appStoreReducer(state: AppStoreState, action: AppStoreAction): A
       runStopReason: null,
       generatedCaslSource: "",
       cppToCaslMapping: [],
-      selectedDemoProgramId: action.selectedExampleId ?? ""
+      selectedDemoProgramId: action.selectedExampleId ?? "",
+      applicationFailure: null
     };
   }
 
@@ -292,7 +295,8 @@ export function appStoreReducer(state: AppStoreState, action: AppStoreAction): A
       runStopReason: null,
       backendInfo: getCoreBackendInfo(),
       generatedCaslSource: action.generatedCaslSource ?? "",
-      cppToCaslMapping: action.cppToCaslMapping ?? []
+      cppToCaslMapping: action.cppToCaslMapping ?? [],
+      applicationFailure: null
     };
   }
 
@@ -351,15 +355,13 @@ export function appStoreReducer(state: AppStoreState, action: AppStoreAction): A
 
   if (action.type === "coreError") {
     if (action.sourceUnitId !== state.currentDocument.sourceUnitId) return state;
-    const diagnostic: Diagnostic = { line: 0, message: action.message, severity: "error" };
     return {
       ...state,
       assembleResult: null,
-      diagnostics: [diagnostic],
       assembleStatus: "error",
       runStopReason: "error",
-      cometState: createEmptyUiCometState("Error", [action.message]),
-      backendInfo: getCoreBackendInfo()
+      backendInfo: getCoreBackendInfo(),
+      applicationFailure: "core-unavailable"
     };
   }
 
@@ -513,7 +515,7 @@ export function AppStoreProvider({
           } catch (error) {
             const message = coreErrorMessage(error);
             eventBus.emit(AppEvent.VmError, { message });
-            dispatch({ type: "coreError", sourceUnitId, message });
+            dispatch({ type: "coreError", sourceUnitId });
           }
         })();
       },
@@ -545,7 +547,7 @@ export function AppStoreProvider({
           } catch (error) {
             const message = coreErrorMessage(error);
             eventBus.emit(AppEvent.VmError, { message });
-            dispatch({ type: "coreError", sourceUnitId, message });
+            dispatch({ type: "coreError", sourceUnitId });
           }
         })();
       },
@@ -620,7 +622,7 @@ export function AppStoreProvider({
             const message = coreErrorMessage(error);
             eventBus.emit(AppEvent.VmError, { message });
             eventBus.emit(AppEvent.VmRunStopped, { reason: "error" });
-            dispatch({ type: "coreError", sourceUnitId, message });
+            dispatch({ type: "coreError", sourceUnitId });
           }
         })();
       },
@@ -640,7 +642,7 @@ export function AppStoreProvider({
           } catch (error) {
             const message = coreErrorMessage(error);
             eventBus.emit(AppEvent.VmError, { message });
-            dispatch({ type: "coreError", sourceUnitId, message });
+            dispatch({ type: "coreError", sourceUnitId });
           }
         })();
       },
@@ -683,7 +685,8 @@ export function AppStoreProvider({
 }
 
 function coreErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
+  void error;
+  return "Core backend unavailable";
 }
 
 function isRunTerminal(runState: CometState["runState"]): boolean {

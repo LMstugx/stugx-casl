@@ -208,7 +208,7 @@ Not supported:
 
 - Core: C++20, CMake, CTest
 - Frontend: TypeScript, React, Vite, SVG, Monaco Editor
-- Bridge: CoreAdapter abstraction, Mock backend, experimental WASM backend
+- Bridge: CoreAdapter abstraction, Mock development/test backend, production WASM backend
 - WASM: Emscripten, C ABI + JSON DTO bridge
 - Tests: Vitest, Playwright, CTest, golden parity fixtures
 
@@ -233,11 +233,24 @@ pnpm build:wasm
 pnpm dev:wasm
 ```
 
-Run frontend tests and build:
+Run frontend tests and the complete WASM-first production build:
 
 ```powershell
 pnpm test
 pnpm build
+```
+
+Verify root and subpath static production bundles:
+
+```powershell
+pnpm test:e2e:production
+pnpm test:e2e:production:subpath
+```
+
+Create a verified local deployment ZIP and checksum without uploading:
+
+```powershell
+pnpm package:production
 ```
 
 Run WASM adapter tests:
@@ -281,7 +294,7 @@ The validation script is optional and intended for final local checks before a s
 
 ## WASM Backend
 
-The default app uses `MockCoreAdapter`. The experimental WASM backend uses the same CoreAdapter contract and C++ core behavior in browser form.
+The development server defaults to `MockCoreAdapter`. Production builds require the WASM backend and fail if glue or binary is missing; there is no silent production Mock fallback.
 
 Generated WASM files are local build artifacts and are ignored by Git:
 
@@ -378,6 +391,12 @@ The current backend is shown in the status bar as `Mock Core`, `WASM Core`, or `
 - [docs/phase16c-lesson-progress-persistence-audit.md](docs/phase16c-lesson-progress-persistence-audit.md): 17-lesson identity audit, safe MVP implementation, compatibility findings, QA result, and Phase 16D recommendation.
 - [docs/persistence-baseline-v1.json](docs/persistence-baseline-v1.json): deterministic aggregate snapshot for the four independent persistence contracts, bootstrap order, isolation, privacy, security, and migration gates.
 - [docs/phase16d-persistence-final-quality-gate.md](docs/phase16d-persistence-final-quality-gate.md): final four-storage inventory, failure/reset/write isolation, version, privacy, security, visual QA, and Phase 16 result.
+- [docs/phase17a-production-deployment-readiness.md](docs/phase17a-production-deployment-readiness.md): production build, WASM/static smoke, base path, artifacts, security, size, and readiness result.
+- [docs/production-build-contract.md](docs/production-build-contract.md): WASM-first build, metadata, manifest, size, source-map, and local package contract.
+- [docs/static-host-deployment-contract.md](docs/static-host-deployment-contract.md): root/subpath serving, cache, smoke, and provider-neutral release procedure.
+- [docs/static-host-security-headers.md](docs/static-host-security-headers.md): reviewed CSP and static response header template.
+- [docs/browser-capability-matrix.md](docs/browser-capability-matrix.md): required and optional capabilities with safe fallback behavior.
+- [docs/production-size-budget.json](docs/production-size-budget.json): deterministic public bundle budget.
 - [docs/browser-save-strategy.md](docs/browser-save-strategy.md): File System Access confirmed writes and Blob download-copy fallback.
 - [docs/transient-write-binding-contract.md](docs/transient-write-binding-contract.md): session-only handle registry and opaque SaveTarget ownership rules.
 - [docs/browser-text-file-adapter.md](docs/browser-text-file-adapter.md): hidden-input browser adapter, strict UTF-8 byte handling, cleanup, cancellation, and test injection.
@@ -395,5 +414,5 @@ The current backend is shown in the status bar as `Mock Core`, `WASM Core`, or `
 - C++ subset can lower no-argument and up to three-argument `int` function calls, but it does not support stack arguments, recursion, stack-frame locals, or C++ function-call expressions inside larger expressions.
 - The WASM bridge currently uses a single runtime and JSON strings.
 - The control-flow view is text and badge based; there is no full CFG graph yet.
-- New / Open / Save, language switching, and theme controls are placeholders or limited.
-- There is no desktop packaging or deployment target in this milestone.
+- File System Access confirmed writes depend on browser support and a secure context; other browsers use an explicit download-copy Save As fallback.
+- There is no public hosting target, service worker/offline mode, desktop package, or deployment-provider integration in this milestone.

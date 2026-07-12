@@ -21,7 +21,7 @@ export default function StatusBar({ state, backendInfo }: { state: CometState; b
       <span>{t("table.current")}: {currentInstruction}</span>
       <span>{t("instruction.nextPr")}: {formatWord(state.pr)}</span>
       <span>{t("instruction.nextInstruction")}: {nextInstruction ?? "-"}</span>
-      <span data-testid="backend-label" title={backendInfo.errorMessage ?? backendInfo.label}>{backendInfo.label}</span>
+      <span data-testid="backend-label" title={backendInfo.label}>{backendInfo.label}</span>
       <span>{t("circuit.simulator")}</span>
     </footer>
   );

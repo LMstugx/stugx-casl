@@ -244,6 +244,8 @@ Phase 16C adds injected lesson-progress scenes: `lesson-progress-empty.png`, `le
 
 Phase 16D adds `persistence-all-default.png`, all-valid EN/JA/zh-CN, invalid locale/preferences/startup/lesson, all-invalid, storage-unavailable, reset-isolation, cross-key-failure, and `persistence-1280.png` / `persistence-1440.png` / `persistence-1920.png`. Review source/selector agreement, independent locale/UI/progress recovery, clean/unassembled state, absence of flash/guard/notice/banner, horizontal containment, natural scroll, bounded Inspector scroll, and clean-wire stability.
 
+Phase 17A adds no normal-workspace visual feature. Existing 1280/1440/1920 EN/JA/zh-CN galleries remain the visual gate; production root/subpath Playwright additionally verifies no horizontal overflow, clean-wire stability, restored state, and absence of console/network errors. The new safe application failure page is covered by component accessibility tests and contains no raw path or stack detail.
+
 - This is a review gallery, not a pixel-diff visual regression suite.
 - Screenshots are generated artifacts and are not committed to git.
 - The gallery is local only unless you use an existing tunnel tool.

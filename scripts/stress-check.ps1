@@ -1,5 +1,13 @@
 $ErrorActionPreference = "Stop"
 
+$repoRoot = Split-Path -Parent $PSScriptRoot
+Set-Location $repoRoot
+$bundledNode = Join-Path $env:USERPROFILE ".cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin"
+$bundledBin = Join-Path $env:USERPROFILE ".cache\codex-runtimes\codex-primary-runtime\dependencies\bin"
+if (Test-Path $bundledNode) {
+  $env:Path = "$bundledNode;$bundledBin;$env:Path"
+}
+
 function Invoke-Step {
   param(
     [Parameter(Mandatory = $true)]

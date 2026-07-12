@@ -86,7 +86,11 @@ Errors include a `scripts/build-wasm.ps1` hint when the local WASM artifacts are
 - Single WASM runtime instance.
 - JSON string bridge, not typed shared memory.
 - WASM artifacts are not committed.
-- Default backend remains mock.
+- Development and ordinary non-production tests default to Mock; Phase 17A production builds require WASM and fail when its artifacts are absent.
 - Performance is not optimized yet.
 - No expanded CASL II instruction set.
 - No C++ subset transpiler.
+
+## Phase 17A Production Reference
+
+Production URL resolution is now base-aware through `import.meta.env.BASE_URL`, native dynamic import replaces the former runtime function constructor, and root/subpath static smoke tests reject silent Mock fallback. See `production-build-contract.md` and `phase17a-production-deployment-readiness.md`.

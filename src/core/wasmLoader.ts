@@ -34,6 +34,8 @@ type NodeFsSync = {
 
 const WASM_MODULE_RELATIVE_PATH = "public/wasm/stugx_casl_core.js";
 const WASM_BINARY_RELATIVE_PATH = "public/wasm/stugx_casl_core.wasm";
+export const WASM_MODULE_PUBLIC_PATH = "wasm/stugx_casl_core.js";
+export const WASM_BINARY_PUBLIC_PATH = "wasm/stugx_casl_core.wasm";
 const WASM_BUILD_HINT = "Please run scripts/build-wasm.ps1 before using the WASM backend.";
 
 function isNodeRuntime(): boolean {
@@ -52,7 +54,7 @@ async function importModuleFactory(moduleUrl: string): Promise<EmscriptenModuleF
   try {
     const imported = isNodeRuntime()
       ? ((await import(/* @vite-ignore */ moduleUrl)) as { default?: unknown })
-      : await browserRuntimeImport(moduleUrl);
+      : ((await import(/* @vite-ignore */ moduleUrl)) as { default?: unknown });
     if (typeof imported.default !== "function") {
       throw new Error("WASM module did not export an Emscripten factory function.");
     }
@@ -60,11 +62,6 @@ async function importModuleFactory(moduleUrl: string): Promise<EmscriptenModuleF
   } catch (error) {
     throw new Error(`Failed to load WASM module JS from ${moduleUrl}: ${(error as Error).message}. ${WASM_BUILD_HINT}`);
   }
-}
-
-function browserRuntimeImport(moduleUrl: string): Promise<{ default?: unknown }> {
-  const dynamicImport = new Function("moduleUrl", "return import(moduleUrl)") as (url: string) => Promise<{ default?: unknown }>;
-  return dynamicImport(moduleUrl);
 }
 
 function pathToFileHref(path: string): string {
@@ -136,8 +133,9 @@ export async function loadWasmModule(options: WasmModuleLoadOptions = {}): Promi
   const modulePath = nodeRuntime ? options.modulePath ?? projectFilePath(WASM_MODULE_RELATIVE_PATH) : undefined;
   const wasmPath = nodeRuntime ? options.wasmPath ?? projectFilePath(WASM_BINARY_RELATIVE_PATH) : undefined;
   if (modulePath) assertNodeFileExists(modulePath, WASM_MODULE_RELATIVE_PATH);
-  const moduleUrl = options.moduleUrl ?? (modulePath ? pathToFileHref(modulePath) : "/wasm/stugx_casl_core.js");
-  const wasmUrl = options.wasmUrl ?? "/wasm/stugx_casl_core.wasm";
+  const browserUrls = resolveWasmAssetUrls();
+  const moduleUrl = options.moduleUrl ?? (modulePath ? pathToFileHref(modulePath) : browserUrls.moduleUrl);
+  const wasmUrl = options.wasmUrl ?? browserUrls.wasmUrl;
   const factory = await importModuleFactory(moduleUrl);
   const wasmBinary = wasmPath ? readNodeWasmBinary(wasmPath) : undefined;
   const moduleArgs: Record<string, unknown> = {
@@ -171,4 +169,24 @@ export async function loadWasmModule(options: WasmModuleLoadOptions = {}): Promi
     getState: wrapJsonFunction(module, "stugx_casl_get_state", []) as () => string,
     getLastError: wrapOptionalStringFunction(module, "stugx_casl_get_last_error", []) as () => string
   };
+}
+
+export function resolveWasmAssetUrls(basePath: string = import.meta.env.BASE_URL): { moduleUrl: string; wasmUrl: string } {
+  const base = normalizeAssetBasePath(basePath);
+  return {
+    moduleUrl: `${base}${WASM_MODULE_PUBLIC_PATH}`,
+    wasmUrl: `${base}${WASM_BINARY_PUBLIC_PATH}`
+  };
+}
+
+function normalizeAssetBasePath(basePath: string): string {
+  const candidate = basePath.trim() || "/";
+  if (!candidate.startsWith("/") || candidate.includes("\\") || candidate.includes("?") || candidate.includes("#")) {
+    throw new Error("Invalid deployment base path for WASM assets.");
+  }
+  const normalized = candidate.endsWith("/") ? candidate : `${candidate}/`;
+  if (normalized.split("/").some((segment) => segment === "." || segment === "..")) {
+    throw new Error("Invalid relative segment in WASM deployment base path.");
+  }
+  return normalized.replace(/\/{2,}/g, "/");
 }

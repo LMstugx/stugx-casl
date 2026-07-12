@@ -61,13 +61,12 @@ function setBackendReady(): void {
   };
 }
 
-function setBackendError(error: unknown): void {
-  const message = error instanceof Error ? error.message : String(error);
+function setBackendError(): void {
   activeSelection.info = {
     kind: activeSelection.info.kind,
     label: activeSelection.info.kind === "wasm" ? "WASM Error" : "Mock Core",
     status: "error",
-    errorMessage: message
+    errorMessage: "Core backend unavailable"
   };
 }
 
@@ -77,7 +76,7 @@ async function callCore<T>(operation: () => Promise<T>): Promise<T> {
     setBackendReady();
     return result;
   } catch (error) {
-    setBackendError(error);
+    setBackendError();
     throw error;
   }
 }

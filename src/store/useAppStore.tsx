@@ -1,4 +1,4 @@
-import { createContext, useContext, useMemo, useReducer, useRef } from "react";
+import { createContext, useContext, useEffect, useMemo, useReducer, useRef } from "react";
 import type { ReactNode } from "react";
 import { EventBus } from "../app/eventBus";
 import { createAppEventBus } from "../app/createAppEventBus";
@@ -12,11 +12,14 @@ import { createSequentialDocumentIdFactory } from "../documents/idFactory";
 import { createIdleFileLifecycleState, type FileLifecycleState } from "../documents/lifecycle";
 import { languageToExtension } from "../documents/validation";
 import type { DocumentIdFactory, DocumentWriteBinding, SourceDocument, SourceUnitId } from "../documents/types";
+import { selectApplicationPreferences } from "../preferences/selectors";
+import { DEFAULT_APPLICATION_PREFERENCES, type InspectorActiveTab, type ObservationMode, type OutputDockActiveTab, type ResolvedApplicationPreferencesV1 } from "../preferences/types";
+import { serializeApplicationPreferences } from "../preferences/validation";
 import { CppToCaslMap, transpileCppToCasl } from "../transpiler/cppTranspiler";
 
 type AssembleStatus = "default" | "running" | "success" | "error";
 export type SourceMode = "casl" | "cpp";
-export type ObservationMode = "cpu-flow" | "register-stack" | "code-machine";
+export type { ObservationMode } from "../preferences/types";
 type RunStopReason = "manual" | "maxSteps" | "finished" | "error" | null;
 export type LessonProgress = Record<string, Record<string, boolean>>;
 
@@ -60,6 +63,9 @@ type AppStoreState = {
   selectedDemoProgramId: string;
   lessonProgress: LessonProgress;
   observationMode: ObservationMode;
+  circuitFocusEnabled: boolean;
+  inspectorActiveTab: InspectorActiveTab;
+  outputDockActiveTab: OutputDockActiveTab;
 };
 
 type AppStoreActions = {
@@ -74,6 +80,9 @@ type AppStoreActions = {
   toggleLessonStep: (exampleId: string, stepId: string) => void;
   resetLessonProgress: (exampleId: string) => void;
   setObservationMode: (mode: ObservationMode) => void;
+  setCircuitFocusEnabled: (enabled: boolean) => void;
+  setInspectorActiveTab: (tab: InspectorActiveTab) => void;
+  setOutputDockActiveTab: (tab: OutputDockActiveTab) => void;
   replaceCurrentDocument: (document: SourceDocument, selectedExampleId?: string) => void;
   commitSavedDocument: (document: SourceDocument, writeBinding: DocumentWriteBinding | null) => void;
   setFileLifecycle: (lifecycle: FileLifecycleState) => void;
@@ -101,17 +110,25 @@ export type AppStoreAction =
   | { type: "clearOutput" }
   | { type: "lessonStepToggled"; exampleId: string; stepId: string }
   | { type: "lessonProgressReset"; exampleId: string }
-  | { type: "observationModeSet"; mode: ObservationMode };
+  | { type: "observationModeSet"; mode: ObservationMode }
+  | { type: "circuitFocusEnabledSet"; enabled: boolean }
+  | { type: "inspectorActiveTabSet"; tab: InspectorActiveTab }
+  | { type: "outputDockActiveTabSet"; tab: OutputDockActiveTab };
 
 type AppStoreProviderProps = {
   children: ReactNode;
   eventBus?: EventBus<AppEvents>;
+  initialPreferences?: ResolvedApplicationPreferencesV1;
+  onApplicationPreferencesChange?: (preferences: ResolvedApplicationPreferencesV1) => void;
 };
 
 const AppStoreContext = createContext<AppStore | null>(null);
 const AppEventBusContext = createContext<EventBus<AppEvents> | null>(null);
 
-export function createInitialAppState(ids: DocumentIdFactory = createSequentialDocumentIdFactory("app")): AppStoreState {
+export function createInitialAppState(
+  ids: DocumentIdFactory = createSequentialDocumentIdFactory("app"),
+  preferences: ResolvedApplicationPreferencesV1 = DEFAULT_APPLICATION_PREFERENCES
+): AppStoreState {
   const initialDemo = getDefaultDemoProgram();
   const currentDocument = createExampleDocument(initialDemo, ids);
   return {
@@ -132,7 +149,10 @@ export function createInitialAppState(ids: DocumentIdFactory = createSequentialD
     cppToCaslMapping: [],
     selectedDemoProgramId: initialDemo.id,
     lessonProgress: {},
-    observationMode: "cpu-flow"
+    observationMode: preferences.observationMode,
+    circuitFocusEnabled: preferences.circuitFocusEnabled,
+    inspectorActiveTab: preferences.inspectorActiveTab,
+    outputDockActiveTab: preferences.outputDockActiveTab
   };
 }
 
@@ -370,14 +390,40 @@ export function appStoreReducer(state: AppStoreState, action: AppStoreAction): A
     };
   }
 
+  if (action.type === "circuitFocusEnabledSet") {
+    return state.circuitFocusEnabled === action.enabled ? state : { ...state, circuitFocusEnabled: action.enabled };
+  }
+
+  if (action.type === "inspectorActiveTabSet") {
+    return state.inspectorActiveTab === action.tab ? state : { ...state, inspectorActiveTab: action.tab };
+  }
+
+  if (action.type === "outputDockActiveTabSet") {
+    return state.outputDockActiveTab === action.tab ? state : { ...state, outputDockActiveTab: action.tab };
+  }
+
   return state;
 }
 
-export function AppStoreProvider({ children, eventBus: providedEventBus }: AppStoreProviderProps) {
+export function AppStoreProvider({ children, eventBus: providedEventBus, initialPreferences = DEFAULT_APPLICATION_PREFERENCES, onApplicationPreferencesChange }: AppStoreProviderProps) {
   const eventBus = useMemo(() => providedEventBus ?? createAppEventBus(), [providedEventBus]);
   const documentIdsRef = useRef(createSequentialDocumentIdFactory("app"));
-  const [state, dispatch] = useReducer(appStoreReducer, documentIdsRef.current, createInitialAppState);
+  const initialStateRef = useRef<AppStoreState | null>(null);
+  if (!initialStateRef.current) initialStateRef.current = createInitialAppState(documentIdsRef.current, initialPreferences);
+  const [state, dispatch] = useReducer(appStoreReducer, initialStateRef.current);
   const runControlRef = useRef({ runId: 0, stopRequested: false });
+  const preferenceSnapshot = useMemo(
+    () => selectApplicationPreferences(state),
+    [state.circuitFocusEnabled, state.inspectorActiveTab, state.observationMode, state.outputDockActiveTab]
+  );
+  const lastPreferenceSnapshotRef = useRef(serializeApplicationPreferences(preferenceSnapshot));
+
+  useEffect(() => {
+    const serialized = serializeApplicationPreferences(preferenceSnapshot);
+    if (serialized === lastPreferenceSnapshotRef.current) return;
+    lastPreferenceSnapshotRef.current = serialized;
+    onApplicationPreferencesChange?.(preferenceSnapshot);
+  }, [onApplicationPreferencesChange, preferenceSnapshot]);
 
   const actions = useMemo<AppStoreActions>(
     () => ({
@@ -569,6 +615,9 @@ export function AppStoreProvider({ children, eventBus: providedEventBus }: AppSt
       toggleLessonStep: (exampleId, stepId) => dispatch({ type: "lessonStepToggled", exampleId, stepId }),
       resetLessonProgress: (exampleId) => dispatch({ type: "lessonProgressReset", exampleId }),
       setObservationMode: (mode) => dispatch({ type: "observationModeSet", mode }),
+      setCircuitFocusEnabled: (enabled) => dispatch({ type: "circuitFocusEnabledSet", enabled }),
+      setInspectorActiveTab: (tab) => dispatch({ type: "inspectorActiveTabSet", tab }),
+      setOutputDockActiveTab: (tab) => dispatch({ type: "outputDockActiveTabSet", tab }),
       replaceCurrentDocument: (document, selectedExampleId = "") => {
         runControlRef.current = { runId: runControlRef.current.runId + 1, stopRequested: true };
         dispatch({ type: "currentDocumentReplaced", document, selectedExampleId });

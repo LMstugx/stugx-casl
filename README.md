@@ -366,6 +366,10 @@ The current backend is shown in the status bar as `Mock Core`, `WASM Core`, or `
 - [docs/file-lifecycle-baseline-v1.json](docs/file-lifecycle-baseline-v1.json): deterministic validation snapshot for the frozen single-document lifecycle contract.
 - [docs/file-lifecycle-operation-matrix-v1.json](docs/file-lifecycle-operation-matrix-v1.json): normalized eight-state operation matrix for New/Open/Save/example/unload behavior.
 - [docs/phase15e-file-lifecycle-final-quality-gate.md](docs/phase15e-file-lifecycle-final-quality-gate.md): final compatibility, race, security, accessibility, and viewport PASS for Phase 15.
+- [docs/application-preference-inventory.md](docs/application-preference-inventory.md): complete safe/deferred/prohibited decision inventory for application UI state.
+- [docs/application-preference-storage-contract.md](docs/application-preference-storage-contract.md): versioned allowlist, sanitization, hydration, write, reset, and failure contract.
+- [docs/application-preferences-baseline-v1.json](docs/application-preferences-baseline-v1.json): deterministic validation snapshot for the Phase 16A preference contract.
+- [docs/phase16a-application-preference-persistence.md](docs/phase16a-application-preference-persistence.md): Phase 16A implementation, security boundaries, validation result, and Phase 16B recommendation.
 - [docs/browser-save-strategy.md](docs/browser-save-strategy.md): File System Access confirmed writes and Blob download-copy fallback.
 - [docs/transient-write-binding-contract.md](docs/transient-write-binding-contract.md): session-only handle registry and opaque SaveTarget ownership rules.
 - [docs/browser-text-file-adapter.md](docs/browser-text-file-adapter.md): hidden-input browser adapter, strict UTF-8 byte handling, cleanup, cancellation, and test injection.

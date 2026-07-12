@@ -32,14 +32,32 @@ import type { TextFileAdapter } from "./documents/fileAdapter";
 import { prepareSourceReplacement, type SourceReplacementIntent } from "./documents/replacementIntent";
 import { getDocumentDisplayName } from "./documents/documentPresentation";
 import { useBeforeUnloadDirtyGuard } from "./documents/beforeUnloadGuard";
+import { ApplicationPreferenceController } from "./preferences/controller";
+import { WebLocalStorageApplicationPreferenceStorage, type ApplicationPreferenceStorage } from "./preferences/storage";
 
-type AppProps = { fileAdapter?: TextFileAdapter };
+type AppProps = { fileAdapter?: TextFileAdapter; preferenceStorage?: ApplicationPreferenceStorage };
+const defaultPreferenceController = new ApplicationPreferenceController(new WebLocalStorageApplicationPreferenceStorage());
+const injectedPreferenceControllers = new WeakMap<ApplicationPreferenceStorage, ApplicationPreferenceController>();
 
-export default function App({ fileAdapter }: AppProps = {}) {
+function preferenceControllerFor(storage?: ApplicationPreferenceStorage): ApplicationPreferenceController {
+  if (!storage) return defaultPreferenceController;
+  const existing = injectedPreferenceControllers.get(storage);
+  if (existing) return existing;
+  const controller = new ApplicationPreferenceController(storage);
+  injectedPreferenceControllers.set(storage, controller);
+  return controller;
+}
+
+export default function App({ fileAdapter, preferenceStorage }: AppProps = {}) {
   const resolvedFileAdapter = useMemo(() => fileAdapter ?? new BrowserTextFileAdapter(), [fileAdapter]);
+  const preferenceController = useMemo(() => preferenceControllerFor(preferenceStorage), [preferenceStorage]);
+  const initialPreferences = useMemo(() => preferenceController.hydrate(), [preferenceController]);
+  const persistPreferences = useCallback((preferences: Parameters<ApplicationPreferenceController["persist"]>[0]) => {
+    preferenceController.persist(preferences);
+  }, [preferenceController]);
   return (
     <I18nProvider>
-      <AppStoreProvider>
+      <AppStoreProvider initialPreferences={initialPreferences} onApplicationPreferencesChange={persistPreferences}>
         <StudioShell fileAdapter={resolvedFileAdapter} />
       </AppStoreProvider>
     </I18nProvider>
@@ -62,6 +80,9 @@ function StudioShell({ fileAdapter }: { fileAdapter: TextFileAdapter }) {
     selectedDemoProgramId,
     lessonProgress,
     observationMode,
+    circuitFocusEnabled,
+    inspectorActiveTab,
+    outputDockActiveTab,
     currentDocument,
     currentWriteBinding,
     documentDirty,
@@ -78,11 +99,13 @@ function StudioShell({ fileAdapter }: { fileAdapter: TextFileAdapter }) {
     toggleLessonStep,
     resetLessonProgress,
     setObservationMode,
+    setCircuitFocusEnabled,
+    setInspectorActiveTab,
+    setOutputDockActiveTab,
     replaceCurrentDocument,
     commitSavedDocument,
     setFileLifecycle
   } = useAppStore();
-  const [isCircuitFocusMode, setCircuitFocusMode] = useState(false);
   const [editorSelectedFrameSlotId, setEditorSelectedFrameSlotId] = useState<string | undefined>();
   const [selectedDiagnosticId, setSelectedDiagnosticId] = useState<string | undefined>();
   const [diagnosticNavigationRange, setDiagnosticNavigationRange] = useState<SourceRange | undefined>();
@@ -274,15 +297,15 @@ function StudioShell({ fileAdapter }: { fileAdapter: TextFileAdapter }) {
   }, [state.program, state.runState, state.stepIndex, state.trace, t]);
 
   return (
-    <div className={isCircuitFocusMode ? "app-shell circuit-focus-active" : "app-shell"}>
+    <div className={circuitFocusEnabled ? "app-shell circuit-focus-active" : "app-shell"}>
       <Toolbar
         assembleStatus={assembleStatus}
         canRun={canRun}
         canStep={canStep}
         canReset={canReset}
         isRunning={isRunning}
-        isCircuitFocusMode={isCircuitFocusMode}
-        onToggleCircuitFocusMode={() => setCircuitFocusMode((value) => !value)}
+        isCircuitFocusMode={circuitFocusEnabled}
+        onToggleCircuitFocusMode={() => setCircuitFocusEnabled(!circuitFocusEnabled)}
         isReplacingSource={replacementBusy}
         onNewDocument={() => setShowNewDocumentDialog(true)}
         isOpeningFile={fileLifecycle.status === "opening"}
@@ -332,7 +355,7 @@ function StudioShell({ fileAdapter }: { fileAdapter: TextFileAdapter }) {
       />
       <FileOperationNotice notice={fileNotice} onDismiss={() => setFileNotice(null)} />
 
-      {isCircuitFocusMode ? (
+      {circuitFocusEnabled ? (
         <CircuitFocusLayout
           key={sourceUnitId}
           state={state}
@@ -512,7 +535,7 @@ function StudioShell({ fileAdapter }: { fileAdapter: TextFileAdapter }) {
         </section>
 
         <aside className="right-column">
-          <InspectorPanel state={state} />
+          <InspectorPanel state={state} initialTab={inspectorActiveTab} onActiveTabChange={setInspectorActiveTab} />
         </aside>
       </main>
       )}
@@ -526,6 +549,8 @@ function StudioShell({ fileAdapter }: { fileAdapter: TextFileAdapter }) {
         currentCppLine={editorCurrentLine}
         state={state}
         sourceMode={sourceMode}
+        initialTab={outputDockActiveTab}
+        onActiveTabChange={setOutputDockActiveTab}
         autoOpenGenerated={sourceMode === "cpp" && !isSourceDirty && Boolean(generatedCaslSource)}
         onClear={clearOutput}
       />

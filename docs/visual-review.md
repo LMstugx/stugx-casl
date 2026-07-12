@@ -146,6 +146,7 @@ Use the gallery to inspect:
 - Phase 15C captures injected Save As in EN/JA/zh-CN, the three-action Dirty guard, confirmed-save success, download-copy fallback, failure, and long-filename behavior. Visual capture never opens a system picker or writes a real file.
 - Phase 15D captures the New dialog in EN/JA/zh-CN, clean Untitled CASL/C++ documents, intent-aware New and Demo guards, guarded-save busy state, and 1280px example-title behavior. Locale changes and save completion are injected; no native picker or unload prompt is opened.
 - Phase 15E reuses the complete Phase 15B-D gallery as the frozen lifecycle visual matrix. It verifies all three viewports/locales without adding a new user-visible state or committing generated screenshots.
+- Phase 16A reuses the Observation Mode, Circuit Focus, Inspector, and Output Dock scenes with deterministic clean preference storage per navigation; dedicated E2E covers restored and partial-invalid payloads. Hydration adds no modal/banner and must preserve 1280px overflow, natural scroll, bounded Memory scroll, and clean-wire contracts.
 - Selected, active execution, changed, read, write, warning, error, and disabled states remain visually distinct.
 - FramePlan and slot-relation panels read as tertiary design-preview teaching notes, not as primary runtime state.
 - Empty states use compact shared wording and muted surfaces rather than large blank panels.

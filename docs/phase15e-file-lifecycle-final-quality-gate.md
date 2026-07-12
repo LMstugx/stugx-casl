@@ -117,3 +117,5 @@ Future work must not use filename/localized text/content hash as identity; read 
 ## 20. Next Recommendation
 
 Begin Phase 16A with a non-source application-preference persistence audit using the existing metadata allowlist. Keep source, external-file reopening, paths, handles, runtime state, and diagnostics out of persistence unless a separately reviewed project/session architecture explicitly changes the contract.
+
+Phase 16A follows this recommendation with a separate allowlisted preference payload. It does not modify the frozen file-lifecycle manifest or add source/session restore.

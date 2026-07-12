@@ -1,0 +1,116 @@
+{
+  "baselineVersion": 1,
+  "purpose": "validation-snapshot-only",
+  "runtimeSourceOfTruth": "src/preferences",
+  "storageKey": "stugx.casl.preferences.v1",
+  "maxPayloadBytes": 16384,
+  "persistedFields": [
+    "observationMode",
+    "circuitFocusEnabled",
+    "inspectorActiveTab",
+    "outputDockActiveTab"
+  ],
+  "fieldEnums": {
+    "observationMode": [
+      "cpu-flow",
+      "register-stack",
+      "code-machine"
+    ],
+    "inspectorActiveTab": [
+      "registers",
+      "memory",
+      "source-map",
+      "trace"
+    ],
+    "outputDockActiveTab": [
+      "output",
+      "console",
+      "messages",
+      "generated-casl",
+      "machine-code"
+    ]
+  },
+  "defaults": {
+    "version": 1,
+    "observationMode": "cpu-flow",
+    "circuitFocusEnabled": false,
+    "inspectorActiveTab": "registers",
+    "outputDockActiveTab": "output"
+  },
+  "independentlyPersistedFields": [
+    "locale"
+  ],
+  "independentStorage": {
+    "locale": "stugx.casl.locale"
+  },
+  "prohibitedFields": [
+    "sourceContent",
+    "generatedCasl",
+    "machineCode",
+    "diagnostics",
+    "selectedDiagnostic",
+    "editorMarkers",
+    "trace",
+    "vmState",
+    "registers",
+    "memory",
+    "stack",
+    "callDepth",
+    "assemblyState",
+    "runState",
+    "documentId",
+    "sourceUnitId",
+    "fileName",
+    "absolutePath",
+    "fileSystemFileHandle",
+    "saveTargetId",
+    "writeBinding",
+    "dirtyDocument",
+    "fileLifecycle",
+    "pendingOperation",
+    "rawContext",
+    "editorSelection",
+    "editorCursor",
+    "editorScroll",
+    "selectedFrameSlot",
+    "selectedMachineCodeRow",
+    "sourceMappingSelection",
+    "activeModal",
+    "fileOperationNotice",
+    "locale"
+  ],
+  "hydrationPolicy": {
+    "timing": "synchronous-before-store-initialization",
+    "oncePerController": true,
+    "invalidFieldFallback": "current-default",
+    "sourceMutation": false,
+    "fileOperation": false
+  },
+  "writePolicy": {
+    "trigger": "allowlisted-value-change-only",
+    "unchangedWrite": false,
+    "failureRollback": false,
+    "wholeStoreSerialization": false
+  },
+  "resetPolicy": {
+    "restoresDefaults": true,
+    "clearsApplicationPreferenceKey": true,
+    "clearsLocale": false,
+    "changesSource": false,
+    "changesFileLifecycle": false
+  },
+  "securityPolicy": {
+    "allowlistOnly": true,
+    "plainObjectOnly": true,
+    "maximumBytes": 16384,
+    "prototypeMerge": false,
+    "networkSync": false,
+    "telemetry": false
+  },
+  "phase16BDeferredFields": [
+    "lastExampleId"
+  ],
+  "themePreference": "deferred-no-stable-runtime-enum",
+  "phase14DiagnosticBaseline": "diagnostic-localization-baseline-v1.json",
+  "phase15FileLifecycleBaseline": "file-lifecycle-baseline-v1.json"
+}

@@ -16,6 +16,7 @@ import type { SourceMode } from "../store/useAppStore";
 import { handleHorizontalTabListKeyDown } from "./tabKeyboard";
 import { useI18n } from "../i18n/useI18n";
 import type { TranslationKey } from "../i18n/types";
+import type { OutputDockActiveTab } from "../preferences/types";
 
 type OutputPanelProps = {
   lines: string[];
@@ -26,7 +27,8 @@ type OutputPanelProps = {
   currentCppLine?: number;
   state?: CometState;
   sourceMode?: SourceMode;
-  initialTab?: OutputTab;
+  initialTab?: OutputTab | OutputDockActiveTab;
+  onActiveTabChange?: (tab: OutputDockActiveTab) => void;
   autoOpenGenerated?: boolean;
   onClear: () => void;
 };
@@ -40,6 +42,18 @@ const tabs: Array<{ id: OutputTab; labelKey: TranslationKey }> = [
   { id: "generated", labelKey: "tabs.generatedCasl" },
   { id: "machine", labelKey: "tabs.machineCode" }
 ];
+
+function fromPreferenceTab(tab: OutputTab | OutputDockActiveTab): OutputTab {
+  if (tab === "generated-casl") return "generated";
+  if (tab === "machine-code") return "machine";
+  return tab;
+}
+
+function toPreferenceTab(tab: OutputTab): OutputDockActiveTab {
+  if (tab === "generated") return "generated-casl";
+  if (tab === "machine") return "machine-code";
+  return tab;
+}
 
 function lineTone(line: string): "success" | "danger" | "warn" | "muted" | "default" {
   const normalized = line.toLowerCase();
@@ -71,10 +85,11 @@ export default function OutputPanel({
   sourceMode = "casl",
   initialTab = "output",
   autoOpenGenerated = false,
+  onActiveTabChange,
   onClear
 }: OutputPanelProps) {
   const { t } = useI18n();
-  const [activeTab, setActiveTab] = useState<OutputTab>(initialTab);
+  const [activeTab, setActiveTab] = useState<OutputTab>(() => fromPreferenceTab(initialTab));
   const lastAutoOpenedSource = useRef("");
   useEffect(() => {
     if (!autoOpenGenerated || !generatedCaslSource || lastAutoOpenedSource.current === generatedCaslSource) return;
@@ -115,7 +130,7 @@ export default function OutputPanel({
   const selectedMachineEdge = selectedMachineRow ? selectControlFlowForMachineRow(selectedMachineRow, controlFlowGraph) : undefined;
 
   return (
-    <section className="output-panel">
+    <section className="output-panel" data-active-tab={toPreferenceTab(activeTab)}>
       <header className="dock-header">
         <div className="tab-list dock-tabs" role="tablist" aria-label={t("accessibility.outputPanels")} aria-orientation="horizontal" onKeyDown={handleHorizontalTabListKeyDown}>
           {tabs.map((tab) => {
@@ -132,7 +147,10 @@ export default function OutputPanel({
               aria-label={t("accessibility.openOutputTab", { tab: label })}
               tabIndex={activeTab === tab.id ? 0 : -1}
               title={label}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => {
+                setActiveTab(tab.id);
+                onActiveTabChange?.(toPreferenceTab(tab.id));
+              }}
             >
               {label}
             </button>

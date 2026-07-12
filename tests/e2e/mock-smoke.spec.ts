@@ -12,6 +12,8 @@ async function switchObservationMode(page: Page, mode: "cpu-flow" | "register-st
   await page.getByTestId(`observation-mode-${mode}`).click();
 }
 
+const applicationPreferenceKey = "stugx.casl.preferences.v1";
+
 test("Mock backend completes assemble and first step in the browser UI", async ({ page }) => {
   await openStudio(page, "Mock Core");
 
@@ -24,6 +26,53 @@ test("Mock backend completes assemble and first step in the browser UI", async (
   await expectRegister(page, "register-gr2", "0003");
   await expectRegister(page, "register-pr", "0022");
   await expectCurrentSourceInstruction(page, /ADDA\s+GR2,B/);
+});
+
+test("Safe application preferences restore independently from source and locale", async ({ page }) => {
+  await openStudio(page, "Mock Core");
+  await page.evaluate((preferenceKey) => {
+    localStorage.removeItem(preferenceKey);
+    localStorage.removeItem("stugx.casl.locale");
+  }, applicationPreferenceKey);
+  const initialSource = await page.evaluate(() => (window as unknown as { monaco?: { editor: { getModels(): Array<{ getValue(): string }> } } }).monaco?.editor.getModels().at(-1)?.getValue());
+
+  await page.locator("#inspector-tab-memory").click();
+  await page.locator("#output-tab-messages").click();
+  await page.getByTestId("circuit-focus-toggle").click();
+  await switchObservationMode(page, "register-stack");
+
+  const storedBeforeLocale = await page.evaluate((key) => localStorage.getItem(key), applicationPreferenceKey);
+  expect(JSON.parse(storedBeforeLocale!)).toEqual({ version: 1, observationMode: "register-stack", circuitFocusEnabled: true, inspectorActiveTab: "memory", outputDockActiveTab: "messages" });
+  expect(storedBeforeLocale).not.toMatch(/source|document|diagnostic|locale|path|handle/i);
+
+  await page.getByTestId("locale-ja").click();
+  expect(await page.evaluate((key) => localStorage.getItem(key), applicationPreferenceKey)).toBe(storedBeforeLocale);
+  await page.reload();
+  await expect(page.getByTestId("backend-label")).toHaveText("Mock Core");
+  await expect(page.getByTestId("locale-ja")).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByTestId("circuit-focus-toggle")).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByTestId("circuit-focus-layout")).toHaveAttribute("data-observation-mode", "register-stack");
+  await expect(page.locator(".output-panel")).toHaveAttribute("data-active-tab", "messages");
+  await page.getByTestId("circuit-focus-toggle").click();
+  await expect(page.locator(".inspector-panel")).toHaveAttribute("data-active-tab", "memory");
+  expect(await page.evaluate(() => (window as unknown as { monaco?: { editor: { getModels(): Array<{ getValue(): string }> } } }).monaco?.editor.getModels().at(-1)?.getValue())).toBe(initialSource);
+  await expect(page.locator(".source-dirty-indicator")).toHaveCount(0);
+
+  await page.evaluate((key) => localStorage.setItem(key, JSON.stringify({ version: 1, observationMode: "code-machine", circuitFocusEnabled: "invalid", inspectorActiveTab: "bad", outputDockActiveTab: "console", sourceContent: "ignored" })), applicationPreferenceKey);
+  await page.reload();
+  await page.getByTestId("circuit-focus-toggle").click();
+  await expect(page.getByTestId("circuit-focus-layout")).toHaveAttribute("data-observation-mode", "code-machine");
+  await page.getByTestId("circuit-focus-toggle").click();
+  await expect(page.locator(".inspector-panel")).toHaveAttribute("data-active-tab", "registers");
+  await expect(page.locator(".output-panel")).toHaveAttribute("data-active-tab", "console");
+
+  await page.evaluate((key) => localStorage.setItem(key, JSON.stringify({ version: 99, observationMode: "register-stack", circuitFocusEnabled: true })), applicationPreferenceKey);
+  await page.reload();
+  await expect(page.getByTestId("circuit-focus-layout")).toHaveCount(0);
+  await page.getByTestId("circuit-focus-toggle").click();
+  await expect(page.getByTestId("circuit-focus-layout")).toHaveAttribute("data-observation-mode", "cpu-flow");
+  await page.setViewportSize({ width: 1280, height: 720 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
 });
 
 test("Browser Open replaces one document atomically and guards dirty source", async ({ page }) => {

@@ -8,6 +8,7 @@ import { handleHorizontalTabListKeyDown } from "./tabKeyboard";
 import { translateRunState } from "../i18n/locale";
 import { useI18n } from "../i18n/useI18n";
 import type { TranslationKey } from "../i18n/types";
+import type { InspectorActiveTab } from "../preferences/types";
 
 type InspectorTab = "registers" | "memory" | "sourceMap" | "trace";
 
@@ -18,9 +19,23 @@ const tabs: Array<{ id: InspectorTab; labelKey: TranslationKey }> = [
   { id: "trace", labelKey: "inspector.trace" }
 ];
 
-export default function InspectorPanel({ state }: { state: CometState }) {
+type InspectorPanelProps = {
+  state: CometState;
+  initialTab?: InspectorActiveTab;
+  onActiveTabChange?: (tab: InspectorActiveTab) => void;
+};
+
+function fromPreferenceTab(tab: InspectorActiveTab): InspectorTab {
+  return tab === "source-map" ? "sourceMap" : tab;
+}
+
+function toPreferenceTab(tab: InspectorTab): InspectorActiveTab {
+  return tab === "sourceMap" ? "source-map" : tab;
+}
+
+export default function InspectorPanel({ state, initialTab = "registers", onActiveTabChange }: InspectorPanelProps) {
   const { t } = useI18n();
-  const [activeTab, setActiveTab] = useState<InspectorTab>("registers");
+  const [activeTab, setActiveTab] = useState<InspectorTab>(() => fromPreferenceTab(initialTab));
 
   return (
     <section className="panel inspector-panel" data-active-tab={activeTab}>
@@ -46,7 +61,10 @@ export default function InspectorPanel({ state }: { state: CometState }) {
             aria-label={t("accessibility.openInspectorTab", { tab: label })}
             tabIndex={activeTab === tab.id ? 0 : -1}
             title={label}
-            onClick={() => setActiveTab(tab.id)}
+            onClick={() => {
+              setActiveTab(tab.id);
+              onActiveTabChange?.(toPreferenceTab(tab.id));
+            }}
           >
             {label}
           </button>

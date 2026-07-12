@@ -925,6 +925,7 @@ test.describe("visual review screenshot gallery", () => {
     test(`captures visual review gallery at ${viewport.name}`, async ({ page }) => {
       test.setTimeout(120_000);
       await page.setViewportSize({ width: viewport.width, height: viewport.height });
+      await page.addInitScript(() => localStorage.removeItem("stugx.casl.preferences.v1"));
 
       await captureProjectOverview(page, viewport);
       await captureCaslDiagnosticState(page, viewport);

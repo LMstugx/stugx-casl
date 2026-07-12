@@ -2,7 +2,7 @@
 
 ## Scope
 
-This phase prepares the stable Phase 18A.1 history for private GitHub publication. It does not publish executables, installers, deployment artifacts, credentials, or the separate Cloudflare Direct Upload WIP branch.
+This phase prepares the stable Phase 18A.1 history for public GitHub publication. It does not publish executables, installers, deployment artifacts, credentials, or the separate Cloudflare Direct Upload WIP branch.
 
 ## Safety Audit
 
@@ -14,7 +14,7 @@ This phase prepares the stable Phase 18A.1 history for private GitHub publicatio
 
 No credential or generated deployment artifact was admitted to the publication commit.
 
-The current tree contains no machine-specific absolute path. Historical commits still retain earlier local-path examples in README, phase documentation, and the visual-review helper. Preserving the stable commit and tag history means those old blobs are intentionally not rewritten in this phase. The first GitHub repository must therefore remain private; changing visibility to public requires a separate, explicit decision about history rewriting and tag migration.
+The current tree contains no machine-specific absolute path. Historical commits still retain earlier local-path examples in README, phase documentation, and the visual-review helper. High-confidence credential scanning found no token, password, private key, OAuth credential, or Cloudflare credential. The user explicitly accepted the public exposure risk for those historical path examples, so publication may proceed without history rewriting or force push. See [github-public-history-risk-acceptance.md](github-public-history-risk-acceptance.md).
 
 ## Branch Policy
 
@@ -25,10 +25,10 @@ The current tree contains no machine-specific absolute path. Historical commits 
 
 ## Repository Policy
 
-The intended GitHub repository is private and must remain private under the current history policy. Issues may be enabled, Releases are not created, and no deployment token, repository secret, or automatic deployment workflow is added.
+The intended GitHub repository is public under the explicit history-risk acceptance. Issues may be enabled, Releases are not created, and no deployment token, repository secret, or automatic deployment workflow is added.
 
 The repository currently grants no open-source license. `LICENSE` records Copyright © stugx. All rights reserved.
 
 ## Remote Gate
 
-Remote creation or replacement requires an authenticated GitHub CLI session and confirmed repository ownership. An existing unknown remote must never be overwritten automatically. If `gh` is unavailable or unauthenticated, local preparation can complete but publication remains blocked until the user runs `gh auth login` in a trusted local terminal.
+Remote replacement requires an authenticated GitHub CLI session, confirmed repository ownership, and an empty or safely fast-forwardable destination. The previous repository remote is preserved under a separate remote name. Unrelated remote history must never be merged or overwritten automatically.

@@ -256,8 +256,9 @@ describe("advanced UI design system foundation", () => {
 
   it("source_editor_header_does_not_hard_clip_title", () => {
     expect(appTsx).toContain('<h2 title="Source Editor">{t("panel.source")}</h2>');
-    expect(appCss).toContain(".source-panel .panel-header h2");
-    expect(appCss).toContain("min-width: 48px");
+    expect(appCss).toContain(".source-panel .source-panel-header h2");
+    expect(appCss).toContain("min-width: max-content");
+    expect(appCss).toContain("overflow: visible");
   });
 
   it("frame_symbol_chips_use_secondary_style", () => {
@@ -312,5 +313,32 @@ describe("advanced UI design system foundation", () => {
     expect(appCss).toContain("@media (max-width: 1320px), (max-height: 760px)");
     expect(appCss).toContain(".toolbar-actions .tool-button.group-start::before");
     expect(appCss).toContain("grid-template-columns: clamp(230px, 17vw, 280px) minmax(620px, 1fr) clamp(260px, 20vw, 315px)");
+  });
+
+  it("phase18a1_toolbar_locale_controls_are_fixed_and_nonshrinking", () => {
+    expect(tokensCss).toContain("--control-width-locale: 36px");
+    expect(appCss).toMatch(/\.toolbar-meta \{[\s\S]*?flex: 0 0 auto;[\s\S]*?flex-shrink: 0;[\s\S]*?white-space: nowrap;[\s\S]*?overflow: visible;/);
+    expect(appCss).toContain("flex: 0 0 var(--control-width-locale)");
+    expect(appCss).toContain("box-shadow: inset 0 0 0 1px");
+    expect(toolbarTsx).toContain("secondaryAction");
+  });
+
+  it("phase18a1_source_header_uses_stable_grid", () => {
+    expect(appTsx).toContain('data-testid="source-panel-header"');
+    expect(appCss).toMatch(/\.source-panel > \.source-panel-header \{[\s\S]*?grid-template-columns: max-content minmax\(0, 1fr\) max-content;/);
+    expect(appCss).toMatch(/\.demo-program-picker select \{[\s\S]*?min-width: 0;[\s\S]*?max-width: 100%;/);
+    expect(appCss).toMatch(/\.source-mode \{[\s\S]*?flex-shrink: 0;/);
+    expect(appTsx).toContain('className="source-dirty-indicator"');
+  });
+
+  it("phase18a1_diagnostics_use_bounded_list_and_separate_context", () => {
+    expect(appTsx).toContain('data-testid="diagnostic-list"');
+    expect(appTsx).toContain('data-testid="diagnostic-context"');
+    expect(appTsx).toContain('scrollIntoView({ block: "nearest" })');
+    expect(appCss).toMatch(/\.diagnostic-list \{[\s\S]*?min-height: 168px;[\s\S]*?overflow-y: auto;[\s\S]*?scrollbar-gutter: stable;/);
+    expect(appCss).toMatch(/\.errors-panel \{[\s\S]*?max-height: clamp\(280px, 46vh, 440px\);/);
+    expect(appCss).toContain(".diagnostic-context");
+    expect(appCss).toContain(".diagnostic-context-details");
+    expect(appTsx).toContain("selectedDiagnosticDeveloperDetail");
   });
 });

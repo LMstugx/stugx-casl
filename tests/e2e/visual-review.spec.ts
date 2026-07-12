@@ -92,7 +92,8 @@ async function captureCaslDiagnosticState(page: Page, viewport: Viewport) {
     await page.getByTestId("assemble-button").click();
     const duplicate = page.locator('.diagnostic[data-diagnostic-code="assembler.duplicateLabel"]').first();
     await duplicate.click();
-    await duplicate.locator("..").locator(".diagnostic-related summary").click();
+    const rawDetails = page.getByTestId("diagnostic-context").locator(".diagnostic-context-details");
+    if (await rawDetails.count()) await rawDetails.locator("summary").click();
     await capture(page, viewport, "diagnostic-related-location.png");
     await setSource(page, "MAIN START\n RET");
     await page.getByTestId("assemble-button").click();
@@ -109,7 +110,8 @@ async function captureCaslDiagnosticState(page: Page, viewport: Viewport) {
     await expect(page.locator(".diagnostic").first()).toBeVisible();
     await capture(page, viewport, "diagnostic-multiple-errors-1280.png");
     await page.locator(".diagnostic").first().click();
-    await page.locator(".diagnostic-entry").first().locator(".diagnostic-related summary").click();
+    const rawDetails = page.getByTestId("diagnostic-context").locator(".diagnostic-context-details");
+    if (await rawDetails.count()) await rawDetails.locator("summary").click();
     await capture(page, viewport, "diagnostic-details-expanded-1280.png");
   }
 }
@@ -149,7 +151,8 @@ async function captureCppDiagnosticState(page: Page, viewport: Viewport) {
   await page.getByTestId("locale-en").click();
 
   if (viewport.primary) {
-    await p2Conflict.locator("..").locator(".diagnostic-related summary").click();
+    const rawDetails = page.getByTestId("diagnostic-context").locator(".diagnostic-context-details");
+    if (await rawDetails.count()) await rawDetails.locator("summary").click();
     await capture(page, viewport, "diagnostic-p2-related-location.png");
     const longName = "generated_label_collision_name_".repeat(5);
     await setSource(page, `int ${longName}() { return 0; } int ${longName.toUpperCase()}() { return 0; } int main() { return 0; }`);
@@ -1176,6 +1179,71 @@ async function capturePersistenceQualityGateStates(page: Page, viewport: Viewpor
   }, { locale: localeStorageKey, preferences: applicationPreferenceKey, startup: startupSelectionKey, progress: lessonProgressKey });
 }
 
+async function capturePhase18A1DesktopPolish(page: Page, viewport: Viewport) {
+  if (!viewport.primary) return;
+  const compactViewport: Viewport = { name: "1180x700", width: 1180, height: 700 };
+  const standardViewport: Viewport = { name: "1280x720", width: 1280, height: 720 };
+  const maximizedViewport: Viewport = { name: "1920x1080", width: 1920, height: 1080 };
+
+  await page.setViewportSize({ width: compactViewport.width, height: compactViewport.height });
+  await openStudio(page, "Mock Core");
+  await page.getByTestId("locale-en").click();
+  await capture(page, compactViewport, "tauri-toolbar-en-1180.png", false);
+  await page.getByTestId("locale-ja").click();
+  await capture(page, compactViewport, "tauri-toolbar-ja-1180.png", false);
+  await page.getByTestId("locale-zh-CN").click();
+  await capture(page, compactViewport, "tauri-toolbar-zh-cn-1180.png", false);
+
+  await page.setViewportSize({ width: standardViewport.width, height: standardViewport.height });
+  await page.getByTestId("locale-en").click();
+  await capture(page, standardViewport, "source-header-en-1280.png", false);
+  await page.getByTestId("locale-ja").click();
+  await capture(page, standardViewport, "source-header-ja-1280.png", false);
+  await page.getByTestId("locale-zh-CN").click();
+  await capture(page, standardViewport, "source-header-zh-cn-1280.png", false);
+
+  const invalidLines = Array.from({ length: 28 }, (_, index) => `     BAD${index} GR9`).join("\n");
+  const captureManyDiagnostics = async (
+    localeId: "locale-en" | "locale-ja" | "locale-zh-CN",
+    fileName: string
+  ) => {
+    const scenarioPage = await page.context().newPage();
+    try {
+      await scenarioPage.setViewportSize({ width: standardViewport.width, height: standardViewport.height });
+      await openStudio(scenarioPage, "Mock Core");
+      await scenarioPage.getByTestId(localeId).click();
+      await setSource(scenarioPage, `MAIN START\n${invalidLines}\n     END`);
+      await scenarioPage.getByTestId("assemble-button").click();
+      await scenarioPage.evaluate(() => window.scrollTo(0, 0));
+      await capture(scenarioPage, standardViewport, fileName, false);
+    } finally {
+      await scenarioPage.close();
+    }
+  };
+  await captureManyDiagnostics("locale-en", "diagnostics-many-en-1280.png");
+  await captureManyDiagnostics("locale-ja", "diagnostics-many-ja-1280.png");
+  await captureManyDiagnostics("locale-zh-CN", "diagnostics-many-zh-cn-1280.png");
+  await page.getByTestId("locale-en").click();
+  await page.reload();
+  await expect(page.getByTestId("backend-label")).toHaveText("Mock Core");
+  await setSource(page, `MAIN START\n${invalidLines}\n     END`);
+  await page.getByTestId("assemble-button").click();
+  await page.locator(".diagnostic").last().click();
+  await capture(page, standardViewport, "diagnostics-context-selected.png", false);
+  await page.getByTestId("source-mode-casl").click();
+  await setSource(page, "MAIN START\nA DC 1\nA DC 2\n END");
+  await page.getByTestId("assemble-button").click();
+  await page.locator('.diagnostic[data-diagnostic-code="assembler.duplicateLabel"]').click();
+  const contextDetails = page.getByTestId("diagnostic-context").locator(".diagnostic-context-details");
+  await contextDetails.locator("summary").click();
+  await capture(page, standardViewport, "diagnostics-details-expanded.png", false);
+
+  await page.setViewportSize({ width: maximizedViewport.width, height: maximizedViewport.height });
+  await page.getByTestId("locale-en").click();
+  await capture(page, maximizedViewport, "tauri-maximized-layout.png", false);
+  await page.setViewportSize({ width: viewport.width, height: viewport.height });
+}
+
 test.describe("visual review screenshot gallery", () => {
   for (const viewport of viewports) {
     test(`captures visual review gallery at ${viewport.name}`, async ({ page }) => {
@@ -1237,6 +1305,7 @@ test.describe("visual review screenshot gallery", () => {
       await captureStartupSelectionStates(page, viewport);
       await captureLessonProgressStates(page, viewport);
       await capturePersistenceQualityGateStates(page, viewport);
+      await capturePhase18A1DesktopPolish(page, viewport);
     });
   }
 });

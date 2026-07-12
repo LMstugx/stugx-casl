@@ -186,6 +186,7 @@ function StudioShell({
   const [editorSelectedFrameSlotId, setEditorSelectedFrameSlotId] = useState<string | undefined>();
   const [selectedDiagnosticId, setSelectedDiagnosticId] = useState<string | undefined>();
   const [diagnosticNavigationRange, setDiagnosticNavigationRange] = useState<SourceRange | undefined>();
+  const diagnosticListRef = useRef<HTMLDivElement>(null);
   const [showNewDocumentDialog, setShowNewDocumentDialog] = useState(false);
   const [pendingReplacementIntent, setPendingReplacementIntent] = useState<SourceReplacementIntent | null>(null);
   const [fileNotice, setFileNotice] = useState<FileOperationNoticeModel | null>(null);
@@ -336,6 +337,9 @@ function StudioShell({
   );
   const editorCurrentLine = sourceMode === "cpp" ? cppLineForCaslLine(cppToCaslMapping, state.currentLine) : state.currentLine;
   const selectedDiagnostic = diagnostics.find((diagnostic) => diagnostic.identity === selectedDiagnosticId);
+  const selectedDiagnosticDeveloperDetail = selectedDiagnostic
+    ? formatDiagnosticDeveloperDetail(selectedDiagnostic.source.rawContext)
+    : undefined;
   const selectedDiagnosticRange: SourceRange | undefined = diagnosticNavigationRange ?? selectedDiagnostic?.source.sourceRange;
   const selectedDiagnosticMessage = selectedDiagnostic?.rendered.message;
   useEffect(() => {
@@ -343,6 +347,12 @@ function StudioShell({
       setSelectedDiagnosticId(undefined);
       setDiagnosticNavigationRange(undefined);
     }
+  }, [diagnostics, selectedDiagnosticId]);
+  useEffect(() => {
+    if (!selectedDiagnosticId) return;
+    diagnosticListRef.current
+      ?.querySelector<HTMLElement>('[data-selected="true"]')
+      ?.scrollIntoView({ block: "nearest" });
   }, [diagnostics, selectedDiagnosticId]);
   useEffect(() => {
     setSelectedDiagnosticId(undefined);
@@ -463,35 +473,33 @@ function StudioShell({
       <main className="workspace">
         <section className="left-column">
           <section className="panel source-panel">
-            <header className="panel-header">
+            <header className="panel-header source-panel-header" data-testid="source-panel-header">
               <h2 title="Source Editor">{t("panel.source")}</h2>
-              <div className="source-header-actions">
-                <label className="demo-program-picker" title={selectedDemoProgram?.name ?? t("file.externalFile")} aria-busy={replacementBusy || undefined}>
-                  <span>Demo</span>
-                  <select
-                    data-testid="demo-program-select"
-                    value={selectedDemoProgramId}
-                    disabled={replacementBusy || fileLifecycle.status === "saving" || fileLifecycle.status === "save-as"}
-                    title={selectedDemoProgram?.name ?? t("file.externalFile")}
-                    aria-label={`Demo program: ${selectedDemoProgram?.name ?? t("file.externalFile")}`}
-                    onChange={(event) => requestReplacement({ kind: "select-example", exampleId: event.target.value })}
-                  >
-                    {!selectedDemoProgram ? <option value="">{t("file.externalFile")}</option> : null}
-                    {demoPrograms.map((program) => (
-                      <option key={program.id} value={program.id}>
-                        {program.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <div className="segmented source-mode" aria-label="Source mode">
-                  <button type="button" className={sourceMode === "casl" ? "selected" : ""} data-testid="source-mode-casl" aria-pressed={sourceMode === "casl"} title="Use CASL source mode" onClick={() => setSourceMode("casl")}>
-                    CASL
-                  </button>
-                  <button type="button" className={sourceMode === "cpp" ? "selected" : ""} data-testid="source-mode-cpp" aria-pressed={sourceMode === "cpp"} title="Use C++ subset source mode" onClick={() => setSourceMode("cpp")}>
-                    <span className="source-mode-full">C++ subset</span><span className="source-mode-compact">C++</span>
-                  </button>
-                </div>
+              <label className="demo-program-picker" title={selectedDemoProgram?.name ?? t("file.externalFile")} aria-busy={replacementBusy || undefined}>
+                <span>Demo</span>
+                <select
+                  data-testid="demo-program-select"
+                  value={selectedDemoProgramId}
+                  disabled={replacementBusy || fileLifecycle.status === "saving" || fileLifecycle.status === "save-as"}
+                  title={selectedDemoProgram?.name ?? t("file.externalFile")}
+                  aria-label={`Demo program: ${selectedDemoProgram?.name ?? t("file.externalFile")}`}
+                  onChange={(event) => requestReplacement({ kind: "select-example", exampleId: event.target.value })}
+                >
+                  {!selectedDemoProgram ? <option value="">{t("file.externalFile")}</option> : null}
+                  {demoPrograms.map((program) => (
+                    <option key={program.id} value={program.id}>
+                      {program.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <div className="segmented source-mode" aria-label="Source mode">
+                <button type="button" className={sourceMode === "casl" ? "selected" : ""} data-testid="source-mode-casl" aria-pressed={sourceMode === "casl"} title="Use CASL source mode" onClick={() => setSourceMode("casl")}>
+                  CASL
+                </button>
+                <button type="button" className={sourceMode === "cpp" ? "selected" : ""} data-testid="source-mode-cpp" aria-pressed={sourceMode === "cpp"} title="Use C++ subset source mode" onClick={() => setSourceMode("cpp")}>
+                  <span className="source-mode-full">C++ subset</span><span className="source-mode-compact">C++</span>
+                </button>
               </div>
               <span className="source-document-label" title={documentDisplayName} aria-label={`${documentDisplayName}${documentDirty ? `, ${t("status.dirty")}` : ""}`}>
                 <span className="source-file-name">{documentDisplayName}</span>
@@ -535,16 +543,16 @@ function StudioShell({
             />
           ) : null}
 
-          <section className="panel errors-panel">
-            <header className="panel-header">
+          <section className="panel errors-panel" data-testid="errors-panel" data-has-diagnostics={diagnostics.length > 0 ? "true" : "false"}>
+            <header className="panel-header errors-panel-header">
               <h2>{t("diagnostic.errors")}</h2>
               <span aria-label={`${t("diagnostic.errors")}: ${diagnostics.length}`}>{diagnostics.length}</span>
             </header>
             {diagnostics.length === 0 ? <p className="muted diagnostic-empty-state">{t("empty.noDiagnostics")}</p> : null}
-            <div className="diagnostic-list" role="listbox" aria-label={t("diagnostic.errors")}>
+            {diagnostics.length > 0 ? (
+            <div ref={diagnosticListRef} className="diagnostic-list" role="listbox" aria-label={t("diagnostic.errors")} data-testid="diagnostic-list">
             {diagnostics.map(({ source, rendered, identity, displayLine }) => {
               const isSelected = selectedDiagnosticId === identity;
-              const developerDetail = formatDiagnosticDeveloperDetail(source.rawContext);
               return (
               <div key={identity} className="diagnostic-entry" data-selected={isSelected ? "true" : "false"}>
                 <button
@@ -563,33 +571,56 @@ function StudioShell({
                   <span className="diagnostic-location">{t("diagnostic.line", { line: displayLine })}</span>
                   <span className="diagnostic-message" title={rendered.message}>{rendered.message}</span>
                 </button>
-                {source.code || source.producer || source.rawContext || source.relatedLocations?.length ? (
-                  <details className="diagnostic-related">
+              </div>
+            )})}
+            </div>
+            ) : null}
+            {selectedDiagnostic ? (
+              <section
+                className="diagnostic-context"
+                data-testid="diagnostic-context"
+                aria-label={`${t("diagnostic.errors")} ${t("common.details")}`}
+              >
+                <div className="diagnostic-context-summary">
+                  <strong title={selectedDiagnostic.rendered.message}>{selectedDiagnostic.rendered.message}</strong>
+                  <span>{t("diagnostic.line", { line: selectedDiagnostic.displayLine })}</span>
+                </div>
+                {selectedDiagnostic.source.code ? (
+                  <span className="diagnostic-technical-detail" title={selectedDiagnostic.source.code}>
+                    {t("diagnostic.code", { code: selectedDiagnostic.source.code })}
+                  </span>
+                ) : null}
+                {selectedDiagnostic.source.producer ? (
+                  <span className="diagnostic-technical-detail" title={selectedDiagnostic.source.producer}>
+                    {t("diagnostic.producer", { producer: selectedDiagnostic.source.producer })}
+                  </span>
+                ) : null}
+                {selectedDiagnostic.source.relatedLocations?.length || selectedDiagnosticDeveloperDetail ? (
+                  <details className="diagnostic-related diagnostic-context-details">
                     <summary>{t("common.details")}</summary>
-                    {source.code ? <span className="diagnostic-technical-detail" title={source.code}>{t("diagnostic.code", { code: source.code })}</span> : null}
-                    {source.producer ? <span className="diagnostic-technical-detail" title={source.producer}>{t("diagnostic.producer", { producer: source.producer })}</span> : null}
-                    {developerDetail ? <span className="diagnostic-raw-context"><strong>{t("diagnostic.rawContext")}</strong><code title={developerDetail}>{developerDetail}</code></span> : null}
-                    {source.relatedLocations?.length ? <strong>{t("diagnostic.relatedLocations")}</strong> : null}
-                    {source.relatedLocations?.map((location, relatedIndex) => (
+                    {selectedDiagnostic.source.relatedLocations?.length ? <strong>{t("diagnostic.relatedLocations")}</strong> : null}
+                    {selectedDiagnostic.source.relatedLocations?.map((location, relatedIndex) => (
                       <button
                         key={`${location.sourceRange.start.line}:${location.sourceRange.start.column}:${relatedIndex}`}
                         type="button"
                         className="diagnostic-related-location"
                         aria-label={`${location.label === "diagnostic.openingDelimiterHere" ? t("diagnostic.openingDelimiterHere") : t("diagnostic.firstDeclaredHere")}, ${t("diagnostic.line", { line: location.sourceRange.start.line })}`}
-                        onClick={() => {
-                          setSelectedDiagnosticId(identity);
-                          setDiagnosticNavigationRange(location.sourceRange);
-                        }}
+                        onClick={() => setDiagnosticNavigationRange(location.sourceRange)}
                       >
                         <span>{location.label === "diagnostic.openingDelimiterHere" ? t("diagnostic.openingDelimiterHere") : t("diagnostic.firstDeclaredHere")}</span>
                         <code>{t("diagnostic.line", { line: location.sourceRange.start.line })}</code>
                       </button>
                     ))}
+                    {selectedDiagnosticDeveloperDetail ? (
+                      <span className="diagnostic-raw-context">
+                        <strong>{t("diagnostic.rawContext")}</strong>
+                        <code title={selectedDiagnosticDeveloperDetail}>{selectedDiagnosticDeveloperDetail}</code>
+                      </span>
+                    ) : null}
                   </details>
                 ) : null}
-              </div>
-            )})}
-            </div>
+              </section>
+            ) : null}
           </section>
         </section>
 

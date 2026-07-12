@@ -403,7 +403,7 @@ The current backend is shown in the status bar as `Mock Core`, `WASM Core`, or `
 - [docs/static-host-deployment-contract.md](docs/static-host-deployment-contract.md): root/subpath serving, cache, smoke, and provider-neutral release procedure.
 - [docs/static-host-security-headers.md](docs/static-host-security-headers.md): reviewed CSP and static response header template.
 - [docs/browser-capability-matrix.md](docs/browser-capability-matrix.md): required and optional capabilities with safe fallback behavior.
-- [docs/phase18a-tauri-windows-local-demo.md](docs/phase18a-tauri-windows-local-demo.md): existing-frontend Tauri architecture, offline WASM, Windows bundle, validation, and limitations.
+- [docs/phase18a-tauri-windows-local-demo.md](docs/phase18a-tauri-windows-local-demo.md): existing-frontend Tauri architecture, offline WASM, Windows bundle, official STUGX icon, desktop detail polish, validation, and limitations.
 - [docs/tauri-security-capability-contract.md](docs/tauri-security-capability-contract.md): minimal main-window IPC capability, CSP, persistence, and signing boundaries.
 - [docs/tauri-build-and-demo-runbook.md](docs/tauri-build-and-demo-runbook.md): MSVC-aware build commands, outputs, offline smoke, and unsigned installer procedure.
 - [docs/production-size-budget.json](docs/production-size-budget.json): deterministic public bundle budget.

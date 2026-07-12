@@ -28,14 +28,17 @@ pnpm tauri:verify
 
 All outputs are ignored and must not be committed.
 
+The committed Windows icon inputs are derived from the user-provided STUGX source under `assets/branding/`. `pnpm tauri:verify` checks the 1024x1024 master and required 16/32/64/256 ICO frames before accepting a demo build.
+
 ## Offline Smoke
 
 1. Stop Vite/Node servers and verify ports 5173/5174 are not listening.
 2. Disconnect networking or block the demo executable for outbound traffic.
 3. Start the release executable directly.
 4. Confirm the built-in example, `WASM Core`, Assemble, Step, Run, Reset, all three observation modes, EN/JA/zh-CN, natural page/Inspector scrolling, and clean-wire behavior.
-5. Change locale, preferences, startup example, and lesson progress; close and reopen the app and confirm those four safe domains restore.
-6. Confirm no source, external file, path, handle, diagnostics, generated output, Trace, or VM state is restored.
+5. At 1180x700, 1280x720, and 1440x900, confirm JP/EN/CN remain visible, Source controls do not overlap, and a long Errors list scrolls internally while its selected context remains visible.
+6. Change locale, preferences, startup example, and lesson progress; close and reopen the app and confirm those four safe domains restore.
+7. Confirm no source, external file, path, handle, diagnostics, generated output, Trace, or VM state is restored.
 
 Manual GUI results must be recorded as manual evidence. Build/config tests are not a substitute for launching the release executable.
 

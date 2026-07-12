@@ -7,7 +7,7 @@ type TauriConfig = {
   identifier: string;
   build: { frontendDist: string; devUrl: string; beforeBuildCommand: string };
   app: { windows: Array<Record<string, unknown>>; security: { csp: string } };
-  bundle: { targets: string[] };
+  bundle: { targets: string[]; icon: string[] };
 };
 
 describe("Phase 18A Tauri Windows demo contracts", () => {
@@ -76,5 +76,29 @@ describe("Phase 18A Tauri Windows demo contracts", () => {
     ]) {
       expect(JSON.parse(readFileSync(path, "utf8"))).toBeTruthy();
     }
+  });
+
+  it("uses the provided STUGX brand source for deterministic Windows icons", () => {
+    for (const path of [
+      "assets/branding/stugx-logo-source.jpg",
+      "assets/branding/stugx-logo-source.png",
+      "assets/branding/stugx-logo-horizontal.png"
+    ]) {
+      expect(readFileSync(path, "latin1").length).toBeGreaterThan(1_000);
+    }
+    const master = readFileSync("src-tauri/icons/app-icon-source.png", "latin1");
+    const readUInt32BE = (offset: number) =>
+      ((master.charCodeAt(offset) << 24) >>> 0)
+      + (master.charCodeAt(offset + 1) << 16)
+      + (master.charCodeAt(offset + 2) << 8)
+      + master.charCodeAt(offset + 3);
+    expect(readUInt32BE(16)).toBe(1024);
+    expect(readUInt32BE(20)).toBe(1024);
+    expect(config.bundle.icon).toEqual([
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.ico"
+    ]);
   });
 });

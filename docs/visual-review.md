@@ -248,6 +248,8 @@ Phase 17A adds no normal-workspace visual feature. Existing 1280/1440/1920 EN/JA
 
 Phase 18A reuses the same frontend and visual baseline in a 1440x900 Tauri window, with 1180x700 minimum chrome bounds. Manual release smoke checks 1280x720 content containment, natural page scroll, bounded Inspector scroll, three locales, observation modes, and the unchanged no-arrow/no-circle/no-ghost-wire contract. Tauri adds no desktop-only visual redesign or screenshot artifact.
 
+Phase 18A.1 adds focused 1180x700 Toolbar captures for EN/JA/zh-CN, 1280x720 Source-header captures, a 20+ error scenario with a bounded diagnostic list, selected context and collapsed/expanded raw-details states, plus a maximized layout. Review confirms equal nonshrinking locale controls, no Source-control overlap, at least four complete diagnostic rows, stable internal scrolling, usable editor height, natural page scrolling, and no horizontal overflow. Generated screenshots remain ignored artifacts.
+
 - This is a review gallery, not a pixel-diff visual regression suite.
 - Screenshots are generated artifacts and are not committed to git.
 - The gallery is local only unless you use an existing tunnel tool.

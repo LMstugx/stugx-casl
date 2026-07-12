@@ -88,6 +88,12 @@ describe("visual review screenshot gallery setup", () => {
     expect(visualReviewSpec).toContain("demo-switch-dirty-guard-ja.png");
     expect(visualReviewSpec).toContain("untitled-casl-document.png");
     expect(visualReviewSpec).toContain("replacement-busy-state.png");
+    expect(visualReviewSpec).toContain("tauri-toolbar-ja-1180.png");
+    expect(visualReviewSpec).toContain("source-header-zh-cn-1280.png");
+    expect(visualReviewSpec).toContain("diagnostics-many-en-1280.png");
+    expect(visualReviewSpec).toContain("diagnostics-context-selected.png");
+    expect(visualReviewSpec).toContain("diagnostics-details-expanded.png");
+    expect(visualReviewSpec).toContain("tauri-maximized-layout.png");
     expect(visualReviewSpec).toContain("page.screenshot");
   });
 
@@ -165,6 +171,8 @@ describe("visual review screenshot gallery setup", () => {
     expect(visualReviewDoc).toContain("cpp-function-arguments-trace.png");
     expect(visualReviewDoc).toContain("cpp-function-arguments-machine-code.png");
     expect(visualReviewDoc).toContain("Phase 15D captures the New dialog");
+    expect(visualReviewDoc).toContain("Phase 18A.1");
+    expect(visualReviewDoc).toContain("bounded diagnostic list");
   });
 
   it("package_json_has_visual_review_scripts", () => {

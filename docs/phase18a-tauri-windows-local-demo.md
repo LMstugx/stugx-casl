@@ -26,7 +26,13 @@ Phase 18A intentionally does not add native file permissions. The browser Open/S
 
 ## Branding And Bundle
 
-The Windows icon is a deterministic raster adaptation of the existing blue `CASL` toolbar brand mark in `src/styles/app.css`; it uses no downloaded asset or bundled font. Tauri's default icon is not retained. The build targets an unsigned per-user NSIS installer and a standalone release executable, with adjacent SHA-256 files. No updater or signing material is configured.
+The user-provided STUGX source is retained as `assets/branding/stugx-logo-source.jpg`, with a pixel-equivalent PNG and whitespace-trimmed horizontal presentation asset beside it. The 1024x1024 Windows icon master isolates and lays out the original red X pixels without redrawing or recoloring them. Project-local Tauri CLI output supplies 16/32/64/256 ICO frames and the configured PNG sizes; Tauri's default icon is not retained. The build targets an unsigned per-user NSIS installer and a standalone release executable, with adjacent SHA-256 files. No updater or signing material is configured.
+
+## Phase 18A.1 Desktop Detail Freeze
+
+The 1180x700, 1280x720, 1440x900, and maximized desktop layouts keep the locale utility group nonshrinking and give JP/EN/CN equal 36px controls. At compact desktop sizes the inactive theme placeholder and brand subtitle yield space before command labels are compressed. The Source header is a stable three-column, two-row grid: title, Demo selector, language mode, then an independently truncated document name and Dirty marker.
+
+Errors now use a bounded diagnostic list with stable scrollbar space and a separate selected-diagnostic context. Only the selected item exposes full localized summary, source/related locations, producer/code, and collapsed raw context. The left column contributes its minimum content height to natural page scrolling, preserving a usable Source Editor instead of allowing a large error set to stretch or crush the workspace. Diagnostic identity, count, order, severity, range, marker ownership, and navigation semantics are unchanged.
 
 ## Validation And Result
 

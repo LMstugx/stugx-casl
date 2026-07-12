@@ -1280,7 +1280,7 @@ test("Phase 14B short UI strings translate without changing program state", asyn
   await page.setViewportSize({ width: 1280, height: 720 });
   await openStudio(page, "Mock Core");
   await selectDemoProgram(page, "cpp-addition");
-  const sourceBefore = await page.getByTestId("source-editor").locator(".view-lines").textContent();
+  const sourceBefore = await page.evaluate(() => (window as unknown as { monaco?: { editor: { getModels(): Array<{ getValue(): string }> } } }).monaco?.editor.getModels().at(-1)?.getValue());
   await assemble(page);
   await step(page);
 
@@ -1324,7 +1324,7 @@ test("Phase 14B short UI strings translate without changing program state", asyn
 
   await page.locator("#output-tab-generated").click();
   await page.locator("#inspector-tab-registers").click();
-  expect(await page.getByTestId("source-editor").locator(".view-lines").textContent()).toBe(sourceBefore);
+  expect(await page.evaluate(() => (window as unknown as { monaco?: { editor: { getModels(): Array<{ getValue(): string }> } } }).monaco?.editor.getModels().at(-1)?.getValue())).toBe(sourceBefore);
   expect(await page.getByTestId("generated-casl-line-current").textContent()).toBe(generatedBefore);
   expect(await page.getByTestId("generated-casl-line-current").getAttribute("data-line")).toBe(currentLineBefore);
   expect(await page.getByTestId("register-pr").textContent()).toBe(prBefore);
@@ -1347,6 +1347,112 @@ test("Phase 14B short UI strings translate without changing program state", asyn
   await page.getByTestId("locale-en").click();
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
   expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)).toBe(false);
+});
+
+test("Phase 18A.1 keeps toolbar and source header stable across desktop locales", async ({ page }) => {
+  await openStudio(page, "Mock Core");
+  const viewports = [
+    { width: 1180, height: 700 },
+    { width: 1280, height: 720 },
+    { width: 1440, height: 900 }
+  ];
+  const localeIds = ["locale-en", "locale-ja", "locale-zh-CN"] as const;
+
+  for (const viewport of viewports) {
+    await page.setViewportSize(viewport);
+    for (const localeId of localeIds) {
+      await page.getByTestId(localeId).click();
+      const localeSelector = page.getByTestId("locale-selector");
+      const toolbar = page.locator(".toolbar");
+      const actions = page.locator(".toolbar-actions");
+      const sourceHeader = page.getByTestId("source-panel-header");
+      const sourceTitle = sourceHeader.getByRole("heading");
+      const demoPicker = sourceHeader.locator(".demo-program-picker");
+      const modeSwitch = sourceHeader.locator(".source-mode");
+      const boxes = await Promise.all([
+        toolbar.boundingBox(),
+        actions.boundingBox(),
+        localeSelector.boundingBox(),
+        sourceHeader.boundingBox(),
+        sourceTitle.boundingBox(),
+        demoPicker.boundingBox(),
+        modeSwitch.boundingBox()
+      ]);
+      const [toolbarBox, actionBox, localeBox, sourceHeaderBox, titleBox, demoBox, modeBox] = boxes;
+      expect(toolbarBox && actionBox && localeBox && sourceHeaderBox && titleBox && demoBox && modeBox).toBeTruthy();
+      expect(actionBox!.x + actionBox!.width).toBeLessThanOrEqual(localeBox!.x + 1);
+      expect(localeBox!.x + localeBox!.width).toBeLessThanOrEqual(toolbarBox!.x + toolbarBox!.width + 1);
+      expect(titleBox!.x + titleBox!.width).toBeLessThanOrEqual(demoBox!.x + 1);
+      expect(demoBox!.x + demoBox!.width).toBeLessThanOrEqual(modeBox!.x + 1);
+      expect(modeBox!.x + modeBox!.width).toBeLessThanOrEqual(sourceHeaderBox!.x + sourceHeaderBox!.width + 1);
+      await expect(demoPicker.locator("span")).toHaveText("Demo");
+      await expect(page.getByTestId("locale-ja")).toHaveText("JP");
+
+      const localeWidths = await localeSelector.locator("button").evaluateAll((buttons) =>
+        buttons.map((button) => button.getBoundingClientRect().width)
+      );
+      expect(Math.min(...localeWidths)).toBeGreaterThanOrEqual(34);
+      expect(Math.max(...localeWidths) - Math.min(...localeWidths)).toBeLessThanOrEqual(0.5);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+    }
+  }
+});
+
+test("Phase 18A.1 bounds long diagnostics and keeps selected context visible", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await openStudio(page, "Mock Core");
+  const invalidLines = Array.from({ length: 28 }, (_, index) => `     BAD${index} GR9`).join("\n");
+  await setSource(page, `MAIN START\n${invalidLines}\n     END`);
+  await page.getByTestId("assemble-button").click();
+
+  const diagnostics = page.locator(".diagnostic");
+  expect(await diagnostics.count()).toBeGreaterThanOrEqual(20);
+  const list = page.getByTestId("diagnostic-list");
+  const errorsPanel = page.getByTestId("errors-panel");
+  const sourceEditor = page.getByTestId("source-editor");
+  const metrics = await list.evaluate((element) => ({
+    clientHeight: element.clientHeight,
+    scrollHeight: element.scrollHeight,
+    overflowY: getComputedStyle(element).overflowY
+  }));
+  expect(metrics.clientHeight).toBeGreaterThanOrEqual(168);
+  expect(metrics.scrollHeight).toBeGreaterThan(metrics.clientHeight);
+  expect(metrics.overflowY).toBe("auto");
+  expect((await errorsPanel.boundingBox())!.height).toBeLessThanOrEqual(365);
+  expect((await sourceEditor.boundingBox())!.height).toBeGreaterThanOrEqual(175);
+
+  const listBox = (await list.boundingBox())!;
+  const fullyVisibleRows = await page.locator(".diagnostic-entry").evaluateAll((entries, listBounds) =>
+    entries.filter((entry) => {
+      const row = entry.getBoundingClientRect();
+      return row.top >= listBounds.top - 1 && row.bottom <= listBounds.bottom + 1;
+    }).length,
+    { top: listBox.y, bottom: listBox.y + listBox.height }
+  );
+  expect(fullyVisibleRows).toBeGreaterThanOrEqual(4);
+
+  const lastDiagnostic = diagnostics.last();
+  await lastDiagnostic.click();
+  await expect(lastDiagnostic).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByTestId("diagnostic-context")).toBeVisible();
+  const selectedListBox = (await list.boundingBox())!;
+  const selectedBox = (await lastDiagnostic.locator("..").boundingBox())!;
+  expect(selectedBox.y).toBeGreaterThanOrEqual(selectedListBox.y - 1);
+  expect(selectedBox.y + selectedBox.height).toBeLessThanOrEqual(selectedListBox.y + selectedListBox.height + 1);
+  const selectedCode = await lastDiagnostic.getAttribute("data-diagnostic-code");
+  await page.getByTestId("locale-ja").click();
+  await expect(page.locator(`.diagnostic[data-diagnostic-code="${selectedCode}"]`).last()).toHaveAttribute("aria-selected", "true");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+
+  await page.getByTestId("source-mode-casl").click();
+  await setSource(page, "MAIN START\nA DC 1\nA DC 2\n END");
+  await page.getByTestId("assemble-button").click();
+  await page.locator('.diagnostic[data-diagnostic-code="assembler.duplicateLabel"]').click();
+  const contextDetails = page.getByTestId("diagnostic-context").locator(".diagnostic-context-details");
+  await expect(contextDetails).not.toHaveAttribute("open", "");
+  await contextDetails.locator("summary").press("Enter");
+  await expect(contextDetails).toHaveAttribute("open", "");
+  await expect(contextDetails.getByRole("button")).toBeVisible();
 });
 
 test("Phase 14C localizes Circuit Focus compact UI without changing technical state", async ({ page }) => {
@@ -1478,8 +1584,7 @@ test("Phase 14E diagnostic ranges and related locations remain stable across loc
   const duplicate = page.locator('.diagnostic[data-diagnostic-code="assembler.duplicateLabel"]').first();
   await duplicate.click();
   await expect(page.locator(".diagnostic-source-range-inline")).toContainText("A");
-  const related = duplicate.locator("..").locator(".diagnostic-related");
-  await related.locator("summary").click();
+  const related = page.getByTestId("diagnostic-context");
   await expect(related).toContainText(/2/);
 
   await page.getByTestId("source-mode-cpp").click();
@@ -1504,15 +1609,14 @@ test("Phase 14F parser diagnostics localize without reparsing or moving selectio
   await diagnostic.click();
   const entry = diagnostic.locator("..");
   const count = await page.locator(".diagnostic").count();
-  const editorText = await page.getByTestId("source-editor").locator(".view-lines").textContent();
-  await entry.locator(".diagnostic-related summary").click();
-  await expect(entry.locator(".diagnostic-related")).toContainText("cpp-parser");
+  const editorText = await page.evaluate(() => (window as unknown as { monaco?: { editor: { getModels(): Array<{ getValue(): string }> } } }).monaco?.editor.getModels().at(-1)?.getValue());
+  await expect(page.getByTestId("diagnostic-context")).toContainText("cpp-parser");
 
   await page.getByTestId("locale-ja").click();
   await expect(diagnostic.locator(".diagnostic-message")).toContainText("セミコロン");
   await expect(entry).toHaveAttribute("data-selected", "true");
   expect(await page.locator(".diagnostic").count()).toBe(count);
-  expect(await page.getByTestId("source-editor").locator(".view-lines").textContent()).toBe(editorText);
+  expect(await page.evaluate(() => (window as unknown as { monaco?: { editor: { getModels(): Array<{ getValue(): string }> } } }).monaco?.editor.getModels().at(-1)?.getValue())).toBe(editorText);
 
   await page.getByTestId("locale-zh-CN").click();
   await expect(diagnostic.locator(".diagnostic-message")).toContainText("缺少分号");
@@ -1540,10 +1644,9 @@ test("Phase 14G stable P2 diagnostic localizes without changing identity or sour
   const entry = diagnostic.locator("..");
   const count = await page.locator(".diagnostic").count();
   const englishMessage = await diagnostic.locator(".diagnostic-message").textContent();
-  const editorText = await page.getByTestId("source-editor").locator(".view-lines").textContent();
+  const editorText = await page.evaluate(() => (window as unknown as { monaco?: { editor: { getModels(): Array<{ getValue(): string }> } } }).monaco?.editor.getModels().at(-1)?.getValue());
   await expect(page.locator(".diagnostic-source-range-inline")).toContainText("FOO");
-  await entry.locator(".diagnostic-related summary").click();
-  await expect(entry.locator(".diagnostic-related")).toContainText("transpiler");
+  await expect(page.getByTestId("diagnostic-context")).toContainText("transpiler");
 
   await page.getByTestId("locale-ja").click();
   await expect(diagnostic.locator(".diagnostic-message")).toContainText("FOO");
@@ -1554,7 +1657,7 @@ test("Phase 14G stable P2 diagnostic localizes without changing identity or sour
   await page.getByTestId("locale-zh-CN").click();
   await expect(diagnostic.locator(".diagnostic-message")).toContainText("FOO");
   expect(await page.locator(".diagnostic").count()).toBe(count);
-  expect(await page.getByTestId("source-editor").locator(".view-lines").textContent()).toBe(editorText);
+  expect(await page.evaluate(() => (window as unknown as { monaco?: { editor: { getModels(): Array<{ getValue(): string }> } } }).monaco?.editor.getModels().at(-1)?.getValue())).toBe(editorText);
   await expect(entry).toHaveAttribute("data-selected", "true");
   expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)).toBe(false);
 });
@@ -1569,19 +1672,22 @@ test("Phase 14H diagnostic baseline keeps accessible selection related navigatio
 
   const list = page.getByRole("listbox", { name: "Errors" });
   const diagnostic = page.locator('.diagnostic[data-diagnostic-code="transpiler.generatedLabelConflict"]').first();
-  const details = diagnostic.locator("..").locator(".diagnostic-related");
+  const context = page.getByTestId("diagnostic-context");
+  const details = context.locator(".diagnostic-context-details");
   await expect(list).toBeVisible();
   await expect(diagnostic).toHaveRole("option");
   await expect(diagnostic).toHaveAccessibleName(/Error.*FOO.*FUNC_FOO/);
-  await expect(details).not.toHaveAttribute("open", "");
   await expect(diagnostic).not.toContainText("transpiler.generatedLabelConflict");
   await diagnostic.click();
   await expect(diagnostic).toHaveAttribute("aria-selected", "true");
   await expect(page.locator(".diagnostic-source-range-inline")).toContainText("FOO");
 
-  await details.locator("summary").press("Enter");
-  await expect(details.locator(".diagnostic-technical-detail").first()).toContainText("transpiler.generatedLabelConflict");
-  const related = details.getByRole("button", { name: /First declared here.*Line 1/ });
+  if (await details.count()) {
+    await expect(details).not.toHaveAttribute("open", "");
+    await details.locator("summary").press("Enter");
+  }
+  await expect(context.locator(".diagnostic-technical-detail").first()).toContainText("transpiler.generatedLabelConflict");
+  const related = context.getByRole("button", { name: /First declared here.*Line 1/ });
   await related.focus();
   await page.keyboard.press("Enter");
   await expect(page.locator(".diagnostic-source-range-inline")).toContainText("foo");

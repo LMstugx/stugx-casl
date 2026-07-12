@@ -344,6 +344,27 @@ button {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex: 0 0 auto;
+  flex-shrink: 0;
+  white-space: nowrap;
+  overflow: visible;
+}
+
+.toolbar-meta .segmented {
+  flex: 0 0 auto;
+  flex-shrink: 0;
+  white-space: nowrap;
+  overflow: visible;
+}
+
+.toolbar-meta .segmented button {
+  flex: 0 0 var(--control-width-locale);
+  width: var(--control-width-locale);
+  min-width: var(--control-width-locale);
+  padding-inline: 0;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: nowrap;
 }
 
 .segmented {
@@ -366,7 +387,8 @@ button {
 .segmented .selected {
   color: var(--color-primary);
   background: var(--color-active-bg);
-  border-color: color-mix(in srgb, var(--color-primary) 28%, var(--color-border));
+  border-color: transparent;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-primary) 38%, var(--color-border));
 }
 
 .icon-only {
@@ -1772,6 +1794,10 @@ button {
   min-height: 0;
 }
 
+.left-column {
+  min-height: min-content;
+}
+
 .center-column {
   display: grid;
   grid-template-rows: minmax(330px, 1fr) 102px 96px;
@@ -1818,40 +1844,24 @@ button {
   color: var(--color-text-strong);
 }
 
-.source-header-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-}
-
-.source-panel > .panel-header {
+.source-panel > .source-panel-header {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-columns: max-content minmax(0, 1fr) max-content;
   gap: var(--space-4) var(--space-8);
 }
 
-.source-panel .source-header-actions {
-  justify-self: end;
-}
-
-.source-panel .panel-header h2 {
-  flex: 0 0 auto;
-  min-width: 48px;
-}
-
-.source-header-actions > span {
-  max-width: 92px;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.source-panel .source-panel-header h2 {
+  min-width: max-content;
+  overflow: visible;
   white-space: nowrap;
-  opacity: 0.75;
 }
 
 .demo-program-picker {
-  display: inline-flex;
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
   align-items: center;
   gap: var(--space-6);
+  width: 100%;
   min-width: 0;
   color: var(--color-muted);
   font-size: var(--font-size-caption);
@@ -1863,9 +1873,9 @@ button {
 }
 
 .demo-program-picker select {
-  width: clamp(128px, 12vw, 190px);
-  min-width: 128px;
-  max-width: 190px;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
   height: 26px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
@@ -1881,6 +1891,12 @@ button {
   min-height: 26px;
   font-size: 11px;
   font-weight: 750;
+}
+
+.source-mode {
+  flex: 0 0 auto;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .source-document-label {
@@ -2074,8 +2090,8 @@ button {
 }
 
 .source-panel {
-  flex: 1 1 190px;
-  min-height: 180px;
+  flex: 1 0 250px;
+  min-height: 250px;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
 }
@@ -2380,6 +2396,22 @@ button {
 
 .errors-panel {
   min-height: 70px;
+  max-height: clamp(280px, 46vh, 440px);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  flex: 0 1 auto;
+}
+
+.errors-panel[data-has-diagnostics="true"] {
+  min-height: 250px;
+  grid-template-rows: auto minmax(168px, 1fr) auto;
+}
+
+.errors-panel-header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--color-surface);
 }
 
 .current-instruction {
@@ -2400,14 +2432,24 @@ button {
   color: var(--color-muted);
 }
 
-.errors-panel .muted,
-.diagnostic-entry {
+.errors-panel .muted {
   margin: 10px 12px;
   font-size: 12px;
 }
 
 .diagnostic-list {
   min-width: 0;
+  min-height: 168px;
+  max-height: min(260px, 30vh);
+  padding: var(--space-8) var(--space-12);
+  display: grid;
+  align-content: start;
+  gap: var(--space-6);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  scroll-padding-block: var(--space-8);
 }
 
 .diagnostic-empty-state {
@@ -2415,6 +2457,8 @@ button {
 }
 
 .diagnostic-entry {
+  min-width: 0;
+  min-height: 42px;
   color: var(--color-danger);
   background: var(--color-danger-soft);
   border-left: 3px solid var(--color-danger);
@@ -2521,6 +2565,62 @@ button {
 
 .diagnostic-message {
   min-width: 0;
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.diagnostic-context {
+  min-width: 0;
+  max-height: min(190px, 28vh);
+  padding: var(--space-8) var(--space-12) var(--space-12);
+  display: grid;
+  gap: var(--space-6);
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-surface-raised);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-caption);
+}
+
+.diagnostic-context-summary {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content;
+  gap: var(--space-8);
+  align-items: start;
+}
+
+.diagnostic-context-summary strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--color-text-primary);
+}
+
+.diagnostic-context-summary span {
+  white-space: nowrap;
+}
+
+.diagnostic-context > .diagnostic-technical-detail {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.diagnostic-context > strong {
+  margin-top: var(--space-2);
+  color: var(--color-text-secondary);
+}
+
+.diagnostic-context-details {
+  padding: 0;
+}
+
+.diagnostic-context-details .diagnostic-raw-context {
+  padding-left: 0;
 }
 
 .diagnostic-code {
@@ -3933,13 +4033,8 @@ button {
 }
 
 @media (max-width: 1320px), (max-height: 760px) {
-  .demo-program-picker > span {
-    display: none;
-  }
-
-  .demo-program-picker select {
-    width: clamp(100px, 10vw, 132px);
-    min-width: 100px;
+  .workspace {
+    grid-template-columns: 320px minmax(600px, 1fr) 280px;
   }
 
   .source-mode-full {
@@ -3963,7 +4058,7 @@ button {
   }
 
   .toolbar {
-    grid-template-columns: minmax(220px, 270px) minmax(0, 1fr) auto;
+    grid-template-columns: minmax(164px, 204px) minmax(0, 1fr) auto;
     gap: 6px;
     min-height: 58px;
     padding: 6px 8px;
@@ -3979,7 +4074,7 @@ button {
   }
 
   .brand p {
-    font-size: 10px;
+    display: none;
   }
 
   .toolbar-actions {
@@ -4015,6 +4110,18 @@ button {
   .tool-button.emphasis:not(:disabled) {
     min-height: 32px;
     padding-inline: 8px;
+  }
+
+  .theme-toggle {
+    display: none;
+  }
+
+  .errors-panel {
+    max-height: clamp(270px, 42vh, 360px);
+  }
+
+  .diagnostic-list {
+    max-height: min(220px, 27vh);
   }
 
   .circuit-focus-workspace {

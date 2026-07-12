@@ -39,6 +39,7 @@ type ButtonProps = {
   loading?: boolean;
   title?: string;
   accessibleLabel?: string;
+  secondaryAction?: boolean;
   onClick?: () => void;
 };
 
@@ -48,11 +49,11 @@ const localeOptions: ReadonlyArray<{ locale: SupportedLocale; shortLabel: string
   { locale: "zh-CN", shortLabel: "CN", languageKey: "locale.chineseSimplified" }
 ];
 
-function ToolButton({ label, icon, testId, variant, emphasis, disabled, active, pressed, groupStart, loading, title, accessibleLabel, onClick }: ButtonProps) {
+function ToolButton({ label, icon, testId, variant, emphasis, disabled, active, pressed, groupStart, loading, title, accessibleLabel, secondaryAction, onClick }: ButtonProps) {
   return (
     <button
       data-testid={testId}
-      className={`tool-button ${variant ?? ""} ${emphasis ? "emphasis" : ""} ${active ? "active" : ""} ${groupStart ? "group-start" : ""} ${loading ? "loading" : ""}`}
+      className={`tool-button ${variant ?? ""} ${emphasis ? "emphasis" : ""} ${active ? "active" : ""} ${groupStart ? "group-start" : ""} ${loading ? "loading" : ""} ${secondaryAction ? "secondary-action" : ""}`}
       disabled={disabled}
       onClick={onClick}
       title={title ?? label}
@@ -110,7 +111,7 @@ export default function Toolbar({
       </div>
 
       <nav className="toolbar-actions" aria-label={t("accessibility.primaryCommands")}>
-        <ToolButton label={t("toolbar.new")} icon={<Plus size={18} />} disabled={isReplacingSource || isOpeningFile || isSavingFile || isRunning || assembleStatus === "running"} testId="new-document-button" onClick={onNewDocument} title={t("file.newDocument")} accessibleLabel={t("file.newDocument")} />
+        <ToolButton label={t("toolbar.new")} icon={<Plus size={18} />} disabled={isReplacingSource || isOpeningFile || isSavingFile || isRunning || assembleStatus === "running"} testId="new-document-button" onClick={onNewDocument} title={t("file.newDocument")} accessibleLabel={t("file.newDocument")} secondaryAction />
         <ToolButton
           label={isOpeningFile ? t("file.opening") : t("toolbar.open")}
           icon={<FolderOpen size={18} />}
@@ -120,6 +121,7 @@ export default function Toolbar({
           onClick={onOpenFile}
           title={t("file.supportedFiles")}
           accessibleLabel={t("file.openFile")}
+          secondaryAction
         />
         <ToolButton
           label={isSavingFile ? t("file.saving") : saveMode === "save" ? t("toolbar.save") : t("file.saveAs")}
@@ -130,6 +132,7 @@ export default function Toolbar({
           onClick={onSaveFile}
           title={saveMode === "save" ? t("toolbar.save") : t("file.chooseSaveLocation")}
           accessibleLabel={saveMode === "save" ? t("toolbar.save") : t("file.saveAs")}
+          secondaryAction
         />
         <ToolButton
           label={t("toolbar.circuitFocus")}
@@ -140,6 +143,7 @@ export default function Toolbar({
           testId="circuit-focus-toggle"
           onClick={onToggleCircuitFocusMode}
           title={isCircuitFocusMode ? "Return to studio layout" : "Open Circuit Focus Mode"}
+          secondaryAction
         />
         <ToolButton
           label={assembleLabel}

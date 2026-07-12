@@ -19,6 +19,31 @@ if ($cargo -match 'tauri-plugin-(?:fs|dialog|shell|http|updater|process|store|cl
 $rustSource = (Get-Content -LiteralPath "src-tauri\src\lib.rs" -Raw) + (Get-Content -LiteralPath "src-tauri\src\main.rs" -Raw)
 if ($rustSource -match '#\[tauri::command\]|invoke_handler|generate_handler') { throw "Custom Rust commands are prohibited in Phase 18A." }
 
+$brandFiles = @(
+  "assets\branding\stugx-logo-source.jpg",
+  "assets\branding\stugx-logo-source.png",
+  "assets\branding\stugx-logo-horizontal.png"
+)
+foreach ($relative in $brandFiles) {
+  if (-not (Test-Path -LiteralPath $relative) -or (Get-Item -LiteralPath $relative).Length -eq 0) { throw "Missing official branding asset: $relative" }
+}
+Add-Type -AssemblyName System.Drawing
+$iconMaster = [System.Drawing.Image]::FromFile((Resolve-Path "src-tauri\icons\app-icon-source.png"))
+try {
+  if ($iconMaster.Width -ne 1024 -or $iconMaster.Height -ne 1024) { throw "Tauri icon master must be 1024x1024." }
+} finally {
+  $iconMaster.Dispose()
+}
+$icoBytes = [IO.File]::ReadAllBytes((Resolve-Path "src-tauri\icons\icon.ico"))
+$icoCount = [BitConverter]::ToUInt16($icoBytes, 4)
+$icoSizes = for ($index = 0; $index -lt $icoCount; $index += 1) {
+  $width = [int]$icoBytes[6 + (16 * $index)]
+  if ($width -eq 0) { 256 } else { $width }
+}
+foreach ($requiredSize in @(16, 32, 64, 256)) {
+  if ($icoSizes -notcontains $requiredSize) { throw "Tauri ICO is missing the ${requiredSize}px frame." }
+}
+
 $requiredDist = @("index.html", "wasm\stugx_casl_core.js", "wasm\stugx_casl_core.wasm")
 foreach ($relative in $requiredDist) {
   $path = Join-Path $distRoot $relative

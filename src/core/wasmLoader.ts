@@ -171,8 +171,17 @@ export async function loadWasmModule(options: WasmModuleLoadOptions = {}): Promi
   };
 }
 
-export function resolveWasmAssetUrls(basePath: string = import.meta.env.BASE_URL): { moduleUrl: string; wasmUrl: string } {
+export function resolveWasmAssetUrls(
+  basePath: string = import.meta.env.BASE_URL,
+  documentBaseUrl: string | undefined = resolveDocumentBaseUrl()
+): { moduleUrl: string; wasmUrl: string } {
   const base = normalizeAssetBasePath(basePath);
+  if (base === "./" && documentBaseUrl) {
+    return {
+      moduleUrl: new URL(WASM_MODULE_PUBLIC_PATH, documentBaseUrl).href,
+      wasmUrl: new URL(WASM_BINARY_PUBLIC_PATH, documentBaseUrl).href
+    };
+  }
   return {
     moduleUrl: `${base}${WASM_MODULE_PUBLIC_PATH}`,
     wasmUrl: `${base}${WASM_BINARY_PUBLIC_PATH}`
@@ -181,6 +190,7 @@ export function resolveWasmAssetUrls(basePath: string = import.meta.env.BASE_URL
 
 function normalizeAssetBasePath(basePath: string): string {
   const candidate = basePath.trim() || "/";
+  if (candidate === "./") return candidate;
   if (!candidate.startsWith("/") || candidate.includes("\\") || candidate.includes("?") || candidate.includes("#")) {
     throw new Error("Invalid deployment base path for WASM assets.");
   }
@@ -189,4 +199,9 @@ function normalizeAssetBasePath(basePath: string): string {
     throw new Error("Invalid relative segment in WASM deployment base path.");
   }
   return normalized.replace(/\/{2,}/g, "/");
+}
+
+function resolveDocumentBaseUrl(): string | undefined {
+  if (typeof document === "undefined") return undefined;
+  return new URL(".", document.baseURI).href;
 }

@@ -22,3 +22,7 @@ Metadata has no timestamp, username, hostname, branch path, token, or local dire
 `docs/production-size-budget.json` is the reviewed hard budget based on the self-hosted Monaco build. `scripts/report-production-size.ps1` emits deterministic `dist/production-size-report.json`; an excess fails. The main-chunk warning is below the hard budget but is a documented initial-load risk.
 
 `pnpm package:production` verifies `dist/`, creates a sorted local ZIP with fixed timestamps, and writes SHA-256. It includes only deployable files and performs no upload.
+
+## Phase 18A Desktop Reference
+
+The static-host pipeline remains unchanged. Tauri uses the separate `build:tauri:frontend` entry with `STUGX_RUNTIME=tauri`, relative asset base, the same WASM backend, and the same `dist/` directory. Desktop artifacts are embedded by Tauri and are never accepted as static deployment artifacts or committed to Git.

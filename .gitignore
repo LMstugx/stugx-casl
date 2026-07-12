@@ -26,6 +26,9 @@ CMakeCache.txt
 *.pdb
 *.ilk
 *.exp
+src-tauri/target/
+src-tauri/gen/schemas/
+src-tauri/target/tauri-demo-build-report.json
 
 .vs/
 .idea/

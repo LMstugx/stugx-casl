@@ -17,6 +17,13 @@ function normalizeBasePath(value: string | undefined): string {
   return candidate.replace(/\/{2,}/g, "/");
 }
 
+function resolveBuildRuntime(value: string | undefined): "web" | "tauri" {
+  const candidate = value?.trim();
+  if (!candidate || candidate === "web") return "web";
+  if (candidate === "tauri") return "tauri";
+  throw new Error(`Unsupported STUGX_RUNTIME: ${candidate}`);
+}
+
 function safeBuildValue(value: string | undefined, fallback: string, pattern: RegExp): string {
   const candidate = value?.trim();
   return candidate && pattern.test(candidate) ? candidate : fallback;
@@ -45,10 +52,14 @@ function serveDevelopmentWasmGlue(): Plugin {
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, ".", "");
-  const base = normalizeBasePath(env.VITE_BASE_PATH);
+  const runtime = resolveBuildRuntime(env.STUGX_RUNTIME);
+  const base = runtime === "tauri" ? "./" : normalizeBasePath(env.VITE_BASE_PATH);
   const requestedBackend = env.VITE_CORE_BACKEND ?? (mode === "production" ? "wasm" : "mock");
   if (mode === "production" && requestedBackend !== "wasm") {
     throw new Error("Production builds require VITE_CORE_BACKEND=wasm; Mock is development/test only.");
+  }
+  if (runtime === "tauri" && requestedBackend !== "wasm") {
+    throw new Error("Tauri builds require VITE_CORE_BACKEND=wasm; Mock is development/test only.");
   }
   const buildMetadata = {
     version: safeBuildValue(env.STUGX_BUILD_VERSION, packageJson.version, /^[0-9A-Za-z][0-9A-Za-z.+-]{0,63}$/),

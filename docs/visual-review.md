@@ -246,6 +246,8 @@ Phase 16D adds `persistence-all-default.png`, all-valid EN/JA/zh-CN, invalid loc
 
 Phase 17A adds no normal-workspace visual feature. Existing 1280/1440/1920 EN/JA/zh-CN galleries remain the visual gate; production root/subpath Playwright additionally verifies no horizontal overflow, clean-wire stability, restored state, and absence of console/network errors. The new safe application failure page is covered by component accessibility tests and contains no raw path or stack detail.
 
+Phase 18A reuses the same frontend and visual baseline in a 1440x900 Tauri window, with 1180x700 minimum chrome bounds. Manual release smoke checks 1280x720 content containment, natural page scroll, bounded Inspector scroll, three locales, observation modes, and the unchanged no-arrow/no-circle/no-ghost-wire contract. Tauri adds no desktop-only visual redesign or screenshot artifact.
+
 - This is a review gallery, not a pixel-diff visual regression suite.
 - Screenshots are generated artifacts and are not committed to git.
 - The gallery is local only unless you use an existing tunnel tool.

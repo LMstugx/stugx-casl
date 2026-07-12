@@ -125,3 +125,5 @@ Phase 16D passed the complete release-quality gate:
 Proceed to the next product capability only after treating the Phase 16D aggregate baseline as the persistence change gate. Keep source/session restore out of incidental UI work; if requested later, design it as a separate threat-modeled lifecycle phase with explicit user consent and file ownership semantics.
 
 Phase 17A consumes the frozen four-storage bootstrap in production static smoke tests. It does not alter keys, payloads, hydration, reset, write triggers, or the aggregate persistence baseline.
+
+Phase 18A reuses the same four localStorage keys in Tauri WebView2. It adds no Tauri Store plugin, migration, combined payload, source restore, or external-file restore.

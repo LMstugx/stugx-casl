@@ -1,0 +1,21 @@
+[package]
+name = "stugx-casl"
+version = "0.1.0"
+description = "Offline Windows demonstration application for stugx.CASL"
+authors = ["stugx.CASL contributors"]
+license = ""
+repository = ""
+edition = "2021"
+rust-version = "1.77.2"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+name = "stugx_casl_lib"
+crate-type = ["rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.6.3", features = [] }
+
+[dependencies]
+tauri = { version = "2.11.5", features = [] }

@@ -1,0 +1,9 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "No IPC permissions are required for the local frontend-only demo.",
+  "windows": [
+    "main"
+  ],
+  "permissions": []
+}

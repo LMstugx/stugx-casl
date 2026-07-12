@@ -48,3 +48,5 @@ The lifecycle layer, not the adapter, owns `operationId`. A stale completion is 
 Phase 15C provides browser Open, confirmed writes, and download-copy results behind this interface. A future Tauri adapter must preserve revision snapshots, confirmed-write semantics, cancellation, and the no-path/no-locale boundary.
 
 Phase 15E freezes this adapter boundary in `file-lifecycle-baseline-v1.json`. Runtime constants remain authoritative; the manifest is a test snapshot and is never loaded by an adapter.
+
+Phase 18A keeps the browser adapter unchanged inside WebView2 and grants no native filesystem/dialog permission. Any Tauri-native implementation is deferred to Phase 18B and must preserve this contract rather than bypassing the session controller.

@@ -12,6 +12,7 @@
     "dev:wasm": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"$env:VITE_CORE_BACKEND='wasm'; pnpm exec vite --host 127.0.0.1\"",
     "build": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-production.ps1",
     "build:web": "tsc -b && vite build",
+    "build:tauri:frontend": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-tauri-frontend.ps1",
     "build:production": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-production.ps1",
     "build:wasm": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-wasm.ps1",
     "preview": "vite preview --host 127.0.0.1",
@@ -25,10 +26,15 @@
     "package:production": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-production.ps1",
     "visual:review": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"$env:E2E_BACKEND='visual-review'; pnpm exec playwright test tests/e2e/visual-review.spec.ts\"",
     "visual:capture": "powershell -ExecutionPolicy Bypass -File scripts/capture-visual-review.ps1",
-    "visual:serve": "powershell -ExecutionPolicy Bypass -File scripts/serve-visual-review.ps1"
+    "visual:serve": "powershell -ExecutionPolicy Bypass -File scripts/serve-visual-review.ps1",
+    "tauri:dev": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-tauri-demo.ps1 -Dev",
+    "tauri:build": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-tauri-demo.ps1",
+    "tauri:verify": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify-tauri-demo.ps1",
+    "tauri:build:demo": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-tauri-demo.ps1"
   },
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",
+    "@tauri-apps/api": "2.11.1",
     "lucide-react": "^0.468.0",
     "monaco-editor": "^0.52.2",
     "react": "^18.3.1",
@@ -36,6 +42,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.61.1",
+    "@tauri-apps/cli": "2.11.4",
     "@types/node": "22.0.0",
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",

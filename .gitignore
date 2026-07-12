@@ -4,13 +4,15 @@ dist/
 coverage/
 artifacts/
 release/
+installer/
+screenshots/
 artifacts/visual-review/
 artifacts/screenshots/
 *.tsbuildinfo
 *.log
+*.map
 public/wasm/*.js
 public/wasm/*.wasm
-public/wasm/*.map
 !public/wasm/.gitkeep
 
 cpp-core/build/
@@ -21,6 +23,8 @@ CMakeFiles/
 CMakeCache.txt
 *.obj
 *.exe
+*.msi
+*.msix
 *.dll
 *.lib
 *.pdb
@@ -29,6 +33,15 @@ CMakeCache.txt
 src-tauri/target/
 src-tauri/gen/schemas/
 src-tauri/target/tauri-demo-build-report.json
+
+.wrangler/
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.pfx
+*.p12
 
 .vs/
 .idea/

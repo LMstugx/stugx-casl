@@ -67,8 +67,9 @@ if (Test-Path $pidPath) {
     }
 }
 
+$codexRuntimeRoot = Join-Path $env:USERPROFILE ".cache\codex-runtimes\codex-primary-runtime\dependencies"
 $pythonCandidates = @(
-    "C:\Users\LMSTUGX\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe",
+    (Join-Path $codexRuntimeRoot "python\python.exe"),
     "python",
     "py"
 )
@@ -80,7 +81,7 @@ if ($python) {
 } else {
     $node = Resolve-CommandPath @(
         "node",
-        "C:\Users\LMSTUGX\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin\node.exe"
+        (Join-Path $codexRuntimeRoot "node\bin\node.exe")
     )
     if (-not $node) {
         throw "Neither Python nor Node.js was found. Install or add one to PATH, then run pnpm visual:serve again."

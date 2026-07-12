@@ -22,7 +22,6 @@ If PowerShell script execution is blocked, use the `.bat` entrypoints above. The
 ## Build WASM
 
 ```powershell
-cd F:\stugx.CASL\CASLStudioNext
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\build-wasm.ps1
 ```
 
@@ -78,4 +77,3 @@ When WASM files are absent, these tests are skipped and normal `pnpm test` remai
 - WASM artifacts are not committed.
 - Default runtime remains `MockCoreAdapter`.
 - No expanded CASL II instruction set or C++ subset transpiler.
-

@@ -136,9 +136,8 @@ C++:
 Commands used in this environment:
 
 ```powershell
-$env:Path='C:\Users\LMSTUGX\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin;' + $env:Path
-& 'C:\Users\LMSTUGX\.cache\codex-runtimes\codex-primary-runtime\dependencies\bin\pnpm.cmd' test
-& 'C:\Users\LMSTUGX\.cache\codex-runtimes\codex-primary-runtime\dependencies\bin\pnpm.cmd' build
+pnpm test
+pnpm build
 cmake --build cpp-core/build
 ctest --test-dir cpp-core/build -C Debug --output-on-failure
 ```

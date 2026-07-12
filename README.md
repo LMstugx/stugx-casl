@@ -2,6 +2,15 @@
 
 A CASL II / COMET II learning studio for understanding how source code, assembly, machine code, memory, trace, control flow, and circuit state connect.
 
+## Project Status
+
+- Web: production WASM build supports root and configurable subpath static hosting. No public deployment is attached to this repository yet.
+- Windows: Tauri 2 release executable and unsigned NSIS demo installer build locally from the same React/Vite frontend.
+- Languages: English, Japanese, and Simplified Chinese.
+- File lifecycle: single-document New, Open, Save, Save As, Dirty replacement guard, and `beforeunload` protection.
+
+Temporary visual-review output is not committed. The maintained capture plan and screenshot guidance live in [docs/visual-review.md](docs/visual-review.md) and [docs/screenshots-guide.md](docs/screenshots-guide.md).
+
 ## What This Tool Is
 
 stugx.CASL is a study-oriented environment for CASL II and COMET II. It lets you write CASL directly, or write a small C++ subset and inspect how it is lowered into CASL II, assembled into COMET II machine words, and executed step by step.
@@ -314,6 +323,10 @@ The current backend is shown in the status bar as `Mock Core`, `WASM Core`, or `
 
 ## Documentation
 
+- [CONTRIBUTING.md](CONTRIBUTING.md): contribution boundaries, generated-file policy, and required validation.
+- [SECURITY.md](SECURITY.md): private vulnerability reporting and sensitive-data handling.
+- [CHANGELOG.md](CHANGELOG.md): unreleased project history placeholder pending a formal release process.
+- [LICENSE](LICENSE): current copyright and all-rights-reserved status; no open-source license has been granted.
 - [docs/learning-guide.md](docs/learning-guide.md): recommended study order and how to read each view.
 - [docs/practice-tasks.md](docs/practice-tasks.md): small exercises for checking understanding.
 - [docs/demo-script.md](docs/demo-script.md): Japanese-first explanation script for teachers or senior students.
@@ -425,4 +438,17 @@ The current backend is shown in the status bar as `Mock Core`, `WASM Core`, or `
 - The WASM bridge currently uses a single runtime and JSON strings.
 - The control-flow view is text and badge based; there is no full CFG graph yet.
 - File System Access confirmed writes depend on browser support and a secure context; other browsers use an explicit download-copy Save As fallback.
-- There is no public hosting target, service worker/offline mode, desktop package, or deployment-provider integration in this milestone.
+- There is no public hosting target, service worker/PWA offline mode, signed desktop distribution, auto-update channel, or deployment-provider integration in this milestone.
+- The Windows demo is unsigned and intended for local demonstrations; distributing it to other machines may trigger Windows SmartScreen or an unknown-publisher warning.
+- Tauri-native file dialogs and filesystem writes are deferred; the desktop build currently retains the browser adapter capability boundary.
+
+## Security And Privacy
+
+- The application has no analytics, telemetry, login, cloud sync, or source upload.
+- Source text, file paths, handles, diagnostics, and VM state are excluded from persistence contracts.
+- Generated bundles, installers, local storage dumps, environment files, credentials, and source maps must not be committed.
+- See [SECURITY.md](SECURITY.md) for responsible reporting.
+
+## License
+
+Copyright © stugx. All rights reserved. No open-source license is granted at this stage; see [LICENSE](LICENSE).

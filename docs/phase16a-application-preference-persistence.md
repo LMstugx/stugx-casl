@@ -62,3 +62,5 @@ Restored tabs use their existing accessible tab semantics. Hydration has no load
 ## 14. Phase 16B Recommendation
 
 Audit optional built-in-example startup restoration separately. `lastExampleId` may only be admitted through the frozen source replacement contract, with deleted-ID fallback and no external-file, Dirty source, runtime, path, or handle restoration.
+
+Phase 16B implements that recommendation with a separate startup-selection key. The Phase 16A persisted-field allowlist and reset semantics remain unchanged.

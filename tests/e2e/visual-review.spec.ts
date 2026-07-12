@@ -11,6 +11,8 @@ type Viewport = {
 };
 
 const screenshotRoot = path.resolve("artifacts/visual-review/screenshots");
+const startupSelectionKey = "stugx.casl.startup-selection.v1";
+const applicationPreferenceKey = "stugx.casl.preferences.v1";
 const viewports: Viewport[] = [
   { name: "1280x720", width: 1280, height: 720 },
   { name: "1440x900", width: 1440, height: 900, primary: true },
@@ -920,12 +922,97 @@ async function captureNewAndDemoReplacementStates(page: Page, viewport: Viewport
   if (viewport.name === "1280x720") await captureState("long-example-title-1280.png");
 }
 
+async function captureStartupSelectionStates(page: Page, viewport: Viewport) {
+  if (!viewport.primary && viewport.name !== "1280x720") return;
+
+  const seedAndReload = async (
+    startupValue: string | null,
+    options: { locale?: "en" | "ja" | "zh-CN"; observationMode?: "cpu-flow" | "register-stack" | "code-machine"; circuitFocusEnabled?: boolean } = {}
+  ) => {
+    await page.evaluate(({ startupKey, preferenceKey, startupValue, options }) => {
+      sessionStorage.setItem("visual-startup-seed-active", "true");
+      if (startupValue === null) localStorage.removeItem(startupKey);
+      else localStorage.setItem(startupKey, startupValue);
+      localStorage.setItem("stugx.casl.locale", options.locale ?? "en");
+      localStorage.setItem(preferenceKey, JSON.stringify({
+        version: 1,
+        observationMode: options.observationMode ?? "cpu-flow",
+        circuitFocusEnabled: options.circuitFocusEnabled ?? false,
+        inspectorActiveTab: "registers",
+        outputDockActiveTab: "output"
+      }));
+    }, { startupKey: startupSelectionKey, preferenceKey: applicationPreferenceKey, startupValue, options });
+    await page.reload();
+    await expect(page.getByTestId("backend-label")).toHaveText("Mock Core");
+  };
+
+  const valid = (lastExampleId: string) => JSON.stringify({ version: 1, lastExampleId });
+
+  if (viewport.primary) {
+    await seedAndReload(null);
+    await expect(page.getByTestId("demo-program-select")).toHaveValue("casl-gr2-addition");
+    await capture(page, viewport, "startup-example-default.png");
+
+    await seedAndReload(valid("casl-call-return"));
+    await expect(page.getByTestId("demo-program-select")).toHaveValue("casl-call-return");
+    await capture(page, viewport, "startup-example-restored-casl.png");
+
+    await seedAndReload(valid("cpp-addition"));
+    await expect(page.getByTestId("demo-program-select")).toHaveValue("cpp-addition");
+    await capture(page, viewport, "startup-example-restored-cpp.png");
+
+    await seedAndReload(valid("invalid-id"));
+    await expect(page.getByTestId("demo-program-select")).toHaveValue("casl-gr2-addition");
+    await capture(page, viewport, "startup-example-invalid-id-fallback.png");
+
+    await seedAndReload(valid("deleted-example"));
+    await capture(page, viewport, "startup-example-deleted-id-fallback.png");
+
+    await seedAndReload("{");
+    await capture(page, viewport, "startup-example-malformed-storage.png");
+
+    await seedAndReload(JSON.stringify({ version: 1, lastExampleId: "x".repeat(5000) }));
+    await capture(page, viewport, "startup-example-oversized-storage.png");
+
+    await seedAndReload(valid("cpp-addition"), { locale: "ja" });
+    await capture(page, viewport, "startup-example-with-ja-locale.png");
+
+    await seedAndReload(valid("cpp-addition"), { locale: "zh-CN" });
+    await capture(page, viewport, "startup-example-with-zh-cn-locale.png");
+
+    await seedAndReload(valid("casl-call-return"), { observationMode: "register-stack", circuitFocusEnabled: true });
+    await expect(page.getByTestId("circuit-focus-layout")).toHaveAttribute("data-observation-mode", "register-stack");
+    await capture(page, viewport, "startup-example-with-register-stack-preference.png");
+
+    await seedAndReload(valid("casl-call-return"), { observationMode: "code-machine", circuitFocusEnabled: true });
+    await expect(page.getByTestId("circuit-focus-layout")).toHaveAttribute("data-observation-mode", "code-machine");
+    await capture(page, viewport, "startup-example-with-code-machine-preference.png");
+    await capture(page, viewport, "startup-example-with-circuit-focus.png");
+  }
+
+  if (viewport.name === "1280x720") {
+    await seedAndReload(valid("cpp-addition"));
+    await expect(page.getByTestId("demo-program-select")).toHaveValue("cpp-addition");
+    await capture(page, viewport, "startup-example-1280.png");
+  }
+
+  await page.evaluate(({ startupKey, preferenceKey }) => {
+    sessionStorage.removeItem("visual-startup-seed-active");
+    localStorage.removeItem(startupKey);
+    localStorage.removeItem(preferenceKey);
+  }, { startupKey: startupSelectionKey, preferenceKey: applicationPreferenceKey });
+}
+
 test.describe("visual review screenshot gallery", () => {
   for (const viewport of viewports) {
     test(`captures visual review gallery at ${viewport.name}`, async ({ page }) => {
-      test.setTimeout(120_000);
+      test.setTimeout(180_000);
       await page.setViewportSize({ width: viewport.width, height: viewport.height });
-      await page.addInitScript(() => localStorage.removeItem("stugx.casl.preferences.v1"));
+      await page.addInitScript(() => {
+        if (sessionStorage.getItem("visual-startup-seed-active") === "true") return;
+        localStorage.removeItem("stugx.casl.preferences.v1");
+        localStorage.removeItem("stugx.casl.startup-selection.v1");
+      });
 
       await captureProjectOverview(page, viewport);
       await captureCaslDiagnosticState(page, viewport);
@@ -969,6 +1056,7 @@ test.describe("visual review screenshot gallery", () => {
       await captureBrowserOpenFileStates(page, viewport);
       await captureBrowserSaveStates(page, viewport);
       await captureNewAndDemoReplacementStates(page, viewport);
+      await captureStartupSelectionStates(page, viewport);
     });
   }
 });

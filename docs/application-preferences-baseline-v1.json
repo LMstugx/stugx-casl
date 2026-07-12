@@ -110,6 +110,11 @@
   "phase16BDeferredFields": [
     "lastExampleId"
   ],
+  "phase16BSeparateStorage": {
+    "field": "lastExampleId",
+    "storageKey": "stugx.casl.startup-selection.v1",
+    "includedInPhase16APayload": false
+  },
   "themePreference": "deferred-no-stable-runtime-enum",
   "phase14DiagnosticBaseline": "diagnostic-localization-baseline-v1.json",
   "phase15FileLifecycleBaseline": "file-lifecycle-baseline-v1.json"

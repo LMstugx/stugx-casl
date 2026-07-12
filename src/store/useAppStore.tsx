@@ -6,8 +6,8 @@ import { AppEvent, AppEvents } from "../app/events";
 import { coreBridge, getCoreBackendInfo, type CoreBackendInfo } from "../core/coreBridge";
 import { createCometStateFromDto, createEmptyUiCometState } from "../core/coreStateAdapter";
 import { CometState, Diagnostic } from "../core/types";
-import { getDefaultDemoProgram } from "../examples/demoPrograms";
-import { createExampleDocument, editDocument, isDocumentDirty } from "../documents/documentModel";
+import { getDefaultDemoProgram, type DemoProgram } from "../examples/demoPrograms";
+import { createExampleDocument, createUntitledDocument, editDocument, isDocumentDirty } from "../documents/documentModel";
 import { createSequentialDocumentIdFactory } from "../documents/idFactory";
 import { createIdleFileLifecycleState, type FileLifecycleState } from "../documents/lifecycle";
 import { languageToExtension } from "../documents/validation";
@@ -118,6 +118,7 @@ export type AppStoreAction =
 type AppStoreProviderProps = {
   children: ReactNode;
   eventBus?: EventBus<AppEvents>;
+  initialExample?: DemoProgram | null;
   initialPreferences?: ResolvedApplicationPreferencesV1;
   onApplicationPreferencesChange?: (preferences: ResolvedApplicationPreferencesV1) => void;
 };
@@ -127,17 +128,19 @@ const AppEventBusContext = createContext<EventBus<AppEvents> | null>(null);
 
 export function createInitialAppState(
   ids: DocumentIdFactory = createSequentialDocumentIdFactory("app"),
-  preferences: ResolvedApplicationPreferencesV1 = DEFAULT_APPLICATION_PREFERENCES
+  preferences: ResolvedApplicationPreferencesV1 = DEFAULT_APPLICATION_PREFERENCES,
+  initialDemo: DemoProgram | null = getDefaultDemoProgram() ?? null
 ): AppStoreState {
-  const initialDemo = getDefaultDemoProgram();
-  const currentDocument = createExampleDocument(initialDemo, ids);
+  const currentDocument = initialDemo
+    ? createExampleDocument(initialDemo, ids)
+    : createUntitledDocument("casl", ids);
   return {
     currentDocument,
     currentWriteBinding: null,
     fileLifecycle: createIdleFileLifecycleState(),
-    sourceText: initialDemo.source,
-    sourceMode: initialDemo.mode,
-    lastAssembledSource: initialDemo.source,
+    sourceText: currentDocument.content,
+    sourceMode: currentDocument.language,
+    lastAssembledSource: currentDocument.content,
     isSourceDirty: false,
     assembleResult: null,
     cometState: createEmptyUiCometState("Idle", ["Editor ready. Assemble to load the current source."]),
@@ -147,7 +150,7 @@ export function createInitialAppState(
     backendInfo: getCoreBackendInfo(),
     generatedCaslSource: "",
     cppToCaslMapping: [],
-    selectedDemoProgramId: initialDemo.id,
+    selectedDemoProgramId: initialDemo?.id ?? "",
     lessonProgress: {},
     observationMode: preferences.observationMode,
     circuitFocusEnabled: preferences.circuitFocusEnabled,
@@ -405,11 +408,11 @@ export function appStoreReducer(state: AppStoreState, action: AppStoreAction): A
   return state;
 }
 
-export function AppStoreProvider({ children, eventBus: providedEventBus, initialPreferences = DEFAULT_APPLICATION_PREFERENCES, onApplicationPreferencesChange }: AppStoreProviderProps) {
+export function AppStoreProvider({ children, eventBus: providedEventBus, initialExample, initialPreferences = DEFAULT_APPLICATION_PREFERENCES, onApplicationPreferencesChange }: AppStoreProviderProps) {
   const eventBus = useMemo(() => providedEventBus ?? createAppEventBus(), [providedEventBus]);
   const documentIdsRef = useRef(createSequentialDocumentIdFactory("app"));
   const initialStateRef = useRef<AppStoreState | null>(null);
-  if (!initialStateRef.current) initialStateRef.current = createInitialAppState(documentIdsRef.current, initialPreferences);
+  if (!initialStateRef.current) initialStateRef.current = createInitialAppState(documentIdsRef.current, initialPreferences, initialExample);
   const [state, dispatch] = useReducer(appStoreReducer, initialStateRef.current);
   const runControlRef = useRef({ runId: 0, stopRequested: false });
   const preferenceSnapshot = useMemo(

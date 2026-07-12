@@ -13,7 +13,7 @@ Phase 16A classifies every reviewed candidate as `persist-now`, `remain-memory-o
 | Inspector active tab | app store with InspectorPanel bridge | inspector tab enum | `registers` | no | no | no | no | medium | yes | persist-now | View selection only; content remains current runtime data. |
 | Output Dock active tab | app store with OutputPanel bridge | output tab enum | `output` | no | no | no | no | medium | yes | persist-now | View selection only; output contents and auto-open state are excluded. |
 | Source panel mode | app store / SourceDocument | `casl \| cpp` | document language | yes | yes | no | no | high | no | source-owned | Changes source interpretation and belongs to the current source unit. |
-| selected built-in example | app store | example ID | default example | yes | yes | no | no | medium | not in 16A | deferred-source-affecting | Startup replacement and deleted IDs require a Phase 16B migration policy. |
+| selected built-in example | app store + startup-selection controller | canonical built-in example ID | default example | yes | yes | no | no | medium | yes, separately | independently-persisted | Phase 16B stores only the last successfully committed built-in selection under a separate key; it never stores source/session state. |
 | lesson progress | app store | nested boolean record | empty | no | example-related | no | no | medium | not yet | remain-memory-only | Needs stable content IDs and version migration independent of source restore. |
 | panel details expanded | component state | boolean(s) | component-specific | sometimes | sometimes | sometimes | yes | medium | no | remain-memory-only | High churn and no stable centralized ownership. |
 | Memory start address | MemoryPanel state | address | runtime window | yes | yes | yes | yes | medium | no | runtime-owned | Restoring may show an unrelated address for a new program. |
@@ -36,4 +36,4 @@ Phase 16A classifies every reviewed candidate as `persist-now`, `remain-memory-o
 
 ## Frozen Phase 16A Allowlist
 
-Only `observationMode`, `circuitFocusEnabled`, `inspectorActiveTab`, and `outputDockActiveTab` are persisted. Their values are canonical machine enums, never localized labels. `lastExampleId` is explicitly deferred to Phase 16B.
+Only `observationMode`, `circuitFocusEnabled`, `inspectorActiveTab`, and `outputDockActiveTab` are persisted in the Phase 16A payload. Their values are canonical machine enums, never localized labels. `lastExampleId` is explicitly deferred to Phase 16B in that payload and is now implemented by Phase 16B under the separate `stugx.casl.startup-selection.v1` contract.

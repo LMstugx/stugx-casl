@@ -13,7 +13,7 @@ import { summarizeCurrentInstruction } from "./visual/visualState";
 import { AppStoreProvider, useAppStore } from "./store/useAppStore";
 import { cppLineForCaslLine } from "./transpiler/cppMapping";
 import { selectFrameSymbolRelations } from "./transpiler/framePlanView";
-import { demoPrograms, getDemoProgram } from "./examples/demoPrograms";
+import { DEFAULT_DEMO_PROGRAM_ID, demoPrograms, getDefaultDemoProgram, getDemoProgram } from "./examples/demoPrograms";
 import { getLearningLesson } from "./examples/learningLessons";
 import { I18nProvider } from "./i18n/I18nProvider";
 import { translateRunState } from "./i18n/locale";
@@ -34,10 +34,18 @@ import { getDocumentDisplayName } from "./documents/documentPresentation";
 import { useBeforeUnloadDirtyGuard } from "./documents/beforeUnloadGuard";
 import { ApplicationPreferenceController } from "./preferences/controller";
 import { WebLocalStorageApplicationPreferenceStorage, type ApplicationPreferenceStorage } from "./preferences/storage";
+import { StartupSelectionController } from "./startupSelection/controller";
+import { WebLocalStorageStartupSelectionStorage, type StartupSelectionStorage } from "./startupSelection/storage";
 
-type AppProps = { fileAdapter?: TextFileAdapter; preferenceStorage?: ApplicationPreferenceStorage };
+type AppProps = {
+  fileAdapter?: TextFileAdapter;
+  preferenceStorage?: ApplicationPreferenceStorage;
+  startupSelectionStorage?: StartupSelectionStorage;
+};
 const defaultPreferenceController = new ApplicationPreferenceController(new WebLocalStorageApplicationPreferenceStorage());
 const injectedPreferenceControllers = new WeakMap<ApplicationPreferenceStorage, ApplicationPreferenceController>();
+const defaultStartupSelectionController = new StartupSelectionController(new WebLocalStorageStartupSelectionStorage());
+const injectedStartupSelectionControllers = new WeakMap<StartupSelectionStorage, StartupSelectionController>();
 
 function preferenceControllerFor(storage?: ApplicationPreferenceStorage): ApplicationPreferenceController {
   if (!storage) return defaultPreferenceController;
@@ -48,23 +56,58 @@ function preferenceControllerFor(storage?: ApplicationPreferenceStorage): Applic
   return controller;
 }
 
-export default function App({ fileAdapter, preferenceStorage }: AppProps = {}) {
-  const resolvedFileAdapter = useMemo(() => fileAdapter ?? new BrowserTextFileAdapter(), [fileAdapter]);
-  const preferenceController = useMemo(() => preferenceControllerFor(preferenceStorage), [preferenceStorage]);
-  const initialPreferences = useMemo(() => preferenceController.hydrate(), [preferenceController]);
-  const persistPreferences = useCallback((preferences: Parameters<ApplicationPreferenceController["persist"]>[0]) => {
-    preferenceController.persist(preferences);
-  }, [preferenceController]);
+function startupSelectionControllerFor(storage?: StartupSelectionStorage): StartupSelectionController {
+  if (!storage) return defaultStartupSelectionController;
+  const existing = injectedStartupSelectionControllers.get(storage);
+  if (existing) return existing;
+  const controller = new StartupSelectionController(storage);
+  injectedStartupSelectionControllers.set(storage, controller);
+  return controller;
+}
+
+export default function App(props: AppProps = {}) {
   return (
     <I18nProvider>
-      <AppStoreProvider initialPreferences={initialPreferences} onApplicationPreferencesChange={persistPreferences}>
-        <StudioShell fileAdapter={resolvedFileAdapter} />
-      </AppStoreProvider>
+      <BootstrappedApp {...props} />
     </I18nProvider>
   );
 }
 
-function StudioShell({ fileAdapter }: { fileAdapter: TextFileAdapter }) {
+function BootstrappedApp({ fileAdapter, preferenceStorage, startupSelectionStorage }: AppProps) {
+  const resolvedFileAdapter = useMemo(() => fileAdapter ?? new BrowserTextFileAdapter(), [fileAdapter]);
+  const preferenceController = useMemo(() => preferenceControllerFor(preferenceStorage), [preferenceStorage]);
+  const startupSelectionController = useMemo(
+    () => startupSelectionControllerFor(startupSelectionStorage),
+    [startupSelectionStorage]
+  );
+  const initialPreferences = useMemo(() => preferenceController.hydrate(), [preferenceController]);
+  const initialExample = useMemo(() => {
+    const resolution = startupSelectionController.resolveBootstrap(demoPrograms, DEFAULT_DEMO_PROGRAM_ID);
+    return resolution.status === "resolved"
+      ? getDemoProgram(resolution.exampleId) ?? getDefaultDemoProgram() ?? null
+      : null;
+  }, [startupSelectionController]);
+  const persistPreferences = useCallback((preferences: Parameters<ApplicationPreferenceController["persist"]>[0]) => {
+    preferenceController.persist(preferences);
+  }, [preferenceController]);
+  return (
+    <AppStoreProvider
+      initialExample={initialExample}
+      initialPreferences={initialPreferences}
+      onApplicationPreferencesChange={persistPreferences}
+    >
+      <StudioShell fileAdapter={resolvedFileAdapter} startupSelectionController={startupSelectionController} />
+    </AppStoreProvider>
+  );
+}
+
+function StudioShell({
+  fileAdapter,
+  startupSelectionController
+}: {
+  fileAdapter: TextFileAdapter;
+  startupSelectionController: StartupSelectionController;
+}) {
   const { locale, t } = useI18n();
   const {
     sourceText,
@@ -160,6 +203,14 @@ function StudioShell({ fileAdapter }: { fileAdapter: TextFileAdapter }) {
       setEditorSelectedFrameSlotId(undefined);
       currentDocumentRef.current = result.document;
       replaceCurrentDocument(result.document, result.selectedExampleId);
+      if (
+        intent.kind === "select-example" &&
+        result.document.origin === "example" &&
+        result.selectedExampleId &&
+        getDemoProgram(result.selectedExampleId)
+      ) {
+        startupSelectionController.persistSuccessfulExample(result.selectedExampleId, demoPrograms);
+      }
       setPendingReplacementIntent(null);
       setFileLifecycle(createIdleFileLifecycleState());
       return;
@@ -176,7 +227,7 @@ function StudioShell({ fileAdapter }: { fileAdapter: TextFileAdapter }) {
       return;
     }
     setFileLifecycle(createIdleFileLifecycleState());
-  }, [documentController, replaceCurrentDocument, selectedDemoProgramId, setFileLifecycle]);
+  }, [documentController, replaceCurrentDocument, selectedDemoProgramId, setFileLifecycle, startupSelectionController]);
 
   const performSave = useCallback(async (forceSaveAs = false): Promise<SaveDocumentResult> => {
     const snapshot = currentDocumentRef.current;

@@ -20,4 +20,4 @@ Locale remains the independent application preference at `stugx.casl.locale` and
 
 Phase 15E validates the allowlist against the persistence prohibitions in the file-lifecycle baseline. Storage and restore remain unimplemented.
 
-Phase 16A gives Observation Mode and Circuit Focus an actual, independent application-preference owner at `stugx.casl.preferences.v1`. This dormant session-metadata shape remains frozen for Phase 15 compatibility and is still not stored. Future session work must remove any duplicate ownership before enabling metadata persistence; `lastExampleId` remains deferred to Phase 16B.
+Phase 16A gives Observation Mode and Circuit Focus an actual, independent application-preference owner at `stugx.casl.preferences.v1`. Phase 16B gives the last successfully committed built-in example ID an independent owner at `stugx.casl.startup-selection.v1`. This dormant Phase 15 session-metadata shape remains frozen for compatibility and is still not stored. Future session work must remove these duplicate fields rather than combine or restore them as a session payload.

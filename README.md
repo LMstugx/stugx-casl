@@ -370,6 +370,9 @@ The current backend is shown in the status bar as `Mock Core`, `WASM Core`, or `
 - [docs/application-preference-storage-contract.md](docs/application-preference-storage-contract.md): versioned allowlist, sanitization, hydration, write, reset, and failure contract.
 - [docs/application-preferences-baseline-v1.json](docs/application-preferences-baseline-v1.json): deterministic validation snapshot for the Phase 16A preference contract.
 - [docs/phase16a-application-preference-persistence.md](docs/phase16a-application-preference-persistence.md): Phase 16A implementation, security boundaries, validation result, and Phase 16B recommendation.
+- [docs/startup-selection-storage-contract.md](docs/startup-selection-storage-contract.md): independent canonical built-in example selection, synchronous bootstrap, fallback, write, clear, and security rules.
+- [docs/startup-selection-baseline-v1.json](docs/startup-selection-baseline-v1.json): deterministic validation snapshot for the Phase 16B startup-selection contract.
+- [docs/phase16b-built-in-example-startup-restore.md](docs/phase16b-built-in-example-startup-restore.md): cold-start restore implementation, storage independence, fallback behavior, QA result, and next recommendation.
 - [docs/browser-save-strategy.md](docs/browser-save-strategy.md): File System Access confirmed writes and Blob download-copy fallback.
 - [docs/transient-write-binding-contract.md](docs/transient-write-binding-contract.md): session-only handle registry and opaque SaveTarget ownership rules.
 - [docs/browser-text-file-adapter.md](docs/browser-text-file-adapter.md): hidden-input browser adapter, strict UTF-8 byte handling, cleanup, cancellation, and test injection.

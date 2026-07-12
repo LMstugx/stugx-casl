@@ -22,6 +22,8 @@ The store selector emits only the allowlist. A write occurs only after an allowl
 
 `reset()` restores the four defaults and best-effort removes only `stugx.casl.preferences.v1`. It does not clear locale, source, diagnostics, file lifecycle, or lesson state. Phase 16A adds no Reset Settings UI.
 
+Phase 16B keeps built-in startup selection under the independent `stugx.casl.startup-selection.v1` adapter. Preference hydration/reset never reads or clears that key, and example selection never rewrites this UI preference payload.
+
 ## Security And Privacy
 
 The payload contains no user-entered strings, source, filename/path, handles/target IDs, document/source IDs, diagnostics/raw context, runtime state, Trace, editor state, operation state, analytics, or telemetry. There is no network synchronization and no complete-store serialization.

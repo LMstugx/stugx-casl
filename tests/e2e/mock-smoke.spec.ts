@@ -13,6 +13,7 @@ async function switchObservationMode(page: Page, mode: "cpu-flow" | "register-st
 }
 
 const applicationPreferenceKey = "stugx.casl.preferences.v1";
+const startupSelectionKey = "stugx.casl.startup-selection.v1";
 
 test("Mock backend completes assemble and first step in the browser UI", async ({ page }) => {
   await openStudio(page, "Mock Core");
@@ -71,6 +72,72 @@ test("Safe application preferences restore independently from source and locale"
   await expect(page.getByTestId("circuit-focus-layout")).toHaveCount(0);
   await page.getByTestId("circuit-focus-toggle").click();
   await expect(page.getByTestId("circuit-focus-layout")).toHaveAttribute("data-observation-mode", "cpu-flow");
+  await page.setViewportSize({ width: 1280, height: 720 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+});
+
+test("Last successful built-in example restores synchronously and independently", async ({ page }) => {
+  await page.addInitScript(({ startupKey, preferenceKey }) => {
+    if (sessionStorage.getItem("phase16b-seeded") === "true") return;
+    localStorage.setItem(startupKey, JSON.stringify({ version: 1, lastExampleId: "cpp-addition" }));
+    localStorage.setItem(preferenceKey, JSON.stringify({ version: 1, observationMode: "code-machine", circuitFocusEnabled: false, inspectorActiveTab: "memory", outputDockActiveTab: "messages" }));
+    localStorage.setItem("stugx.casl.locale", "en");
+    sessionStorage.setItem("phase16b-seeded", "true");
+  }, { startupKey: startupSelectionKey, preferenceKey: applicationPreferenceKey });
+
+  await page.goto("/");
+  await expect(page.getByTestId("backend-label")).toHaveText("Mock Core");
+  await expect(page.getByTestId("demo-program-select")).toHaveValue("cpp-addition");
+  await expectSourceContains(page, "int a = 10;");
+  await expect(page.getByTestId("source-mode-cpp")).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator(".source-dirty-indicator")).toHaveCount(0);
+  await expect(page.getByTestId("save-file-button")).toHaveAttribute("aria-label", "Save As");
+  await expect(page.getByTestId("run-state")).toHaveText("Idle");
+  await expect(page.locator(".inspector-panel")).toHaveAttribute("data-active-tab", "memory");
+  await expect(page.locator(".output-panel")).toHaveAttribute("data-active-tab", "messages");
+  await expect(page.getByTestId("generated-casl-output")).toHaveCount(0);
+
+  await page.getByTestId("locale-ja").click();
+  await expect(page.getByTestId("demo-program-select")).toHaveValue("cpp-addition");
+  await page.getByTestId("locale-zh-CN").click();
+  await expectSourceContains(page, "int a = 10;");
+  expect(JSON.parse((await page.evaluate((key) => localStorage.getItem(key), startupSelectionKey))!)).toEqual({ version: 1, lastExampleId: "cpp-addition" });
+  await page.getByTestId("locale-en").click();
+
+  await page.getByTestId("demo-program-select").selectOption("casl-call-return");
+  await expect(page.getByTestId("demo-program-select")).toHaveValue("casl-call-return");
+  await expectSourceContains(page, "CALL  SUB");
+  expect(JSON.parse((await page.evaluate((key) => localStorage.getItem(key), startupSelectionKey))!)).toEqual({ version: 1, lastExampleId: "casl-call-return" });
+  await page.reload();
+  await expect(page.getByTestId("demo-program-select")).toHaveValue("casl-call-return");
+  await expectSourceContains(page, "CALL  SUB");
+
+  await chooseTextFile(page, "external.cpp", "int main() { return 9; }");
+  await expect(page.getByTestId("demo-program-select")).toHaveValue("");
+  await page.reload();
+  await expect(page.getByTestId("demo-program-select")).toHaveValue("casl-call-return");
+  await expectSourceContains(page, "CALL  SUB");
+
+  await page.getByTestId("new-document-button").click();
+  await page.getByRole("dialog", { name: "New document" }).locator('input[value="cpp"]').check();
+  await page.getByTestId("create-document").click();
+  await expect(page.getByTestId("demo-program-select")).toHaveValue("");
+  await page.reload();
+  await expect(page.getByTestId("demo-program-select")).toHaveValue("casl-call-return");
+
+  await page.evaluate((key) => localStorage.setItem(key, JSON.stringify({ version: 1, lastExampleId: "deleted-example" })), startupSelectionKey);
+  await page.reload();
+  await expect(page.getByTestId("demo-program-select")).toHaveValue("casl-gr2-addition");
+  await expectSourceContains(page, "LD    GR2,A");
+  expect(JSON.parse((await page.evaluate((key) => localStorage.getItem(key), startupSelectionKey))!)).toEqual({ version: 1, lastExampleId: "deleted-example" });
+
+  await page.evaluate(({ startupKey, preferenceKey }) => {
+    localStorage.setItem(startupKey, JSON.stringify({ version: 1, lastExampleId: "cpp-addition" }));
+    localStorage.setItem(preferenceKey, "{");
+  }, { startupKey: startupSelectionKey, preferenceKey: applicationPreferenceKey });
+  await page.reload();
+  await expect(page.getByTestId("demo-program-select")).toHaveValue("cpp-addition");
+  await expectSourceContains(page, "int a = 10;");
   await page.setViewportSize({ width: 1280, height: 720 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
 });

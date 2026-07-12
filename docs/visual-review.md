@@ -238,6 +238,8 @@ Phase 14H adds `diagnostic-baseline-en.png`, `diagnostic-baseline-ja.png`, `diag
 
 Phase 14I reuses the frozen Phase 14H scenes as the final quality gate. The gallery must pass at all three viewports with stable EN/JA/zh-CN hierarchy, source-coordinate markers, related controls, long-token containment, collapsed raw details, and unchanged Circuit clean-wire behavior. No Phase 14I-only demo logic or screenshots are added.
 
+Phase 16B adds injected-storage startup scenes: `startup-example-default.png`, `startup-example-restored-casl.png`, `startup-example-restored-cpp.png`, `startup-example-invalid-id-fallback.png`, `startup-example-deleted-id-fallback.png`, `startup-example-malformed-storage.png`, `startup-example-oversized-storage.png`, `startup-example-with-ja-locale.png`, `startup-example-with-zh-cn-locale.png`, `startup-example-with-register-stack-preference.png`, `startup-example-with-code-machine-preference.png`, `startup-example-with-circuit-focus.png`, and `startup-example-1280.png`. Review selector/source agreement, clean Save As state, independent locale/preferences, absent guard/notice, stable first-frame layout, and no horizontal overflow. Storage is injected; captures never depend on a developer's localStorage residue.
+
 - This is a review gallery, not a pixel-diff visual regression suite.
 - Screenshots are generated artifacts and are not committed to git.
 - The gallery is local only unless you use an existing tunnel tool.

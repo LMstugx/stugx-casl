@@ -1,0 +1,87 @@
+{
+  "baselineVersion": 1,
+  "purpose": "validation-snapshot-only",
+  "runtimeSourceOfTruth": "src/examples/demoPrograms.ts and src/startupSelection",
+  "storageKey": "stugx.casl.startup-selection.v1",
+  "maxPayloadBytes": 4096,
+  "persistedFields": [
+    "lastExampleId"
+  ],
+  "valueSemantics": "last-successfully-committed-built-in-example",
+  "validSource": "canonical-built-in-example-registry-id",
+  "fallbackPolicy": {
+    "invalidStoredId": "default-example",
+    "invalidDefaultId": "first-registry-example",
+    "emptyRegistry": "existing-safe-initial-document-fallback",
+    "writesFallbackToStorage": false
+  },
+  "writePolicy": {
+    "trigger": "successful-built-in-example-replacement-only",
+    "sameExampleNoopWrite": false,
+    "externalOrUntitledWrite": false,
+    "failureRollsBackReplacement": false
+  },
+  "clearPolicy": {
+    "clearsOnlyStartupSelectionKey": true,
+    "changesCurrentDocument": false,
+    "clearsLocale": false,
+    "clearsApplicationPreferences": false
+  },
+  "prohibitedFields": [
+    "sourceContent",
+    "externalFileName",
+    "absolutePath",
+    "untitledContent",
+    "dirtyState",
+    "documentId",
+    "sourceUnitId",
+    "fileSystemFileHandle",
+    "saveTargetId",
+    "writeBinding",
+    "diagnostics",
+    "diagnosticSelection",
+    "editorMarkers",
+    "generatedCasl",
+    "machineCode",
+    "sourceMap",
+    "trace",
+    "runtimeOutput",
+    "vmState",
+    "assemblyState",
+    "runState",
+    "framePlan",
+    "selectedFrameSlot",
+    "pendingOperation",
+    "modalState",
+    "locale",
+    "applicationPreferences"
+  ],
+  "independentStorageKeys": {
+    "locale": "stugx.casl.locale",
+    "applicationPreferences": "stugx.casl.preferences.v1"
+  },
+  "bootstrapPolicy": {
+    "timing": "synchronous-before-initial-store-exposure",
+    "createsWorkingDocument": true,
+    "invokesReplacementController": false,
+    "invokesFileAdapter": false,
+    "invokesAssembler": false,
+    "writesDuringBootstrap": false
+  },
+  "securityPolicy": {
+    "allowlistOnly": true,
+    "plainObjectOnly": true,
+    "canonicalRegistryValidation": true,
+    "prototypeMerge": false,
+    "dynamicImport": false,
+    "fileRead": false,
+    "networkAccess": false,
+    "telemetry": false
+  },
+  "deferredSessionRestore": [
+    "external-file-reopen",
+    "untitled-source-restore",
+    "dirty-source-restore",
+    "runtime-state-restore"
+  ]
+}

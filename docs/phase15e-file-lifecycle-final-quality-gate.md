@@ -119,3 +119,5 @@ Future work must not use filename/localized text/content hash as identity; read 
 Begin Phase 16A with a non-source application-preference persistence audit using the existing metadata allowlist. Keep source, external-file reopening, paths, handles, runtime state, and diagnostics out of persistence unless a separately reviewed project/session architecture explicitly changes the contract.
 
 Phase 16A follows this recommendation with a separate allowlisted preference payload. It does not modify the frozen file-lifecycle manifest or add source/session restore.
+
+Phase 16B restores only a canonical built-in example selection before initial store exposure. It creates a clean example working document through the existing factory and does not restore external files, Dirty source, paths, bindings, diagnostics, or VM state; the Phase 15 baseline and operation matrix remain unchanged.

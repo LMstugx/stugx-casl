@@ -2,6 +2,19 @@ import type { DocumentExtension, DocumentId, DocumentLanguage, DocumentLineEndin
 
 export const DEFAULT_MAX_TEXT_FILE_BYTES = 1024 * 1024;
 export const SUPPORTED_TEXT_EXTENSIONS = [".cas", ".cpp"] as const;
+export const FILE_OPERATION_RESULT_STATUSES = ["success", "cancelled", "failure"] as const;
+export const FILE_OPERATION_FAILURE_KINDS = [
+  "permission",
+  "unsupported",
+  "invalid-extension",
+  "invalid-filename",
+  "invalid-encoding",
+  "binary",
+  "too-large",
+  "io",
+  "stale-target",
+  "unknown"
+] as const;
 
 export interface FileOpenOptions {
   acceptedExtensions: readonly DocumentExtension[];
@@ -55,17 +68,7 @@ export type SavedTextFile =
       downloadRequested: true;
     });
 
-export type FileOperationFailureKind =
-  | "permission"
-  | "unsupported"
-  | "invalid-extension"
-  | "invalid-filename"
-  | "invalid-encoding"
-  | "binary"
-  | "too-large"
-  | "io"
-  | "stale-target"
-  | "unknown";
+export type FileOperationFailureKind = (typeof FILE_OPERATION_FAILURE_KINDS)[number];
 
 export type FileOperationResult<T> =
   | { status: "success"; value: T }

@@ -2,6 +2,8 @@ import { getDemoProgram } from "../examples/demoPrograms";
 import { createExampleDocument, createUntitledDocument, isDocumentDirty } from "./documentModel";
 import type { DocumentIdFactory, DocumentLanguage, SourceDocument } from "./types";
 
+export const SOURCE_REPLACEMENT_INTENT_KINDS = ["open-file", "new-document", "select-example"] as const;
+
 export type SourceReplacementIntent =
   | { kind: "open-file" }
   | { kind: "new-document"; language: DocumentLanguage }

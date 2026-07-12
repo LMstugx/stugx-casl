@@ -17,3 +17,5 @@ Phase 15D validates this shape but does not persist or restore it.
 Metadata must not contain source content, Generated CASL, Machine Code, diagnostics, diagnostic selection, VM state, Trace, `DocumentId`, `SourceUnitId`, file handles, save-target IDs, absolute paths, raw exceptions, or transient operation state.
 
 Locale remains the independent application preference at `stugx.casl.locale` and is not duplicated here. Unknown versions or prohibited fields are ignored safely. A future deleted example ID must fall back without restoring Dirty source or claiming to reopen an external file.
+
+Phase 15E validates the allowlist against the persistence prohibitions in the file-lifecycle baseline. Storage and restore remain unimplemented.

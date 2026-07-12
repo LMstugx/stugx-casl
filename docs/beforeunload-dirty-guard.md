@@ -15,3 +15,5 @@ Successful Save removes protection only when the current revision is clean. A co
 ## Testing
 
 Unit tests use an injected event target and verify registration, de-duplication, cleanup, `preventDefault`, and non-mutation. Normal E2E does not perform a real page-navigation prompt because browser prompt text and automation behavior are platform controlled.
+
+Phase 15E freezes the policy as `document-dirty-only` and verifies balanced cleanup across unmount/remount. Active operations alone never enable the guard.

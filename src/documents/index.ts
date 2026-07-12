@@ -2,6 +2,7 @@ export * from "./documentModel";
 export * from "./browserTextFileAdapter";
 export * from "./documentSessionController";
 export * from "./fileAdapter";
+export * from "./fileLifecycleContract";
 export * from "./idFactory";
 export * from "./lifecycle";
 export * from "./sourceOwnership";

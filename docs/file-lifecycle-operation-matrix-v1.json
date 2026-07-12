@@ -1,0 +1,265 @@
+{
+  "matrixVersion": 1,
+  "normalization": "state-profile-cross-operation-rule",
+  "coverage": {
+    "stateCount": 8,
+    "operationCount": 14,
+    "totalCombinations": 112
+  },
+  "states": [
+    {
+      "id": "A",
+      "origin": "untitled",
+      "dirty": false,
+      "saveCapability": "save-as-only",
+      "writeBinding": false
+    },
+    {
+      "id": "B",
+      "origin": "untitled",
+      "dirty": true,
+      "saveCapability": "save-as-only",
+      "writeBinding": false
+    },
+    {
+      "id": "C",
+      "origin": "example",
+      "dirty": false,
+      "saveCapability": "save-as-only",
+      "writeBinding": false
+    },
+    {
+      "id": "D",
+      "origin": "example",
+      "dirty": true,
+      "saveCapability": "save-as-only",
+      "writeBinding": false
+    },
+    {
+      "id": "E",
+      "origin": "external-file",
+      "dirty": false,
+      "saveCapability": "save-as-only",
+      "writeBinding": false
+    },
+    {
+      "id": "F",
+      "origin": "external-file",
+      "dirty": true,
+      "saveCapability": "save-as-only",
+      "writeBinding": false
+    },
+    {
+      "id": "G",
+      "origin": "external-file",
+      "dirty": false,
+      "saveCapability": "save",
+      "writeBinding": true
+    },
+    {
+      "id": "H",
+      "origin": "external-file",
+      "dirty": true,
+      "saveCapability": "save",
+      "writeBinding": true
+    }
+  ],
+  "operations": [
+    {
+      "kind": "new-casl",
+      "appliesTo": "A-H",
+      "guard": "dirty-only",
+      "saveResolution": "binding-save-otherwise-save-as",
+      "discard": "allowed",
+      "cancel": "preserve-all",
+      "successDocumentIdentity": "new",
+      "successSourceUnitId": "new",
+      "dirtyResult": "clean",
+      "writeBindingResult": "released",
+      "sourceOwnedState": "invalidate-all",
+      "locale": "preserve"
+    },
+    {
+      "kind": "new-cpp",
+      "appliesTo": "A-H",
+      "guard": "dirty-only",
+      "saveResolution": "binding-save-otherwise-save-as",
+      "discard": "allowed",
+      "cancel": "preserve-all",
+      "successDocumentIdentity": "new",
+      "successSourceUnitId": "new",
+      "dirtyResult": "clean",
+      "writeBindingResult": "released",
+      "sourceOwnedState": "invalidate-all",
+      "locale": "preserve"
+    },
+    {
+      "kind": "open",
+      "appliesTo": "A-H",
+      "guard": "dirty-only",
+      "saveResolution": "binding-save-otherwise-save-as",
+      "discard": "provisional-until-valid-file",
+      "cancel": "preserve-all",
+      "successDocumentIdentity": "new",
+      "successSourceUnitId": "new",
+      "dirtyResult": "clean",
+      "writeBindingResult": "released",
+      "sourceOwnedState": "invalidate-all",
+      "locale": "preserve"
+    },
+    {
+      "kind": "switch-example",
+      "appliesTo": "A-H",
+      "guard": "dirty-only",
+      "saveResolution": "binding-save-otherwise-save-as",
+      "discard": "allowed",
+      "cancel": "preserve-all-and-selector",
+      "successDocumentIdentity": "new",
+      "successSourceUnitId": "new",
+      "dirtyResult": "clean",
+      "writeBindingResult": "released",
+      "sourceOwnedState": "invalidate-all",
+      "locale": "preserve"
+    },
+    {
+      "kind": "save",
+      "appliesTo": "A-H",
+      "guard": "never",
+      "saveResolution": "binding-save-otherwise-save-as",
+      "discard": "not-applicable",
+      "cancel": "preserve-all",
+      "successDocumentIdentity": "preserve",
+      "successSourceUnitId": "preserve",
+      "dirtyResult": "captured-revision-comparison",
+      "writeBindingResult": "preserve-or-create-confirmed-only",
+      "sourceOwnedState": "preserve-all",
+      "locale": "preserve"
+    },
+    {
+      "kind": "save-as",
+      "appliesTo": "A-H",
+      "guard": "never",
+      "saveResolution": "new-target-or-download-copy",
+      "discard": "not-applicable",
+      "cancel": "preserve-all",
+      "successDocumentIdentity": "preserve",
+      "successSourceUnitId": "preserve",
+      "dirtyResult": "captured-revision-comparison",
+      "writeBindingResult": "create-confirmed-only",
+      "sourceOwnedState": "preserve-all",
+      "locale": "preserve"
+    },
+    {
+      "kind": "locale-switch",
+      "appliesTo": "A-H",
+      "guard": "never",
+      "saveResolution": "not-applicable",
+      "discard": "not-applicable",
+      "cancel": "not-applicable",
+      "successDocumentIdentity": "preserve",
+      "successSourceUnitId": "preserve",
+      "dirtyResult": "preserve",
+      "writeBindingResult": "preserve",
+      "sourceOwnedState": "preserve-all",
+      "locale": "change-application-preference-only"
+    },
+    {
+      "kind": "observation-mode-switch",
+      "appliesTo": "A-H",
+      "guard": "never",
+      "saveResolution": "not-applicable",
+      "discard": "not-applicable",
+      "cancel": "not-applicable",
+      "successDocumentIdentity": "preserve",
+      "successSourceUnitId": "preserve",
+      "dirtyResult": "preserve",
+      "writeBindingResult": "preserve",
+      "sourceOwnedState": "preserve-all",
+      "locale": "preserve"
+    },
+    {
+      "kind": "beforeunload",
+      "appliesTo": "A-H",
+      "guard": "dirty-is-native-block-clean-is-noop",
+      "saveResolution": "never-auto-save",
+      "discard": "browser-owned",
+      "cancel": "browser-owned",
+      "successDocumentIdentity": "preserve",
+      "successSourceUnitId": "preserve",
+      "dirtyResult": "preserve",
+      "writeBindingResult": "preserve",
+      "sourceOwnedState": "preserve-all",
+      "locale": "preserve"
+    },
+    {
+      "kind": "source-edit",
+      "appliesTo": "A-H",
+      "guard": "never",
+      "saveResolution": "not-applicable",
+      "discard": "not-applicable",
+      "cancel": "not-applicable",
+      "successDocumentIdentity": "preserve",
+      "successSourceUnitId": "preserve",
+      "dirtyResult": "dirty",
+      "writeBindingResult": "preserve-unless-language-changes",
+      "sourceOwnedState": "invalidate-current-derived-results",
+      "locale": "preserve"
+    },
+    {
+      "kind": "assemble",
+      "appliesTo": "A-H",
+      "guard": "never",
+      "saveResolution": "not-applicable",
+      "discard": "not-applicable",
+      "cancel": "not-applicable",
+      "successDocumentIdentity": "preserve",
+      "successSourceUnitId": "preserve",
+      "dirtyResult": "preserve-document-dirty",
+      "writeBindingResult": "preserve",
+      "sourceOwnedState": "replace-current-derived-results",
+      "locale": "preserve"
+    },
+    {
+      "kind": "run-step",
+      "appliesTo": "A-H",
+      "guard": "never",
+      "saveResolution": "not-applicable",
+      "discard": "not-applicable",
+      "cancel": "not-applicable",
+      "successDocumentIdentity": "preserve",
+      "successSourceUnitId": "preserve",
+      "dirtyResult": "preserve",
+      "writeBindingResult": "preserve",
+      "sourceOwnedState": "update-current-runtime-only",
+      "locale": "preserve"
+    },
+    {
+      "kind": "cancellation",
+      "appliesTo": "A-H",
+      "guard": "not-applicable",
+      "saveResolution": "not-applicable",
+      "discard": "not-applicable",
+      "cancel": "preserve-all",
+      "successDocumentIdentity": "preserve",
+      "successSourceUnitId": "preserve",
+      "dirtyResult": "preserve",
+      "writeBindingResult": "preserve",
+      "sourceOwnedState": "preserve-all",
+      "locale": "preserve"
+    },
+    {
+      "kind": "file-failure",
+      "appliesTo": "A-H",
+      "guard": "not-applicable",
+      "saveResolution": "not-applicable",
+      "discard": "not-applicable",
+      "cancel": "not-applicable",
+      "successDocumentIdentity": "preserve",
+      "successSourceUnitId": "preserve",
+      "dirtyResult": "preserve",
+      "writeBindingResult": "preserve",
+      "sourceOwnedState": "preserve-all",
+      "locale": "preserve"
+    }
+  ]
+}

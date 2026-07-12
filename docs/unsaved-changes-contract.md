@@ -25,3 +25,5 @@ Dirty is derived from `revision` and `savedRevision`, not maintained as an indep
 ## Intent-Aware UI
 
 Open uses Save/Discard and open, New uses Save/Discard and create, and examples use Save/Discard and switch. Save must complete and leave the current revision clean before continuation. Cancellation, failure, or a concurrent edit blocks replacement. Open discard remains provisional until picker validation succeeds; New and example targets commit atomically after confirmation.
+
+Phase 15E freezes these decisions for all eight clean/Dirty origin/binding profiles. The controller now rejects replacement preparation whenever another file operation is already active.

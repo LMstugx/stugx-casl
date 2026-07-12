@@ -88,6 +88,8 @@ External filenames are plain text with directory information removed. Raw except
 
 Phase 15D completes the single-document replacement paths: New, Open, and example selection now share intent preparation and atomic invalidation. Save/Save As remain session-scoped from Phase 15C. There is still no project model, source/session restore, path/handle persistence, multi-file support, or reload identity.
 
+Phase 15E freezes this architecture in `file-lifecycle-baseline-v1.json`; runtime modules remain the source of truth and the manifest is validation-only.
+
 ## Phase 15B Recommendation
 
 Implement one browser text adapter behind `TextFileAdapter` and connect Open/Save As through a narrow document-session controller. Start with one active document, `.cas`/`.cpp`, UTF-8, and the unsaved guard. Preserve existing execution behavior and require source-unit checks before committing any async open or assemble result.

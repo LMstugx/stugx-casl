@@ -10,12 +10,14 @@ export interface SessionLifecycleMetadataV1 {
   circuitFocusEnabled?: boolean;
 }
 
-const prohibitedKeys = new Set([
+export const SESSION_METADATA_ALLOWED_KEYS = ["version", "lastDocumentLanguage", "lastExampleId", "observationMode", "circuitFocusEnabled"] as const;
+export const SESSION_METADATA_PROHIBITED_KEYS = [
   "source", "sourceText", "content", "generatedCasl", "machineCode", "vmState", "diagnostics",
   "selectedDiagnostic", "sourceUnitId", "documentId", "fileHandle", "saveTargetId", "path", "locale",
   "rawContext", "operationId"
-]);
-const allowedKeys = new Set(["version", "lastDocumentLanguage", "lastExampleId", "observationMode", "circuitFocusEnabled"]);
+] as const;
+const prohibitedKeys = new Set<string>(SESSION_METADATA_PROHIBITED_KEYS);
+const allowedKeys = new Set<string>(SESSION_METADATA_ALLOWED_KEYS);
 
 export function validateSessionLifecycleMetadata(value: unknown): SessionLifecycleMetadataV1 | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;

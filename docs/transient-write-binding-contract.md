@@ -20,3 +20,5 @@ A `DocumentWriteBinding` contains only `DocumentId`, opaque `SaveTargetId`, stra
 The store holds only binding metadata so the toolbar can choose Save versus Save As. The adapter validates it against the private registry. Binding metadata is not source ownership, diagnostic identity, locale, or a React key.
 
 Permission failure does not mark the document clean or expose a path. A missing registry target safely routes a later controller request through Save As.
+
+Phase 15E confirms registry document scoping, replacement/disposal release, stale-target rejection, and the prohibition on handle/target persistence.

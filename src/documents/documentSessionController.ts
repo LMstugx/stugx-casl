@@ -85,6 +85,7 @@ export class DocumentSessionController {
   }
 
   async requestReplacement(request: SourceReplacementRequest): Promise<SourceReplacementResult> {
+    if (this.activeOperationId) return { status: "stale-ignored" };
     const preparation = prepareSourceReplacement(request.currentDocument, request.intent, request.currentExampleId);
     if (preparation.status === "no-op") return { status: "no-op" };
     if (preparation.status === "invalid") {
@@ -93,8 +94,6 @@ export class DocumentSessionController {
     if (preparation.status === "requires-unsaved-decision" && !request.allowDiscard) {
       return { status: "requires-unsaved-decision", intent: request.intent };
     }
-    if (this.activeOperationId) return { status: "stale-ignored" };
-
     const operationId = this.ids.nextOperationId();
     this.activeOperationId = operationId;
     try {

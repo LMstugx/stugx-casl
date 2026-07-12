@@ -32,3 +32,5 @@ Writable bindings last only for the page session. Download initiation cannot pro
 ## Phase 15D Recommendation
 
 Implemented in Phase 15D. New and built-in example replacement use the same Save/Discard/Cancel continuation, and the future session metadata contract explicitly excludes handles, paths, source, diagnostics, and VM state.
+
+Phase 15E freezes confirmed-close, download-copy, captured-revision, and transient-binding semantics in the version-1 file-lifecycle baseline.

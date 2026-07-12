@@ -6,12 +6,19 @@ export type DocumentId = string & { readonly [documentIdBrand]: "DocumentId" };
 export type SourceUnitId = string & { readonly [sourceUnitIdBrand]: "SourceUnitId" };
 export type SaveTargetId = string & { readonly [saveTargetIdBrand]: "SaveTargetId" };
 
-export type DocumentLanguage = "casl" | "cpp";
-export type DocumentExtension = ".cas" | ".cpp";
-export type DocumentOrigin = "untitled" | "example" | "external-file" | "restored-session";
-export type DocumentSaveCapability = "save" | "save-as-only" | "unsupported";
-export type DocumentLineEnding = "lf" | "crlf" | "mixed" | "unknown";
-export type SaveStrategy = "file-system-access" | "download";
+export const DOCUMENT_LANGUAGES = ["casl", "cpp"] as const;
+export const DOCUMENT_EXTENSIONS = [".cas", ".cpp"] as const;
+export const DOCUMENT_ORIGINS = ["untitled", "example", "external-file", "restored-session"] as const;
+export const DOCUMENT_SAVE_CAPABILITIES = ["save", "save-as-only", "unsupported"] as const;
+export const DOCUMENT_LINE_ENDINGS = ["lf", "crlf", "mixed", "unknown"] as const;
+export const SAVE_STRATEGIES = ["file-system-access", "download"] as const;
+
+export type DocumentLanguage = (typeof DOCUMENT_LANGUAGES)[number];
+export type DocumentExtension = (typeof DOCUMENT_EXTENSIONS)[number];
+export type DocumentOrigin = (typeof DOCUMENT_ORIGINS)[number];
+export type DocumentSaveCapability = (typeof DOCUMENT_SAVE_CAPABILITIES)[number];
+export type DocumentLineEnding = (typeof DOCUMENT_LINE_ENDINGS)[number];
+export type SaveStrategy = (typeof SAVE_STRATEGIES)[number];
 
 export interface DocumentWriteBinding {
   documentId: DocumentId;

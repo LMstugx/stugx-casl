@@ -1,0 +1,174 @@
+{
+  "baselineVersion": 1,
+  "purpose": "validation-snapshot-only",
+  "runtimeSourceOfTruth": "src/documents",
+  "supportedDocumentLanguages": [
+    "casl",
+    "cpp"
+  ],
+  "supportedExtensions": [
+    ".cas",
+    ".cpp"
+  ],
+  "maxFileBytes": 1048576,
+  "encodingPolicy": {
+    "encoding": "utf-8",
+    "openBom": "strip",
+    "saveBom": "omit",
+    "internalLineEnding": "lf",
+    "detectedLineEndings": [
+      "lf",
+      "crlf",
+      "mixed"
+    ]
+  },
+  "lineEndingPolicy": {
+    "editor": "lf",
+    "saveOptions": [
+      "lf",
+      "crlf"
+    ],
+    "mixedOrUnknownSaveDefault": "lf"
+  },
+  "documentOrigins": [
+    "untitled",
+    "example",
+    "external-file",
+    "restored-session"
+  ],
+  "saveCapabilities": [
+    "save",
+    "save-as-only",
+    "unsupported"
+  ],
+  "lifecycleStatuses": [
+    "idle",
+    "opening",
+    "saving",
+    "save-as",
+    "confirming-replace",
+    "creating-document",
+    "switching-example"
+  ],
+  "replacementIntentKinds": [
+    "open-file",
+    "new-document",
+    "select-example"
+  ],
+  "fileOperationResultStatuses": [
+    "success",
+    "cancelled",
+    "failure"
+  ],
+  "fileFailureKinds": [
+    "permission",
+    "unsupported",
+    "invalid-extension",
+    "invalid-filename",
+    "invalid-encoding",
+    "binary",
+    "too-large",
+    "io",
+    "stale-target",
+    "unknown"
+  ],
+  "saveStrategies": [
+    "file-system-access",
+    "download"
+  ],
+  "dirtyGuardDecisions": [
+    "save",
+    "discard",
+    "cancel"
+  ],
+  "identityRules": {
+    "documentId": "application-lifecycle-identity",
+    "sourceUnitId": "source-ownership-identity",
+    "forbiddenIdentityInputs": [
+      "filename",
+      "localizedText",
+      "contentHash"
+    ],
+    "replacementCreatesNewDocumentId": true,
+    "replacementCreatesNewSourceUnitId": true,
+    "savePreservesDocumentId": true,
+    "savePreservesSourceUnitId": true
+  },
+  "sourceOwnedStateCategories": [
+    "diagnostics",
+    "selectedDiagnosticIdentity",
+    "editorMarkerRange",
+    "generatedCasl",
+    "machineCode",
+    "sourceMap",
+    "trace",
+    "assemblyResult",
+    "vmLoaded",
+    "framePlanPreview",
+    "selectedFrameSlotId"
+  ],
+  "applicationPreferenceCategories": [
+    "locale",
+    "theme",
+    "observationMode",
+    "circuitFocus",
+    "accessibility",
+    "lessonProgress"
+  ],
+  "sessionMetadataAllowedKeys": [
+    "version",
+    "lastDocumentLanguage",
+    "lastExampleId",
+    "observationMode",
+    "circuitFocusEnabled"
+  ],
+  "prohibitedPersistenceFields": [
+    "sourceContent",
+    "absolutePath",
+    "fileSystemFileHandle",
+    "saveTargetId",
+    "documentId",
+    "sourceUnitId",
+    "diagnostics",
+    "editorMarkers",
+    "generatedCasl",
+    "machineCode",
+    "vmState",
+    "trace",
+    "dirtyContent",
+    "pendingOperation",
+    "rawContext",
+    "locale"
+  ],
+  "beforeUnloadPolicy": {
+    "condition": "document-dirty-only",
+    "nativePrompt": true,
+    "customMessage": false,
+    "automaticSave": false,
+    "storageWrite": false
+  },
+  "saveSemantics": {
+    "fileSystemAccessConfirmedAfterClose": true,
+    "downloadIsCopyOnly": true,
+    "downloadCreatesWriteBinding": false,
+    "writeBindingScope": "page-session-document-id",
+    "capturedRevisionOnly": true
+  },
+  "backendCapabilities": {
+    "browser": {
+      "open": "single-input-file",
+      "saveAs": [
+        "file-system-access",
+        "download"
+      ],
+      "save": "transient-binding-only"
+    },
+    "tauri": "not-implemented",
+    "project": "not-implemented",
+    "multiFile": "not-implemented",
+    "sessionRestore": "not-implemented"
+  },
+  "operationMatrix": "file-lifecycle-operation-matrix-v1.json",
+  "phase14DiagnosticBaseline": "diagnostic-localization-baseline-v1.json",
+  "legacyCompatibility": "phase15a-through-phase15d"
+}

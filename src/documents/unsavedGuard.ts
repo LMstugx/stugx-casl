@@ -2,7 +2,8 @@ import { isDocumentDirty } from "./documentModel";
 import type { FileOperationResult, SavedTextFile } from "./fileAdapter";
 import type { SourceDocument } from "./types";
 
-export type UnsavedDecision = "save" | "discard" | "cancel";
+export const UNSAVED_DECISIONS = ["save", "discard", "cancel"] as const;
+export type UnsavedDecision = (typeof UNSAVED_DECISIONS)[number];
 export type GuardedIntent =
   | "new"
   | "open"

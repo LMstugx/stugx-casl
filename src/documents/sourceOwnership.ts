@@ -2,6 +2,25 @@ import type { Diagnostic, SourceMapEntry, TraceEvent } from "../core/types";
 import type { SourceRange } from "../diagnostics/types";
 import type { SourceUnitId } from "./types";
 
+export const SOURCE_OWNED_STATE_CATEGORIES = [
+  "diagnostics",
+  "selectedDiagnosticIdentity",
+  "editorMarkerRange",
+  "generatedCasl",
+  "machineCode",
+  "sourceMap",
+  "trace",
+  "assemblyResult",
+  "vmLoaded",
+  "framePlanPreview",
+  "selectedFrameSlotId"
+] as const satisfies readonly (keyof Omit<SourceDerivedState, "sourceUnitId">)[];
+
+type MissingSourceOwnedCategory = Exclude<keyof Omit<SourceDerivedState, "sourceUnitId">, (typeof SOURCE_OWNED_STATE_CATEGORIES)[number]>;
+type SourceOwnedCategoriesAreComplete = MissingSourceOwnedCategory extends never ? true : never;
+const sourceOwnedCategoriesAreComplete: SourceOwnedCategoriesAreComplete = true;
+void sourceOwnedCategoriesAreComplete;
+
 export interface SourceDerivedState {
   sourceUnitId: SourceUnitId;
   diagnostics: readonly Diagnostic[];

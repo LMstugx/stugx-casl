@@ -66,3 +66,5 @@ The toolbar Open command has a localized accessible name, `aria-busy` while open
 ## Phase 15C Recommendation
 
 Phase 15C implemented Save/Save As. Phase 15D retains the Phase 15B Open adapter and routes its replacement through the shared New/Open/example intent contract. Files opened through the input remain Save As only because no writable handle is retained.
+
+Phase 15E verifies input/listener cleanup, stale cancellation, byte boundaries, cross-operation exclusion, and atomic ownership against the frozen file-lifecycle baseline.

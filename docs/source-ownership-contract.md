@@ -37,3 +37,5 @@ A selected diagnostic or related location can navigate only when its owner equal
 
 The unified New/Open/example controller verifies the pending `DocumentId`, creates a new `SourceUnitId`, and discards stale completion. The single replacement action clears old diagnostics, markers, Generated CASL, machine/source maps, Trace, VM state, and FramePlan selection in one reducer transition. It also releases the old transient write binding. Locale and non-source preferences are preserved.
 Assemble/transpile/core-error completion also carries its initiating source unit and is rejected by the reducer after replacement.
+
+Phase 15E freezes the complete source-owned category list and verifies that cancel/failure/Save preserve it while New/Open/example replacement invalidates it atomically.

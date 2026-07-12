@@ -19,3 +19,5 @@ Internal LF text is serialized as LF or CRLF according to document policy; mixed
 ## Failures
 
 Cancellation is normal. Permission, invalid filename/extension, size, stale target, I/O, and unknown failures are file-operation results. Raw exceptions remain developer context and never become source diagnostics.
+
+Phase 15E verifies write/close partial failures, download-click cleanup, exact byte limits, stale targets, and page-session-only binding ownership against the frozen baseline.

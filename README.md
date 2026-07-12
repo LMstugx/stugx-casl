@@ -363,6 +363,9 @@ The current backend is shown in the status bar as `Mock Core`, `WASM Core`, or `
 - [docs/source-replacement-intent-contract.md](docs/source-replacement-intent-contract.md): stable replacement intents, continuation rules, no-op handling, and atomic commit boundary.
 - [docs/beforeunload-dirty-guard.md](docs/beforeunload-dirty-guard.md): revision-derived native unload protection and listener lifecycle.
 - [docs/session-lifecycle-metadata-contract.md](docs/session-lifecycle-metadata-contract.md): future non-source metadata allowlist and prohibited persistence fields.
+- [docs/file-lifecycle-baseline-v1.json](docs/file-lifecycle-baseline-v1.json): deterministic validation snapshot for the frozen single-document lifecycle contract.
+- [docs/file-lifecycle-operation-matrix-v1.json](docs/file-lifecycle-operation-matrix-v1.json): normalized eight-state operation matrix for New/Open/Save/example/unload behavior.
+- [docs/phase15e-file-lifecycle-final-quality-gate.md](docs/phase15e-file-lifecycle-final-quality-gate.md): final compatibility, race, security, accessibility, and viewport PASS for Phase 15.
 - [docs/browser-save-strategy.md](docs/browser-save-strategy.md): File System Access confirmed writes and Blob download-copy fallback.
 - [docs/transient-write-binding-contract.md](docs/transient-write-binding-contract.md): session-only handle registry and opaque SaveTarget ownership rules.
 - [docs/browser-text-file-adapter.md](docs/browser-text-file-adapter.md): hidden-input browser adapter, strict UTF-8 byte handling, cleanup, cancellation, and test injection.

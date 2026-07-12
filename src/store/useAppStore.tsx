@@ -11,7 +11,7 @@ import { createExampleDocument, editDocument, isDocumentDirty } from "../documen
 import { createSequentialDocumentIdFactory } from "../documents/idFactory";
 import { createIdleFileLifecycleState, type FileLifecycleState } from "../documents/lifecycle";
 import { languageToExtension } from "../documents/validation";
-import type { DocumentIdFactory, SourceDocument, SourceUnitId } from "../documents/types";
+import type { DocumentIdFactory, DocumentWriteBinding, SourceDocument, SourceUnitId } from "../documents/types";
 import { CppToCaslMap, transpileCppToCasl } from "../transpiler/cppTranspiler";
 
 type AssembleStatus = "default" | "running" | "success" | "error";
@@ -43,6 +43,7 @@ export type PreparedCoreSource =
 
 type AppStoreState = {
   currentDocument: SourceDocument;
+  currentWriteBinding: DocumentWriteBinding | null;
   fileLifecycle: FileLifecycleState;
   sourceText: string;
   sourceMode: SourceMode;
@@ -75,6 +76,7 @@ type AppStoreActions = {
   resetLessonProgress: (exampleId: string) => void;
   setObservationMode: (mode: ObservationMode) => void;
   replaceCurrentDocument: (document: SourceDocument) => void;
+  commitSavedDocument: (document: SourceDocument, writeBinding: DocumentWriteBinding | null) => void;
   setFileLifecycle: (lifecycle: FileLifecycleState) => void;
 };
 
@@ -88,6 +90,7 @@ export type AppStoreAction =
   | { type: "setSourceMode"; sourceMode: SourceMode }
   | { type: "demoProgramSelected"; program: DemoProgram; document: SourceDocument }
   | { type: "currentDocumentReplaced"; document: SourceDocument }
+  | { type: "currentDocumentSaved"; document: SourceDocument; writeBinding: DocumentWriteBinding | null }
   | { type: "fileLifecycleSet"; lifecycle: FileLifecycleState }
   | { type: "assembled"; sourceUnitId: SourceUnitId; sourceText: string; cometState: CometState; assembleStatus: AssembleStatus; generatedCaslSource?: string; cppToCaslMapping?: CppToCaslMap[] }
   | { type: "transpileFailed"; sourceUnitId: SourceUnitId; diagnostics: Diagnostic[]; generatedCaslSource: string; cppToCaslMapping: CppToCaslMap[]; output: string[] }
@@ -115,6 +118,7 @@ export function createInitialAppState(ids: DocumentIdFactory = createSequentialD
   const currentDocument = createExampleDocument(initialDemo, ids);
   return {
     currentDocument,
+    currentWriteBinding: null,
     fileLifecycle: createIdleFileLifecycleState(),
     sourceText: initialDemo.source,
     sourceMode: initialDemo.mode,
@@ -197,6 +201,7 @@ export function appStoreReducer(state: AppStoreState, action: AppStoreAction): A
         revision: state.currentDocument.revision + 1,
         saveCapability: "save-as-only"
       },
+      currentWriteBinding: null,
       sourceMode: action.sourceMode,
       isSourceDirty: true,
       assembleResult: null,
@@ -213,6 +218,7 @@ export function appStoreReducer(state: AppStoreState, action: AppStoreAction): A
     return {
       ...state,
       currentDocument: action.document,
+      currentWriteBinding: null,
       fileLifecycle: createIdleFileLifecycleState(),
       sourceText: action.program.source,
       sourceMode: action.program.mode,
@@ -232,6 +238,7 @@ export function appStoreReducer(state: AppStoreState, action: AppStoreAction): A
     return {
       ...state,
       currentDocument: action.document,
+      currentWriteBinding: null,
       fileLifecycle: createIdleFileLifecycleState(),
       sourceText: action.document.content,
       sourceMode: action.document.language,
@@ -250,6 +257,14 @@ export function appStoreReducer(state: AppStoreState, action: AppStoreAction): A
 
   if (action.type === "fileLifecycleSet") {
     return state.fileLifecycle === action.lifecycle ? state : { ...state, fileLifecycle: action.lifecycle };
+  }
+
+  if (action.type === "currentDocumentSaved") {
+    if (
+      action.document.documentId !== state.currentDocument.documentId
+      || action.document.sourceUnitId !== state.currentDocument.sourceUnitId
+    ) return state;
+    return { ...state, currentDocument: action.document, currentWriteBinding: action.writeBinding };
   }
 
   if (action.type === "assembled") {
@@ -586,6 +601,7 @@ export function AppStoreProvider({ children, eventBus: providedEventBus }: AppSt
         runControlRef.current = { runId: runControlRef.current.runId + 1, stopRequested: true };
         dispatch({ type: "currentDocumentReplaced", document });
       },
+      commitSavedDocument: (document, writeBinding) => dispatch({ type: "currentDocumentSaved", document, writeBinding }),
       setFileLifecycle: (lifecycle) => dispatch({ type: "fileLifecycleSet", lifecycle })
     }),
     [eventBus, state.assembleResult, state.cometState, state.isSourceDirty, state.runStopReason, state.sourceMode, state.sourceText]

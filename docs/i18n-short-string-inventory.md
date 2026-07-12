@@ -1,5 +1,7 @@
 # I18n Short UI String Inventory
 
+Phase 15C adds complete EN/JA/zh-CN keys for Save, Save As, Saving, Saved, Saved a copy, Save and open, safe save failures, save-target loss, and concurrent-edit status. Toolbar labels are compact/high viewport risk; modal and notice strings may wrap safely.
+
 This inventory tracks short UI strings only. Status values are `migrated`, `approved`, `pending`, `intentionally untranslated`, and `deferred-long-content`. Visual lengths and viewport risk are review targets, not fixed CSS widths.
 
 ## Toolbar

@@ -21,12 +21,12 @@ import { useI18n } from "./i18n/useI18n";
 import { diagnosticIdentity, renderDiagnostic } from "./diagnostics/renderDiagnostic";
 import { formatDiagnosticDeveloperDetail } from "./diagnostics/presentation";
 import type { SourceRange } from "./diagnostics/types";
-import FileOperationNotice from "./components/FileOperationNotice";
+import FileOperationNotice, { type FileOperationNoticeModel } from "./components/FileOperationNotice";
 import UnsavedOpenDialog from "./components/UnsavedOpenDialog";
 import { BrowserTextFileAdapter } from "./documents/browserTextFileAdapter";
-import { DocumentSessionController } from "./documents/documentSessionController";
+import { DocumentSessionController, type SaveDocumentResult } from "./documents/documentSessionController";
 import { createSequentialDocumentIdFactory } from "./documents/idFactory";
-import { createIdleFileLifecycleState, type SafeFileFailure } from "./documents/lifecycle";
+import { createIdleFileLifecycleState } from "./documents/lifecycle";
 import type { TextFileAdapter } from "./documents/fileAdapter";
 
 type AppProps = { fileAdapter?: TextFileAdapter };
@@ -59,6 +59,7 @@ function StudioShell({ fileAdapter }: { fileAdapter: TextFileAdapter }) {
     lessonProgress,
     observationMode,
     currentDocument,
+    currentWriteBinding,
     documentDirty,
     sourceUnitId,
     fileLifecycle,
@@ -75,6 +76,7 @@ function StudioShell({ fileAdapter }: { fileAdapter: TextFileAdapter }) {
     resetLessonProgress,
     setObservationMode,
     replaceCurrentDocument,
+    commitSavedDocument,
     setFileLifecycle
   } = useAppStore();
   const [isCircuitFocusMode, setCircuitFocusMode] = useState(false);
@@ -82,12 +84,21 @@ function StudioShell({ fileAdapter }: { fileAdapter: TextFileAdapter }) {
   const [selectedDiagnosticId, setSelectedDiagnosticId] = useState<string | undefined>();
   const [diagnosticNavigationRange, setDiagnosticNavigationRange] = useState<SourceRange | undefined>();
   const [showUnsavedOpenGuard, setShowUnsavedOpenGuard] = useState(false);
-  const [fileFailure, setFileFailure] = useState<SafeFileFailure | null>(null);
+  const [fileNotice, setFileNotice] = useState<FileOperationNoticeModel | null>(null);
   const openIdsRef = useRef(createSequentialDocumentIdFactory("browser-open"));
   const currentDocumentRef = useRef(currentDocument);
+  const writeBindingRef = useRef(currentWriteBinding);
   const mountedRef = useRef(true);
   const documentController = useMemo(() => new DocumentSessionController(fileAdapter, openIdsRef.current), [fileAdapter]);
   currentDocumentRef.current = currentDocument;
+
+  useEffect(() => {
+    const previous = writeBindingRef.current;
+    if (previous && (!currentWriteBinding || currentWriteBinding.documentId !== previous.documentId)) {
+      documentController.releaseDocumentBinding(previous.documentId);
+    }
+    writeBindingRef.current = currentWriteBinding;
+  }, [currentWriteBinding, documentController]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -100,7 +111,7 @@ function StudioShell({ fileAdapter }: { fileAdapter: TextFileAdapter }) {
 
   const performOpen = useCallback(async (allowDiscard: boolean) => {
     const snapshot = currentDocumentRef.current;
-    setFileFailure(null);
+    setFileNotice(null);
     const pending = documentController.requestOpen({
       currentDocument: snapshot,
       allowDiscard,
@@ -113,19 +124,59 @@ function StudioShell({ fileAdapter }: { fileAdapter: TextFileAdapter }) {
     const result = await pending;
     if (!mountedRef.current) return;
     if (result.status === "opened" && currentDocumentRef.current.documentId === snapshot.documentId) {
+      documentController.releaseDocumentBinding(snapshot.documentId);
       setSelectedDiagnosticId(undefined);
       setDiagnosticNavigationRange(undefined);
       setEditorSelectedFrameSlotId(undefined);
+      currentDocumentRef.current = result.document;
       replaceCurrentDocument(result.document);
       return;
     }
     if (result.status === "failed") {
-      setFileFailure(result.failure);
+      setFileNotice({ type: "failure", operation: "open", failure: result.failure });
       setFileLifecycle({ ...createIdleFileLifecycleState(), lastFailure: result.failure });
       return;
     }
     setFileLifecycle(createIdleFileLifecycleState());
   }, [documentController, replaceCurrentDocument, setFileLifecycle]);
+
+  const performSave = useCallback(async (forceSaveAs = false): Promise<SaveDocumentResult> => {
+    const snapshot = currentDocumentRef.current;
+    const willSaveAs = forceSaveAs || !currentWriteBinding || snapshot.saveCapability !== "save";
+    setFileNotice(null);
+    const pending = willSaveAs
+      ? documentController.requestSaveAs({ currentDocument: snapshot, writeBinding: currentWriteBinding, getCurrentDocument: () => currentDocumentRef.current })
+      : documentController.requestSave({ currentDocument: snapshot, writeBinding: currentWriteBinding, getCurrentDocument: () => currentDocumentRef.current });
+    const operationId = documentController.operationId;
+    if (operationId) {
+      setFileLifecycle({ status: willSaveAs ? "save-as" : "saving", operationId, pendingDocumentId: snapshot.documentId, lastFailure: null });
+    }
+    const result = await pending;
+    if (!mountedRef.current) return { status: "stale-ignored" };
+    if (result.status === "saved") {
+      currentDocumentRef.current = result.document;
+      commitSavedDocument(result.document, result.writeBinding);
+      setFileNotice({
+        type: "success",
+        outcome: result.stillDirty ? "still-dirty" : result.strategy === "download" ? "saved-copy" : "saved"
+      });
+      setFileLifecycle(createIdleFileLifecycleState());
+      return result;
+    }
+    if (result.status === "failed") {
+      setFileNotice({ type: "failure", operation: "save", failure: result.failure });
+      setFileLifecycle({ ...createIdleFileLifecycleState(), lastFailure: result.failure });
+      return result;
+    }
+    if (result.status === "unsupported") {
+      const failure = { kind: "unsupported" as const };
+      setFileNotice({ type: "failure", operation: "save", failure });
+      setFileLifecycle({ ...createIdleFileLifecycleState(), lastFailure: failure });
+      return result;
+    }
+    setFileLifecycle(createIdleFileLifecycleState());
+    return result;
+  }, [commitSavedDocument, currentWriteBinding, documentController, setFileLifecycle]);
 
   const requestOpen = useCallback(() => {
     if (documentDirty) {
@@ -209,6 +260,9 @@ function StudioShell({ fileAdapter }: { fileAdapter: TextFileAdapter }) {
         onToggleCircuitFocusMode={() => setCircuitFocusMode((value) => !value)}
         isOpeningFile={fileLifecycle.status === "opening"}
         onOpenFile={requestOpen}
+        saveMode={currentWriteBinding && currentDocument.saveCapability === "save" ? "save" : "save-as"}
+        isSavingFile={fileLifecycle.status === "saving" || fileLifecycle.status === "save-as"}
+        onSaveFile={() => void performSave(!currentWriteBinding || currentDocument.saveCapability !== "save")}
         onAssemble={assemble}
         onRun={() => run()}
         onStep={step}
@@ -218,13 +272,22 @@ function StudioShell({ fileAdapter }: { fileAdapter: TextFileAdapter }) {
       <UnsavedOpenDialog
         open={showUnsavedOpenGuard}
         displayName={currentDocument.displayName}
+        isSaving={fileLifecycle.status === "saving" || fileLifecycle.status === "save-as"}
         onCancel={() => setShowUnsavedOpenGuard(false)}
+        onSave={() => {
+          void (async () => {
+            const result = await performSave(false);
+            if (result.status !== "saved" || result.stillDirty) return;
+            setShowUnsavedOpenGuard(false);
+            await performOpen(true);
+          })();
+        }}
         onDiscard={() => {
           setShowUnsavedOpenGuard(false);
           void performOpen(true);
         }}
       />
-      <FileOperationNotice failure={fileFailure} onDismiss={() => setFileFailure(null)} />
+      <FileOperationNotice notice={fileNotice} onDismiss={() => setFileNotice(null)} />
 
       {isCircuitFocusMode ? (
         <CircuitFocusLayout

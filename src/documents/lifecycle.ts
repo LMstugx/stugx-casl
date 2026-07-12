@@ -1,5 +1,5 @@
 import { formatDiagnosticDeveloperDetail } from "../diagnostics/presentation";
-import { markDocumentSaved, renameDocumentAfterSaveAs, replaceDocument } from "./documentModel";
+import { markDocumentRevisionSaved, renameDocumentAfterSaveAs, replaceDocument } from "./documentModel";
 import type { FileOperationFailureKind, SavedTextFile } from "./fileAdapter";
 import { invalidateSourceDerivedState, type SourceDerivedState } from "./sourceOwnership";
 import type { DocumentId, SourceDocument } from "./types";
@@ -99,7 +99,7 @@ export function completeSaveOperation(
   if (session.lifecycle.status === "saving" && session.document.saveCapability !== "save") return session;
   const document = session.lifecycle.status === "save-as"
     ? renameDocumentAfterSaveAs(session.document, saved, lastSavedAt)
-    : markDocumentSaved(session.document, lastSavedAt);
+    : markDocumentRevisionSaved(session.document, saved.savedRevision, lastSavedAt);
   return { ...session, document, lifecycle: createIdleFileLifecycleState() };
 }
 

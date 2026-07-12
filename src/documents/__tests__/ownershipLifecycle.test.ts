@@ -46,7 +46,7 @@ describe("Phase 15A source ownership and invalidation", () => {
 
   it("filename_only_change_does_not_invalidate_source_owned_state", () => {
     const { session } = replacementFixture();
-    const savedDocument = renameDocumentAfterSaveAs(session.document, savedCasl("renamed.cas"));
+    const savedDocument = renameDocumentAfterSaveAs(session.document, savedCasl("renamed.cas", 0));
     expect(savedDocument.sourceUnitId).toBe(session.document.sourceUnitId);
     expect(session.derived.generatedCasl).toBe("GENERATED");
   });
@@ -254,7 +254,7 @@ function replacedDerived() {
 
 function dirtySession() {
   const ids = createSequentialDocumentIdFactory("dirty-session");
-  const document = editDocument(createExternalDocument(openedCasl("program.cas", "A"), ids), "B");
+  const document = editDocument({ ...createExternalDocument(openedCasl("program.cas", "A"), ids), saveCapability: "save" as const }, "B");
   return { session: createDocumentSession(document, createSourceDerivedState(document.sourceUnitId, { generatedCasl: "OLD" })) };
 }
 
@@ -262,6 +262,8 @@ function openedCasl(fileName: string, text: string) {
   return { fileName, extension: ".cas" as const, language: "casl" as const, text, byteLength: text.length, encoding: "utf-8" as const, lineEnding: "lf" as const };
 }
 
-function savedCasl(fileName: string) {
-  return { fileName, extension: ".cas" as const, byteLength: 1, encoding: "utf-8" as const, lineEnding: "lf" as const };
+function savedCasl(fileName: string, savedRevision = 1) {
+  const documentId = "test-document" as import("../types").DocumentId;
+  const targetId = "test-target" as import("../types").SaveTargetId;
+  return { strategy: "file-system-access" as const, fileName, extension: ".cas" as const, byteLength: 1, encoding: "utf-8" as const, lineEnding: "lf" as const, savedRevision, targetId, confirmedWrite: true as const, writeBinding: { documentId, targetId, strategy: "file-system-access" as const, fileName } };
 }

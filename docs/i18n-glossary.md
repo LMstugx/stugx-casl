@@ -1,5 +1,7 @@
 # I18n Glossary
 
+Phase 15C file-action terminology is frozen as: `Save` / `保存` / `保存`, `Save As` / `名前を付けて保存` / `另存为`, and `Saved a copy` / `コピーを保存しました` / `已保存副本`. Copy wording is mandatory for Blob fallback and must not imply confirmed overwrite.
+
 ## Glossary Principles
 
 English is the canonical key language. Japanese uses terms common in Japanese computing education, and Simplified Chinese uses common mainland Chinese computing terminology. One concept has one approved translation per context. Toolbar labels may use an approved compact form while explanatory prose uses the canonical full form; these alternatives are documented rather than improvised in components.

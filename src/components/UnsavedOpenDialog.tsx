@@ -7,9 +7,11 @@ type UnsavedOpenDialogProps = {
   displayName: string;
   onCancel: () => void;
   onDiscard: () => void;
+  onSave?: () => void;
+  isSaving?: boolean;
 };
 
-export default function UnsavedOpenDialog({ open, displayName, onCancel, onDiscard }: UnsavedOpenDialogProps) {
+export default function UnsavedOpenDialog({ open, displayName, onCancel, onDiscard, onSave, isSaving = false }: UnsavedOpenDialogProps) {
   const { t } = useI18n();
   const dialogRef = useRef<HTMLDivElement>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
@@ -64,8 +66,9 @@ export default function UnsavedOpenDialog({ open, displayName, onCancel, onDisca
           </div>
         </div>
         <div className="file-dialog-actions">
-          <button ref={cancelRef} type="button" className="text-button" onClick={onCancel}>{t("common.cancel")}</button>
-          <button type="button" className="text-button destructive" data-testid="discard-and-open" onClick={onDiscard}>
+          <button ref={cancelRef} type="button" className="text-button" disabled={isSaving} onClick={onCancel}>{t("common.cancel")}</button>
+          {onSave ? <button type="button" className="text-button primary" data-testid="save-and-open" disabled={isSaving} aria-busy={isSaving || undefined} onClick={onSave}>{isSaving ? t("file.saving") : t("file.saveAndOpen")}</button> : null}
+          <button type="button" className="text-button destructive" data-testid="discard-and-open" disabled={isSaving} onClick={onDiscard}>
             {t("file.discardAndOpen")}
           </button>
         </div>

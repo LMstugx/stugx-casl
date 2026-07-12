@@ -78,6 +78,107 @@ test("Browser Open replaces one document atomically and guards dirty source", as
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
 });
 
+test("Browser Save As creates a session binding and later Save reuses it", async ({ page }) => {
+  await page.addInitScript(() => {
+    const browserWindow = window as unknown as {
+      showSaveFilePicker: () => Promise<{ name: string; createWritable: () => Promise<{ write(data: Uint8Array): Promise<void>; close(): Promise<void> }> }>;
+      __savedWrites: string[];
+    };
+    browserWindow.__savedWrites = [];
+    browserWindow.showSaveFilePicker = async () => ({
+      name: "saved.cpp",
+      createWritable: async () => ({
+        write: async (data) => { browserWindow.__savedWrites.push(new TextDecoder().decode(data)); },
+        close: async () => undefined
+      })
+    });
+  });
+  await openStudio(page, "Mock Core");
+  await selectDemoProgram(page, "cpp-addition");
+  await setSource(page, "int main() { return 9; }");
+
+  await expect(page.getByTestId("save-file-button")).toHaveAttribute("aria-label", "Save As");
+  await page.getByTestId("save-file-button").click();
+  await expect(page.locator(".source-file-name")).toHaveText("saved.cpp");
+  await expect(page.locator(".source-dirty-indicator")).toHaveCount(0);
+  await expect(page.getByTestId("save-file-button")).toHaveAttribute("aria-label", "Save");
+  await expect(page.getByTestId("file-operation-notice")).toContainText("Saved");
+
+  await setSource(page, "int main() { return 10; }");
+  await page.getByTestId("save-file-button").click();
+  await expect(page.locator(".source-dirty-indicator")).toHaveCount(0);
+  expect(await page.evaluate(() => (window as unknown as { __savedWrites: string[] }).__savedWrites)).toEqual([
+    "int main() { return 9; }",
+    "int main() { return 10; }"
+  ]);
+  await page.setViewportSize({ width: 1280, height: 720 });
+  for (const locale of ["ja", "zh-CN", "en"] as const) {
+    await page.getByTestId(`locale-${locale}`).click();
+    await expect(page.locator(".source-file-name")).toHaveText("saved.cpp");
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+  }
+});
+
+test("Browser download fallback is presented as Saved a copy and remains Save As", async ({ page }) => {
+  await page.addInitScript(() => {
+    const browserWindow = window as unknown as { showSaveFilePicker?: unknown; __downloadNames: string[] };
+    delete browserWindow.showSaveFilePicker;
+    browserWindow.__downloadNames = [];
+    URL.createObjectURL = () => "blob:test-save";
+    URL.revokeObjectURL = () => undefined;
+    HTMLAnchorElement.prototype.click = function click() { browserWindow.__downloadNames.push(this.download); };
+  });
+  await openStudio(page, "Mock Core");
+  await selectDemoProgram(page, "casl-push-pop-stack");
+  await setSource(page, "MAIN START\n RET\n END");
+  await page.getByTestId("save-file-button").click();
+  await expect(page.getByTestId("file-operation-notice")).toContainText("Saved a copy");
+  await expect(page.getByTestId("save-file-button")).toHaveAttribute("aria-label", "Save As");
+  expect(await page.evaluate(() => (window as unknown as { __downloadNames: string[] }).__downloadNames)).toEqual(["main.cas"]);
+});
+
+test("Save and Open guard waits for a successful save before replacement", async ({ page }) => {
+  await page.addInitScript(() => {
+    (window as unknown as { showSaveFilePicker: () => Promise<unknown> }).showSaveFilePicker = async () => ({
+      name: "guarded.cpp",
+      createWritable: async () => ({ write: async () => undefined, close: async () => undefined })
+    });
+  });
+  await openStudio(page, "Mock Core");
+  await selectDemoProgram(page, "cpp-addition");
+  await setSource(page, "int main() { return 20; }");
+  await page.getByTestId("open-file-button").click();
+  const chooserPromise = page.waitForEvent("filechooser");
+  await page.getByTestId("save-and-open").click();
+  const chooser = await chooserPromise;
+  await chooser.setFiles({ name: "replacement.cas", mimeType: "text/plain", buffer: Buffer.from("MAIN START\n RET\n END", "utf8") });
+  await expect(page.locator(".source-file-name")).toHaveText("replacement.cas");
+  await expect(page.locator(".source-dirty-indicator")).toHaveCount(0);
+});
+
+test("Editing while Save As is pending keeps the newer revision dirty", async ({ page }) => {
+  await page.addInitScript(() => {
+    const browserWindow = window as unknown as { showSaveFilePicker: () => Promise<unknown>; __finishSave?: () => void };
+    browserWindow.showSaveFilePicker = async () => ({
+      name: "pending.cpp",
+      createWritable: async () => ({
+        write: async () => undefined,
+        close: () => new Promise<void>((resolve) => { browserWindow.__finishSave = resolve; })
+      })
+    });
+  });
+  await openStudio(page, "Mock Core");
+  await selectDemoProgram(page, "cpp-addition");
+  await setSource(page, "int main() { return 21; }");
+  await page.getByTestId("save-file-button").click();
+  await expect(page.getByTestId("save-file-button")).toHaveAttribute("aria-busy", "true");
+  await setSource(page, "int main() { return 22; }");
+  await page.evaluate(() => (window as unknown as { __finishSave?: () => void }).__finishSave?.());
+  await expect(page.getByTestId("file-operation-notice")).toContainText("still unsaved");
+  await expect(page.locator(".source-dirty-indicator")).toBeVisible();
+  await expect(page.getByTestId("save-file-button")).toHaveAttribute("aria-label", "Save");
+});
+
 test("Mock backend shows project overview and keeps learning demo views working", async ({ page }) => {
   await openStudio(page, "Mock Core");
 

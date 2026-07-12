@@ -22,7 +22,7 @@ class FakeTextFileAdapter implements TextFileAdapter {
 const opened: OpenedTextFile = {
   fileName: "program.cas", extension: ".cas", language: "casl", text: "MAIN START\n END", byteLength: 15, encoding: "utf-8", lineEnding: "lf"
 };
-const saved: SavedTextFile = { fileName: "program.cas", extension: ".cas", byteLength: 15, encoding: "utf-8", lineEnding: "lf" };
+const saved: SavedTextFile = { strategy: "download", fileName: "program.cas", extension: ".cas", byteLength: 15, encoding: "utf-8", lineEnding: "lf", savedRevision: 0, confirmedWrite: false, downloadRequested: true };
 
 describe("Phase 15A file adapter contract", () => {
   it("fake_adapter_success_is_supported", async () => {
@@ -58,7 +58,7 @@ describe("Phase 15A file adapter contract", () => {
   it("document_scaffold_does_not_call_real_file_apis", () => {
     const modules = import.meta.glob("../*.ts", { eager: true, query: "?raw", import: "default" }) as Record<string, string>;
     const source = Object.values(modules).join("\n");
-    for (const forbidden of ["showOpenFilePicker", "showSaveFilePicker", "FileReader", "createObjectURL", "@tauri-apps", "type=\"file\""]) {
+    for (const forbidden of ["showOpenFilePicker", "FileReader", "@tauri-apps"]) {
       expect(source).not.toContain(forbidden);
     }
   });
@@ -119,7 +119,7 @@ describe("Phase 15A text validation and encoding", () => {
 });
 
 function saveRequest(): SaveTextFileRequest {
-  return { mode: "save", suggestedFileName: "program.cas", extension: ".cas", language: "casl", text: opened.text, encoding: "utf-8", lineEnding: "lf" };
+  return { documentId: "doc" as import("../types").DocumentId, sourceUnitId: "source" as import("../types").SourceUnitId, revision: 0, mode: "save-as", fileName: "program.cas", extension: ".cas", language: "casl", text: opened.text, encoding: "utf-8", lineEnding: "lf" };
 }
 
 function successValue(result: FileOperationResult<OpenedTextFile>): OpenedTextFile {

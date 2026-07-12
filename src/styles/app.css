@@ -1942,6 +1942,11 @@ button {
   font-size: var(--font-size-caption);
 }
 
+.file-operation-notice.success {
+  border-color: color-mix(in srgb, var(--color-success) 34%, var(--color-border));
+  background: var(--color-success-soft);
+}
+
 .file-dialog-backdrop {
   position: fixed;
   inset: 0;
@@ -1999,6 +2004,13 @@ button {
   border-color: color-mix(in srgb, var(--color-danger) 42%, var(--color-border));
   background: var(--color-danger-soft);
   color: var(--color-danger);
+}
+
+.text-button.primary {
+  border-color: color-mix(in srgb, var(--color-primary) 36%, var(--color-border));
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  font-weight: 750;
 }
 
 .panel-header span {

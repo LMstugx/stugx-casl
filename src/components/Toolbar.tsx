@@ -14,6 +14,9 @@ type ToolbarProps = {
   onToggleCircuitFocusMode?: () => void;
   isOpeningFile?: boolean;
   onOpenFile?: () => void;
+  saveMode?: "save" | "save-as" | "unsupported";
+  isSavingFile?: boolean;
+  onSaveFile?: () => void;
   onAssemble: () => void;
   onRun: () => void;
   onStep: () => void;
@@ -71,6 +74,9 @@ export default function Toolbar({
   onToggleCircuitFocusMode = () => undefined,
   isOpeningFile = false,
   onOpenFile = () => undefined,
+  saveMode = "unsupported",
+  isSavingFile = false,
+  onSaveFile = () => undefined,
   onAssemble,
   onRun,
   onStep,
@@ -104,14 +110,23 @@ export default function Toolbar({
         <ToolButton
           label={isOpeningFile ? t("file.opening") : t("toolbar.open")}
           icon={<FolderOpen size={18} />}
-          disabled={isOpeningFile || isRunning || assembleStatus === "running"}
+          disabled={isOpeningFile || isSavingFile || isRunning || assembleStatus === "running"}
           loading={isOpeningFile}
           testId="open-file-button"
           onClick={onOpenFile}
           title={t("file.supportedFiles")}
           accessibleLabel={t("file.openFile")}
         />
-        <ToolButton label={t("toolbar.save")} icon={<Save size={18} />} disabled title="File save is not implemented in Phase 2B" />
+        <ToolButton
+          label={isSavingFile ? t("file.saving") : saveMode === "save" ? t("toolbar.save") : t("file.saveAs")}
+          icon={<Save size={18} />}
+          disabled={saveMode === "unsupported" || isSavingFile || isOpeningFile || isRunning || assembleStatus === "running"}
+          loading={isSavingFile}
+          testId="save-file-button"
+          onClick={onSaveFile}
+          title={saveMode === "save" ? t("toolbar.save") : t("file.chooseSaveLocation")}
+          accessibleLabel={saveMode === "save" ? t("toolbar.save") : t("file.saveAs")}
+        />
         <ToolButton
           label={t("toolbar.circuitFocus")}
           icon={<Cpu size={18} />}

@@ -2,7 +2,7 @@
 
 ## Scope
 
-Phase 15B adds one user-visible browser Open operation for a single `.cas` or `.cpp` UTF-8 text file. It connects the Phase 15A document model to the existing store through a narrow session controller. Save, Save As, projects, multiple files, directories, URLs, downloads, and path persistence remain out of scope.
+Phase 15B added one user-visible browser Open operation for a single `.cas` or `.cpp` UTF-8 text file. Phase 15C now adds Save/Save As; projects, multiple files, directories, URLs, and path persistence remain out of scope.
 
 Open never parses, assembles, runs, or steps the selected source. Parser/assembler acceptance, emitted CASL, C++ lowering, diagnostic behavior, and VM transitions are unchanged.
 
@@ -65,4 +65,4 @@ The toolbar Open command has a localized accessible name, `aria-busy` while open
 
 ## Phase 15C Recommendation
 
-Implement Save As first through the existing adapter result and lifecycle contracts. Add Save only after a browser capability policy is chosen; do not infer overwrite support from a Phase 15B Open because no file handle is retained.
+Implemented in Phase 15C. Files opened through the Phase 15B input remain Save As only because no writable handle is retained.

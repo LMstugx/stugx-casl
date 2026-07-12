@@ -752,6 +752,94 @@ async function captureBrowserOpenFileStates(page: Page, viewport: Viewport) {
   await capture(page, viewport, "external-casl-loaded.png");
 }
 
+async function captureBrowserSaveStates(page: Page, viewport: Viewport) {
+  if (!viewport.primary && viewport.name !== "1280x720") return;
+  await page.addInitScript(() => {
+    const browserWindow = window as unknown as {
+      showSaveFilePicker: () => Promise<{ name: string; createWritable: () => Promise<{ write(data: Uint8Array): Promise<void>; close(): Promise<void> }> }>;
+      __saveName: string;
+      __delaySave: boolean;
+      __finishSave?: () => void;
+    };
+    browserWindow.__saveName = "saved.cpp";
+    browserWindow.__delaySave = false;
+    browserWindow.showSaveFilePicker = async () => ({
+      get name() { return browserWindow.__saveName; },
+      createWritable: async () => ({
+        write: async () => undefined,
+        close: () => browserWindow.__delaySave
+          ? new Promise<void>((resolve) => { browserWindow.__finishSave = resolve; })
+          : Promise.resolve()
+      })
+    });
+  });
+  await openStudio(page, "Mock Core");
+  await selectDemoProgram(page, "cpp-addition");
+  await setSource(page, "int main() { return 15; }");
+  await capture(page, viewport, "save-as-untitled-en.png");
+  await page.getByTestId("locale-ja").click();
+  await capture(page, viewport, "save-as-untitled-ja.png");
+  await page.getByTestId("locale-zh-CN").click();
+  await capture(page, viewport, "save-as-untitled-zh-cn.png");
+  await page.getByTestId("locale-en").click();
+
+  await page.getByTestId("open-file-button").click();
+  await capture(page, viewport, "save-and-open-guard.png");
+  await page.getByRole("button", { name: "Cancel" }).click();
+  await capture(page, viewport, "save-dirty-document.png");
+
+  await page.getByTestId("save-file-button").click();
+  await expect(page.getByTestId("file-operation-notice")).toContainText("Saved");
+  await capture(page, viewport, "save-success.png");
+
+  await setSource(page, "int main() { return 16; }");
+  await page.evaluate(() => { (window as unknown as { __delaySave: boolean }).__delaySave = true; });
+  await page.getByTestId("save-file-button").click();
+  await setSource(page, "int main() { return 17; }");
+  await page.evaluate(() => (window as unknown as { __finishSave?: () => void }).__finishSave?.());
+  await expect(page.getByTestId("file-operation-notice")).toContainText("still unsaved");
+  await capture(page, viewport, "save-still-dirty-after-concurrent-edit.png");
+
+  await page.reload();
+  await expect(page.getByTestId("source-editor")).toBeVisible();
+  await selectDemoProgram(page, "cpp-addition");
+  await setSource(page, "int main() { return 16; }");
+  await page.evaluate(() => {
+    const browserWindow = window as unknown as { __saveName: string; __delaySave: boolean };
+    browserWindow.__delaySave = false;
+    browserWindow.__saveName = `${"long_saved_source_name_".repeat(5)}.cpp`;
+  });
+  await page.getByTestId("save-file-button").click();
+  if (viewport.name === "1280x720") await capture(page, viewport, "save-long-filename-1280.png");
+
+  await page.reload();
+  await expect(page.getByTestId("source-editor")).toBeVisible();
+  await selectDemoProgram(page, "cpp-addition");
+  await setSource(page, "int main() { return 17; }");
+  await page.evaluate(() => {
+    delete (window as unknown as { showSaveFilePicker?: unknown }).showSaveFilePicker;
+    URL.createObjectURL = () => "blob:visual-save";
+    URL.revokeObjectURL = () => undefined;
+    HTMLAnchorElement.prototype.click = () => undefined;
+  });
+  await page.getByTestId("save-file-button").click();
+  await expect(page.getByTestId("file-operation-notice")).toContainText("Saved a copy");
+  await capture(page, viewport, "save-copy-download.png");
+
+  await page.reload();
+  await expect(page.getByTestId("source-editor")).toBeVisible();
+  await selectDemoProgram(page, "cpp-addition");
+  await setSource(page, "int main() { return 18; }");
+  await page.evaluate(() => {
+    (window as unknown as { showSaveFilePicker: () => Promise<never> }).showSaveFilePicker = async () => {
+      throw new DOMException("denied", "NotAllowedError");
+    };
+  });
+  await page.getByTestId("save-file-button").click();
+  await expect(page.getByTestId("file-operation-notice")).toContainText("Could not save file");
+  await capture(page, viewport, "save-failure.png");
+}
+
 test.describe("visual review screenshot gallery", () => {
   for (const viewport of viewports) {
     test(`captures visual review gallery at ${viewport.name}`, async ({ page }) => {
@@ -798,6 +886,7 @@ test.describe("visual review screenshot gallery", () => {
       await captureCppFunctionArgumentsMachineCode(page, viewport);
       await capturePhase14cLocalizedFocus(page, viewport);
       await captureBrowserOpenFileStates(page, viewport);
+      await captureBrowserSaveStates(page, viewport);
     });
   }
 });

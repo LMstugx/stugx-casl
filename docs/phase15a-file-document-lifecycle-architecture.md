@@ -2,7 +2,7 @@
 
 ## Scope
 
-Phase 15A introduced the pure document/file lifecycle scaffold. Phase 15B now consumes its Open subset through the browser adapter and store bridge; the definitions in this document remain the architectural baseline.
+Phase 15A introduced the pure document/file lifecycle scaffold. Phase 15B consumed Open and Phase 15C consumes Save/Save As through the same adapter and store bridge; the definitions in this document remain the architectural baseline.
 
 Parser/assembler acceptance, ASTs, emitted CASL, C++ lowering, diagnostic triggers/order/severity, and VM transitions are unchanged.
 
@@ -33,7 +33,7 @@ Edits increment revision. Save success copies revision to saved revision. Save A
 
 ## Adapter Boundary
 
-See [file-io-adapter-contract.md](file-io-adapter-contract.md). `TextFileAdapter` has open/save methods and success/cancel/failure results. It has no store, parser, assembler, locale, or DOM dependency. Phase 15B provides the browser Open implementation while Save remains unsupported.
+See [file-io-adapter-contract.md](file-io-adapter-contract.md). `TextFileAdapter` has open/save methods and success/cancel/failure results. It has no store, parser, assembler, or locale dependency. Phase 15C adds confirmed-write/download-copy semantics without persisting handles.
 
 ## Validation And Encoding
 

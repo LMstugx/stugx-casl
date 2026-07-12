@@ -1,4 +1,5 @@
 import {
+  DEFAULT_MAX_TEXT_FILE_BYTES,
   type FileOpenOptions,
   type FileOperationResult,
   type OpenedTextFile,
@@ -6,7 +7,11 @@ import {
   type SavedTextFile,
   type TextFileAdapter
 } from "./fileAdapter";
-import { validateTextFileCandidate } from "./validation";
+import { DomBrowserSavePlatform, UnsupportedSaveError, isPermissionFailure, isPickerCancellation, type BrowserSavePlatform } from "./browserSaveStrategy";
+import { validateSavedFileName } from "./saveFileName";
+import { TransientWriteBindingRegistry, type FileSystemFileHandleLike } from "./transientWriteBinding";
+import type { DocumentId, DocumentWriteBinding } from "./types";
+import { serializeTextForSave, validateTextFileCandidate } from "./validation";
 
 type BrowserFileLike = Pick<File, "name" | "arrayBuffer">;
 
@@ -27,7 +32,9 @@ export interface Utf8DecoderPort {
 export class BrowserTextFileAdapter implements TextFileAdapter {
   constructor(
     private readonly selectionPort: BrowserFileSelectionPort = new BrowserInputFileSelectionPort(),
-    private readonly decoder: Utf8DecoderPort = new StrictUtf8Decoder()
+    private readonly decoder: Utf8DecoderPort = new StrictUtf8Decoder(),
+    private readonly savePlatform: BrowserSavePlatform = new DomBrowserSavePlatform(),
+    private readonly writeBindings = new TransientWriteBindingRegistry()
   ) {}
 
   async openTextFile(options: FileOpenOptions): Promise<FileOperationResult<OpenedTextFile>> {
@@ -48,12 +55,134 @@ export class BrowserTextFileAdapter implements TextFileAdapter {
     }
   }
 
-  async saveTextFile(_request: SaveTextFileRequest): Promise<FileOperationResult<SavedTextFile>> {
-    return { status: "failure", kind: "unsupported" };
+  async saveTextFile(request: SaveTextFileRequest): Promise<FileOperationResult<SavedTextFile>> {
+    const validatedName = validateSavedFileName(request.fileName, request.language);
+    if (!validatedName || validatedName.extension !== request.extension) {
+      return { status: "failure", kind: "invalid-filename" };
+    }
+    const text = serializeTextForSave(request.text, request.lineEnding);
+    const bytes = new TextEncoder().encode(text);
+    if (bytes.byteLength > DEFAULT_MAX_TEXT_FILE_BYTES) return { status: "failure", kind: "too-large" };
+
+    if (request.mode === "save") {
+      if (!request.targetId) return { status: "failure", kind: "stale-target" };
+      const handle = this.writeBindings.resolve(request.documentId, request.targetId);
+      const binding = this.writeBindings.bindingFor(request.documentId, request.targetId);
+      if (!handle || !binding) return { status: "failure", kind: "stale-target" };
+      return this.writeConfirmed(handle, binding, request, bytes);
+    }
+
+    if (!this.savePlatform.supportsFileSystemAccess()) {
+      return this.requestDownload(validatedName.fileName, request, bytes);
+    }
+
+    try {
+      const handle = await this.savePlatform.showSaveFilePicker({ ...request, fileName: validatedName.fileName });
+      const actualName = validateSavedFileName(handle.name, request.language);
+      if (!actualName || actualName.extension !== request.extension) {
+        return { status: "failure", kind: "invalid-extension" };
+      }
+      const writeFailure = await this.writeBytes(handle, bytes);
+      if (writeFailure) return writeFailure;
+      const binding = this.writeBindings.register(request.documentId, actualName.fileName, handle);
+      return {
+        status: "success",
+        value: {
+          strategy: "file-system-access",
+          fileName: actualName.fileName,
+          extension: request.extension,
+          byteLength: bytes.byteLength,
+          encoding: "utf-8",
+          lineEnding: request.lineEnding,
+          savedRevision: request.revision,
+          targetId: binding.targetId,
+          confirmedWrite: true,
+          writeBinding: binding
+        }
+      };
+    } catch (error) {
+      if (isPickerCancellation(error)) return { status: "cancelled" };
+      if (error instanceof UnsupportedSaveError) return this.requestDownload(validatedName.fileName, request, bytes);
+      return { status: "failure", kind: isPermissionFailure(error) ? "permission" : "io", rawContext: error };
+    }
+  }
+
+  hasWriteBinding(binding: DocumentWriteBinding): boolean {
+    return this.writeBindings.has(binding);
+  }
+
+  releaseDocumentBinding(documentId: DocumentId): void {
+    this.writeBindings.releaseDocument(documentId);
   }
 
   dispose(): void {
     this.selectionPort.dispose?.();
+    this.writeBindings.clear();
+  }
+
+  private async writeConfirmed(
+    handle: FileSystemFileHandleLike,
+    binding: DocumentWriteBinding,
+    request: SaveTextFileRequest,
+    bytes: Uint8Array
+  ): Promise<FileOperationResult<SavedTextFile>> {
+    const failure = await this.writeBytes(handle, bytes);
+    if (failure) return failure;
+    return {
+      status: "success",
+      value: {
+        strategy: "file-system-access",
+        fileName: binding.fileName,
+        extension: request.extension,
+        byteLength: bytes.byteLength,
+        encoding: "utf-8",
+        lineEnding: request.lineEnding,
+        savedRevision: request.revision,
+        targetId: binding.targetId,
+        confirmedWrite: true,
+        writeBinding: binding
+      }
+    };
+  }
+
+  private async writeBytes(
+    handle: FileSystemFileHandleLike,
+    bytes: Uint8Array
+  ): Promise<Extract<FileOperationResult<SavedTextFile>, { status: "failure" }> | null> {
+    try {
+      const writable = await handle.createWritable();
+      await writable.write(bytes);
+      await writable.close();
+      return null;
+    } catch (error) {
+      return { status: "failure", kind: isPermissionFailure(error) ? "permission" : "io", rawContext: error };
+    }
+  }
+
+  private async requestDownload(
+    fileName: string,
+    request: SaveTextFileRequest,
+    bytes: Uint8Array
+  ): Promise<FileOperationResult<SavedTextFile>> {
+    try {
+      await this.savePlatform.requestDownload(fileName, bytes);
+      return {
+        status: "success",
+        value: {
+          strategy: "download",
+          fileName,
+          extension: request.extension,
+          byteLength: bytes.byteLength,
+          encoding: "utf-8",
+          lineEnding: request.lineEnding,
+          savedRevision: request.revision,
+          confirmedWrite: false,
+          downloadRequested: true
+        }
+      };
+    } catch (error) {
+      return { status: "failure", kind: error instanceof UnsupportedSaveError ? "unsupported" : "io", rawContext: error };
+    }
   }
 }
 

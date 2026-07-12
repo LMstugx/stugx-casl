@@ -75,7 +75,7 @@ export function createExternalDocument(file: OpenedTextFile, ids: DocumentIdFact
     fileName: file.fileName,
     extension: file.extension,
     content: file.text,
-    saveCapability: "save",
+    saveCapability: "save-as-only",
     lineEnding: file.lineEnding
   }, ids);
 }
@@ -91,9 +91,16 @@ export function isDocumentDirty(document: SourceDocument): boolean {
 }
 
 export function markDocumentSaved(document: SourceDocument, lastSavedAt?: number): SourceDocument {
+  return markDocumentRevisionSaved(document, document.revision, lastSavedAt);
+}
+
+export function markDocumentRevisionSaved(document: SourceDocument, savedRevision: number, lastSavedAt?: number): SourceDocument {
+  if (!Number.isInteger(savedRevision) || savedRevision < 0 || savedRevision > document.revision) {
+    throw new Error("saved revision must identify an existing document revision");
+  }
   return {
     ...document,
-    savedRevision: document.revision,
+    savedRevision,
     ...(lastSavedAt === undefined ? {} : { lastSavedAt })
   };
 }
@@ -102,16 +109,16 @@ export function renameDocumentAfterSaveAs(document: SourceDocument, saved: Saved
   if (saved.extension !== languageToExtension(document.language)) throw new Error("saved extension must match document language");
   const fileName = safeDisplayFileName(saved.fileName);
   if (!fileName) throw new Error("saved file name must not be empty");
-  return markDocumentSaved({
+  return markDocumentRevisionSaved({
     ...document,
     origin: "external-file",
     fileName,
     displayName: fileName,
     extension: saved.extension,
-    saveCapability: "save",
+    saveCapability: saved.confirmedWrite ? "save" : "save-as-only",
     encoding: saved.encoding,
     lineEnding: saved.lineEnding
-  }, lastSavedAt);
+  }, saved.savedRevision, lastSavedAt);
 }
 
 export function replaceDocument(current: SourceDocument, replacement: SourceDocument): SourceDocument {

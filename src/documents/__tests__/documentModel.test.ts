@@ -44,7 +44,7 @@ describe("Phase 15A document model", () => {
 
   it("external_document_is_clean_after_open_simulation", () => {
     const document = createExternalDocument(openedCasl("program.cas", "MAIN START\n END"), createSequentialDocumentIdFactory("external"));
-    expect(document).toMatchObject({ origin: "external-file", saveCapability: "save", revision: 0, savedRevision: 0 });
+    expect(document).toMatchObject({ origin: "external-file", saveCapability: "save-as-only", revision: 0, savedRevision: 0 });
     expect(isDocumentDirty(document)).toBe(false);
   });
 
@@ -148,5 +148,18 @@ function openedCasl(fileName: string, text: string) {
 }
 
 function savedCasl(fileName: string, byteLength: number) {
-  return { fileName, extension: ".cas" as const, byteLength, encoding: "utf-8" as const, lineEnding: "lf" as const };
+  const documentId = "test-document" as import("../types").DocumentId;
+  const targetId = "test-target" as import("../types").SaveTargetId;
+  return {
+    strategy: "file-system-access" as const,
+    fileName,
+    extension: ".cas" as const,
+    byteLength,
+    encoding: "utf-8" as const,
+    lineEnding: "lf" as const,
+    savedRevision: 1,
+    targetId,
+    confirmedWrite: true as const,
+    writeBinding: { documentId, targetId, strategy: "file-system-access" as const, fileName }
+  };
 }

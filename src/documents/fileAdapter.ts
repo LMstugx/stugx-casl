@@ -1,4 +1,4 @@
-import type { DocumentExtension, DocumentLanguage, DocumentLineEnding } from "./types";
+import type { DocumentExtension, DocumentId, DocumentLanguage, DocumentLineEnding, DocumentWriteBinding, SaveStrategy, SaveTargetId, SourceUnitId } from "./types";
 
 export const DEFAULT_MAX_TEXT_FILE_BYTES = 1024 * 1024;
 export const SUPPORTED_TEXT_EXTENSIONS = [".cas", ".cpp"] as const;
@@ -19,31 +19,52 @@ export interface OpenedTextFile {
 }
 
 export interface SaveTextFileRequest {
+  documentId: DocumentId;
+  sourceUnitId: SourceUnitId;
+  revision: number;
   mode: "save" | "save-as";
-  suggestedFileName: string;
+  fileName: string;
   extension: DocumentExtension;
   language: DocumentLanguage;
   text: string;
   encoding: "utf-8";
-  lineEnding: DocumentLineEnding;
+  lineEnding: "lf" | "crlf";
+  targetId?: SaveTargetId;
 }
 
-export interface SavedTextFile {
+export interface SavedTextFileBase {
+  strategy: SaveStrategy;
   fileName: string;
   extension: DocumentExtension;
   byteLength: number;
   encoding: "utf-8";
-  lineEnding: Exclude<DocumentLineEnding, "unknown">;
+  lineEnding: "lf" | "crlf";
+  savedRevision: number;
 }
+
+export type SavedTextFile =
+  | (SavedTextFileBase & {
+      strategy: "file-system-access";
+      targetId: SaveTargetId;
+      confirmedWrite: true;
+      writeBinding: DocumentWriteBinding;
+    })
+  | (SavedTextFileBase & {
+      strategy: "download";
+      confirmedWrite: false;
+      downloadRequested: true;
+    });
 
 export type FileOperationFailureKind =
   | "permission"
   | "unsupported"
   | "invalid-extension"
+  | "invalid-filename"
   | "invalid-encoding"
   | "binary"
   | "too-large"
   | "io"
+  | "stale-target"
   | "unknown";
 
 export type FileOperationResult<T> =
@@ -54,6 +75,8 @@ export type FileOperationResult<T> =
 export interface TextFileAdapter {
   openTextFile(options: FileOpenOptions): Promise<FileOperationResult<OpenedTextFile>>;
   saveTextFile(request: SaveTextFileRequest): Promise<FileOperationResult<SavedTextFile>>;
+  hasWriteBinding?(binding: DocumentWriteBinding): boolean;
+  releaseDocumentBinding?(documentId: DocumentId): void;
 }
 
 export function defaultFileOpenOptions(): FileOpenOptions {

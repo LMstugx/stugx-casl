@@ -16,7 +16,7 @@ export default function DemoGuidePanel({
   onToggleLessonStep,
   onResetLessonProgress
 }: DemoGuidePanelProps) {
-  const completedSteps = lesson ? lesson.suggestedSteps.filter((step) => lessonProgress[step.id]).length : 0;
+  const completedSteps = lesson ? lesson.suggestedSteps.filter((step) => lessonProgress[step.stepId]).length : 0;
   const totalSteps = lesson?.suggestedSteps.length ?? 0;
 
   return (
@@ -98,13 +98,13 @@ export default function DemoGuidePanel({
               <h3>Suggested steps checklist</h3>
               <ol className="study-step-list">
                 {lesson.suggestedSteps.map((step) => (
-                  <li key={step.id} data-testid="guided-lesson-step" data-completed={lessonProgress[step.id] ? "true" : "false"}>
+                  <li key={step.stepId} data-testid="guided-lesson-step" data-step-id={step.stepId} data-completed={lessonProgress[step.stepId] ? "true" : "false"}>
                     <label className="study-step">
                       <input
                         type="checkbox"
-                        checked={Boolean(lessonProgress[step.id])}
+                        checked={Boolean(lessonProgress[step.stepId])}
                         data-testid="study-mode-step-checkbox"
-                        onChange={() => onToggleLessonStep?.(lesson.exampleId, step.id)}
+                        onChange={() => onToggleLessonStep?.(lesson.exampleId, step.stepId)}
                       />
                       <span>
                         <strong>{step.label}:</strong> {step.action}

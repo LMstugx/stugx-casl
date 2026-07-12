@@ -257,7 +257,9 @@ The checklist is manual, not automatic grading. It does not inspect your answer 
 
 Progress is stored only while the app is open. Switching examples keeps separate progress for each built-in example during the session. Editing custom source hides the lesson and shows `No guided lesson for custom source.`
 
-To start over, click `Reset lesson progress` in the Guided Lesson section.
+To start over, click `Reset lesson progress` in the Guided Lesson section. Completed suggested steps are stored browser-locally by explicit built-in lesson and step IDs. The stored checklist does not include lesson text, source, files, locale, diagnostics, or VM state.
+
+Progress survives reload and locale changes. Wording changes preserve completion; newly added steps start incomplete; deleted steps are ignored. A lesson compatibility-version change intentionally starts that lesson again rather than matching by text or array position. External and Untitled source never infer a lesson from matching source text.
 
 ## 5. How To Use Recommended Tab Hints
 

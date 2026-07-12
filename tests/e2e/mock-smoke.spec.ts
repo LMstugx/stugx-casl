@@ -12,8 +12,14 @@ async function switchObservationMode(page: Page, mode: "cpu-flow" | "register-st
   await page.getByTestId(`observation-mode-${mode}`).click();
 }
 
+async function ensureGuidedLessonOpen(page: Page) {
+  const lesson = page.getByTestId("guided-lesson");
+  if ((await lesson.getAttribute("open")) === null) await page.getByTestId("guided-lesson-summary").click();
+}
+
 const applicationPreferenceKey = "stugx.casl.preferences.v1";
 const startupSelectionKey = "stugx.casl.startup-selection.v1";
+const lessonProgressKey = "stugx.casl.lesson-progress.v1";
 
 test("Mock backend completes assemble and first step in the browser UI", async ({ page }) => {
   await openStudio(page, "Mock Core");
@@ -138,6 +144,85 @@ test("Last successful built-in example restores synchronously and independently"
   await page.reload();
   await expect(page.getByTestId("demo-program-select")).toHaveValue("cpp-addition");
   await expectSourceContains(page, "int a = 10;");
+  await page.setViewportSize({ width: 1280, height: 720 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+});
+
+test("Built-in lesson progress restores with versioned identities and isolated storage", async ({ page }) => {
+  await page.addInitScript((progressKey) => {
+    if (sessionStorage.getItem("phase16c-seeded") === "true") return;
+    localStorage.removeItem(progressKey);
+    sessionStorage.setItem("phase16c-seeded", "true");
+  }, lessonProgressKey);
+  await openStudio(page, "Mock Core");
+  await ensureGuidedLessonOpen(page);
+  await page.locator('[data-step-id="assemble"] input').check();
+  await page.locator('[data-step-id="step-ld"] input').check();
+  await expect(page.getByTestId("study-mode-progress")).toContainText("2 / 4");
+  const firstSnapshot = await page.evaluate((key) => localStorage.getItem(key), lessonProgressKey);
+  expect(JSON.parse(firstSnapshot!)).toEqual({
+    version: 1,
+    entries: [{ lessonId: "casl-gr2-addition", exampleId: "casl-gr2-addition", progressCompatibilityVersion: 1, completedStepIds: ["assemble", "step-ld"] }]
+  });
+
+  await page.reload();
+  await ensureGuidedLessonOpen(page);
+  await expect(page.getByTestId("study-mode-progress")).toContainText("2 / 4");
+  await expect(page.locator('[data-step-id="assemble"] input')).toBeChecked();
+  await expect(page.locator('[data-step-id="step-ld"] input')).toBeChecked();
+  await page.getByTestId("locale-ja").click();
+  await expect(page.getByTestId("study-mode-progress")).toContainText("2 / 4");
+  await page.getByTestId("locale-zh-CN").click();
+  await expect(page.locator('[data-step-id="assemble"] input')).toBeChecked();
+  expect(await page.evaluate((key) => localStorage.getItem(key), lessonProgressKey)).toBe(firstSnapshot);
+  await page.getByTestId("locale-en").click();
+
+  await page.getByTestId("demo-program-select").selectOption("cpp-addition");
+  await ensureGuidedLessonOpen(page);
+  await page.locator('[data-step-id="assemble"] input').check();
+  await expect(page.getByTestId("study-mode-progress")).toContainText("1 / 3");
+  await page.getByTestId("demo-program-select").selectOption("casl-gr2-addition");
+  await ensureGuidedLessonOpen(page);
+  await expect(page.getByTestId("study-mode-progress")).toContainText("2 / 4");
+
+  await chooseTextFile(page, "external.cas", "MAIN START\n RET\n END");
+  await expect(page.getByTestId("demo-guide")).toHaveCount(0);
+  const afterOpen = await page.evaluate((key) => localStorage.getItem(key), lessonProgressKey);
+  expect(afterOpen).toContain("casl-gr2-addition");
+  expect(afterOpen).toContain("cpp-addition");
+  await page.getByTestId("demo-program-select").selectOption("casl-gr2-addition");
+  await ensureGuidedLessonOpen(page);
+  await expect(page.getByTestId("study-mode-progress")).toContainText("2 / 4");
+
+  await page.getByTestId("study-mode-reset").click();
+  await expect(page.getByTestId("study-mode-progress")).toContainText("0 / 4");
+  await page.reload();
+  await ensureGuidedLessonOpen(page);
+  await expect(page.getByTestId("study-mode-progress")).toContainText("0 / 4");
+  const afterReset = JSON.parse((await page.evaluate((key) => localStorage.getItem(key), lessonProgressKey))!);
+  expect(afterReset.entries).toEqual([{ lessonId: "cpp-addition", exampleId: "cpp-addition", progressCompatibilityVersion: 1, completedStepIds: ["assemble"] }]);
+
+  await page.evaluate((key) => localStorage.setItem(key, JSON.stringify({ version: 1, entries: [{ lessonId: "casl-gr2-addition", exampleId: "casl-gr2-addition", progressCompatibilityVersion: 1, completedStepIds: ["assemble", "deleted-step"] }] })), lessonProgressKey);
+  await page.reload();
+  await ensureGuidedLessonOpen(page);
+  await expect(page.getByTestId("study-mode-progress")).toContainText("1 / 4");
+  await expect(page.locator('[data-step-id="assemble"] input')).toBeChecked();
+
+  await page.evaluate((key) => localStorage.setItem(key, JSON.stringify({ version: 1, entries: [{ lessonId: "casl-gr2-addition", exampleId: "casl-gr2-addition", progressCompatibilityVersion: 2, completedStepIds: ["assemble"] }] })), lessonProgressKey);
+  await page.reload();
+  await ensureGuidedLessonOpen(page);
+  await expect(page.getByTestId("study-mode-progress")).toContainText("0 / 4");
+
+  await page.evaluate((key) => {
+    const original = Storage.prototype.setItem;
+    Storage.prototype.setItem = function setItem(name: string, value: string) {
+      if (name === key) throw new DOMException("quota", "QuotaExceededError");
+      return original.call(this, name, value);
+    };
+  }, lessonProgressKey);
+  await page.locator('[data-step-id="assemble"] input').check();
+  await expect(page.getByTestId("study-mode-progress")).toContainText("1 / 4");
+  await expect(page.locator(".source-dirty-indicator")).toHaveCount(0);
   await page.setViewportSize({ width: 1280, height: 720 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
 });

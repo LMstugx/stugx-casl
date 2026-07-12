@@ -64,3 +64,5 @@ Restored tabs use their existing accessible tab semantics. Hydration has no load
 Audit optional built-in-example startup restoration separately. `lastExampleId` may only be admitted through the frozen source replacement contract, with deleted-ID fallback and no external-file, Dirty source, runtime, path, or handle restoration.
 
 Phase 16B implements that recommendation with a separate startup-selection key. The Phase 16A persisted-field allowlist and reset semantics remain unchanged.
+
+Phase 16C likewise keeps versioned built-in lesson progress in a separate key. It does not add lesson fields to the Phase 16A preference payload or reset contract.

@@ -4,7 +4,7 @@ export type LearningLevel = "CASL basics" | "C++ to CASL" | "Control flow" | "Lo
 export type RecommendedTab = "Generated CASL" | "Machine Code" | "Trace" | "Memory" | "Output";
 
 export type LearningStep = {
-  id: string;
+  stepId: string;
   label: string;
   action: string;
   expectedObservation: string;
@@ -20,7 +20,9 @@ export type LearningCheckpoint = {
 };
 
 export type LearningLesson = {
+  lessonId: string;
   exampleId: string;
+  progressCompatibilityVersion: number;
   title: string;
   level: LearningLevel;
   concepts: string[];
@@ -33,7 +35,9 @@ export type LearningLesson = {
 
 export const learningLessons: LearningLesson[] = [
   {
+    lessonId: "casl-gr2-addition",
     exampleId: "casl-gr2-addition",
+    progressCompatibilityVersion: 1,
     title: "Direct CASL execution with GR2",
     level: "CASL basics",
     concepts: ["LD", "ADDA", "ST", "RET", "GR register", "memory write"],
@@ -44,28 +48,28 @@ export const learningLessons: LearningLesson[] = [
     observe: ["GR2 after each Step", "Memory[C] after ST", "Machine Code rows for LD / ADDA / ST"],
     suggestedSteps: [
       {
-        id: "assemble",
+        stepId: "assemble",
         label: "Assemble",
         action: "Click Assemble.",
         expectedObservation: "The program loads at 0020 and Machine Code shows LD, ADDA, ST, and RET.",
         recommendedTab: "Machine Code"
       },
       {
-        id: "step-ld",
+        stepId: "step-ld",
         label: "Step LD",
         action: "Click Step once.",
         expectedObservation: "GR2 becomes 0003 after loading A.",
         recommendedTab: "Trace"
       },
       {
-        id: "step-adda",
+        stepId: "step-adda",
         label: "Step ADDA",
         action: "Click Step again.",
         expectedObservation: "GR2 becomes 0007 after adding B.",
         recommendedTab: "Trace"
       },
       {
-        id: "step-st",
+        stepId: "step-st",
         label: "Step ST",
         action: "Click Step again and open Memory.",
         expectedObservation: "Memory[C] becomes 0007.",
@@ -101,7 +105,9 @@ export const learningLessons: LearningLesson[] = [
     ]
   },
   {
+    lessonId: "casl-logic-operations",
     exampleId: "casl-logic-operations",
+    progressCompatibilityVersion: 1,
     title: "Bitwise logic on the ALU path",
     level: "CASL basics",
     concepts: ["AND", "OR", "XOR", "bitwise logic", "ALU path", "memory write"],
@@ -112,21 +118,21 @@ export const learningLessons: LearningLesson[] = [
     observe: ["Machine Code opcodes for AND / OR / XOR", "GR1 after each logic Step", "Memory[RESULT] after ST"],
     suggestedSteps: [
       {
-        id: "assemble",
+        stepId: "assemble",
         label: "Assemble logic program",
         action: "Click Assemble.",
         expectedObservation: "Machine Code shows AND, OR, XOR, ST, and RET rows.",
         recommendedTab: "Machine Code"
       },
       {
-        id: "step-logic",
+        stepId: "step-logic",
         label: "Step through logic operations",
         action: "Click Step through AND, OR, and XOR.",
         expectedObservation: "GR1 changes through the logical operations and Trace records each instruction.",
         recommendedTab: "Trace"
       },
       {
-        id: "check-result",
+        stepId: "check-result",
         label: "Check RESULT",
         action: "Open Memory after ST.",
         expectedObservation: "RESULT contains 0002.",
@@ -155,7 +161,9 @@ export const learningLessons: LearningLesson[] = [
     ]
   },
   {
+    lessonId: "casl-logical-add-compare",
     exampleId: "casl-logical-add-compare",
+    progressCompatibilityVersion: 1,
     title: "Unsigned add, compare, and overflow jump",
     level: "CASL basics",
     concepts: ["ADDL", "CPL", "JOV", "unsigned comparison", "overflow jump"],
@@ -166,28 +174,28 @@ export const learningLessons: LearningLesson[] = [
     observe: ["ADDL and CPL machine words", "FR after CPL", "JOV control-flow target and fallthrough"],
     suggestedSteps: [
       {
-        id: "assemble",
+        stepId: "assemble",
         label: "Assemble arithmetic program",
         action: "Click Assemble.",
         expectedObservation: "Generated rows include ADDL, CPL, JOV, and the OVER label.",
         recommendedTab: "Machine Code"
       },
       {
-        id: "step-cpl",
+        stepId: "step-cpl",
         label: "Step to CPL",
         action: "Step through LD, ADDL, and CPL.",
         expectedObservation: "GR1 becomes 0003 and CPL sets the zero flag for the unsigned compare.",
         recommendedTab: "Trace"
       },
       {
-        id: "step-jov",
+        stepId: "step-jov",
         label: "Observe JOV",
         action: "Step JOV.",
         expectedObservation: "JOV falls through because OF is not set.",
         recommendedTab: "Trace"
       },
       {
-        id: "check-result",
+        stepId: "check-result",
         label: "Check RESULT",
         action: "Run or Step through ST and open Memory.",
         expectedObservation: "RESULT is 0003.",
@@ -230,7 +238,9 @@ export const learningLessons: LearningLesson[] = [
     ]
   },
   {
+    lessonId: "casl-shift-operations",
     exampleId: "casl-shift-operations",
+    progressCompatibilityVersion: 1,
     title: "Shift instructions and shifter path",
     level: "CASL basics",
     concepts: ["SLL", "SRL", "SLA", "SRA", "shift count operand", "shifted-out bit / OF", "FR update"],
@@ -241,28 +251,28 @@ export const learningLessons: LearningLesson[] = [
     observe: ["SLL / SRL / SLA / SRA machine opcodes", "GR1 after each shift Step", "FR after shifted-out bits"],
     suggestedSteps: [
       {
-        id: "assemble",
+        stepId: "assemble",
         label: "Assemble shift program",
         action: "Click Assemble.",
         expectedObservation: "Machine Code shows SLA, SRA, SLL, and SRL instruction words with operand words.",
         recommendedTab: "Machine Code"
       },
       {
-        id: "step-shifts",
+        stepId: "step-shifts",
         label: "Step through shifts",
         action: "Step through SLL, SRL, SLA, and SRA.",
         expectedObservation: "GR1 changes through the shifter path and Trace records each shift.",
         recommendedTab: "Trace"
       },
       {
-        id: "circuit-focus",
+        stepId: "circuit-focus",
         label: "Observe shifter path",
         action: "Open Circuit Focus Mode while stepping a shift instruction.",
         expectedObservation: "GR1 and the shift count flow into the ALU/Shifter path; Memory is not used as shift data.",
         recommendedTab: "Trace"
       },
       {
-        id: "check-result",
+        stepId: "check-result",
         label: "Check RESULT",
         action: "Open Memory after ST.",
         expectedObservation: "RESULT contains 0003.",
@@ -298,7 +308,9 @@ export const learningLessons: LearningLesson[] = [
     ]
   },
   {
+    lessonId: "casl-index-addressing",
     exampleId: "casl-index-addressing",
+    progressCompatibilityVersion: 1,
     title: "Index addressing with effective address",
     level: "Machine code",
     concepts: ["base address", "index register", "effective address unit", "address computation", "Memory[base + index]", "x field in machine code"],
@@ -309,28 +321,28 @@ export const learningLessons: LearningLesson[] = [
     observe: ["Machine Code x field for LD GR1,A,GR2", "Effective Address Unit in Circuit Focus Mode", "Memory[B] read and Memory[RESULT] write"],
     suggestedSteps: [
       {
-        id: "assemble",
+        stepId: "assemble",
         label: "Assemble index program",
         action: "Click Assemble.",
         expectedObservation: "Machine Code shows LD GR1,A,GR2 with x = GR2.",
         recommendedTab: "Machine Code"
       },
       {
-        id: "step-lad",
+        stepId: "step-lad",
         label: "Prepare index register",
         action: "Step LAD GR2,1.",
         expectedObservation: "GR2 becomes 0001.",
         recommendedTab: "Trace"
       },
       {
-        id: "step-ld-indexed",
+        stepId: "step-ld-indexed",
         label: "Step indexed LD",
         action: "Step LD GR1,A,GR2 in Circuit Focus Mode.",
         expectedObservation: "The Effective Address Unit shows base A plus GR2, and the Memory[B] row is read.",
         recommendedTab: "Trace"
       },
       {
-        id: "check-result",
+        stepId: "check-result",
         label: "Check RESULT",
         action: "Run or Step through ST and open Memory.",
         expectedObservation: "RESULT contains 0014.",
@@ -366,7 +378,9 @@ export const learningLessons: LearningLesson[] = [
     ]
   },
   {
+    lessonId: "casl-push-pop-stack",
     exampleId: "casl-push-pop-stack",
+    progressCompatibilityVersion: 1,
     title: "PUSH / POP stack basics",
     level: "Machine code",
     concepts: ["SP", "stack memory", "PUSH stores effective address", "POP reads Memory[SP]", "SP decrement", "SP increment", "stack preview"],
@@ -377,28 +391,28 @@ export const learningLessons: LearningLesson[] = [
     observe: ["SP before and after PUSH / POP", "Stack Preview row written by PUSH", "GR1 after POP", "RESULT after ST"],
     suggestedSteps: [
       {
-        id: "assemble",
+        stepId: "assemble",
         label: "Assemble stack program",
         action: "Click Assemble.",
         expectedObservation: "Machine Code shows PUSH with an operand word and POP as a one-word register instruction.",
         recommendedTab: "Machine Code"
       },
       {
-        id: "step-push",
+        stepId: "step-push",
         label: "Step PUSH",
         action: "Step to PUSH A,GR2 in Circuit Focus Mode.",
         expectedObservation: "SP decrements, the stack row is written, and the stored value is the effective address of B.",
         recommendedTab: "Trace"
       },
       {
-        id: "step-pop",
+        stepId: "step-pop",
         label: "Step POP",
         action: "Step POP GR1.",
         expectedObservation: "GR1 receives the value from Memory[SP], then SP increments.",
         recommendedTab: "Trace"
       },
       {
-        id: "check-result",
+        stepId: "check-result",
         label: "Check RESULT",
         action: "Run or Step through ST and open Memory.",
         expectedObservation: "RESULT contains 0029, the address of B in this demo.",
@@ -441,7 +455,9 @@ export const learningLessons: LearningLesson[] = [
     ]
   },
   {
+    lessonId: "casl-call-return",
     exampleId: "casl-call-return",
+    progressCompatibilityVersion: 1,
     title: "CALL and stack-aware RET",
     level: "Machine code",
     concepts: ["CALL target", "return address", "stack write", "stack-aware RET", "top-level RET finish", "callDepth"],
@@ -452,28 +468,28 @@ export const learningLessons: LearningLesson[] = [
     observe: ["CALL stack write row", "SUB execution", "RET stack return target", "Final top-level RET finish", "RESULT after ST"],
     suggestedSteps: [
       {
-        id: "assemble",
+        stepId: "assemble",
         label: "Assemble call program",
         action: "Click Assemble.",
         expectedObservation: "Machine Code shows CALL with opcode 80 and a target operand word.",
         recommendedTab: "Machine Code"
       },
       {
-        id: "step-call",
+        stepId: "step-call",
         label: "Step CALL",
         action: "Step to CALL SUB in Circuit Focus Mode.",
         expectedObservation: "The return address is written to Memory[SP], SP decrements, and PR jumps to SUB.",
         recommendedTab: "Trace"
       },
       {
-        id: "step-sub-ret",
+        stepId: "step-sub-ret",
         label: "Step subroutine RET",
         action: "Step ADDA in SUB, then Step RET.",
         expectedObservation: "RET reads the return address from Memory[SP], increments SP, and returns PR to ST.",
         recommendedTab: "Trace"
       },
       {
-        id: "finish",
+        stepId: "finish",
         label: "Finish program",
         action: "Run or Step through ST and final RET.",
         expectedObservation: "RESULT becomes 0006 and the final RET finishes because callDepth is back to zero.",
@@ -516,7 +532,9 @@ export const learningLessons: LearningLesson[] = [
     ]
   },
   {
+    lessonId: "casl-nested-call-return",
     exampleId: "casl-nested-call-return",
+    progressCompatibilityVersion: 1,
     title: "Nested CALL return order",
     level: "Machine code",
     concepts: ["nested CALL", "return address stack", "last-in-first-out (LIFO) return", "callDepth", "top-level RET"],
@@ -527,28 +545,28 @@ export const learningLessons: LearningLesson[] = [
     observe: ["callDepth 0 -> 1 -> 2", "Return addresses on Stack Preview", "RET order from SUB2 to SUB1 to MAIN", "RESULT after final ST"],
     suggestedSteps: [
       {
-        id: "assemble",
+        stepId: "assemble",
         label: "Assemble nested call",
         action: "Click Assemble for CASL: Nested Call Return.",
         expectedObservation: "Machine Code shows CALL SUB1 and CALL SUB2 rows.",
         recommendedTab: "Machine Code"
       },
       {
-        id: "step-calls",
+        stepId: "step-calls",
         label: "Step both CALLs",
         action: "Enter Circuit Focus Mode and Step until after CALL SUB2.",
         expectedObservation: "Call Stack depth reaches 2 and Stack Preview contains two return addresses.",
         recommendedTab: "Trace"
       },
       {
-        id: "step-returns",
+        stepId: "step-returns",
         label: "Step both stack RETs",
         action: "Step through RET in SUB2, then RET in SUB1.",
         expectedObservation: "Each RET reads Memory[SP] into PR and callDepth returns toward zero.",
         recommendedTab: "Trace"
       },
       {
-        id: "check-result",
+        stepId: "check-result",
         label: "Check final result",
         action: "Run to completion.",
         expectedObservation: "RESULT becomes 0004 and the final RET finishes at callDepth zero.",
@@ -584,7 +602,9 @@ export const learningLessons: LearningLesson[] = [
     ]
   },
   {
+    lessonId: "cpp-function-call",
     exampleId: "cpp-function-call",
+    progressCompatibilityVersion: 1,
     title: "C++ function call lowered to CALL / RET",
     level: "C++ to CASL",
     concepts: ["function label", "CALL", "return address", "GR0 return value", "stack-aware RET", "top-level RET finish"],
@@ -596,21 +616,21 @@ export const learningLessons: LearningLesson[] = [
     observe: ["FUNC_ADDONE label in Generated CASL", "CALL FUNC_ADDONE", "GR0 after RET", "Call Stack depth during the call"],
     suggestedSteps: [
       {
-        id: "open-generated",
+        stepId: "open-generated",
         label: "Find generated function",
         action: "Click Assemble and open Generated CASL.",
         expectedObservation: "Generated CASL contains FUNC_ADDONE and CALL FUNC_ADDONE.",
         recommendedTab: "Generated CASL"
       },
       {
-        id: "inspect-call",
+        stepId: "inspect-call",
         label: "Inspect CALL",
         action: "Open Machine Code and click the CALL instruction word.",
         expectedObservation: "The explanation shows the CALL target, return address, and stack write.",
         recommendedTab: "Machine Code"
       },
       {
-        id: "run-trace",
+        stepId: "run-trace",
         label: "Run and read Trace",
         action: "Open Trace and click Run.",
         expectedObservation: "Trace shows CALL, RET stack return, and final top-level RET finish.",
@@ -646,7 +666,9 @@ export const learningLessons: LearningLesson[] = [
     ]
   },
   {
+    lessonId: "cpp-function-argument",
     exampleId: "cpp-function-argument",
+    progressCompatibilityVersion: 1,
     title: "C++ single-argument function lowered through GR1",
     level: "C++ to CASL",
     concepts: ["GR1 argument register", "GR0 return value", "CALL", "stack-aware RET", "static parameter label", "no stack-frame locals yet"],
@@ -658,21 +680,21 @@ export const learningLessons: LearningLesson[] = [
     observe: ["LAD GR1,5 before CALL", "ST GR1,FUNC_ADDONE_X at function entry", "CALL FUNC_ADDONE", "GR0 = 0006 after return"],
     suggestedSteps: [
       {
-        id: "open-generated",
+        stepId: "open-generated",
         label: "Find argument lowering",
         action: "Click Assemble and open Generated CASL.",
         expectedObservation: "The call site contains LAD GR1,5 followed by CALL FUNC_ADDONE.",
         recommendedTab: "Generated CASL"
       },
       {
-        id: "inspect-function-entry",
+        stepId: "inspect-function-entry",
         label: "Inspect function entry",
         action: "Find FUNC_ADDONE in Generated CASL.",
         expectedObservation: "The first instruction stores GR1 into FUNC_ADDONE_X.",
         recommendedTab: "Generated CASL"
       },
       {
-        id: "run-trace",
+        stepId: "run-trace",
         label: "Run and read Trace",
         action: "Open Trace and click Run.",
         expectedObservation: "Trace shows GR1 loaded with 0005, CALL / RET flow, and final GR0 = 0006.",
@@ -708,7 +730,9 @@ export const learningLessons: LearningLesson[] = [
     ]
   },
   {
+    lessonId: "cpp-function-arguments",
     exampleId: "cpp-function-arguments",
+    progressCompatibilityVersion: 1,
     title: "C++ multi-register arguments lowered through GR1 / GR2",
     level: "C++ to CASL",
     concepts: ["GR1 / GR2 argument registers", "GR0 return value", "parameter save at function entry", "CALL / RET", "static namespaced parameter labels", "no stack arguments yet"],
@@ -720,21 +744,21 @@ export const learningLessons: LearningLesson[] = [
     observe: ["LAD GR1,2 and LAD GR2,3 before CALL", "ST GR1,FUNC_ADD_A and ST GR2,FUNC_ADD_B at function entry", "CALL FUNC_ADD", "GR0 = 0005 after return"],
     suggestedSteps: [
       {
-        id: "open-generated",
+        stepId: "open-generated",
         label: "Find argument register loads",
         action: "Click Assemble and open Generated CASL.",
         expectedObservation: "The call site contains LAD GR1,2 and LAD GR2,3 before CALL FUNC_ADD.",
         recommendedTab: "Generated CASL"
       },
       {
-        id: "inspect-function-entry",
+        stepId: "inspect-function-entry",
         label: "Inspect parameter saves",
         action: "Find FUNC_ADD in Generated CASL.",
         expectedObservation: "The first instructions store GR1 into FUNC_ADD_A and GR2 into FUNC_ADD_B.",
         recommendedTab: "Generated CASL"
       },
       {
-        id: "run-trace",
+        stepId: "run-trace",
         label: "Run and read Trace",
         action: "Open Trace and click Run.",
         expectedObservation: "Trace shows GR1 / GR2 loaded before CALL, CALL / RET flow, and final GR0 = 0005.",
@@ -770,7 +794,9 @@ export const learningLessons: LearningLesson[] = [
     ]
   },
   {
+    lessonId: "cpp-addition",
     exampleId: "cpp-addition",
+    progressCompatibilityVersion: 1,
     title: "C++ addition lowered to CASL",
     level: "C++ to CASL",
     concepts: ["assignment lowering", "LD / ADDA / ST", "Generated CASL", "Machine Code word"],
@@ -781,21 +807,21 @@ export const learningLessons: LearningLesson[] = [
     observe: ["Generated CASL rows for c = a + b", "Machine Code instruction and operand words", "GR0 after return"],
     suggestedSteps: [
       {
-        id: "assemble",
+        stepId: "assemble",
         label: "Generate CASL",
         action: "Click Assemble and open Generated CASL.",
         expectedObservation: "Generated CASL contains LD, ADDA, ST, LD GR0,C, and RET.",
         recommendedTab: "Generated CASL"
       },
       {
-        id: "machine-code",
+        stepId: "machine-code",
         label: "Inspect machine words",
         action: "Open Machine Code and click the LD instruction word.",
         expectedObservation: "The explanation shows opcode/register fields and the operand address.",
         recommendedTab: "Machine Code"
       },
       {
-        id: "run",
+        stepId: "run",
         label: "Run",
         action: "Click Run.",
         expectedObservation: "The program finishes with GR0 = 001E.",
@@ -828,7 +854,9 @@ export const learningLessons: LearningLesson[] = [
     commonQuestions: ["Why does return use GR0?", "Where is the address of A stored?"]
   },
   {
+    lessonId: "cpp-if-else",
     exampleId: "cpp-if-else",
+    progressCompatibilityVersion: 1,
     title: "if / else as compare and jump",
     level: "Control flow",
     concepts: ["CPA", "conditional jump", "IF label", "control-flow target"],
@@ -839,21 +867,21 @@ export const learningLessons: LearningLesson[] = [
     observe: ["CPA and JZE in Generated CASL", "IF_TRUE / IF_END labels", "Control Flow target text"],
     suggestedSteps: [
       {
-        id: "generated-casl",
+        stepId: "generated-casl",
         label: "Find the branch",
         action: "Assemble and open Generated CASL.",
         expectedObservation: "CPA compares values and JZE targets the true branch label.",
         recommendedTab: "Generated CASL"
       },
       {
-        id: "jump-word",
+        stepId: "jump-word",
         label: "Inspect jump word",
         action: "Open Machine Code and click the JZE row.",
         expectedObservation: "The explanation shows the target label and address.",
         recommendedTab: "Machine Code"
       },
       {
-        id: "run",
+        stepId: "run",
         label: "Run",
         action: "Click Run.",
         expectedObservation: "The equality branch is taken and GR0 becomes 0001.",
@@ -886,7 +914,9 @@ export const learningLessons: LearningLesson[] = [
     commonQuestions: ["What flag does JZE read?", "What happens if A and B are not equal?"]
   },
   {
+    lessonId: "cpp-while-sum",
     exampleId: "cpp-while-sum",
+    progressCompatibilityVersion: 1,
     title: "while loop and repeated execution",
     level: "Loops",
     concepts: ["loop condition", "loop back jump", "Trace", "Memory update"],
@@ -897,21 +927,21 @@ export const learningLessons: LearningLesson[] = [
     observe: ["LOOP_BEGIN / LOOP_END labels", "Trace repeated steps", "SUM memory value"],
     suggestedSteps: [
       {
-        id: "labels",
+        stepId: "labels",
         label: "Find loop labels",
         action: "Assemble and open Generated CASL.",
         expectedObservation: "LOOP_BEGIN and LOOP_END show the loop boundary.",
         recommendedTab: "Generated CASL"
       },
       {
-        id: "trace",
+        stepId: "trace",
         label: "Run with Trace",
         action: "Open Trace and click Run.",
         expectedObservation: "Trace shows repeated loop execution.",
         recommendedTab: "Trace"
       },
       {
-        id: "memory",
+        stepId: "memory",
         label: "Check data",
         action: "Open Memory after Run.",
         expectedObservation: "SUM becomes 0006.",
@@ -944,7 +974,9 @@ export const learningLessons: LearningLesson[] = [
     commonQuestions: ["Which JUMP returns to the condition?", "Why does Run need maxSteps?"]
   },
   {
+    lessonId: "cpp-for-sum",
     exampleId: "cpp-for-sum",
+    progressCompatibilityVersion: 1,
     title: "for loop structure",
     level: "Loops",
     concepts: ["for initializer", "condition", "increment", "loop lowering"],
@@ -955,21 +987,21 @@ export const learningLessons: LearningLesson[] = [
     observe: ["FOR_BEGIN / FOR_BODY / FOR_END", "increment code", "loop-back jump"],
     suggestedSteps: [
       {
-        id: "find-for-labels",
+        stepId: "find-for-labels",
         label: "Find for blocks",
         action: "Assemble and open Generated CASL.",
         expectedObservation: "The generated code contains FOR_BEGIN, FOR_BODY, and FOR_END.",
         recommendedTab: "Generated CASL"
       },
       {
-        id: "inspect-machine",
+        stepId: "inspect-machine",
         label: "Inspect jump words",
         action: "Open Machine Code and click a JUMP row.",
         expectedObservation: "The explanation shows a loop target.",
         recommendedTab: "Machine Code"
       },
       {
-        id: "run",
+        stepId: "run",
         label: "Run",
         action: "Click Run.",
         expectedObservation: "GR0 becomes 0006.",
@@ -995,7 +1027,9 @@ export const learningLessons: LearningLesson[] = [
     commonQuestions: ["Where is the initializer generated?", "Which row increments i?"]
   },
   {
+    lessonId: "cpp-for-sum-sugar",
     exampleId: "cpp-for-sum-sugar",
+    progressCompatibilityVersion: 1,
     title: "for loop syntax sugar",
     level: "Loops",
     concepts: ["i++", "+=", "syntax sugar lowering", "natural C++ style"],
@@ -1006,21 +1040,21 @@ export const learningLessons: LearningLesson[] = [
     observe: ["ADDA GR1,CONST_1 for i++", "LD / ADDA / ST for sum += i", "GR0 after Run"],
     suggestedSteps: [
       {
-        id: "open-generated",
+        stepId: "open-generated",
         label: "Open Generated CASL",
         action: "Assemble and inspect the generated loop.",
         expectedObservation: "i++ becomes ADDA with CONST_1.",
         recommendedTab: "Generated CASL"
       },
       {
-        id: "inspect-machine",
+        stepId: "inspect-machine",
         label: "Open Machine Code",
         action: "Click an ADDA row.",
         expectedObservation: "The explanation still shows ordinary COMET II instruction encoding.",
         recommendedTab: "Machine Code"
       },
       {
-        id: "run",
+        stepId: "run",
         label: "Run",
         action: "Click Run.",
         expectedObservation: "GR0 becomes 0006.",
@@ -1053,7 +1087,9 @@ export const learningLessons: LearningLesson[] = [
     commonQuestions: ["Where is CONST_1 stored?", "Why does syntax sugar not change machine-code meaning?"]
   },
   {
+    lessonId: "cpp-break-continue",
     exampleId: "cpp-break-continue",
+    progressCompatibilityVersion: 1,
     title: "break and continue as jumps",
     level: "Control flow",
     concepts: ["continue target", "break target", "FOR_CONTINUE", "FOR_END", "jump explanation", "Trace"],
@@ -1065,21 +1101,21 @@ export const learningLessons: LearningLesson[] = [
     observe: ["JUMP FOR_CONTINUE_0", "JUMP FOR_END_0", "Trace entries for break and continue"],
     suggestedSteps: [
       {
-        id: "open-generated",
+        stepId: "open-generated",
         label: "Find control jumps",
         action: "Assemble and open Generated CASL.",
         expectedObservation: "continue targets FOR_CONTINUE and break targets FOR_END.",
         recommendedTab: "Generated CASL"
       },
       {
-        id: "inspect-jumps",
+        stepId: "inspect-jumps",
         label: "Inspect Machine Code",
         action: "Open Machine Code and click JUMP FOR_CONTINUE_0 or JUMP FOR_END_0.",
         expectedObservation: "The explanation shows the control-flow target.",
         recommendedTab: "Machine Code"
       },
       {
-        id: "run-trace",
+        stepId: "run-trace",
         label: "Run with Trace",
         action: "Open Trace and click Run.",
         expectedObservation: "Trace includes continue and break jump target text.",

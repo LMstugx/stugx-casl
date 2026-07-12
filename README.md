@@ -30,7 +30,7 @@ CASL mode starts from CASL II source and then uses the same machine-code, runtim
 
 ## Recommended Learning Order
 
-Each built-in example includes a collapsible `Guided Lesson` in the Demo Guide. Study Mode turns the lesson into a manual per-example checklist: read the concepts, assemble the example, open the recommended tab, confirm each checkpoint, and reset session-only progress when you want to repeat the lesson.
+Each built-in example includes a collapsible `Guided Lesson` in the Demo Guide. Study Mode turns the lesson into a manual per-example checklist: read the concepts, assemble the example, open the recommended tab, confirm each checkpoint, and reset versioned browser-local progress when you want to repeat the lesson.
 
 1. `CASL: GR2 Addition`
    Learn direct CASL execution, `LD`, `ADDA`, `ST`, `RET`, GR changes, and memory write.
@@ -373,6 +373,9 @@ The current backend is shown in the status bar as `Mock Core`, `WASM Core`, or `
 - [docs/startup-selection-storage-contract.md](docs/startup-selection-storage-contract.md): independent canonical built-in example selection, synchronous bootstrap, fallback, write, clear, and security rules.
 - [docs/startup-selection-baseline-v1.json](docs/startup-selection-baseline-v1.json): deterministic validation snapshot for the Phase 16B startup-selection contract.
 - [docs/phase16b-built-in-example-startup-restore.md](docs/phase16b-built-in-example-startup-restore.md): cold-start restore implementation, storage independence, fallback behavior, QA result, and next recommendation.
+- [docs/lesson-progress-storage-contract.md](docs/lesson-progress-storage-contract.md): canonical lesson/step identity, compatibility, bounded storage, hydration, write/reset, and built-in-only rules.
+- [docs/lesson-progress-baseline-v1.json](docs/lesson-progress-baseline-v1.json): deterministic validation snapshot for the Phase 16C lesson-progress contract and stable registry IDs.
+- [docs/phase16c-lesson-progress-persistence-audit.md](docs/phase16c-lesson-progress-persistence-audit.md): 17-lesson identity audit, safe MVP implementation, compatibility findings, QA result, and Phase 16D recommendation.
 - [docs/browser-save-strategy.md](docs/browser-save-strategy.md): File System Access confirmed writes and Blob download-copy fallback.
 - [docs/transient-write-binding-contract.md](docs/transient-write-binding-contract.md): session-only handle registry and opaque SaveTarget ownership rules.
 - [docs/browser-text-file-adapter.md](docs/browser-text-file-adapter.md): hidden-input browser adapter, strict UTF-8 byte handling, cleanup, cancellation, and test injection.

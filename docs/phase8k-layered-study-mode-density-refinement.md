@@ -1,5 +1,7 @@
 # Phase 8K: Layered Study Mode and Circuit Flow Refinement
 
+> Phase 16C follow-up: Study Mode completion now uses explicit canonical lesson/step IDs and a per-lesson compatibility version. Only completed built-in suggested steps persist; the Phase 8K layout, teaching text, recommended tabs, and checkpoint semantics are unchanged.
+
 Phase 8K is a UI and visualization pass. It does not change CASL execution, the C++ subset transpiler, the assembler, the VM, the mock core, or the WASM bridge.
 
 ## Why Density Reduction Was Needed

@@ -1,0 +1,304 @@
+{
+  "baselineVersion": 1,
+  "purpose": "validation-snapshot-only",
+  "runtimeSourceOfTruth": "src/examples/learningLessons.ts and src/lessonProgress",
+  "storageKey": "stugx.casl.lesson-progress.v1",
+  "maxPayloadBytes": 65536,
+  "limits": {
+    "maxLessonEntries": 256,
+    "maxStepsPerLesson": 256,
+    "maxIdLength": 128
+  },
+  "persistedFields": [
+    "lessonId",
+    "exampleId",
+    "progressCompatibilityVersion",
+    "completedStepIds"
+  ],
+  "identityPolicy": {
+    "lessonIdentity": "explicit-canonical-lesson-id",
+    "stepIdentity": "explicit-lesson-local-step-id",
+    "builtInOnly": true,
+    "arrayIndexIdentity": false,
+    "textIdentity": false,
+    "localeIdentity": false,
+    "sourceHashIdentity": false
+  },
+  "registrySnapshot": [
+    {
+      "lessonId": "casl-call-return",
+      "exampleId": "casl-call-return",
+      "progressCompatibilityVersion": 1,
+      "stepIds": [
+        "assemble",
+        "step-call",
+        "step-sub-ret",
+        "finish"
+      ]
+    },
+    {
+      "lessonId": "casl-gr2-addition",
+      "exampleId": "casl-gr2-addition",
+      "progressCompatibilityVersion": 1,
+      "stepIds": [
+        "assemble",
+        "step-ld",
+        "step-adda",
+        "step-st"
+      ]
+    },
+    {
+      "lessonId": "casl-index-addressing",
+      "exampleId": "casl-index-addressing",
+      "progressCompatibilityVersion": 1,
+      "stepIds": [
+        "assemble",
+        "step-lad",
+        "step-ld-indexed",
+        "check-result"
+      ]
+    },
+    {
+      "lessonId": "casl-logic-operations",
+      "exampleId": "casl-logic-operations",
+      "progressCompatibilityVersion": 1,
+      "stepIds": [
+        "assemble",
+        "step-logic",
+        "check-result"
+      ]
+    },
+    {
+      "lessonId": "casl-logical-add-compare",
+      "exampleId": "casl-logical-add-compare",
+      "progressCompatibilityVersion": 1,
+      "stepIds": [
+        "assemble",
+        "step-cpl",
+        "step-jov",
+        "check-result"
+      ]
+    },
+    {
+      "lessonId": "casl-nested-call-return",
+      "exampleId": "casl-nested-call-return",
+      "progressCompatibilityVersion": 1,
+      "stepIds": [
+        "assemble",
+        "step-calls",
+        "step-returns",
+        "check-result"
+      ]
+    },
+    {
+      "lessonId": "casl-push-pop-stack",
+      "exampleId": "casl-push-pop-stack",
+      "progressCompatibilityVersion": 1,
+      "stepIds": [
+        "assemble",
+        "step-push",
+        "step-pop",
+        "check-result"
+      ]
+    },
+    {
+      "lessonId": "casl-shift-operations",
+      "exampleId": "casl-shift-operations",
+      "progressCompatibilityVersion": 1,
+      "stepIds": [
+        "assemble",
+        "step-shifts",
+        "circuit-focus",
+        "check-result"
+      ]
+    },
+    {
+      "lessonId": "cpp-addition",
+      "exampleId": "cpp-addition",
+      "progressCompatibilityVersion": 1,
+      "stepIds": [
+        "assemble",
+        "machine-code",
+        "run"
+      ]
+    },
+    {
+      "lessonId": "cpp-break-continue",
+      "exampleId": "cpp-break-continue",
+      "progressCompatibilityVersion": 1,
+      "stepIds": [
+        "open-generated",
+        "inspect-jumps",
+        "run-trace"
+      ]
+    },
+    {
+      "lessonId": "cpp-for-sum",
+      "exampleId": "cpp-for-sum",
+      "progressCompatibilityVersion": 1,
+      "stepIds": [
+        "find-for-labels",
+        "inspect-machine",
+        "run"
+      ]
+    },
+    {
+      "lessonId": "cpp-for-sum-sugar",
+      "exampleId": "cpp-for-sum-sugar",
+      "progressCompatibilityVersion": 1,
+      "stepIds": [
+        "open-generated",
+        "inspect-machine",
+        "run"
+      ]
+    },
+    {
+      "lessonId": "cpp-function-argument",
+      "exampleId": "cpp-function-argument",
+      "progressCompatibilityVersion": 1,
+      "stepIds": [
+        "open-generated",
+        "inspect-function-entry",
+        "run-trace"
+      ]
+    },
+    {
+      "lessonId": "cpp-function-arguments",
+      "exampleId": "cpp-function-arguments",
+      "progressCompatibilityVersion": 1,
+      "stepIds": [
+        "open-generated",
+        "inspect-function-entry",
+        "run-trace"
+      ]
+    },
+    {
+      "lessonId": "cpp-function-call",
+      "exampleId": "cpp-function-call",
+      "progressCompatibilityVersion": 1,
+      "stepIds": [
+        "open-generated",
+        "inspect-call",
+        "run-trace"
+      ]
+    },
+    {
+      "lessonId": "cpp-if-else",
+      "exampleId": "cpp-if-else",
+      "progressCompatibilityVersion": 1,
+      "stepIds": [
+        "generated-casl",
+        "jump-word",
+        "run"
+      ]
+    },
+    {
+      "lessonId": "cpp-while-sum",
+      "exampleId": "cpp-while-sum",
+      "progressCompatibilityVersion": 1,
+      "stepIds": [
+        "labels",
+        "trace",
+        "memory"
+      ]
+    }
+  ],
+  "lessonCompatibilityPolicy": {
+    "versionField": "progressCompatibilityVersion",
+    "matchingVersion": "restore-current-step-intersection",
+    "mismatchedVersion": "discard-lesson-entry",
+    "deletedLesson": "ignore",
+    "exampleIdMismatch": "ignore"
+  },
+  "stepCompatibilityPolicy": {
+    "wordingChange": "preserve",
+    "addedStep": "incomplete",
+    "deletedStep": "ignore-stored-id",
+    "renamedStep": "new-step-unless-explicit-code-migration",
+    "fuzzyMigration": false
+  },
+  "hydrationPolicy": {
+    "timing": "synchronous-before-initial-store-exposure",
+    "oncePerController": true,
+    "writesDuringHydration": false,
+    "sourceMutation": false,
+    "runtimeMutation": false
+  },
+  "writePolicy": {
+    "trigger": "completed-step-set-change-only",
+    "hydrationWrite": false,
+    "unrelatedAppStateWrite": false,
+    "unchangedWrite": false,
+    "failureRollback": false
+  },
+  "resetPolicy": {
+    "perLessonResetPersists": true,
+    "clearAllRemovesOnlyLessonProgressKey": true,
+    "changesSourceOrRuntime": false,
+    "clearsIndependentStorage": false
+  },
+  "prohibitedFields": [
+    "lessonTitle",
+    "lessonText",
+    "stepLabel",
+    "stepText",
+    "checkpointText",
+    "sourceContent",
+    "exampleSource",
+    "fileName",
+    "absolutePath",
+    "documentId",
+    "sourceUnitId",
+    "fileSystemFileHandle",
+    "saveTargetId",
+    "diagnostics",
+    "editorMarkers",
+    "generatedCasl",
+    "machineCode",
+    "trace",
+    "vmState",
+    "activeLessonPanel",
+    "selectedFrameSlot",
+    "selectedMachineCodeRow",
+    "selectedSourceRow",
+    "pendingOperation",
+    "modalState",
+    "locale",
+    "applicationPreferences",
+    "startupSelection",
+    "timestamp",
+    "percentage",
+    "stepIndex"
+  ],
+  "independentStorageKeys": {
+    "locale": "stugx.casl.locale",
+    "applicationPreferences": "stugx.casl.preferences.v1",
+    "startupSelection": "stugx.casl.startup-selection.v1"
+  },
+  "securityPolicy": {
+    "allowlistOnly": true,
+    "entriesArray": true,
+    "plainObjectOnly": true,
+    "ownDataPropertiesOnly": true,
+    "canonicalRegistryValidation": true,
+    "prototypeMerge": false,
+    "dynamicImport": false,
+    "fileRead": false,
+    "networkSync": false,
+    "telemetry": false
+  },
+  "blockedMigrationTechniques": [
+    "array-index-match",
+    "lesson-or-step-text-match",
+    "localized-label-match",
+    "source-content-hash-match",
+    "fuzzy-id-match",
+    "storage-provided-migration-map"
+  ],
+  "deferredSessionRestore": [
+    "active-lesson-panel",
+    "current-lesson-step",
+    "lesson-text-versioning",
+    "external-or-untitled-source-session"
+  ]
+}

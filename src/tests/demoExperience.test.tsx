@@ -289,7 +289,7 @@ describe("demo recording experience", () => {
   });
 
   it("study_mode_reset_clears_progress", () => {
-    const initial = createInitialAppState();
+    const initial = createInitialAppState(createSequentialDocumentIdFactory("progress-reset"), undefined, getDemoProgram("cpp-addition")!);
     const withProgress = appStoreReducer(initial, { type: "lessonStepToggled", exampleId: "cpp-addition", stepId: "assemble" });
     const reset = appStoreReducer(withProgress, { type: "lessonProgressReset", exampleId: "cpp-addition" });
 
@@ -298,8 +298,14 @@ describe("demo recording experience", () => {
   });
 
   it("study_mode_progress_is_per_example", () => {
-    let state = createInitialAppState();
+    const ids = createSequentialDocumentIdFactory("progress-examples");
+    let state = createInitialAppState(ids, undefined, getDemoProgram("cpp-addition")!);
     state = appStoreReducer(state, { type: "lessonStepToggled", exampleId: "cpp-addition", stepId: "assemble" });
+    state = appStoreReducer(state, {
+      type: "currentDocumentReplaced",
+      document: createExampleDocument(getDemoProgram("cpp-break-continue")!, ids),
+      selectedExampleId: "cpp-break-continue"
+    });
     state = appStoreReducer(state, { type: "lessonStepToggled", exampleId: "cpp-break-continue", stepId: "open-generated" });
 
     expect(state.lessonProgress["cpp-addition"].assemble).toBe(true);

@@ -14,7 +14,7 @@ import { AppStoreProvider, useAppStore } from "./store/useAppStore";
 import { cppLineForCaslLine } from "./transpiler/cppMapping";
 import { selectFrameSymbolRelations } from "./transpiler/framePlanView";
 import { DEFAULT_DEMO_PROGRAM_ID, demoPrograms, getDefaultDemoProgram, getDemoProgram } from "./examples/demoPrograms";
-import { getLearningLesson } from "./examples/learningLessons";
+import { getLearningLesson, learningLessons } from "./examples/learningLessons";
 import { I18nProvider } from "./i18n/I18nProvider";
 import { translateRunState } from "./i18n/locale";
 import { useI18n } from "./i18n/useI18n";
@@ -36,16 +36,21 @@ import { ApplicationPreferenceController } from "./preferences/controller";
 import { WebLocalStorageApplicationPreferenceStorage, type ApplicationPreferenceStorage } from "./preferences/storage";
 import { StartupSelectionController } from "./startupSelection/controller";
 import { WebLocalStorageStartupSelectionStorage, type StartupSelectionStorage } from "./startupSelection/storage";
+import { LessonProgressController } from "./lessonProgress/controller";
+import { WebLocalStorageLessonProgressStorage, type LessonProgressStorage } from "./lessonProgress/storage";
 
 type AppProps = {
   fileAdapter?: TextFileAdapter;
   preferenceStorage?: ApplicationPreferenceStorage;
   startupSelectionStorage?: StartupSelectionStorage;
+  lessonProgressStorage?: LessonProgressStorage;
 };
 const defaultPreferenceController = new ApplicationPreferenceController(new WebLocalStorageApplicationPreferenceStorage());
 const injectedPreferenceControllers = new WeakMap<ApplicationPreferenceStorage, ApplicationPreferenceController>();
 const defaultStartupSelectionController = new StartupSelectionController(new WebLocalStorageStartupSelectionStorage());
 const injectedStartupSelectionControllers = new WeakMap<StartupSelectionStorage, StartupSelectionController>();
+const defaultLessonProgressController = new LessonProgressController(new WebLocalStorageLessonProgressStorage());
+const injectedLessonProgressControllers = new WeakMap<LessonProgressStorage, LessonProgressController>();
 
 function preferenceControllerFor(storage?: ApplicationPreferenceStorage): ApplicationPreferenceController {
   if (!storage) return defaultPreferenceController;
@@ -65,6 +70,15 @@ function startupSelectionControllerFor(storage?: StartupSelectionStorage): Start
   return controller;
 }
 
+function lessonProgressControllerFor(storage?: LessonProgressStorage): LessonProgressController {
+  if (!storage) return defaultLessonProgressController;
+  const existing = injectedLessonProgressControllers.get(storage);
+  if (existing) return existing;
+  const controller = new LessonProgressController(storage);
+  injectedLessonProgressControllers.set(storage, controller);
+  return controller;
+}
+
 export default function App(props: AppProps = {}) {
   return (
     <I18nProvider>
@@ -73,12 +87,16 @@ export default function App(props: AppProps = {}) {
   );
 }
 
-function BootstrappedApp({ fileAdapter, preferenceStorage, startupSelectionStorage }: AppProps) {
+function BootstrappedApp({ fileAdapter, preferenceStorage, startupSelectionStorage, lessonProgressStorage }: AppProps) {
   const resolvedFileAdapter = useMemo(() => fileAdapter ?? new BrowserTextFileAdapter(), [fileAdapter]);
   const preferenceController = useMemo(() => preferenceControllerFor(preferenceStorage), [preferenceStorage]);
   const startupSelectionController = useMemo(
     () => startupSelectionControllerFor(startupSelectionStorage),
     [startupSelectionStorage]
+  );
+  const lessonProgressController = useMemo(
+    () => lessonProgressControllerFor(lessonProgressStorage),
+    [lessonProgressStorage]
   );
   const initialPreferences = useMemo(() => preferenceController.hydrate(), [preferenceController]);
   const initialExample = useMemo(() => {
@@ -87,14 +105,25 @@ function BootstrappedApp({ fileAdapter, preferenceStorage, startupSelectionStora
       ? getDemoProgram(resolution.exampleId) ?? getDefaultDemoProgram() ?? null
       : null;
   }, [startupSelectionController]);
+  const initialLessonProgress = useMemo(
+    () => lessonProgressController.hydrate(learningLessons),
+    [lessonProgressController]
+  );
   const persistPreferences = useCallback((preferences: Parameters<ApplicationPreferenceController["persist"]>[0]) => {
     preferenceController.persist(preferences);
   }, [preferenceController]);
+  const persistLessonProgress = useCallback((progress: Parameters<LessonProgressController["persist"]>[0]) => {
+    lessonProgressController.persist(progress, learningLessons);
+  }, [lessonProgressController]);
+  const clearLessonProgress = useCallback(() => lessonProgressController.clear(), [lessonProgressController]);
   return (
     <AppStoreProvider
       initialExample={initialExample}
       initialPreferences={initialPreferences}
+      initialLessonProgress={initialLessonProgress}
       onApplicationPreferencesChange={persistPreferences}
+      onLessonProgressChange={persistLessonProgress}
+      onAllLessonProgressClear={clearLessonProgress}
     >
       <StudioShell fileAdapter={resolvedFileAdapter} startupSelectionController={startupSelectionController} />
     </AppStoreProvider>

@@ -7,6 +7,7 @@ import { coreBridge, getCoreBackendInfo, type CoreBackendInfo } from "../core/co
 import { createCometStateFromDto, createEmptyUiCometState } from "../core/coreStateAdapter";
 import { CometState, Diagnostic } from "../core/types";
 import { getDefaultDemoProgram, type DemoProgram } from "../examples/demoPrograms";
+import { learningLessons } from "../examples/learningLessons";
 import { createExampleDocument, createUntitledDocument, editDocument, isDocumentDirty } from "../documents/documentModel";
 import { createSequentialDocumentIdFactory } from "../documents/idFactory";
 import { createIdleFileLifecycleState, type FileLifecycleState } from "../documents/lifecycle";
@@ -15,13 +16,15 @@ import type { DocumentIdFactory, DocumentWriteBinding, SourceDocument, SourceUni
 import { selectApplicationPreferences } from "../preferences/selectors";
 import { DEFAULT_APPLICATION_PREFERENCES, type InspectorActiveTab, type ObservationMode, type OutputDockActiveTab, type ResolvedApplicationPreferencesV1 } from "../preferences/types";
 import { serializeApplicationPreferences } from "../preferences/validation";
+import { cloneLessonProgress, isPersistableLessonStep } from "../lessonProgress/model";
+import type { LessonProgressState } from "../lessonProgress/types";
 import { CppToCaslMap, transpileCppToCasl } from "../transpiler/cppTranspiler";
 
 type AssembleStatus = "default" | "running" | "success" | "error";
 export type SourceMode = "casl" | "cpp";
 export type { ObservationMode } from "../preferences/types";
 type RunStopReason = "manual" | "maxSteps" | "finished" | "error" | null;
-export type LessonProgress = Record<string, Record<string, boolean>>;
+export type LessonProgress = LessonProgressState;
 
 const DEFAULT_RUN_MAX_STEPS = 1000;
 const RUN_BATCH_SIZE = 20;
@@ -79,6 +82,7 @@ type AppStoreActions = {
   clearOutput: () => void;
   toggleLessonStep: (exampleId: string, stepId: string) => void;
   resetLessonProgress: (exampleId: string) => void;
+  clearAllLessonProgress: () => void;
   setObservationMode: (mode: ObservationMode) => void;
   setCircuitFocusEnabled: (enabled: boolean) => void;
   setInspectorActiveTab: (tab: InspectorActiveTab) => void;
@@ -110,6 +114,7 @@ export type AppStoreAction =
   | { type: "clearOutput" }
   | { type: "lessonStepToggled"; exampleId: string; stepId: string }
   | { type: "lessonProgressReset"; exampleId: string }
+  | { type: "lessonProgressCleared" }
   | { type: "observationModeSet"; mode: ObservationMode }
   | { type: "circuitFocusEnabledSet"; enabled: boolean }
   | { type: "inspectorActiveTabSet"; tab: InspectorActiveTab }
@@ -120,7 +125,10 @@ type AppStoreProviderProps = {
   eventBus?: EventBus<AppEvents>;
   initialExample?: DemoProgram | null;
   initialPreferences?: ResolvedApplicationPreferencesV1;
+  initialLessonProgress?: LessonProgress;
   onApplicationPreferencesChange?: (preferences: ResolvedApplicationPreferencesV1) => void;
+  onLessonProgressChange?: (progress: LessonProgress) => void;
+  onAllLessonProgressClear?: () => void;
 };
 
 const AppStoreContext = createContext<AppStore | null>(null);
@@ -129,7 +137,8 @@ const AppEventBusContext = createContext<EventBus<AppEvents> | null>(null);
 export function createInitialAppState(
   ids: DocumentIdFactory = createSequentialDocumentIdFactory("app"),
   preferences: ResolvedApplicationPreferencesV1 = DEFAULT_APPLICATION_PREFERENCES,
-  initialDemo: DemoProgram | null = getDefaultDemoProgram() ?? null
+  initialDemo: DemoProgram | null = getDefaultDemoProgram() ?? null,
+  initialLessonProgress: LessonProgress = {}
 ): AppStoreState {
   const currentDocument = initialDemo
     ? createExampleDocument(initialDemo, ids)
@@ -151,7 +160,7 @@ export function createInitialAppState(
     generatedCaslSource: "",
     cppToCaslMapping: [],
     selectedDemoProgramId: initialDemo?.id ?? "",
-    lessonProgress: {},
+    lessonProgress: cloneLessonProgress(initialLessonProgress),
     observationMode: preferences.observationMode,
     circuitFocusEnabled: preferences.circuitFocusEnabled,
     inspectorActiveTab: preferences.inspectorActiveTab,
@@ -362,6 +371,11 @@ export function appStoreReducer(state: AppStoreState, action: AppStoreAction): A
   }
 
   if (action.type === "lessonStepToggled") {
+    if (
+      state.currentDocument.origin !== "example" ||
+      state.selectedDemoProgramId !== action.exampleId ||
+      !isPersistableLessonStep(learningLessons, action.exampleId, action.stepId)
+    ) return state;
     const currentExampleProgress = state.lessonProgress[action.exampleId] ?? {};
     return {
       ...state,
@@ -383,6 +397,10 @@ export function appStoreReducer(state: AppStoreState, action: AppStoreAction): A
       ...state,
       lessonProgress: nextProgress
     };
+  }
+
+  if (action.type === "lessonProgressCleared") {
+    return Object.keys(state.lessonProgress).length === 0 ? state : { ...state, lessonProgress: {} };
   }
 
   if (action.type === "observationModeSet") {
@@ -408,11 +426,20 @@ export function appStoreReducer(state: AppStoreState, action: AppStoreAction): A
   return state;
 }
 
-export function AppStoreProvider({ children, eventBus: providedEventBus, initialExample, initialPreferences = DEFAULT_APPLICATION_PREFERENCES, onApplicationPreferencesChange }: AppStoreProviderProps) {
+export function AppStoreProvider({
+  children,
+  eventBus: providedEventBus,
+  initialExample,
+  initialPreferences = DEFAULT_APPLICATION_PREFERENCES,
+  initialLessonProgress = {},
+  onApplicationPreferencesChange,
+  onLessonProgressChange,
+  onAllLessonProgressClear
+}: AppStoreProviderProps) {
   const eventBus = useMemo(() => providedEventBus ?? createAppEventBus(), [providedEventBus]);
   const documentIdsRef = useRef(createSequentialDocumentIdFactory("app"));
   const initialStateRef = useRef<AppStoreState | null>(null);
-  if (!initialStateRef.current) initialStateRef.current = createInitialAppState(documentIdsRef.current, initialPreferences, initialExample);
+  if (!initialStateRef.current) initialStateRef.current = createInitialAppState(documentIdsRef.current, initialPreferences, initialExample, initialLessonProgress);
   const [state, dispatch] = useReducer(appStoreReducer, initialStateRef.current);
   const runControlRef = useRef({ runId: 0, stopRequested: false });
   const preferenceSnapshot = useMemo(
@@ -420,6 +447,7 @@ export function AppStoreProvider({ children, eventBus: providedEventBus, initial
     [state.circuitFocusEnabled, state.inspectorActiveTab, state.observationMode, state.outputDockActiveTab]
   );
   const lastPreferenceSnapshotRef = useRef(serializeApplicationPreferences(preferenceSnapshot));
+  const lastLessonProgressRef = useRef(state.lessonProgress);
 
   useEffect(() => {
     const serialized = serializeApplicationPreferences(preferenceSnapshot);
@@ -427,6 +455,12 @@ export function AppStoreProvider({ children, eventBus: providedEventBus, initial
     lastPreferenceSnapshotRef.current = serialized;
     onApplicationPreferencesChange?.(preferenceSnapshot);
   }, [onApplicationPreferencesChange, preferenceSnapshot]);
+
+  useEffect(() => {
+    if (state.lessonProgress === lastLessonProgressRef.current) return;
+    lastLessonProgressRef.current = state.lessonProgress;
+    onLessonProgressChange?.(state.lessonProgress);
+  }, [onLessonProgressChange, state.lessonProgress]);
 
   const actions = useMemo<AppStoreActions>(
     () => ({
@@ -617,6 +651,10 @@ export function AppStoreProvider({ children, eventBus: providedEventBus, initial
       clearOutput: () => dispatch({ type: "clearOutput" }),
       toggleLessonStep: (exampleId, stepId) => dispatch({ type: "lessonStepToggled", exampleId, stepId }),
       resetLessonProgress: (exampleId) => dispatch({ type: "lessonProgressReset", exampleId }),
+      clearAllLessonProgress: () => {
+        onAllLessonProgressClear?.();
+        dispatch({ type: "lessonProgressCleared" });
+      },
       setObservationMode: (mode) => dispatch({ type: "observationModeSet", mode }),
       setCircuitFocusEnabled: (enabled) => dispatch({ type: "circuitFocusEnabledSet", enabled }),
       setInspectorActiveTab: (tab) => dispatch({ type: "inspectorActiveTabSet", tab }),
@@ -628,7 +666,7 @@ export function AppStoreProvider({ children, eventBus: providedEventBus, initial
       commitSavedDocument: (document, writeBinding) => dispatch({ type: "currentDocumentSaved", document, writeBinding }),
       setFileLifecycle: (lifecycle) => dispatch({ type: "fileLifecycleSet", lifecycle })
     }),
-    [eventBus, state.assembleResult, state.cometState, state.isSourceDirty, state.runStopReason, state.sourceMode, state.sourceText]
+    [eventBus, onAllLessonProgressClear, state.assembleResult, state.cometState, state.isSourceDirty, state.runStopReason, state.sourceMode, state.sourceText]
   );
 
   const value = useMemo<AppStore>(() => ({

@@ -13,6 +13,7 @@ type Viewport = {
 const screenshotRoot = path.resolve("artifacts/visual-review/screenshots");
 const startupSelectionKey = "stugx.casl.startup-selection.v1";
 const applicationPreferenceKey = "stugx.casl.preferences.v1";
+const lessonProgressKey = "stugx.casl.lesson-progress.v1";
 const viewports: Viewport[] = [
   { name: "1280x720", width: 1280, height: 720 },
   { name: "1440x900", width: 1440, height: 900, primary: true },
@@ -1003,15 +1004,93 @@ async function captureStartupSelectionStates(page: Page, viewport: Viewport) {
   }, { startupKey: startupSelectionKey, preferenceKey: applicationPreferenceKey });
 }
 
+async function captureLessonProgressStates(page: Page, viewport: Viewport) {
+  if (!viewport.primary && viewport.name !== "1280x720") return;
+
+  const payload = (completedStepIds: string[], compatibilityVersion = 1) => JSON.stringify({
+    version: 1,
+    entries: [{ lessonId: "casl-gr2-addition", exampleId: "casl-gr2-addition", progressCompatibilityVersion: compatibilityVersion, completedStepIds }]
+  });
+  const seedAndReload = async (progressValue: string | null, locale: "en" | "ja" | "zh-CN" = "en") => {
+    await page.evaluate(({ startupKey, preferenceKey, progressKey, progressValue, locale }) => {
+      sessionStorage.setItem("visual-lesson-progress-seed-active", "true");
+      localStorage.setItem(startupKey, JSON.stringify({ version: 1, lastExampleId: "casl-gr2-addition" }));
+      localStorage.setItem(preferenceKey, JSON.stringify({ version: 1, observationMode: "cpu-flow", circuitFocusEnabled: false, inspectorActiveTab: "registers", outputDockActiveTab: "output" }));
+      localStorage.setItem("stugx.casl.locale", locale);
+      if (progressValue === null) localStorage.removeItem(progressKey);
+      else localStorage.setItem(progressKey, progressValue);
+    }, { startupKey: startupSelectionKey, preferenceKey: applicationPreferenceKey, progressKey: lessonProgressKey, progressValue, locale });
+    await page.reload();
+    await expect(page.getByTestId("demo-program-select")).toHaveValue("casl-gr2-addition");
+    await page.getByTestId("guided-lesson-summary").click();
+  };
+
+  if (viewport.primary) {
+    await seedAndReload(null);
+    await capture(page, viewport, "lesson-progress-empty.png");
+
+    await seedAndReload(payload(["assemble", "step-ld"]));
+    await expect(page.getByTestId("study-mode-progress")).toContainText("2 / 4");
+    await capture(page, viewport, "lesson-progress-partial.png");
+
+    await seedAndReload(payload(["assemble", "step-ld", "step-adda", "step-st"]));
+    await capture(page, viewport, "lesson-progress-complete.png");
+
+    await seedAndReload(payload(["assemble", "step-ld"]));
+    await capture(page, viewport, "lesson-progress-restored-en.png");
+
+    await seedAndReload(payload(["assemble", "step-ld"]), "ja");
+    await capture(page, viewport, "lesson-progress-restored-ja.png");
+
+    await seedAndReload(payload(["assemble", "step-ld"]), "zh-CN");
+    await capture(page, viewport, "lesson-progress-restored-zh-cn.png");
+
+    await seedAndReload(payload(["assemble", "step-ld"]));
+    await page.getByTestId("study-mode-reset").click();
+    await capture(page, viewport, "lesson-progress-reset.png");
+
+    await seedAndReload(JSON.stringify({ version: 2, entries: [] }));
+    await capture(page, viewport, "lesson-progress-invalid-version.png");
+
+    await seedAndReload(payload(["assemble", "deleted-step"]));
+    await expect(page.getByTestId("study-mode-progress")).toContainText("1 / 4");
+    await capture(page, viewport, "lesson-progress-deleted-step.png");
+
+    await seedAndReload(payload(["assemble"], 2));
+    await capture(page, viewport, "lesson-progress-version-mismatch.png");
+
+    await seedAndReload(payload(["assemble"]));
+    await setOpenFile(page, "external.cas", "MAIN START\n RET\n END");
+    await expect(page.getByTestId("demo-guide")).toHaveCount(0);
+    await capture(page, viewport, "lesson-progress-external-source.png");
+  }
+
+  if (viewport.name === "1280x720") {
+    await seedAndReload(payload(["assemble", "step-ld"]));
+    await capture(page, viewport, "lesson-progress-1280.png");
+  }
+
+  await page.evaluate(({ startupKey, preferenceKey, progressKey }) => {
+    sessionStorage.removeItem("visual-lesson-progress-seed-active");
+    localStorage.removeItem(startupKey);
+    localStorage.removeItem(preferenceKey);
+    localStorage.removeItem(progressKey);
+  }, { startupKey: startupSelectionKey, preferenceKey: applicationPreferenceKey, progressKey: lessonProgressKey });
+}
+
 test.describe("visual review screenshot gallery", () => {
   for (const viewport of viewports) {
     test(`captures visual review gallery at ${viewport.name}`, async ({ page }) => {
       test.setTimeout(180_000);
       await page.setViewportSize({ width: viewport.width, height: viewport.height });
       await page.addInitScript(() => {
-        if (sessionStorage.getItem("visual-startup-seed-active") === "true") return;
-        localStorage.removeItem("stugx.casl.preferences.v1");
-        localStorage.removeItem("stugx.casl.startup-selection.v1");
+        const startupSeed = sessionStorage.getItem("visual-startup-seed-active") === "true";
+        const lessonSeed = sessionStorage.getItem("visual-lesson-progress-seed-active") === "true";
+        if (!startupSeed && !lessonSeed) {
+          localStorage.removeItem("stugx.casl.preferences.v1");
+          localStorage.removeItem("stugx.casl.startup-selection.v1");
+        }
+        if (!lessonSeed) localStorage.removeItem("stugx.casl.lesson-progress.v1");
       });
 
       await captureProjectOverview(page, viewport);
@@ -1057,6 +1136,7 @@ test.describe("visual review screenshot gallery", () => {
       await captureBrowserSaveStates(page, viewport);
       await captureNewAndDemoReplacementStates(page, viewport);
       await captureStartupSelectionStates(page, viewport);
+      await captureLessonProgressStates(page, viewport);
     });
   }
 });

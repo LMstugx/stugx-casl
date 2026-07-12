@@ -242,6 +242,8 @@ Phase 16B adds injected-storage startup scenes: `startup-example-default.png`, `
 
 Phase 16C adds injected lesson-progress scenes: `lesson-progress-empty.png`, `lesson-progress-partial.png`, `lesson-progress-complete.png`, `lesson-progress-restored-en.png`, `lesson-progress-restored-ja.png`, `lesson-progress-restored-zh-cn.png`, `lesson-progress-reset.png`, `lesson-progress-invalid-version.png`, `lesson-progress-deleted-step.png`, `lesson-progress-version-mismatch.png`, `lesson-progress-external-source.png`, and `lesson-progress-1280.png`. Review checkbox/count agreement, synchronous restored state, locale stability, safe invalid/version fallback, absent external association, natural scroll, 1280px containment, and unchanged clean-wire behavior.
 
+Phase 16D adds `persistence-all-default.png`, all-valid EN/JA/zh-CN, invalid locale/preferences/startup/lesson, all-invalid, storage-unavailable, reset-isolation, cross-key-failure, and `persistence-1280.png` / `persistence-1440.png` / `persistence-1920.png`. Review source/selector agreement, independent locale/UI/progress recovery, clean/unassembled state, absence of flash/guard/notice/banner, horizontal containment, natural scroll, bounded Inspector scroll, and clean-wire stability.
+
 - This is a review gallery, not a pixel-diff visual regression suite.
 - Screenshots are generated artifacts and are not committed to git.
 - The gallery is local only unless you use an existing tunnel tool.

@@ -65,4 +65,6 @@ Audit optional built-in-example startup restoration separately. `lastExampleId` 
 
 Phase 16B implements that recommendation with a separate startup-selection key. The Phase 16A persisted-field allowlist and reset semantics remain unchanged.
 
+Phase 16D freezes this contract inside the aggregate [`persistence-baseline-v1.json`](persistence-baseline-v1.json). Cross-key failure, reset, write-trigger, privacy, bootstrap, and version tests confirm that this payload remains independent and does not become session restore.
+
 Phase 16C likewise keeps versioned built-in lesson progress in a separate key. It does not add lesson fields to the Phase 16A preference payload or reset contract.

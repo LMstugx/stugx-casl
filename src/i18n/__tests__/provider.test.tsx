@@ -27,6 +27,9 @@ class MemoryLocaleStorage implements LocaleStorage {
   write(locale: SupportedLocale) {
     this.value = locale;
   }
+  clear() {
+    this.value = null;
+  }
 }
 
 let root: Root;

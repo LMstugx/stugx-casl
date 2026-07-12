@@ -1,0 +1,258 @@
+{
+  "baselineVersion": 1,
+  "storageKeys": {
+    "locale": "stugx.casl.locale",
+    "applicationPreferences": "stugx.casl.preferences.v1",
+    "startupSelection": "stugx.casl.startup-selection.v1",
+    "lessonProgress": "stugx.casl.lesson-progress.v1"
+  },
+  "bootstrapOrder": [
+    "locale",
+    "application-preferences",
+    "startup-selection",
+    "lesson-progress",
+    "initial-store"
+  ],
+  "independentContracts": [
+    {
+      "id": "locale",
+      "owner": "i18n",
+      "key": "stugx.casl.locale",
+      "schemaVersion": "canonical-value",
+      "maxPayloadBytes": 64,
+      "persistedFields": [
+        "locale"
+      ],
+      "defaults": {
+        "locale": "en"
+      },
+      "allowedValues": [
+        "en",
+        "ja",
+        "zh-CN"
+      ],
+      "unknownFieldPolicy": "not-applicable",
+      "unknownVersionPolicy": "not-versioned",
+      "malformedPayloadPolicy": "ignore-and-resolve-browser-or-default",
+      "writeTiming": "explicit-locale-switch",
+      "resetPolicy": "clear-locale-key-only",
+      "failurePolicy": "retain-active-locale-and-isolate",
+      "runtimeSourceOfTruth": "i18n-context",
+      "migrationPolicy": "canonical-locale-normalization-only",
+      "decision": "frozen"
+    },
+    {
+      "id": "application-preferences",
+      "owner": "application-preference-controller",
+      "key": "stugx.casl.preferences.v1",
+      "schemaVersion": 1,
+      "maxPayloadBytes": 16384,
+      "persistedFields": [
+        "observationMode",
+        "circuitFocusEnabled",
+        "inspectorActiveTab",
+        "outputDockActiveTab"
+      ],
+      "defaults": {
+        "version": 1,
+        "observationMode": "cpu-flow",
+        "circuitFocusEnabled": false,
+        "inspectorActiveTab": "registers",
+        "outputDockActiveTab": "output"
+      },
+      "unknownFieldPolicy": "ignore-field",
+      "unknownVersionPolicy": "ignore-payload",
+      "malformedPayloadPolicy": "use-current-defaults",
+      "writeTiming": "allowlisted-preference-change",
+      "resetPolicy": "clear-preference-key-and-restore-defaults",
+      "failurePolicy": "retain-in-memory-preferences-and-isolate",
+      "runtimeSourceOfTruth": "app-store-preference-slice",
+      "migrationPolicy": "explicit-pure-version-migration-required",
+      "decision": "frozen"
+    },
+    {
+      "id": "startup-selection",
+      "owner": "startup-selection-controller",
+      "key": "stugx.casl.startup-selection.v1",
+      "schemaVersion": 1,
+      "maxPayloadBytes": 4096,
+      "persistedFields": [
+        "lastExampleId"
+      ],
+      "defaults": {
+        "lastExampleId": "application-default-example"
+      },
+      "unknownFieldPolicy": "ignore-field",
+      "unknownVersionPolicy": "ignore-payload",
+      "malformedPayloadPolicy": "use-default-example",
+      "writeTiming": "successful-built-in-example-commit",
+      "resetPolicy": "clear-startup-selection-key-only",
+      "failurePolicy": "retain-committed-document-and-isolate",
+      "runtimeSourceOfTruth": "built-in-example-registry-and-current-document",
+      "migrationPolicy": "explicit-pure-version-or-id-alias-migration-required",
+      "decision": "frozen"
+    },
+    {
+      "id": "lesson-progress",
+      "owner": "lesson-progress-controller",
+      "key": "stugx.casl.lesson-progress.v1",
+      "schemaVersion": 1,
+      "maxPayloadBytes": 65536,
+      "persistedFields": [
+        "version",
+        "entries",
+        "lessonId",
+        "exampleId",
+        "progressCompatibilityVersion",
+        "completedStepIds"
+      ],
+      "defaults": {
+        "entries": []
+      },
+      "unknownFieldPolicy": "ignore-field",
+      "unknownVersionPolicy": "ignore-payload",
+      "malformedPayloadPolicy": "use-empty-progress",
+      "writeTiming": "completed-step-set-change",
+      "resetPolicy": "per-lesson-or-clear-progress-key-only",
+      "failurePolicy": "retain-in-memory-progress-and-isolate",
+      "runtimeSourceOfTruth": "lesson-registry-and-app-store-progress-slice",
+      "migrationPolicy": "explicit-pure-version-and-step-id-migration-required",
+      "decision": "frozen"
+    }
+  ],
+  "payloadLimits": {
+    "locale": 64,
+    "applicationPreferences": 16384,
+    "startupSelection": 4096,
+    "lessonProgress": 65536
+  },
+  "persistedDataCategories": [
+    "canonical-locale",
+    "canonical-ui-enums-and-boolean",
+    "canonical-built-in-example-id",
+    "canonical-lesson-and-step-ids",
+    "compatibility-version"
+  ],
+  "prohibitedDataCategories": [
+    "source-content",
+    "filename-or-path",
+    "document-or-source-unit-id",
+    "file-handle-or-save-target-id",
+    "dirty-state",
+    "diagnostics-markers-selection-or-raw-context",
+    "generated-casl-machine-code-or-source-map",
+    "trace-output-or-vm-state",
+    "assembly-or-run-state",
+    "pending-operation-modal-focus-cursor-or-scroll",
+    "external-file-reopen-data",
+    "timestamp",
+    "arbitrary-user-entered-text",
+    "combined-session-payload"
+  ],
+  "versionPolicies": {
+    "locale": "unknown-value-normalizes-to-en; invalid-stored-value-is-ignored",
+    "applicationPreferences": "unknown-version-ignored; valid-v1-fields-resolve-independently",
+    "startupSelection": "unknown-version-ignored; invalid-id-falls-back-without-writeback",
+    "lessonProgress": "unknown-version-ignored; lesson-version-mismatch-discards-only-that-lesson"
+  },
+  "failureIsolationPolicy": {
+    "perKeyReadWriteClearIsolation": true,
+    "failureWritesOtherKeys": false,
+    "failureMutatesSourceRuntimeOrDirty": false,
+    "failureCreatesCodeDiagnostic": false,
+    "retryLoop": false
+  },
+  "resetIsolationPolicy": {
+    "locale": [
+      "stugx.casl.locale"
+    ],
+    "applicationPreferences": [
+      "stugx.casl.preferences.v1"
+    ],
+    "startupSelection": [
+      "stugx.casl.startup-selection.v1"
+    ],
+    "lessonProgress": [
+      "stugx.casl.lesson-progress.v1"
+    ],
+    "combinedResetUi": false
+  },
+  "writeTriggerMatrix": {
+    "localeSwitch": [
+      "stugx.casl.locale"
+    ],
+    "observationMode": [
+      "stugx.casl.preferences.v1"
+    ],
+    "circuitFocus": [
+      "stugx.casl.preferences.v1"
+    ],
+    "inspectorOrOutputTab": [
+      "stugx.casl.preferences.v1"
+    ],
+    "successfulBuiltInExampleSwitch": [
+      "stugx.casl.startup-selection.v1"
+    ],
+    "lessonStepToggleOrReset": [
+      "stugx.casl.lesson-progress.v1"
+    ],
+    "newOpenSaveSaveAs": [],
+    "sourceEdit": [],
+    "assembleRunStep": [],
+    "diagnosticOrFrameSelection": [],
+    "hydrationOrFallback": []
+  },
+  "privacyPolicy": {
+    "allowedOrigins": [
+      "canonical-locale-registry",
+      "canonical-ui-preference-enums",
+      "canonical-built-in-example-registry",
+      "canonical-lesson-registry"
+    ],
+    "userSourceOrArbitraryText": false,
+    "externalFileReopen": false,
+    "runtimeState": false,
+    "combinedSessionIdentity": false
+  },
+  "securityPolicy": {
+    "allowlistOnly": true,
+    "sizeBoundedBeforeSanitization": true,
+    "ownDataPropertiesOnly": true,
+    "prototypeMerge": false,
+    "getterExecution": false,
+    "deterministicSerialization": true,
+    "fullPayloadProductionLogging": false,
+    "dynamicImportFileReadUrlConstruction": false,
+    "networkSyncTelemetry": false
+  },
+  "sourceOfTruthPolicy": {
+    "runtimeRegistriesAndStoresRemainAuthoritative": true,
+    "aggregateBaselineIsRuntimeInput": false,
+    "independentBaselinesRemainAuthoritativeSnapshots": true,
+    "storageIsUntrustedInput": true
+  },
+  "migrationPolicy": {
+    "explicitPureFunctionRequired": true,
+    "shapeGuessing": false,
+    "futureVersionReinterpretation": false,
+    "localeOrDisplayTextMatching": false,
+    "indexFuzzyOrSourceHashMatching": false,
+    "fileSystemOrNetworkAccess": false,
+    "migrationFailurePolicy": "use-current-defaults-without-writeback"
+  },
+  "independentBaselineFiles": [
+    "diagnostic-localization-baseline-v1.json",
+    "file-lifecycle-baseline-v1.json",
+    "application-preferences-baseline-v1.json",
+    "startup-selection-baseline-v1.json",
+    "lesson-progress-baseline-v1.json"
+  ],
+  "deferredSessionRestore": [
+    "source-or-dirty-document",
+    "external-file-reopen",
+    "file-handle-or-write-binding",
+    "diagnostics-generated-output-or-vm",
+    "cursor-selection-scroll-or-modal-state",
+    "recent-files-project-or-multi-document-session"
+  ]
+}

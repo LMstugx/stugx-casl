@@ -37,3 +37,5 @@ Step toggles require the current working document to retain built-in example ori
 ## Reset
 
 Per-lesson reset removes only that lesson and persists the remaining entries. `clearAllLessonProgress()` clears in-memory progress and best-effort removes only `stugx.casl.lesson-progress.v1`; it has no Phase 16C UI. It does not clear locale, UI preferences, startup selection, source, file lifecycle, diagnostics, or VM state.
+
+Phase 16D validates lesson progress as the fourth synchronous bootstrap domain. Hostile object/prototype traps now fail closed, and aggregate tests confirm that hydration, write failure, reset, and compatibility mismatch cannot affect the other storage keys or source/runtime state.

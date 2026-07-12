@@ -16,6 +16,7 @@ import { selectFrameSymbolRelations } from "./transpiler/framePlanView";
 import { DEFAULT_DEMO_PROGRAM_ID, demoPrograms, getDefaultDemoProgram, getDemoProgram } from "./examples/demoPrograms";
 import { getLearningLesson, learningLessons } from "./examples/learningLessons";
 import { I18nProvider } from "./i18n/I18nProvider";
+import type { LocaleStorage } from "./i18n/localeStorage";
 import { translateRunState } from "./i18n/locale";
 import { useI18n } from "./i18n/useI18n";
 import { diagnosticIdentity, renderDiagnostic } from "./diagnostics/renderDiagnostic";
@@ -41,6 +42,8 @@ import { WebLocalStorageLessonProgressStorage, type LessonProgressStorage } from
 
 type AppProps = {
   fileAdapter?: TextFileAdapter;
+  localeStorage?: LocaleStorage;
+  browserLocale?: string;
   preferenceStorage?: ApplicationPreferenceStorage;
   startupSelectionStorage?: StartupSelectionStorage;
   lessonProgressStorage?: LessonProgressStorage;
@@ -81,7 +84,7 @@ function lessonProgressControllerFor(storage?: LessonProgressStorage): LessonPro
 
 export default function App(props: AppProps = {}) {
   return (
-    <I18nProvider>
+    <I18nProvider storage={props.localeStorage} browserLocale={props.browserLocale}>
       <BootstrappedApp {...props} />
     </I18nProvider>
   );

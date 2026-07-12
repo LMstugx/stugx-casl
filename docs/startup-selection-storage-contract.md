@@ -26,6 +26,8 @@ Opening an external file or creating Untitled does not clear the stored built-in
 
 `StartupSelectionController.clear()` best-effort removes only the startup-selection key. It does not alter the current document, locale, UI preferences, diagnostics, VM, or file lifecycle. Phase 16B adds no clear UI.
 
+Phase 16D freezes startup selection as the third synchronous bootstrap domain and confirms that malformed/version-incompatible reads, failed writes, and clear failures remain isolated from locale, UI preferences, and lesson progress. No fallback is written back.
+
 ## Security And Privacy
 
 The payload contains no source, filename/path, handles/target IDs, document/source IDs, Dirty state, diagnostics/raw context, generated or machine data, VM/Trace, editor state, pending operation, locale, UI preferences, analytics, or telemetry. The ID cannot trigger dynamic import, file access, URL construction, network access, HTML insertion, or CSS selection.

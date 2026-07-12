@@ -116,3 +116,5 @@ Phase 16C passed the complete validation gate:
 ## 13. Phase 16D Recommendation
 
 Run a Phase 16 persistence final quality gate covering all four independent storage contracts, upgrade/reset behavior, cross-key failure isolation, and privacy regression. Do not broaden lesson progress into source/session restoration.
+
+Phase 16D performs that gate and freezes the four-key aggregate in [`persistence-baseline-v1.json`](persistence-baseline-v1.json). The Phase 16C lesson/step IDs, compatibility versions, payload fields, and built-in-only policy are unchanged.

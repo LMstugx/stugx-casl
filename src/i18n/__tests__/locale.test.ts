@@ -4,7 +4,7 @@ import { resolveInitialLocale, WebLocalStorageLocaleStorage, type LocaleStorage 
 import type { SupportedLocale } from "../types";
 
 function fixedStorage(value: SupportedLocale | null): LocaleStorage {
-  return { read: () => value, write: () => undefined };
+  return { read: () => value, write: () => undefined, clear: () => undefined };
 }
 
 describe("locale contract", () => {

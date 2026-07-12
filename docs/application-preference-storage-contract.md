@@ -24,6 +24,8 @@ The store selector emits only the allowlist. A write occurs only after an allowl
 
 Phase 16B keeps built-in startup selection under the independent `stugx.casl.startup-selection.v1` adapter. Preference hydration/reset never reads or clears that key, and example selection never rewrites this UI preference payload.
 
+Phase 16D validates this isolation against all four persistence keys. Unknown future versions remain ignored, reset removes only the preference key, and no fallback or failure rewrites locale, startup selection, or lesson progress. See [`phase16d-persistence-final-quality-gate.md`](phase16d-persistence-final-quality-gate.md).
+
 ## Security And Privacy
 
 The payload contains no user-entered strings, source, filename/path, handles/target IDs, document/source IDs, diagnostics/raw context, runtime state, Trace, editor state, operation state, analytics, or telemetry. There is no network synchronization and no complete-store serialization.

@@ -84,4 +84,6 @@ Injected-storage scenarios cover default/restored CASL and C++, invalid/deleted/
 
 Audit lesson-progress persistence as a separate content-versioned preference, or freeze Phase 16 persistence if no stable lesson-step migration contract is available. Do not broaden this startup key into general session restore.
 
+Phase 16D completes that freeze in [`phase16d-persistence-final-quality-gate.md`](phase16d-persistence-final-quality-gate.md). Startup-selection failure, clear, fallback, and writes remain isolated from locale, UI preferences, and lesson progress.
+
 Phase 16C passes that audit using explicit lesson/step IDs and per-lesson compatibility versions under an independent storage key. Startup selection remains unchanged and stores no lesson progress.

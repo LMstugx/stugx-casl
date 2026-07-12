@@ -14,6 +14,7 @@ const screenshotRoot = path.resolve("artifacts/visual-review/screenshots");
 const startupSelectionKey = "stugx.casl.startup-selection.v1";
 const applicationPreferenceKey = "stugx.casl.preferences.v1";
 const lessonProgressKey = "stugx.casl.lesson-progress.v1";
+const localeStorageKey = "stugx.casl.locale";
 const viewports: Viewport[] = [
   { name: "1280x720", width: 1280, height: 720 },
   { name: "1440x900", width: 1440, height: 900, primary: true },
@@ -1078,6 +1079,103 @@ async function captureLessonProgressStates(page: Page, viewport: Viewport) {
   }, { startupKey: startupSelectionKey, preferenceKey: applicationPreferenceKey, progressKey: lessonProgressKey });
 }
 
+async function capturePersistenceQualityGateStates(page: Page, viewport: Viewport) {
+  const validPreferences = JSON.stringify({ version: 1, observationMode: "register-stack", circuitFocusEnabled: false, inspectorActiveTab: "memory", outputDockActiveTab: "messages" });
+  const validStartup = JSON.stringify({ version: 1, lastExampleId: "casl-gr2-addition" });
+  const validProgress = JSON.stringify({ version: 1, entries: [{ lessonId: "casl-gr2-addition", exampleId: "casl-gr2-addition", progressCompatibilityVersion: 1, completedStepIds: ["assemble", "step-ld"] }] });
+  const seedAndReload = async (values: { locale?: string | null; preferences?: string | null; startup?: string | null; progress?: string | null }) => {
+    await page.evaluate(({ keys, values }) => {
+      sessionStorage.setItem("visual-persistence-seed-active", "true");
+      const entries = [
+        [keys.locale, values.locale],
+        [keys.preferences, values.preferences],
+        [keys.startup, values.startup],
+        [keys.progress, values.progress]
+      ] as const;
+      for (const [key, value] of entries) {
+        if (value === null || value === undefined) localStorage.removeItem(key);
+        else localStorage.setItem(key, value);
+      }
+    }, {
+      keys: { locale: localeStorageKey, preferences: applicationPreferenceKey, startup: startupSelectionKey, progress: lessonProgressKey },
+      values
+    });
+    await page.reload();
+    await expect(page.getByTestId("demo-program-select")).toHaveValue("casl-gr2-addition");
+    await expect(page.locator(".source-dirty-indicator")).toHaveCount(0);
+    await expect(page.getByTestId("run-state")).toHaveAttribute("data-run-state", "Idle");
+    await expect(page.locator(".diagnostic")).toHaveCount(0);
+    const lesson = page.getByTestId("guided-lesson");
+    if ((await lesson.getAttribute("open")) === null) await page.getByTestId("guided-lesson-summary").click();
+  };
+  const valid = (locale: "en" | "ja" | "zh-CN" = "en") => ({ locale, preferences: validPreferences, startup: validStartup, progress: validProgress });
+
+  if (viewport.primary) {
+    await seedAndReload({ locale: null, preferences: null, startup: null, progress: null });
+    await capture(page, viewport, "persistence-all-default.png");
+
+    await seedAndReload(valid("en"));
+    await expect(page.getByTestId("study-mode-progress")).toContainText("2 / 4");
+    await capture(page, viewport, "persistence-all-valid-en.png");
+
+    await seedAndReload(valid("ja"));
+    await capture(page, viewport, "persistence-all-valid-ja.png");
+
+    await seedAndReload(valid("zh-CN"));
+    await capture(page, viewport, "persistence-all-valid-zh-cn.png");
+
+    await seedAndReload({ ...valid(), locale: "invalid" });
+    await capture(page, viewport, "persistence-invalid-locale.png");
+
+    await seedAndReload({ ...valid(), preferences: '{"version":2}' });
+    await capture(page, viewport, "persistence-invalid-preferences.png");
+
+    await seedAndReload({ ...valid(), startup: '{"version":2}' });
+    await capture(page, viewport, "persistence-invalid-startup.png");
+
+    await seedAndReload({ ...valid(), progress: '{"version":2}' });
+    await expect(page.getByTestId("study-mode-progress")).toContainText("0 / 4");
+    await capture(page, viewport, "persistence-invalid-lesson-progress.png");
+
+    await seedAndReload({ locale: "invalid", preferences: '{"version":2}', startup: '{"version":2}', progress: '{"version":2}' });
+    await capture(page, viewport, "persistence-all-invalid.png");
+
+    await seedAndReload(valid("ja"));
+    await page.evaluate((progressKey) => localStorage.removeItem(progressKey), lessonProgressKey);
+    await page.reload();
+    await page.getByTestId("guided-lesson-summary").click();
+    await expect(page.getByTestId("study-mode-progress")).toContainText("0 / 4");
+    await capture(page, viewport, "persistence-reset-isolation.png");
+
+    await seedAndReload({ ...valid("zh-CN"), preferences: "{" });
+    await capture(page, viewport, "persistence-cross-key-failure.png");
+
+    await page.addInitScript(() => {
+      if (window.name === "visual-storage-unavailable") {
+        Object.defineProperty(window, "localStorage", { configurable: true, get: () => { throw new DOMException("blocked", "SecurityError"); } });
+      }
+    });
+    await page.evaluate(() => { window.name = "visual-storage-unavailable"; });
+    await page.reload();
+    await expect(page.getByTestId("demo-program-select")).toHaveValue("casl-gr2-addition");
+    await capture(page, viewport, "persistence-storage-unavailable.png");
+    await page.evaluate(() => { window.name = ""; });
+    await page.reload();
+  }
+
+  await seedAndReload(valid());
+  await capture(page, viewport, `persistence-${viewport.name.split("x")[0]}.png`);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+
+  await page.evaluate((keys) => {
+    sessionStorage.removeItem("visual-persistence-seed-active");
+    localStorage.removeItem(keys.locale);
+    localStorage.removeItem(keys.preferences);
+    localStorage.removeItem(keys.startup);
+    localStorage.removeItem(keys.progress);
+  }, { locale: localeStorageKey, preferences: applicationPreferenceKey, startup: startupSelectionKey, progress: lessonProgressKey });
+}
+
 test.describe("visual review screenshot gallery", () => {
   for (const viewport of viewports) {
     test(`captures visual review gallery at ${viewport.name}`, async ({ page }) => {
@@ -1086,11 +1184,12 @@ test.describe("visual review screenshot gallery", () => {
       await page.addInitScript(() => {
         const startupSeed = sessionStorage.getItem("visual-startup-seed-active") === "true";
         const lessonSeed = sessionStorage.getItem("visual-lesson-progress-seed-active") === "true";
-        if (!startupSeed && !lessonSeed) {
+        const persistenceSeed = sessionStorage.getItem("visual-persistence-seed-active") === "true";
+        if (!startupSeed && !lessonSeed && !persistenceSeed) {
           localStorage.removeItem("stugx.casl.preferences.v1");
           localStorage.removeItem("stugx.casl.startup-selection.v1");
         }
-        if (!lessonSeed) localStorage.removeItem("stugx.casl.lesson-progress.v1");
+        if (!lessonSeed && !persistenceSeed) localStorage.removeItem("stugx.casl.lesson-progress.v1");
       });
 
       await captureProjectOverview(page, viewport);
@@ -1137,6 +1236,7 @@ test.describe("visual review screenshot gallery", () => {
       await captureNewAndDemoReplacementStates(page, viewport);
       await captureStartupSelectionStates(page, viewport);
       await captureLessonProgressStates(page, viewport);
+      await capturePersistenceQualityGateStates(page, viewport);
     });
   }
 });

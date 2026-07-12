@@ -12,8 +12,12 @@ const CONTROL_CHARACTER_PATTERN = /[\u0000-\u001f\u007f]/;
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   if (value === null || typeof value !== "object" || Array.isArray(value)) return false;
-  const prototype = Object.getPrototypeOf(value);
-  return prototype === Object.prototype || prototype === null;
+  try {
+    const prototype = Object.getPrototypeOf(value);
+    return prototype === Object.prototype || prototype === null;
+  } catch {
+    return false;
+  }
 }
 
 function ownDataValue(object: Record<string, unknown>, key: string): unknown {
@@ -58,27 +62,31 @@ function sanitizeEntry(value: unknown): LessonProgressEntryV1 | null {
 }
 
 export function sanitizeLessonProgress(raw: unknown): LessonProgressPersistenceV1 | null {
-  if (!isPlainObject(raw) || ownDataValue(raw, "version") !== LESSON_PROGRESS_VERSION) return null;
-  const entriesValue = ownDataValue(raw, "entries");
-  if (!Array.isArray(entriesValue) || entriesValue.length > LESSON_PROGRESS_MAX_ENTRIES) return null;
+  try {
+    if (!isPlainObject(raw) || ownDataValue(raw, "version") !== LESSON_PROGRESS_VERSION) return null;
+    const entriesValue = ownDataValue(raw, "entries");
+    if (!Array.isArray(entriesValue) || entriesValue.length > LESSON_PROGRESS_MAX_ENTRIES) return null;
 
-  const entries: LessonProgressEntryV1[] = [];
-  const duplicateLessonIds = new Set<string>();
-  const seenLessonIds = new Set<string>();
-  for (let index = 0; index < entriesValue.length; index += 1) {
-    const entry = sanitizeEntry(arrayDataValue(entriesValue, index));
-    if (!entry) continue;
-    if (seenLessonIds.has(entry.lessonId)) duplicateLessonIds.add(entry.lessonId);
-    seenLessonIds.add(entry.lessonId);
-    entries.push(entry);
+    const entries: LessonProgressEntryV1[] = [];
+    const duplicateLessonIds = new Set<string>();
+    const seenLessonIds = new Set<string>();
+    for (let index = 0; index < entriesValue.length; index += 1) {
+      const entry = sanitizeEntry(arrayDataValue(entriesValue, index));
+      if (!entry) continue;
+      if (seenLessonIds.has(entry.lessonId)) duplicateLessonIds.add(entry.lessonId);
+      seenLessonIds.add(entry.lessonId);
+      entries.push(entry);
+    }
+
+    return {
+      version: LESSON_PROGRESS_VERSION,
+      entries: entries
+        .filter((entry) => !duplicateLessonIds.has(entry.lessonId))
+        .sort((left, right) => left.lessonId.localeCompare(right.lessonId, "en"))
+    };
+  } catch {
+    return null;
   }
-
-  return {
-    version: LESSON_PROGRESS_VERSION,
-    entries: entries
-      .filter((entry) => !duplicateLessonIds.has(entry.lessonId))
-      .sort((left, right) => left.lessonId.localeCompare(right.lessonId, "en"))
-  };
 }
 
 export function parseLessonProgress(raw: string | null): LessonProgressPersistenceV1 | null {

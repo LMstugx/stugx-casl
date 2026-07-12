@@ -9,8 +9,12 @@ const CONTROL_CHARACTER_PATTERN = /[\u0000-\u001f\u007f]/;
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   if (value === null || typeof value !== "object" || Array.isArray(value)) return false;
-  const prototype = Object.getPrototypeOf(value);
-  return prototype === Object.prototype || prototype === null;
+  try {
+    const prototype = Object.getPrototypeOf(value);
+    return prototype === Object.prototype || prototype === null;
+  } catch {
+    return false;
+  }
 }
 
 function ownDataValue(object: Record<string, unknown>, key: string): unknown {
@@ -31,11 +35,15 @@ function sanitizeExampleId(value: unknown): string | null {
 }
 
 export function sanitizeStartupSelection(raw: unknown): StartupSelectionV1 | null {
-  if (!isPlainObject(raw)) return null;
-  if (ownDataValue(raw, "version") !== STARTUP_SELECTION_VERSION) return null;
-  const lastExampleId = sanitizeExampleId(ownDataValue(raw, "lastExampleId"));
-  if (!lastExampleId) return null;
-  return { version: STARTUP_SELECTION_VERSION, lastExampleId };
+  try {
+    if (!isPlainObject(raw)) return null;
+    if (ownDataValue(raw, "version") !== STARTUP_SELECTION_VERSION) return null;
+    const lastExampleId = sanitizeExampleId(ownDataValue(raw, "lastExampleId"));
+    if (!lastExampleId) return null;
+    return { version: STARTUP_SELECTION_VERSION, lastExampleId };
+  } catch {
+    return null;
+  }
 }
 
 export function parseStartupSelection(raw: string | null): StartupSelectionV1 | null {

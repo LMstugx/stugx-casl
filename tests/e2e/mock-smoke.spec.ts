@@ -20,6 +20,7 @@ async function ensureGuidedLessonOpen(page: Page) {
 const applicationPreferenceKey = "stugx.casl.preferences.v1";
 const startupSelectionKey = "stugx.casl.startup-selection.v1";
 const lessonProgressKey = "stugx.casl.lesson-progress.v1";
+const localeStorageKey = "stugx.casl.locale";
 
 test("Mock backend completes assemble and first step in the browser UI", async ({ page }) => {
   await openStudio(page, "Mock Core");
@@ -224,6 +225,133 @@ test("Built-in lesson progress restores with versioned identities and isolated s
   await expect(page.getByTestId("study-mode-progress")).toContainText("1 / 4");
   await expect(page.locator(".source-dirty-indicator")).toHaveCount(0);
   await page.setViewportSize({ width: 1280, height: 720 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+});
+
+test("Four persistence keys hydrate write and fail independently", async ({ page }) => {
+  const seed = async (invalidKey?: "locale" | "preferences" | "startup" | "lesson" | "all") => {
+    await page.evaluate(({ localeKey, preferenceKey, startupKey, progressKey, invalidKey }) => {
+      const valid = {
+        locale: "ja",
+        preferences: JSON.stringify({ version: 1, observationMode: "register-stack", circuitFocusEnabled: false, inspectorActiveTab: "memory", outputDockActiveTab: "messages" }),
+        startup: JSON.stringify({ version: 1, lastExampleId: "cpp-addition" }),
+        lesson: JSON.stringify({ version: 1, entries: [
+          { lessonId: "casl-gr2-addition", exampleId: "casl-gr2-addition", progressCompatibilityVersion: 1, completedStepIds: ["assemble"] },
+          { lessonId: "cpp-addition", exampleId: "cpp-addition", progressCompatibilityVersion: 1, completedStepIds: ["assemble"] }
+        ] })
+      };
+      localStorage.setItem(localeKey, invalidKey === "locale" || invalidKey === "all" ? "invalid" : valid.locale);
+      localStorage.setItem(preferenceKey, invalidKey === "preferences" || invalidKey === "all" ? '{"version":2}' : valid.preferences);
+      localStorage.setItem(startupKey, invalidKey === "startup" || invalidKey === "all" ? '{"version":2}' : valid.startup);
+      localStorage.setItem(progressKey, invalidKey === "lesson" || invalidKey === "all" ? '{"version":2}' : valid.lesson);
+    }, { localeKey: localeStorageKey, preferenceKey: applicationPreferenceKey, startupKey: startupSelectionKey, progressKey: lessonProgressKey, invalidKey });
+    await page.reload();
+  };
+  const expectProgress = async (count: string) => {
+    const lesson = page.getByTestId("guided-lesson");
+    if ((await lesson.getAttribute("open")) === null) await page.getByTestId("guided-lesson-summary").click();
+    await expect(page.getByTestId("study-mode-progress")).toContainText(count);
+  };
+
+  await page.goto("/");
+  await seed();
+  await expect(page.getByTestId("backend-label")).toHaveText("Mock Core");
+  await expect(page.getByTestId("demo-program-select")).toHaveValue("cpp-addition");
+  await expectSourceContains(page, "int a = 10;");
+  await expect(page.locator(".inspector-panel")).toHaveAttribute("data-active-tab", "memory");
+  await expect(page.locator(".output-panel")).toHaveAttribute("data-active-tab", "messages");
+  await expectProgress("1 / 3");
+  expect(await page.evaluate(() => document.documentElement.lang)).toBe("ja");
+  await expect(page.locator(".source-dirty-indicator")).toHaveCount(0);
+  await expect(page.getByTestId("run-state")).toHaveAttribute("data-run-state", "Idle");
+  await expect(page.locator(".diagnostic")).toHaveCount(0);
+
+  await seed("locale");
+  expect(await page.evaluate(() => document.documentElement.lang)).toBe("en");
+  await expect(page.getByTestId("demo-program-select")).toHaveValue("cpp-addition");
+  await expect(page.locator(".inspector-panel")).toHaveAttribute("data-active-tab", "memory");
+  await expectProgress("1 / 3");
+
+  await seed("preferences");
+  expect(await page.evaluate(() => document.documentElement.lang)).toBe("ja");
+  await expect(page.getByTestId("demo-program-select")).toHaveValue("cpp-addition");
+  await expect(page.locator(".inspector-panel")).toHaveAttribute("data-active-tab", "registers");
+  await expectProgress("1 / 3");
+
+  await seed("startup");
+  await expect(page.getByTestId("demo-program-select")).toHaveValue("casl-gr2-addition");
+  await expectSourceContains(page, "LD    GR2,A");
+  await expect(page.locator(".inspector-panel")).toHaveAttribute("data-active-tab", "memory");
+  await expectProgress("1 / 4");
+
+  await seed("lesson");
+  await expect(page.getByTestId("demo-program-select")).toHaveValue("cpp-addition");
+  await expectProgress("0 / 3");
+  expect(await page.evaluate(() => document.documentElement.lang)).toBe("ja");
+
+  await seed("all");
+  expect(await page.evaluate(() => document.documentElement.lang)).toBe("en");
+  await expect(page.getByTestId("demo-program-select")).toHaveValue("casl-gr2-addition");
+  await expect(page.locator(".inspector-panel")).toHaveAttribute("data-active-tab", "registers");
+  await expectProgress("0 / 4");
+
+  await seed();
+  await page.getByTestId("demo-program-select").selectOption("casl-gr2-addition");
+  await page.evaluate(() => {
+    const target = window as unknown as { __persistenceWrites: string[] };
+    target.__persistenceWrites = [];
+    const original = Storage.prototype.setItem;
+    Storage.prototype.setItem = function trackedSetItem(key: string, value: string) {
+      if (this === localStorage) target.__persistenceWrites.push(key);
+      return original.call(this, key, value);
+    };
+  });
+  const takeWrites = () => page.evaluate(() => {
+    const target = window as unknown as { __persistenceWrites: string[] };
+    const writes = [...target.__persistenceWrites];
+    target.__persistenceWrites.length = 0;
+    return writes;
+  });
+
+  await page.getByTestId("locale-zh-CN").click();
+  expect(await takeWrites()).toEqual([localeStorageKey]);
+  await page.getByTestId("locale-en").click();
+  expect(await takeWrites()).toEqual([localeStorageKey]);
+  await ensureGuidedLessonOpen(page);
+  await page.locator('[data-step-id="assemble"] input').uncheck();
+  expect(await takeWrites()).toEqual([lessonProgressKey]);
+  await page.getByTestId("demo-program-select").selectOption("cpp-addition");
+  expect(await takeWrites()).toEqual([startupSelectionKey]);
+  await page.getByTestId("circuit-focus-toggle").click();
+  expect(await takeWrites()).toEqual([applicationPreferenceKey]);
+  await page.getByTestId("observation-mode-code-machine").click();
+  expect(await takeWrites()).toEqual([applicationPreferenceKey]);
+  await page.getByTestId("circuit-focus-toggle").click();
+  expect(await takeWrites()).toEqual([applicationPreferenceKey]);
+
+  await chooseTextFile(page, "isolated.cpp", "int main() { return 7; }");
+  expect(await takeWrites()).toEqual([]);
+  await page.evaluate(() => {
+    delete (window as unknown as { showSaveFilePicker?: unknown }).showSaveFilePicker;
+    HTMLAnchorElement.prototype.click = function click() { /* controlled download fallback */ };
+  });
+  await page.getByTestId("save-file-button").click();
+  await expect(page.getByTestId("file-operation-notice")).toBeVisible();
+  expect(await takeWrites()).toEqual([]);
+  await setSource(page, "int main() { return 8; }");
+  expect(await takeWrites()).toEqual([]);
+  await assemble(page);
+  await step(page);
+  expect(await takeWrites()).toEqual([]);
+
+  await page.addInitScript(() => {
+    Object.defineProperty(window, "localStorage", { configurable: true, get: () => { throw new DOMException("blocked", "SecurityError"); } });
+  });
+  await page.reload();
+  await expect(page.getByTestId("demo-program-select")).toHaveValue("casl-gr2-addition");
+  await expect(page.locator(".source-dirty-indicator")).toHaveCount(0);
+  await expect(page.getByTestId("run-state")).toHaveAttribute("data-run-state", "Idle");
+  await expect(page.locator(".diagnostic")).toHaveCount(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
 });
 

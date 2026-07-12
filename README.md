@@ -376,6 +376,8 @@ The current backend is shown in the status bar as `Mock Core`, `WASM Core`, or `
 - [docs/lesson-progress-storage-contract.md](docs/lesson-progress-storage-contract.md): canonical lesson/step identity, compatibility, bounded storage, hydration, write/reset, and built-in-only rules.
 - [docs/lesson-progress-baseline-v1.json](docs/lesson-progress-baseline-v1.json): deterministic validation snapshot for the Phase 16C lesson-progress contract and stable registry IDs.
 - [docs/phase16c-lesson-progress-persistence-audit.md](docs/phase16c-lesson-progress-persistence-audit.md): 17-lesson identity audit, safe MVP implementation, compatibility findings, QA result, and Phase 16D recommendation.
+- [docs/persistence-baseline-v1.json](docs/persistence-baseline-v1.json): deterministic aggregate snapshot for the four independent persistence contracts, bootstrap order, isolation, privacy, security, and migration gates.
+- [docs/phase16d-persistence-final-quality-gate.md](docs/phase16d-persistence-final-quality-gate.md): final four-storage inventory, failure/reset/write isolation, version, privacy, security, visual QA, and Phase 16 result.
 - [docs/browser-save-strategy.md](docs/browser-save-strategy.md): File System Access confirmed writes and Blob download-copy fallback.
 - [docs/transient-write-binding-contract.md](docs/transient-write-binding-contract.md): session-only handle registry and opaque SaveTarget ownership rules.
 - [docs/browser-text-file-adapter.md](docs/browser-text-file-adapter.md): hidden-input browser adapter, strict UTF-8 byte handling, cleanup, cancellation, and test injection.

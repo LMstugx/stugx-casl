@@ -33,7 +33,7 @@ Filename-only changes, Save, Save As metadata updates, locale changes, diagnosti
 
 A selected diagnostic or related location can navigate only when its owner equals the current document's `SourceUnitId`. A related generated CASL location must not be presented as a C++ source location. Locale/rendered text is never used to decide ownership.
 
-## Phase 15B Implementation
+## Phase 15D Implementation
 
-The Open controller verifies the pending `DocumentId`, creates a new `SourceUnitId`, and discards stale completion. The replacement action clears old diagnostics, markers, Generated CASL, machine/source maps, Trace, VM state, and FramePlan selection in one reducer transition.
+The unified New/Open/example controller verifies the pending `DocumentId`, creates a new `SourceUnitId`, and discards stale completion. The single replacement action clears old diagnostics, markers, Generated CASL, machine/source maps, Trace, VM state, and FramePlan selection in one reducer transition. It also releases the old transient write binding. Locale and non-source preferences are preserved.
 Assemble/transpile/core-error completion also carries its initiating source unit and is rejected by the reducer after replacement.

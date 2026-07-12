@@ -38,7 +38,7 @@ describe("Phase 15A document model", () => {
 
   it("untitled_document_is_save_as_only_and_initially_clean", () => {
     const document = createUntitledDocument("cpp", createSequentialDocumentIdFactory("untitled"));
-    expect(document).toMatchObject({ origin: "untitled", fileName: null, saveCapability: "save-as-only", revision: 0, savedRevision: null });
+    expect(document).toMatchObject({ origin: "untitled", fileName: null, saveCapability: "save-as-only", revision: 0, savedRevision: 0 });
     expect(isDocumentDirty(document)).toBe(false);
   });
 

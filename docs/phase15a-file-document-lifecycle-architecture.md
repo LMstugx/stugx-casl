@@ -2,7 +2,7 @@
 
 ## Scope
 
-Phase 15A introduced the pure document/file lifecycle scaffold. Phase 15B consumed Open and Phase 15C consumes Save/Save As through the same adapter and store bridge; the definitions in this document remain the architectural baseline.
+Phase 15A introduced the pure document/file lifecycle scaffold. Phase 15B consumed Open, Phase 15C consumed Save/Save As, and Phase 15D routes New and example selection through the same replacement boundary; the definitions in this document remain the architectural baseline.
 
 Parser/assembler acceptance, ASTs, emitted CASL, C++ lowering, diagnostic triggers/order/severity, and VM transitions are unchanged.
 
@@ -86,7 +86,7 @@ External filenames are plain text with directory information removed. Raw except
 
 ## Deferred Implementation
 
-Phase 15B minimally bridges `SourceDocument` into the current store and adds the browser Open picker, guard, and loading state. There is still no save command, project model, session restore, path persistence, multi-file support, or reload identity. Current demo selection behavior remains unchanged.
+Phase 15D completes the single-document replacement paths: New, Open, and example selection now share intent preparation and atomic invalidation. Save/Save As remain session-scoped from Phase 15C. There is still no project model, source/session restore, path/handle persistence, multi-file support, or reload identity.
 
 ## Phase 15B Recommendation
 

@@ -6,7 +6,7 @@ import { AppEvent, AppEvents } from "../app/events";
 import { coreBridge, getCoreBackendInfo, type CoreBackendInfo } from "../core/coreBridge";
 import { createCometStateFromDto, createEmptyUiCometState } from "../core/coreStateAdapter";
 import { CometState, Diagnostic } from "../core/types";
-import { getDefaultDemoProgram, getDemoProgram, type DemoProgram } from "../examples/demoPrograms";
+import { getDefaultDemoProgram } from "../examples/demoPrograms";
 import { createExampleDocument, editDocument, isDocumentDirty } from "../documents/documentModel";
 import { createSequentialDocumentIdFactory } from "../documents/idFactory";
 import { createIdleFileLifecycleState, type FileLifecycleState } from "../documents/lifecycle";
@@ -65,7 +65,6 @@ type AppStoreState = {
 type AppStoreActions = {
   setSourceText: (sourceText: string) => void;
   setSourceMode: (sourceMode: SourceMode) => void;
-  selectDemoProgram: (programId: string) => void;
   assemble: () => void;
   run: (maxSteps?: number) => void;
   step: () => void;
@@ -75,7 +74,7 @@ type AppStoreActions = {
   toggleLessonStep: (exampleId: string, stepId: string) => void;
   resetLessonProgress: (exampleId: string) => void;
   setObservationMode: (mode: ObservationMode) => void;
-  replaceCurrentDocument: (document: SourceDocument) => void;
+  replaceCurrentDocument: (document: SourceDocument, selectedExampleId?: string) => void;
   commitSavedDocument: (document: SourceDocument, writeBinding: DocumentWriteBinding | null) => void;
   setFileLifecycle: (lifecycle: FileLifecycleState) => void;
 };
@@ -88,8 +87,7 @@ type AppStore = AppStoreState & AppStoreActions & {
 export type AppStoreAction =
   | { type: "setSourceText"; sourceText: string }
   | { type: "setSourceMode"; sourceMode: SourceMode }
-  | { type: "demoProgramSelected"; program: DemoProgram; document: SourceDocument }
-  | { type: "currentDocumentReplaced"; document: SourceDocument }
+  | { type: "currentDocumentReplaced"; document: SourceDocument; selectedExampleId?: string }
   | { type: "currentDocumentSaved"; document: SourceDocument; writeBinding: DocumentWriteBinding | null }
   | { type: "fileLifecycleSet"; lifecycle: FileLifecycleState }
   | { type: "assembled"; sourceUnitId: SourceUnitId; sourceText: string; cometState: CometState; assembleStatus: AssembleStatus; generatedCaslSource?: string; cppToCaslMapping?: CppToCaslMap[] }
@@ -214,26 +212,6 @@ export function appStoreReducer(state: AppStoreState, action: AppStoreAction): A
     };
   }
 
-  if (action.type === "demoProgramSelected") {
-    return {
-      ...state,
-      currentDocument: action.document,
-      currentWriteBinding: null,
-      fileLifecycle: createIdleFileLifecycleState(),
-      sourceText: action.program.source,
-      sourceMode: action.program.mode,
-      isSourceDirty: true,
-      assembleResult: null,
-      diagnostics: [],
-      cometState: createEmptyUiCometState("Dirty", [`Demo loaded: ${action.program.name}. Click Assemble to run it.`]),
-      assembleStatus: "default",
-      runStopReason: null,
-      generatedCaslSource: "",
-      cppToCaslMapping: [],
-      selectedDemoProgramId: action.program.id
-    };
-  }
-
   if (action.type === "currentDocumentReplaced") {
     return {
       ...state,
@@ -251,7 +229,7 @@ export function appStoreReducer(state: AppStoreState, action: AppStoreAction): A
       runStopReason: null,
       generatedCaslSource: "",
       cppToCaslMapping: [],
-      selectedDemoProgramId: ""
+      selectedDemoProgramId: action.selectedExampleId ?? ""
     };
   }
 
@@ -410,12 +388,6 @@ export function AppStoreProvider({ children, eventBus: providedEventBus }: AppSt
       setSourceMode: (sourceMode) => {
         runControlRef.current.stopRequested = true;
         dispatch({ type: "setSourceMode", sourceMode });
-      },
-      selectDemoProgram: (programId) => {
-        const program = getDemoProgram(programId);
-        if (!program) return;
-        runControlRef.current.stopRequested = true;
-        dispatch({ type: "demoProgramSelected", program, document: createExampleDocument(program, documentIdsRef.current) });
       },
       assemble: () => {
         void (async () => {
@@ -597,9 +569,9 @@ export function AppStoreProvider({ children, eventBus: providedEventBus }: AppSt
       toggleLessonStep: (exampleId, stepId) => dispatch({ type: "lessonStepToggled", exampleId, stepId }),
       resetLessonProgress: (exampleId) => dispatch({ type: "lessonProgressReset", exampleId }),
       setObservationMode: (mode) => dispatch({ type: "observationModeSet", mode }),
-      replaceCurrentDocument: (document) => {
+      replaceCurrentDocument: (document, selectedExampleId = "") => {
         runControlRef.current = { runId: runControlRef.current.runId + 1, stopRequested: true };
-        dispatch({ type: "currentDocumentReplaced", document });
+        dispatch({ type: "currentDocumentReplaced", document, selectedExampleId });
       },
       commitSavedDocument: (document, writeBinding) => dispatch({ type: "currentDocumentSaved", document, writeBinding }),
       setFileLifecycle: (lifecycle) => dispatch({ type: "fileLifecycleSet", lifecycle })

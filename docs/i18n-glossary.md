@@ -1,6 +1,6 @@
 # I18n Glossary
 
-Phase 15C file-action terminology is frozen as: `Save` / `保存` / `保存`, `Save As` / `名前を付けて保存` / `另存为`, and `Saved a copy` / `コピーを保存しました` / `已保存副本`. Copy wording is mandatory for Blob fallback and must not imply confirmed overwrite.
+Phase 15C file-action terminology is frozen as: `Save` / `保存` / `保存`, `Save As` / `名前を付けて保存` / `另存为`, and `Saved a copy` / `コピーを保存しました` / `已保存副本`. Copy wording is mandatory for Blob fallback and must not imply confirmed overwrite. Phase 15D adds `New document` / `新規ドキュメント` / `新建文档`, `Untitled` / `無題` / `未命名`, and complete intent actions for create/switch; CASL II, C++, filenames, and example titles remain technical or canonical text.
 
 ## Glossary Principles
 

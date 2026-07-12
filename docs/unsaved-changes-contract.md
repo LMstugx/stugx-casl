@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Phase 15A defined the unsaved decision model. Phase 15B applied Cancel/Discard to browser Open; Phase 15C adds Save and open while leaving the current Demo selector behavior unchanged.
+Phase 15A defined the unsaved decision model. Phase 15B applied it to Open, Phase 15C added Save, and Phase 15D applies the same intent-aware contract to New and built-in example selection.
 
 ## Guarded Intents
 
@@ -22,6 +22,6 @@ Save cancellation or failure blocks replacement. It must not mark the document c
 
 Dirty is derived from `revision` and `savedRevision`, not maintained as an independent mutable truth. A new empty untitled document is clean. Its first edit increments revision and makes it dirty. A restored session with unknown saved state is dirty. Successful save records the current revision; execution and presentation actions do not.
 
-## Deferred UI
+## Intent-Aware UI
 
-The Phase 15C dialog exposes Save and open, Discard and open, and Cancel. Save must complete and leave the current revision clean before Open starts. Cancellation, failure, or a concurrent edit blocks replacement. Discard remains provisional: picker cancellation or validation failure preserves the current Dirty document.
+Open uses Save/Discard and open, New uses Save/Discard and create, and examples use Save/Discard and switch. Save must complete and leave the current revision clean before continuation. Cancellation, failure, or a concurrent edit blocks replacement. Open discard remains provisional until picker validation succeeds; New and example targets commit atomically after confirmation.

@@ -118,7 +118,7 @@ For Observation Mode visual defect cleanup, see [docs/phase10k-observation-visua
 - `C++: For Sum Sugar`
 - `C++: Break Continue`
 
-Use the Demo selector above the Source Editor. Loading an example marks the current runtime as Dirty; click `Assemble` to load it into the backend.
+Use the Demo selector above the Source Editor. Selecting an example creates a clean working document and leaves the VM not loaded; click `Assemble` to load it into the backend. Dirty documents receive the shared Save/Discard/Cancel replacement guard first.
 
 ## Supported CASL II Subset
 
@@ -359,6 +359,10 @@ The current backend is shown in the status bar as `Mock Core`, `WASM Core`, or `
 - [docs/phase15a-file-document-lifecycle-architecture.md](docs/phase15a-file-document-lifecycle-architecture.md): pure Document/Source Unit model, revisions, lifecycle state machine, store migration matrix, and Phase 15B boundary.
 - [docs/phase15b-browser-open-file-mvp.md](docs/phase15b-browser-open-file-mvp.md): single-file browser Open flow, Dirty guard, atomic source replacement, failure presentation, and Phase 15C boundary.
 - [docs/phase15c-browser-save-save-as-mvp.md](docs/phase15c-browser-save-save-as-mvp.md): honest Save/Save As behavior, revision races, Dirty guard integration, and Phase 15D boundary.
+- [docs/phase15d-new-demo-beforeunload.md](docs/phase15d-new-demo-beforeunload.md): unified New/Open/example replacement, intent-aware guards, Untitled presentation, and native Dirty unload safety.
+- [docs/source-replacement-intent-contract.md](docs/source-replacement-intent-contract.md): stable replacement intents, continuation rules, no-op handling, and atomic commit boundary.
+- [docs/beforeunload-dirty-guard.md](docs/beforeunload-dirty-guard.md): revision-derived native unload protection and listener lifecycle.
+- [docs/session-lifecycle-metadata-contract.md](docs/session-lifecycle-metadata-contract.md): future non-source metadata allowlist and prohibited persistence fields.
 - [docs/browser-save-strategy.md](docs/browser-save-strategy.md): File System Access confirmed writes and Blob download-copy fallback.
 - [docs/transient-write-binding-contract.md](docs/transient-write-binding-contract.md): session-only handle registry and opaque SaveTarget ownership rules.
 - [docs/browser-text-file-adapter.md](docs/browser-text-file-adapter.md): hidden-input browser adapter, strict UTF-8 byte handling, cleanup, cancellation, and test injection.

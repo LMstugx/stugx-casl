@@ -4,7 +4,7 @@ import type { FileOperationFailureKind, SavedTextFile } from "./fileAdapter";
 import { invalidateSourceDerivedState, type SourceDerivedState } from "./sourceOwnership";
 import type { DocumentId, SourceDocument } from "./types";
 
-export type FileLifecycleStatus = "idle" | "opening" | "saving" | "save-as" | "confirming-replace";
+export type FileLifecycleStatus = "idle" | "opening" | "saving" | "save-as" | "confirming-replace" | "creating-document" | "switching-example";
 
 export interface SafeFileFailure {
   kind: FileOperationFailureKind;

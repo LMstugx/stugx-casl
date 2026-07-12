@@ -65,4 +65,4 @@ The toolbar Open command has a localized accessible name, `aria-busy` while open
 
 ## Phase 15C Recommendation
 
-Implemented in Phase 15C. Files opened through the Phase 15B input remain Save As only because no writable handle is retained.
+Phase 15C implemented Save/Save As. Phase 15D retains the Phase 15B Open adapter and routes its replacement through the shared New/Open/example intent contract. Files opened through the input remain Save As only because no writable handle is retained.

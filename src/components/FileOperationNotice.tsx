@@ -10,7 +10,7 @@ type FileOperationNoticeProps = {
 };
 
 export type FileOperationNoticeModel =
-  | { type: "failure"; operation: "open" | "save"; failure: { kind: FileOperationFailureKind } }
+  | { type: "failure"; operation: "open" | "save" | "create" | "switch"; failure: { kind: FileOperationFailureKind } }
   | { type: "success"; outcome: "saved" | "saved-copy" | "still-dirty" };
 
 const failureKeys: Record<FileOperationFailureKind, TranslationKey> = {
@@ -33,14 +33,18 @@ export default function FileOperationNotice({ failure, notice, onDismiss }: File
   const successKey = resolved.type === "success"
     ? resolved.outcome === "saved" ? "file.saved" : resolved.outcome === "saved-copy" ? "file.savedCopy" : "file.changesDuringSaveUnsaved"
     : null;
-  const title = resolved.type === "success" ? t(successKey!) : t(resolved.operation === "save" ? "file.saveFailed" : "file.openFailed");
-  const failureDescriptionKey = resolved.type === "failure" && resolved.operation === "save"
-    && (resolved.failure.kind === "io" || resolved.failure.kind === "unknown" || resolved.failure.kind === "unsupported")
-    ? "file.saveFailed"
-    : resolved.type === "failure" ? failureKeys[resolved.failure.kind] : null;
+  const failureTitleKey = resolved.type === "failure"
+    ? resolved.operation === "save" ? "file.saveFailed" : resolved.operation === "create" ? "file.createFailed" : resolved.operation === "switch" ? "file.switchFailed" : "file.openFailed"
+    : null;
+  const title = resolved.type === "success" ? t(successKey!) : t(failureTitleKey!);
+  const failureDescriptionKey = resolved.type !== "failure" || resolved.operation === "create" || resolved.operation === "switch"
+    ? null
+    : resolved.operation === "save" && (resolved.failure.kind === "io" || resolved.failure.kind === "unknown" || resolved.failure.kind === "unsupported")
+      ? "file.saveFailed"
+      : failureKeys[resolved.failure.kind];
   const description = resolved.type === "success"
     ? resolved.outcome === "saved-copy" ? t("file.downloadCopy") : ""
-    : t(failureDescriptionKey!);
+    : failureDescriptionKey ? t(failureDescriptionKey) : "";
   return (
     <section className={`file-operation-notice ${resolved.type}`} role={resolved.type === "failure" ? "alert" : "status"} aria-live={resolved.type === "success" ? "polite" : undefined} aria-labelledby="file-operation-title" data-testid="file-operation-notice">
       <div>

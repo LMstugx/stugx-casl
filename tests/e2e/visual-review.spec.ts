@@ -17,7 +17,7 @@ const viewports: Viewport[] = [
   { name: "1920x1080", width: 1920, height: 1080 }
 ];
 
-async function capture(page: Page, viewport: Viewport, fileName: string) {
+async function capture(page: Page, viewport: Viewport, fileName: string, fullPage = true) {
   await page.evaluate(() => {
     document.documentElement.classList.add("visual-review-static");
     document.body.classList.add("visual-review-static");
@@ -25,9 +25,9 @@ async function capture(page: Page, viewport: Viewport, fileName: string) {
   await page.waitForTimeout(220);
   const viewportDir = path.join(screenshotRoot, viewport.name);
   await mkdir(viewportDir, { recursive: true });
-  await page.screenshot({ path: path.join(viewportDir, fileName), fullPage: true });
+  await page.screenshot({ path: path.join(viewportDir, fileName), fullPage });
   if (viewport.primary) {
-    await page.screenshot({ path: path.join(screenshotRoot, fileName), fullPage: true });
+    await page.screenshot({ path: path.join(screenshotRoot, fileName), fullPage });
   }
 }
 
@@ -840,6 +840,86 @@ async function captureBrowserSaveStates(page: Page, viewport: Viewport) {
   await capture(page, viewport, "save-failure.png");
 }
 
+async function captureNewAndDemoReplacementStates(page: Page, viewport: Viewport) {
+  if (!viewport.primary && viewport.name !== "1280x720") return;
+  const captureState = (fileName: string) => capture(page, viewport, fileName, false);
+  await page.addInitScript(() => {
+    const browserWindow = window as unknown as {
+      showSaveFilePicker: () => Promise<{ name: string; createWritable: () => Promise<{ write(data: Uint8Array): Promise<void>; close(): Promise<void> }> }>;
+      __delayReplacementSave: boolean;
+      __finishReplacementSave?: () => void;
+    };
+    browserWindow.__delayReplacementSave = false;
+    browserWindow.showSaveFilePicker = async () => ({
+      name: "visual-replacement.cas",
+      createWritable: async () => ({
+        write: async () => undefined,
+        close: () => browserWindow.__delayReplacementSave
+          ? new Promise<void>((resolve) => { browserWindow.__finishReplacementSave = resolve; })
+          : Promise.resolve()
+      })
+    });
+  });
+  await openStudio(page, "Mock Core");
+
+  await page.getByTestId("new-document-button").click();
+  await captureState("new-document-dialog-en.png");
+  await page.keyboard.press("Escape");
+  await page.getByTestId("locale-ja").click();
+  await page.getByTestId("new-document-button").click();
+  await captureState("new-document-dialog-ja.png");
+  await page.keyboard.press("Escape");
+  await page.getByTestId("locale-zh-CN").click();
+  await page.getByTestId("new-document-button").click();
+  await captureState("new-document-dialog-zh-cn.png");
+  await page.keyboard.press("Escape");
+  await page.getByTestId("locale-en").click();
+  await page.getByTestId("new-document-button").click();
+  await page.getByRole("dialog", { name: "New document" }).locator('input[value="cpp"]').check();
+  await page.getByTestId("create-document").click();
+  await captureState("untitled-cpp-document.png");
+
+  await page.getByTestId("new-document-button").click();
+  await page.getByRole("dialog", { name: "New document" }).locator('input[value="casl"]').check();
+  await page.getByTestId("create-document").click();
+  await captureState("untitled-casl-document.png");
+
+  await setSource(page, "MAIN START\n RET\n END\n; unsaved");
+  await page.getByTestId("new-document-button").click();
+  await page.getByTestId("create-document").click();
+  await captureState("new-dirty-guard-save-create.png");
+  await captureState("new-dirty-guard-discard-create.png");
+  await page.getByRole("button", { name: "Cancel" }).click();
+
+  await page.getByTestId("demo-program-select").selectOption("cpp-function-arguments");
+  await captureState("demo-switch-dirty-guard-en.png");
+  await page.keyboard.press("Escape");
+  await page.getByTestId("locale-ja").click();
+  await page.getByTestId("demo-program-select").selectOption("cpp-function-arguments");
+  await captureState("demo-switch-dirty-guard-ja.png");
+  await page.keyboard.press("Escape");
+  await page.getByTestId("locale-zh-CN").click();
+  await page.getByTestId("demo-program-select").selectOption("cpp-function-arguments");
+  await captureState("demo-switch-dirty-guard-zh-cn.png");
+  await page.keyboard.press("Escape");
+  await page.getByTestId("locale-en").click();
+
+  await page.evaluate(() => { (window as unknown as { __delayReplacementSave: boolean }).__delayReplacementSave = true; });
+  await page.getByTestId("demo-program-select").selectOption("cpp-function-arguments");
+  await page.getByTestId("save-and-open").click();
+  await expect.poll(() => page.evaluate(() => Boolean((window as unknown as { __finishReplacementSave?: () => void }).__finishReplacementSave))).toBe(true);
+  await captureState("replacement-busy-state.png");
+  await setSource(page, "MAIN START\n RET\n END\n; edited during replacement save");
+  await page.evaluate(() => (window as unknown as { __finishReplacementSave?: () => void }).__finishReplacementSave?.());
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await page.getByRole("button", { name: "Cancel" }).click();
+
+  await page.getByTestId("demo-program-select").selectOption("cpp-function-arguments");
+  await page.getByTestId("discard-and-open").click();
+  await expect(page.getByTestId("demo-program-select")).toHaveValue("cpp-function-arguments");
+  if (viewport.name === "1280x720") await captureState("long-example-title-1280.png");
+}
+
 test.describe("visual review screenshot gallery", () => {
   for (const viewport of viewports) {
     test(`captures visual review gallery at ${viewport.name}`, async ({ page }) => {
@@ -887,6 +967,7 @@ test.describe("visual review screenshot gallery", () => {
       await capturePhase14cLocalizedFocus(page, viewport);
       await captureBrowserOpenFileStates(page, viewport);
       await captureBrowserSaveStates(page, viewport);
+      await captureNewAndDemoReplacementStates(page, viewport);
     });
   }
 });

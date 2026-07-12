@@ -84,6 +84,10 @@ describe("visual review screenshot gallery setup", () => {
     expect(visualReviewSpec).toContain("cpp-function-arguments-generated-casl.png");
     expect(visualReviewSpec).toContain("cpp-function-arguments-trace.png");
     expect(visualReviewSpec).toContain("cpp-function-arguments-machine-code.png");
+    expect(visualReviewSpec).toContain("new-document-dialog-en.png");
+    expect(visualReviewSpec).toContain("demo-switch-dirty-guard-ja.png");
+    expect(visualReviewSpec).toContain("untitled-casl-document.png");
+    expect(visualReviewSpec).toContain("replacement-busy-state.png");
     expect(visualReviewSpec).toContain("page.screenshot");
   });
 
@@ -160,6 +164,7 @@ describe("visual review screenshot gallery setup", () => {
     expect(visualReviewDoc).toContain("cpp-function-arguments-generated-casl.png");
     expect(visualReviewDoc).toContain("cpp-function-arguments-trace.png");
     expect(visualReviewDoc).toContain("cpp-function-arguments-machine-code.png");
+    expect(visualReviewDoc).toContain("Phase 15D captures the New dialog");
   });
 
   it("package_json_has_visual_review_scripts", () => {

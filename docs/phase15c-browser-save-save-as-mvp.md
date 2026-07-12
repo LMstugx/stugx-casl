@@ -31,4 +31,4 @@ Writable bindings last only for the page session. Download initiation cannot pro
 
 ## Phase 15D Recommendation
 
-Apply the same Save/Discard/Cancel contract to New and demo replacement, then define session restore metadata without persisting handles, absolute paths, or source by default.
+Implemented in Phase 15D. New and built-in example replacement use the same Save/Discard/Cancel continuation, and the future session metadata contract explicitly excludes handles, paths, source, diagnostics, and VM state.

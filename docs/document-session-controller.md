@@ -1,6 +1,6 @@
 # Document Session Controller
 
-`DocumentSessionController` coordinates asynchronous Open, Save, and Save As boundaries without owning React UI or store state.
+`DocumentSessionController` coordinates Open, Save, Save As, New, and example-replacement boundaries without owning React UI or store state.
 
 ## Responsibilities
 
@@ -13,7 +13,7 @@
 7. create a fresh external `SourceDocument` after success;
 8. return a stable result for the caller to commit.
 
-Results are `opened`, `cancelled`, `blocked-unsaved`, `failed`, or `stale-ignored`. The controller does not parse, assemble, run, set locale, create code diagnostics, or directly mutate the store.
+The unified replacement result is `replaced`, `requires-unsaved-decision`, `cancelled`, `failed`, `stale-ignored`, or `no-op`. `requestOpen()` remains a compatibility wrapper. New and example targets use validated synchronous factories but share operation IDs, guard preparation, stale checks, and the atomic commit path. The controller does not parse, assemble, run, set locale, create code diagnostics, or directly mutate the store.
 
 Save results report strategy, captured saved revision, whether the latest document remains Dirty, and optional binding metadata. `requestSave()` uses a live binding or routes to Save As; `requestSaveAs()` always chooses a new target/copy. A changed revision may accept an older `savedRevision`, but changed document/source identity makes completion stale.
 

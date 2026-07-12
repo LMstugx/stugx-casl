@@ -54,7 +54,7 @@ export function createDocument(options: CreateDocumentOptions, ids: DocumentIdFa
 }
 
 export function createUntitledDocument(language: DocumentLanguage, ids: DocumentIdFactory): SourceDocument {
-  return createDocument({ language, origin: "untitled", content: "", savedRevision: null, saveCapability: "save-as-only" }, ids);
+  return createDocument({ language, origin: "untitled", content: "", savedRevision: 0, saveCapability: "save-as-only" }, ids);
 }
 
 export function createExampleDocument(example: Pick<DemoProgram, "name" | "mode" | "source">, ids: DocumentIdFactory): SourceDocument {

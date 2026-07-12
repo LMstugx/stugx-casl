@@ -62,7 +62,7 @@ describe("demo recording experience", () => {
     const program = getDemoProgram("casl-gr2-addition");
     expect(program).toBeDefined();
 
-    const state = appStoreReducer(createInitialAppState(), { type: "demoProgramSelected", program: program!, document: createExampleDocument(program!, createSequentialDocumentIdFactory("test-casl")) });
+    const state = appStoreReducer(createInitialAppState(), { type: "currentDocumentReplaced", document: createExampleDocument(program!, createSequentialDocumentIdFactory("test-casl")), selectedExampleId: program!.id });
 
     expect(state.sourceMode).toBe("casl");
     expect(state.sourceText).toContain("LD    GR2,A");
@@ -72,21 +72,21 @@ describe("demo recording experience", () => {
     const program = getDemoProgram("cpp-addition");
     expect(program).toBeDefined();
 
-    const state = appStoreReducer(createInitialAppState(), { type: "demoProgramSelected", program: program!, document: createExampleDocument(program!, createSequentialDocumentIdFactory("test-cpp")) });
+    const state = appStoreReducer(createInitialAppState(), { type: "currentDocumentReplaced", document: createExampleDocument(program!, createSequentialDocumentIdFactory("test-cpp")), selectedExampleId: program!.id });
 
     expect(state.sourceMode).toBe("cpp");
     expect(state.sourceText).toContain("int main()");
   });
 
-  it("selecting_example_marks_dirty", () => {
+  it("selecting_example_is_clean_but_not_loaded", () => {
     const program = getDemoProgram("cpp-if-else");
     expect(program).toBeDefined();
 
-    const state = appStoreReducer(createInitialAppState(), { type: "demoProgramSelected", program: program!, document: createExampleDocument(program!, createSequentialDocumentIdFactory("test-dirty")) });
+    const state = appStoreReducer(createInitialAppState(), { type: "currentDocumentReplaced", document: createExampleDocument(program!, createSequentialDocumentIdFactory("test-dirty")), selectedExampleId: program!.id });
 
-    expect(state.isSourceDirty).toBe(true);
+    expect(state.isSourceDirty).toBe(false);
     expect(state.assembleResult).toBeNull();
-    expect(state.cometState.runState).toBe("Dirty");
+    expect(state.cometState.runState).toBe("Idle");
   });
 
   it("generated_casl_visible_after_cpp_assemble", async () => {

@@ -2,6 +2,8 @@
 
 Phase 15C adds complete EN/JA/zh-CN keys for Save, Save As, Saving, Saved, Saved a copy, Save and open, safe save failures, save-target loss, and concurrent-edit status. Toolbar labels are compact/high viewport risk; modal and notice strings may wrap safely.
 
+Phase 15D adds complete EN/JA/zh-CN keys for New document, CASL II/C++ document choices, Create, intent-specific Save/Discard create/switch actions, Unsaved changes, application replacement failures, and Untitled presentation. The localized Untitled value is UI-only and is never a filename or identity.
+
 This inventory tracks short UI strings only. Status values are `migrated`, `approved`, `pending`, `intentionally untranslated`, and `deferred-long-content`. Visual lengths and viewport risk are review targets, not fixed CSS widths.
 
 ## Toolbar

@@ -14,6 +14,8 @@ type ToolbarProps = {
   onToggleCircuitFocusMode?: () => void;
   isOpeningFile?: boolean;
   onOpenFile?: () => void;
+  isReplacingSource?: boolean;
+  onNewDocument?: () => void;
   saveMode?: "save" | "save-as" | "unsupported";
   isSavingFile?: boolean;
   onSaveFile?: () => void;
@@ -74,6 +76,8 @@ export default function Toolbar({
   onToggleCircuitFocusMode = () => undefined,
   isOpeningFile = false,
   onOpenFile = () => undefined,
+  isReplacingSource = false,
+  onNewDocument = () => undefined,
   saveMode = "unsupported",
   isSavingFile = false,
   onSaveFile = () => undefined,
@@ -106,11 +110,11 @@ export default function Toolbar({
       </div>
 
       <nav className="toolbar-actions" aria-label={t("accessibility.primaryCommands")}>
-        <ToolButton label={t("toolbar.new")} icon={<Plus size={18} />} disabled title="New file is not implemented in Phase 2B" />
+        <ToolButton label={t("toolbar.new")} icon={<Plus size={18} />} disabled={isReplacingSource || isOpeningFile || isSavingFile || isRunning || assembleStatus === "running"} testId="new-document-button" onClick={onNewDocument} title={t("file.newDocument")} accessibleLabel={t("file.newDocument")} />
         <ToolButton
           label={isOpeningFile ? t("file.opening") : t("toolbar.open")}
           icon={<FolderOpen size={18} />}
-          disabled={isOpeningFile || isSavingFile || isRunning || assembleStatus === "running"}
+          disabled={isReplacingSource || isOpeningFile || isSavingFile || isRunning || assembleStatus === "running"}
           loading={isOpeningFile}
           testId="open-file-button"
           onClick={onOpenFile}
@@ -120,7 +124,7 @@ export default function Toolbar({
         <ToolButton
           label={isSavingFile ? t("file.saving") : saveMode === "save" ? t("toolbar.save") : t("file.saveAs")}
           icon={<Save size={18} />}
-          disabled={saveMode === "unsupported" || isSavingFile || isOpeningFile || isRunning || assembleStatus === "running"}
+          disabled={saveMode === "unsupported" || isReplacingSource || isSavingFile || isOpeningFile || isRunning || assembleStatus === "running"}
           loading={isSavingFile}
           testId="save-file-button"
           onClick={onSaveFile}

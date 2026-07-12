@@ -5,6 +5,8 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { setCoreAdapter } from "../core/coreBridge";
 import { MockCoreAdapter } from "../core/mockCoreAdapter";
 import { getDemoProgram } from "../examples/demoPrograms";
+import { createExampleDocument } from "../documents/documentModel";
+import { createSequentialDocumentIdFactory } from "../documents/idFactory";
 import { AppStoreProvider, useAppStore } from "../store/useAppStore";
 
 type Store = ReturnType<typeof useAppStore>;
@@ -134,10 +136,10 @@ describe("Run / Stop / Reset stress regressions", () => {
 
     const demo = getDemoProgram("casl-gr2-addition")!;
     await act(async () => {
-      store.selectDemoProgram(demo.id);
+      store.replaceCurrentDocument(createExampleDocument(demo, createSequentialDocumentIdFactory("stress-demo")), demo.id);
     });
-    expect(store.isSourceDirty).toBe(true);
-    expect(store.cometState.runState).toBe("Dirty");
+    expect(store.isSourceDirty).toBe(false);
+    expect(store.cometState.runState).toBe("Idle");
 
     await act(async () => {
       store.assemble();

@@ -23,11 +23,15 @@ import { formatDiagnosticDeveloperDetail } from "./diagnostics/presentation";
 import type { SourceRange } from "./diagnostics/types";
 import FileOperationNotice, { type FileOperationNoticeModel } from "./components/FileOperationNotice";
 import UnsavedOpenDialog from "./components/UnsavedOpenDialog";
+import NewDocumentDialog from "./components/NewDocumentDialog";
 import { BrowserTextFileAdapter } from "./documents/browserTextFileAdapter";
 import { DocumentSessionController, type SaveDocumentResult } from "./documents/documentSessionController";
 import { createSequentialDocumentIdFactory } from "./documents/idFactory";
 import { createIdleFileLifecycleState } from "./documents/lifecycle";
 import type { TextFileAdapter } from "./documents/fileAdapter";
+import { prepareSourceReplacement, type SourceReplacementIntent } from "./documents/replacementIntent";
+import { getDocumentDisplayName } from "./documents/documentPresentation";
+import { useBeforeUnloadDirtyGuard } from "./documents/beforeUnloadGuard";
 
 type AppProps = { fileAdapter?: TextFileAdapter };
 
@@ -65,7 +69,6 @@ function StudioShell({ fileAdapter }: { fileAdapter: TextFileAdapter }) {
     fileLifecycle,
     setSourceText,
     setSourceMode,
-    selectDemoProgram,
     assemble,
     run,
     step,
@@ -83,7 +86,8 @@ function StudioShell({ fileAdapter }: { fileAdapter: TextFileAdapter }) {
   const [editorSelectedFrameSlotId, setEditorSelectedFrameSlotId] = useState<string | undefined>();
   const [selectedDiagnosticId, setSelectedDiagnosticId] = useState<string | undefined>();
   const [diagnosticNavigationRange, setDiagnosticNavigationRange] = useState<SourceRange | undefined>();
-  const [showUnsavedOpenGuard, setShowUnsavedOpenGuard] = useState(false);
+  const [showNewDocumentDialog, setShowNewDocumentDialog] = useState(false);
+  const [pendingReplacementIntent, setPendingReplacementIntent] = useState<SourceReplacementIntent | null>(null);
   const [fileNotice, setFileNotice] = useState<FileOperationNoticeModel | null>(null);
   const openIdsRef = useRef(createSequentialDocumentIdFactory("browser-open"));
   const currentDocumentRef = useRef(currentDocument);
@@ -109,36 +113,47 @@ function StudioShell({ fileAdapter }: { fileAdapter: TextFileAdapter }) {
     };
   }, [documentController, fileAdapter]);
 
-  const performOpen = useCallback(async (allowDiscard: boolean) => {
+  const performReplacement = useCallback(async (intent: SourceReplacementIntent, allowDiscard: boolean) => {
     const snapshot = currentDocumentRef.current;
     setFileNotice(null);
-    const pending = documentController.requestOpen({
+    const pending = documentController.requestReplacement({
+      intent,
       currentDocument: snapshot,
+      currentExampleId: selectedDemoProgramId,
       allowDiscard,
       isCurrentDocument: (documentId) => currentDocumentRef.current.documentId === documentId
     });
     const operationId = documentController.operationId;
     if (operationId) {
-      setFileLifecycle({ status: "opening", operationId, pendingDocumentId: snapshot.documentId, lastFailure: null });
+      const status = intent.kind === "open-file" ? "opening" : intent.kind === "new-document" ? "creating-document" : "switching-example";
+      setFileLifecycle({ status, operationId, pendingDocumentId: snapshot.documentId, lastFailure: null });
     }
     const result = await pending;
     if (!mountedRef.current) return;
-    if (result.status === "opened" && currentDocumentRef.current.documentId === snapshot.documentId) {
+    if (result.status === "replaced" && currentDocumentRef.current.documentId === snapshot.documentId) {
       documentController.releaseDocumentBinding(snapshot.documentId);
       setSelectedDiagnosticId(undefined);
       setDiagnosticNavigationRange(undefined);
       setEditorSelectedFrameSlotId(undefined);
       currentDocumentRef.current = result.document;
-      replaceCurrentDocument(result.document);
+      replaceCurrentDocument(result.document, result.selectedExampleId);
+      setPendingReplacementIntent(null);
+      setFileLifecycle(createIdleFileLifecycleState());
+      return;
+    }
+    if (result.status === "requires-unsaved-decision") {
+      setPendingReplacementIntent(result.intent);
+      setFileLifecycle({ status: "confirming-replace", operationId: null, pendingDocumentId: snapshot.documentId, lastFailure: null });
       return;
     }
     if (result.status === "failed") {
-      setFileNotice({ type: "failure", operation: "open", failure: result.failure });
+      setFileNotice({ type: "failure", operation: intent.kind === "open-file" ? "open" : intent.kind === "new-document" ? "create" : "switch", failure: result.failure });
       setFileLifecycle({ ...createIdleFileLifecycleState(), lastFailure: result.failure });
+      setPendingReplacementIntent(null);
       return;
     }
     setFileLifecycle(createIdleFileLifecycleState());
-  }, [documentController, replaceCurrentDocument, setFileLifecycle]);
+  }, [documentController, replaceCurrentDocument, selectedDemoProgramId, setFileLifecycle]);
 
   const performSave = useCallback(async (forceSaveAs = false): Promise<SaveDocumentResult> => {
     const snapshot = currentDocumentRef.current;
@@ -178,13 +193,23 @@ function StudioShell({ fileAdapter }: { fileAdapter: TextFileAdapter }) {
     return result;
   }, [commitSavedDocument, currentWriteBinding, documentController, setFileLifecycle]);
 
-  const requestOpen = useCallback(() => {
-    if (documentDirty) {
-      setShowUnsavedOpenGuard(true);
+  const requestReplacement = useCallback((intent: SourceReplacementIntent) => {
+    const preparation = prepareSourceReplacement(currentDocumentRef.current, intent, selectedDemoProgramId);
+    if (preparation.status === "no-op") return;
+    if (preparation.status === "requires-unsaved-decision") {
+      setPendingReplacementIntent(intent);
+      setFileLifecycle({ status: "confirming-replace", operationId: null, pendingDocumentId: currentDocumentRef.current.documentId, lastFailure: null });
       return;
     }
-    void performOpen(false);
-  }, [documentDirty, performOpen]);
+    void performReplacement(intent, false);
+  }, [performReplacement, selectedDemoProgramId, setFileLifecycle]);
+  const requestOpen = useCallback(() => requestReplacement({ kind: "open-file" }), [requestReplacement]);
+  const replacementBusy = fileLifecycle.status === "opening"
+    || fileLifecycle.status === "confirming-replace"
+    || fileLifecycle.status === "creating-document"
+    || fileLifecycle.status === "switching-example";
+  const documentDisplayName = getDocumentDisplayName(currentDocument, t);
+  useBeforeUnloadDirtyGuard(documentDirty);
   const isRunning = state.runState === "Running";
   const canExecute = state.runState === "Ready" || (state.runState === "Stopped" && runStopReason === "manual");
   const canRun = !isSourceDirty && state.assembled && canExecute;
@@ -258,6 +283,8 @@ function StudioShell({ fileAdapter }: { fileAdapter: TextFileAdapter }) {
         isRunning={isRunning}
         isCircuitFocusMode={isCircuitFocusMode}
         onToggleCircuitFocusMode={() => setCircuitFocusMode((value) => !value)}
+        isReplacingSource={replacementBusy}
+        onNewDocument={() => setShowNewDocumentDialog(true)}
         isOpeningFile={fileLifecycle.status === "opening"}
         onOpenFile={requestOpen}
         saveMode={currentWriteBinding && currentDocument.saveCapability === "save" ? "save" : "save-as"}
@@ -269,22 +296,38 @@ function StudioShell({ fileAdapter }: { fileAdapter: TextFileAdapter }) {
         onReset={reset}
         onStop={stop}
       />
+      <NewDocumentDialog
+        open={showNewDocumentDialog}
+        initialLanguage={currentDocument.language}
+        onCancel={() => setShowNewDocumentDialog(false)}
+        onCreate={(language) => {
+          setShowNewDocumentDialog(false);
+          requestReplacement({ kind: "new-document", language });
+        }}
+      />
       <UnsavedOpenDialog
-        open={showUnsavedOpenGuard}
-        displayName={currentDocument.displayName}
+        open={pendingReplacementIntent !== null}
+        intent={pendingReplacementIntent ?? { kind: "open-file" }}
+        displayName={documentDisplayName}
         isSaving={fileLifecycle.status === "saving" || fileLifecycle.status === "save-as"}
-        onCancel={() => setShowUnsavedOpenGuard(false)}
+        onCancel={() => {
+          setPendingReplacementIntent(null);
+          setFileLifecycle(createIdleFileLifecycleState());
+        }}
         onSave={() => {
           void (async () => {
+            const intent = pendingReplacementIntent;
+            if (!intent) return;
             const result = await performSave(false);
             if (result.status !== "saved" || result.stillDirty) return;
-            setShowUnsavedOpenGuard(false);
-            await performOpen(true);
+            setPendingReplacementIntent(null);
+            await performReplacement(intent, true);
           })();
         }}
         onDiscard={() => {
-          setShowUnsavedOpenGuard(false);
-          void performOpen(true);
+          const intent = pendingReplacementIntent;
+          setPendingReplacementIntent(null);
+          if (intent) void performReplacement(intent, true);
         }}
       />
       <FileOperationNotice notice={fileNotice} onDismiss={() => setFileNotice(null)} />
@@ -311,14 +354,15 @@ function StudioShell({ fileAdapter }: { fileAdapter: TextFileAdapter }) {
             <header className="panel-header">
               <h2 title="Source Editor">{t("panel.source")}</h2>
               <div className="source-header-actions">
-                <label className="demo-program-picker" title={selectedDemoProgram?.name ?? t("file.externalFile")}>
+                <label className="demo-program-picker" title={selectedDemoProgram?.name ?? t("file.externalFile")} aria-busy={replacementBusy || undefined}>
                   <span>Demo</span>
                   <select
                     data-testid="demo-program-select"
                     value={selectedDemoProgramId}
+                    disabled={replacementBusy || fileLifecycle.status === "saving" || fileLifecycle.status === "save-as"}
                     title={selectedDemoProgram?.name ?? t("file.externalFile")}
                     aria-label={`Demo program: ${selectedDemoProgram?.name ?? t("file.externalFile")}`}
-                    onChange={(event) => selectDemoProgram(event.target.value)}
+                    onChange={(event) => requestReplacement({ kind: "select-example", exampleId: event.target.value })}
                   >
                     {!selectedDemoProgram ? <option value="">{t("file.externalFile")}</option> : null}
                     {demoPrograms.map((program) => (
@@ -337,8 +381,8 @@ function StudioShell({ fileAdapter }: { fileAdapter: TextFileAdapter }) {
                   </button>
                 </div>
               </div>
-              <span className="source-document-label" title={currentDocument.displayName} aria-label={`${currentDocument.displayName}${documentDirty ? `, ${t("status.dirty")}` : ""}`}>
-                <span className="source-file-name">{currentDocument.displayName}</span>
+              <span className="source-document-label" title={documentDisplayName} aria-label={`${documentDisplayName}${documentDirty ? `, ${t("status.dirty")}` : ""}`}>
+                <span className="source-file-name">{documentDisplayName}</span>
                 {documentDirty ? <span className="source-dirty-indicator" aria-hidden="true">*</span> : null}
               </span>
             </header>

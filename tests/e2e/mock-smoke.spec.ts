@@ -179,6 +179,79 @@ test("Editing while Save As is pending keeps the newer revision dirty", async ({
   await expect(page.getByTestId("save-file-button")).toHaveAttribute("aria-label", "Save");
 });
 
+test("New and Demo replacement use the shared intent guard", async ({ page }) => {
+  await page.addInitScript(() => {
+    (window as unknown as { showSaveFilePicker: () => Promise<unknown> }).showSaveFilePicker = async () => ({
+      name: "before-switch.cpp",
+      createWritable: async () => ({ write: async () => undefined, close: async () => undefined })
+    });
+  });
+  await openStudio(page, "Mock Core");
+
+  await page.getByTestId("new-document-button").click();
+  const newDialog = page.getByRole("dialog", { name: "New document" });
+  await expect(newDialog.getByRole("button", { name: "Cancel" })).toBeFocused();
+  await newDialog.locator('input[value="cpp"]').check();
+  await newDialog.getByTestId("create-document").click();
+  await expect(page.locator(".source-file-name")).toHaveText("Untitled");
+  await expect(page.getByTestId("source-mode-cpp")).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByTestId("run-state")).toHaveText("Idle");
+  await expect(page.locator(".source-dirty-indicator")).toHaveCount(0);
+
+  await setSource(page, "int main() { return 15; }");
+  await page.getByTestId("new-document-button").click();
+  await page.getByRole("dialog", { name: "New document" }).locator('input[value="casl"]').check();
+  await page.getByTestId("create-document").click();
+  await expect(page.getByTestId("save-and-open")).toHaveText("Save and create");
+  await page.getByRole("button", { name: "Cancel" }).click();
+  await expectSourceContains(page, "return 15;");
+
+  await page.getByTestId("demo-program-select").selectOption("cpp-addition");
+  await expect(page.getByTestId("demo-program-select")).toHaveValue("");
+  await expect(page.getByTestId("save-and-open")).toHaveText("Save and switch");
+  const sourceBeforeLocale = await page.evaluate(() => (window as unknown as { monaco?: { editor: { getModels(): Array<{ getValue(): string }> } } }).monaco?.editor.getModels().at(-1)?.getValue());
+  await page.getByTestId("locale-ja").evaluate((button: HTMLButtonElement) => button.click());
+  await expect(page.getByTestId("save-and-open")).not.toHaveText("Save and switch");
+  await page.getByTestId("locale-zh-CN").evaluate((button: HTMLButtonElement) => button.click());
+  await expect(page.getByTestId("demo-program-select")).toHaveValue("");
+  expect(await page.evaluate(() => (window as unknown as { monaco?: { editor: { getModels(): Array<{ getValue(): string }> } } }).monaco?.editor.getModels().at(-1)?.getValue())).toBe(sourceBeforeLocale);
+  await page.getByTestId("locale-en").evaluate((button: HTMLButtonElement) => button.click());
+  await page.getByTestId("save-and-open").click();
+
+  await expect(page.getByTestId("demo-program-select")).toHaveValue("cpp-addition");
+  await expectSourceContains(page, "int main()");
+  await expect(page.locator(".source-dirty-indicator")).toHaveCount(0);
+  await expect(page.getByTestId("run-state")).toHaveText("Idle");
+  await page.setViewportSize({ width: 1280, height: 720 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+});
+
+test("Concurrent edit during guarded save blocks Demo replacement", async ({ page }) => {
+  await page.addInitScript(() => {
+    const browserWindow = window as unknown as { showSaveFilePicker: () => Promise<unknown>; __finishGuardedSave?: () => void };
+    browserWindow.showSaveFilePicker = async () => ({
+      name: "guarded-switch.cas",
+      createWritable: async () => ({
+        write: async () => undefined,
+        close: () => new Promise<void>((resolve) => { browserWindow.__finishGuardedSave = resolve; })
+      })
+    });
+  });
+  await openStudio(page, "Mock Core");
+  await setSource(page, "MAIN START\n RET\n END\n; dirty");
+  await page.getByTestId("demo-program-select").selectOption("cpp-addition");
+  await page.getByTestId("save-and-open").click();
+  await expect.poll(() => page.evaluate(() => Boolean((window as unknown as { __finishGuardedSave?: () => void }).__finishGuardedSave))).toBe(true);
+  await setSource(page, "MAIN START\n RET\n END\n; edited while saving");
+  await page.evaluate(() => (window as unknown as { __finishGuardedSave?: () => void }).__finishGuardedSave?.());
+
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await expect(page.getByTestId("demo-program-select")).not.toHaveValue("cpp-addition");
+  await expectSourceContains(page, "edited while saving");
+  await expect(page.locator(".source-dirty-indicator")).toBeVisible();
+  await page.getByRole("button", { name: "Cancel" }).click();
+});
+
 test("Mock backend shows project overview and keeps learning demo views working", async ({ page }) => {
   await openStudio(page, "Mock Core");
 
@@ -817,13 +890,9 @@ test("keyboard tab navigation and 1280 viewport remain consistent", async ({ pag
     expect(hasHorizontalOverflow).toBe(false);
   }
 
-  const disabledNew = page.getByRole("button", { name: "New file is not implemented in Phase 2B" });
-  const disabledStyle = await disabledNew.evaluate((element) => {
-    const style = getComputedStyle(element);
-    return { color: style.color, backgroundColor: style.backgroundColor, opacity: style.opacity };
-  });
-  expect(disabledStyle.opacity).toBe("1");
-  expect(disabledStyle.color).not.toBe(disabledStyle.backgroundColor);
+  const newDocument = page.getByTestId("new-document-button");
+  await expect(newDocument).toBeEnabled();
+  await expect(newDocument).toHaveAttribute("aria-label", "New document");
 });
 
 test("locale switching preserves source execution and FramePlan UI state", async ({ page }) => {
@@ -1328,7 +1397,7 @@ test("Mock backend executes C++ multi-register argument function lowering", asyn
 test("Mock backend executes C++ subset while sum in the browser UI", async ({ page }) => {
   await openStudio(page, "Mock Core");
   await selectDemoProgram(page, "cpp-while-sum");
-  await expect(page.getByTestId("run-state")).toHaveText("Dirty");
+  await expect(page.getByTestId("run-state")).toHaveText("Idle");
   await expect(page.getByTestId("demo-guide-expected-result")).toContainText("GR0 = 0006");
 
   await assemble(page);

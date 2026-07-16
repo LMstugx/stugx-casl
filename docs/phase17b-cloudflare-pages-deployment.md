@@ -42,6 +42,8 @@ Cloudflare authentication and GitHub App authorization remain in the provider da
 
 The first attempt failed closed before deployment because the Pages image did not include CMake. No Mock backend or partial site was published. The current production commit is exposed by `build-metadata.json`; later documentation-only commits are deployed by the same `master` integration and must pass the same host and Playwright verification.
 
+Phase 18A.3 adds a build-time `changelog:verify` gate and an offline release registry to the existing bundle. It does not change the Pages project, headers, cache policy, build output, API surface, or Git Integration. Each accepted `master` push continues through the same production WASM deployment and remote smoke procedure.
+
 ## Final Result
 
 **PASS.** The public Web version is suitable for teacher and student access. There is no custom domain, Web Analytics, Pages Function, Worker, or cloud source storage.

@@ -1244,6 +1244,51 @@ async function capturePhase18A1DesktopPolish(page: Page, viewport: Viewport) {
   await page.setViewportSize({ width: viewport.width, height: viewport.height });
 }
 
+async function captureChangelogStates(page: Page, viewport: Viewport) {
+  if (!viewport.primary) return;
+  const standardViewport: Viewport = { name: "1440x900", width: 1440, height: 900 };
+  const compactViewport: Viewport = { name: "1280x720", width: 1280, height: 720 };
+  const openChangelog = async () => {
+    const overview = page.getByTestId("project-overview");
+    const overviewOpen = await overview.evaluate((element) => (element as HTMLDetailsElement).open);
+    if (!overviewOpen) await page.getByTestId("project-overview-summary").click();
+    await page.getByTestId("changelog-trigger").click();
+    await expect(page.getByTestId("changelog-body")).toBeVisible();
+  };
+
+  await page.setViewportSize({ width: standardViewport.width, height: standardViewport.height });
+  await openStudio(page, "Mock Core");
+  await page.getByTestId("locale-en").click();
+  await openChangelog();
+  await capture(page, standardViewport, "changelog-current-en.png", false);
+  await page.locator('[data-release-version="v1.0-rc10"] summary').click();
+  await capture(page, standardViewport, "changelog-multiple-releases.png", false);
+  await page.locator(".changelog-section-known-issues").first().scrollIntoViewIfNeeded();
+  await capture(page, standardViewport, "changelog-known-issues.png", false);
+  await capture(page, standardViewport, "changelog-long-technical-text.png", false);
+  await page.locator('[data-release-version="v1.0-rc10"] summary').focus();
+  await page.keyboard.press("Tab");
+  await page.keyboard.press("Shift+Tab");
+  await capture(page, standardViewport, "changelog-keyboard-focus.png", false);
+  await page.keyboard.press("Escape");
+
+  await page.getByTestId("locale-ja").click();
+  await openChangelog();
+  await capture(page, standardViewport, "changelog-current-ja.png", false);
+  await page.keyboard.press("Escape");
+  await page.getByTestId("locale-zh-CN").click();
+  await openChangelog();
+  await capture(page, standardViewport, "changelog-current-zh-cn.png", false);
+  await page.keyboard.press("Escape");
+
+  await page.setViewportSize({ width: compactViewport.width, height: compactViewport.height });
+  await page.getByTestId("locale-en").click();
+  await openChangelog();
+  await capture(page, compactViewport, "changelog-1280.png", false);
+  await page.keyboard.press("Escape");
+  await page.setViewportSize({ width: viewport.width, height: viewport.height });
+}
+
 test.describe("visual review screenshot gallery", () => {
   for (const viewport of viewports) {
     test(`captures visual review gallery at ${viewport.name}`, async ({ page }) => {
@@ -1306,6 +1351,7 @@ test.describe("visual review screenshot gallery", () => {
       await captureLessonProgressStates(page, viewport);
       await capturePersistenceQualityGateStates(page, viewport);
       await capturePhase18A1DesktopPolish(page, viewport);
+      await captureChangelogStates(page, viewport);
     });
   }
 });

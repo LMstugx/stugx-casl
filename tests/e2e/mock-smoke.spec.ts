@@ -620,6 +620,41 @@ test("Mock backend shows project overview and keeps learning demo views working"
   await expect(page.getByTestId("machine-code-output")).toContainText("JUMP FOR_END_0");
 });
 
+test("Changelog is offline, keyboard accessible, localized, and stable at 1280", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await openStudio(page, "Mock Core");
+  const requests: string[] = [];
+  const trackRequest = (request: { url(): string }) => requests.push(request.url());
+  page.on("request", trackRequest);
+
+  await page.getByTestId("project-overview-summary").click();
+  const trigger = page.getByTestId("changelog-trigger");
+  await trigger.click();
+  await expect(page.getByRole("dialog", { name: "Changelog" })).toBeVisible();
+  await expect(page.getByTestId("changelog-current-version")).toHaveText("0.1.0");
+  await expect(page.getByTestId("changelog-current-badge")).toHaveText("Current");
+  const older = page.locator('[data-testid="changelog-release"][data-release-version="v1.0-rc10"]');
+  await older.locator("summary").focus();
+  await older.locator("summary").press("Enter");
+  await expect(older).toHaveJSProperty("open", true);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(trigger).toBeFocused();
+
+  await page.getByTestId("locale-ja").click();
+  await page.getByTestId("changelog-trigger").click();
+  await expect(page.getByRole("dialog", { name: "変更履歴" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await page.getByTestId("locale-zh-CN").click();
+  await page.getByTestId("changelog-trigger").click();
+  await expect(page.getByRole("dialog", { name: "更新日志" })).toBeVisible();
+  await page.keyboard.press("Escape");
+
+  page.off("request", trackRequest);
+  expect(requests).toEqual([]);
+});
+
 test("Mock backend runs CASL logic operations and shows machine code", async ({ page }) => {
   await openStudio(page, "Mock Core");
   await selectDemoProgram(page, "casl-logic-operations");

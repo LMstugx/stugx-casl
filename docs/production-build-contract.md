@@ -15,6 +15,8 @@ The Pages build pins the official Emscripten SDK `6.0.2` source tag and Kitware 
 
 Metadata has no timestamp, username, hostname, branch path, token, or local directory. It is informational and cannot change document, diagnostic, persistence, or backend identity.
 
+`package.json` is also the current-version source for `src/content/releases.ts`. The production `prebuild` hook runs `pnpm changelog:verify`, so a release registry/`CHANGELOG.md` mismatch fails before the WASM-first build. Changelog validation does not fetch GitHub or Cloudflare data and does not affect runtime backend selection.
+
 ## Artifacts And Maps
 
 `dist/deployment-manifest.json` contains sorted relative files, byte counts, SHA-256 hashes, base, version, commit, backend, WASM pair, and source-map status. Runtime startup does not depend on it. Public source maps, fixtures, screenshots, coverage, environment files, and absolute machine paths are prohibited. `dist/` and `release/` are ignored.

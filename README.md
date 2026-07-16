@@ -4,12 +4,14 @@ A CASL II / COMET II learning studio for understanding how source code, assembly
 
 ## Project Status
 
-- Web: production WASM build supports root and configurable subpath static hosting. No public deployment is attached to this repository yet.
+- Web: the production WASM build is public at <https://stugx-casl.pages.dev/> and still supports root and configurable subpath static hosting.
 - Windows: Tauri 2 release executable and unsigned NSIS demo installer build locally from the same React/Vite frontend.
 - Languages: English, Japanese, and Simplified Chinese.
 - File lifecycle: single-document New, Open, Save, Save As, Dirty replacement guard, and `beforeunload` protection.
 
 Temporary visual-review output is not committed. The maintained capture plan and screenshot guidance live in [docs/visual-review.md](docs/visual-review.md) and [docs/screenshots-guide.md](docs/screenshots-guide.md).
+
+Versioned release notes are maintained in the offline application Changelog and generated [CHANGELOG.md](CHANGELOG.md) from one typed registry.
 
 ## What This Tool Is
 
@@ -415,6 +417,8 @@ Public Web application: <https://stugx-casl.pages.dev/>
 - [docs/phase16d-persistence-final-quality-gate.md](docs/phase16d-persistence-final-quality-gate.md): final four-storage inventory, failure/reset/write isolation, version, privacy, security, visual QA, and Phase 16 result.
 - [docs/phase17a-production-deployment-readiness.md](docs/phase17a-production-deployment-readiness.md): production build, WASM/static smoke, base path, artifacts, security, size, and readiness result.
 - [docs/phase17b-cloudflare-pages-deployment.md](docs/phase17b-cloudflare-pages-deployment.md): Cloudflare Pages Git Integration, production WASM deployment, remote QA, and public-host evidence.
+- [docs/changelog-maintenance.md](docs/changelog-maintenance.md): canonical release registry, version/channel policy, multilingual maintenance, deterministic Markdown, and security boundaries.
+- [docs/phase18a3-versioned-changelog-ui.md](docs/phase18a3-versioned-changelog-ui.md): version-source audit, initial release entries, offline dialog, Web/Tauri reuse, and Phase 18A.3 gate.
 - [docs/cloudflare-pages-git-runbook.md](docs/cloudflare-pages-git-runbook.md): credential-free Git Integration setup, build settings, host verification, and rollback procedure.
 - [docs/production-build-contract.md](docs/production-build-contract.md): WASM-first build, metadata, manifest, size, source-map, and local package contract.
 - [docs/static-host-deployment-contract.md](docs/static-host-deployment-contract.md): root/subpath serving, cache, smoke, and provider-neutral release procedure.

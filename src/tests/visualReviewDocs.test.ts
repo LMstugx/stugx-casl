@@ -11,6 +11,14 @@ describe("visual review screenshot gallery setup", () => {
     expect(visualReviewSpec).toContain("visual review screenshot gallery");
     expect(visualReviewSpec).toContain('name: "1280x720"');
     expect(visualReviewSpec).toContain("project-overview.png");
+    expect(visualReviewSpec).toContain("changelog-current-en.png");
+    expect(visualReviewSpec).toContain("changelog-current-ja.png");
+    expect(visualReviewSpec).toContain("changelog-current-zh-cn.png");
+    expect(visualReviewSpec).toContain("changelog-multiple-releases.png");
+    expect(visualReviewSpec).toContain("changelog-known-issues.png");
+    expect(visualReviewSpec).toContain("changelog-1280.png");
+    expect(visualReviewSpec).toContain("changelog-long-technical-text.png");
+    expect(visualReviewSpec).toContain("changelog-keyboard-focus.png");
     expect(visualReviewSpec).toContain("ui-casl-diagnostic-error.png");
     expect(visualReviewSpec).toContain("ui-cpp-diagnostic-error.png");
     expect(visualReviewSpec).toContain("diagnostics-en-casl.png");

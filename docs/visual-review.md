@@ -16,6 +16,7 @@ The app now has several visual teaching surfaces:
 - Trace
 - Memory Viewer
 - Guided Lesson / Project Overview
+- Versioned Changelog
 
 Screenshots make it easier to review these surfaces on another device, including a phone, before deciding whether UI polish is actually needed.
 
@@ -249,6 +250,8 @@ Phase 17A adds no normal-workspace visual feature. Existing 1280/1440/1920 EN/JA
 Phase 18A reuses the same frontend and visual baseline in a 1440x900 Tauri window, with 1180x700 minimum chrome bounds. Manual release smoke checks 1280x720 content containment, natural page scroll, bounded Inspector scroll, three locales, observation modes, and the unchanged no-arrow/no-circle/no-ghost-wire contract. Tauri adds no desktop-only visual redesign or screenshot artifact.
 
 Phase 18A.1 adds focused 1180x700 Toolbar captures for EN/JA/zh-CN, 1280x720 Source-header captures, a 20+ error scenario with a bounded diagnostic list, selected context and collapsed/expanded raw-details states, plus a maximized layout. Review confirms equal nonshrinking locale controls, no Source-control overlap, at least four complete diagnostic rows, stable internal scrolling, usable editor height, natural page scrolling, and no horizontal overflow. Generated screenshots remain ignored artifacts.
+
+Phase 18A.3 adds `changelog-current-en.png`, `changelog-current-ja.png`, `changelog-current-zh-cn.png`, `changelog-multiple-releases.png`, `changelog-known-issues.png`, `changelog-1280.png`, `changelog-long-technical-text.png`, and `changelog-keyboard-focus.png`. Review the Project Overview entry, Current badge, section hierarchy, known-issue distinction, safe wrapping, focus visibility, large bounded modal scroll, and 1280x720 containment. The dialog must not pressure the Toolbar, create a tiny scroll trap, or alter natural page scroll and clean-wire behavior.
 
 - This is a review gallery, not a pixel-diff visual regression suite.
 - Screenshots are generated artifacts and are not committed to git.

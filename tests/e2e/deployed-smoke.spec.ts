@@ -55,6 +55,14 @@ test("Cloudflare Pages runs the verified WASM application", async ({ page, baseU
   await expect(page.getByTestId("open-file-button")).toBeVisible();
   await expect(page.getByTestId("save-file-button")).toBeVisible();
 
+  const changelogTrigger = page.getByTestId("changelog-trigger");
+  await changelogTrigger.click();
+  await expect(page.getByRole("dialog", { name: "Changelog" })).toBeVisible();
+  await expect(page.getByTestId("changelog-current-version")).toHaveText("0.1.0");
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog", { name: "Changelog" })).toBeHidden();
+  await expect(changelogTrigger).toBeFocused();
+
   await page.setViewportSize({ width: 1280, height: 720 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1);
   expect({ consoleErrors, pageErrors, failedRequests, failedResponses, thirdPartyRequests }).toEqual({ consoleErrors: [], pageErrors: [], failedRequests: [], failedResponses: [], thirdPartyRequests: [] });

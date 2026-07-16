@@ -1,5 +1,6 @@
 import type { DemoProgram } from "../examples/demoPrograms";
 import type { LearningLesson } from "../examples/learningLessons";
+import ChangelogLauncher from "./ChangelogLauncher";
 
 type DemoGuidePanelProps = {
   program: DemoProgram;
@@ -193,6 +194,7 @@ export default function DemoGuidePanel({
               Not a full C++ compiler: more than three parameters, recursion, stack-frame locals, arrays, pointers, classes, templates, strings, and full CASL II coverage are outside the current scope.
             </p>
           </div>
+          <ChangelogLauncher />
         </div>
       </details>
     </section>

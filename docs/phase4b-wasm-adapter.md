@@ -9,7 +9,7 @@ Install and activate Emscripten SDK:
 ```powershell
 cd F:\tools
 git clone https://github.com/emscripten-core/emsdk.git
-cd F:\tools\emsdk
+cd $env:EMSDK
 .\emsdk.bat install latest
 .\emsdk.bat activate latest
 .\emsdk_env.bat

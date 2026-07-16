@@ -38,18 +38,24 @@ describe("Phase 17A production readiness contracts", () => {
     expect(JSON.stringify(next)).not.toContain("C:\\Users\\");
   });
 
-  it("defines scripts, deterministic artifacts, public source-map policy, and no deployment step", () => {
+  it("defines portable scripts, deterministic artifacts, public source-map policy, and no credentialed upload step", () => {
     const pkg = JSON.parse(readFileSync("package.json", "utf8")) as { scripts: Record<string, string> };
-    expect(pkg.scripts.build).toContain("build-production.ps1");
+    expect(pkg.scripts.build).toBe("node scripts/build-production.mjs");
     expect(pkg.scripts["test:e2e:production"]).toBeTruthy();
     expect(pkg.scripts["test:e2e:production:subpath"]).toBeTruthy();
     expect(pkg.scripts["package:production"]).toContain("package-production.ps1");
+    const dispatcher = readFileSync("scripts/build-production.mjs", "utf8");
+    expect(dispatcher).toContain("build-production.ps1");
+    expect(dispatcher).toContain("build-cloudflare-pages.sh");
     const pipeline = readFileSync("scripts/build-production.ps1", "utf8");
     expect(pipeline.indexOf("pnpm build:wasm")).toBeLessThan(pipeline.indexOf("pnpm build:web"));
     expect(pipeline).toContain("production-artifacts.mjs verify");
+    const pagesPipeline = readFileSync("scripts/build-cloudflare-pages.sh", "utf8");
+    expect(pagesPipeline.indexOf("emcmake cmake")).toBeLessThan(pagesPipeline.indexOf("pnpm build:web"));
+    expect(pagesPipeline).toContain("production-artifacts.mjs verify");
     const artifactTool = readFileSync("scripts/production-artifacts.mjs", "utf8");
     expect(artifactTool).toContain("sourceMapsIncluded: false");
-    expect(artifactTool).not.toMatch(/upload|deploy(?:ment)? token/i);
+    expect(`${dispatcher}\n${pipeline}\n${pagesPipeline}\n${artifactTool}`).not.toMatch(/(?:api|access|deploy(?:ment)?)\s*[_-]?token/i);
   });
 
   it("keeps frozen Phase 14 through 16 baseline manifests unchanged", () => {

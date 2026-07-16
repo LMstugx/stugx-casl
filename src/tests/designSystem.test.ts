@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 const tokensCss = readFileSync("src/styles/tokens.css", "utf8");
-const appCss = readFileSync("src/styles/app.css", "utf8");
+const appCss = readFileSync("src/styles/app.css", "utf8").replace(/\r\n/g, "\n");
 const circuitSvg = readFileSync("src/visual/CometCircuitSvg.tsx", "utf8");
 const appTsx = readFileSync("src/App.tsx", "utf8");
 const toolbarTsx = readFileSync("src/components/Toolbar.tsx", "utf8");

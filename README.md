@@ -412,6 +412,8 @@ The current backend is shown in the status bar as `Mock Core`, `WASM Core`, or `
 - [docs/persistence-baseline-v1.json](docs/persistence-baseline-v1.json): deterministic aggregate snapshot for the four independent persistence contracts, bootstrap order, isolation, privacy, security, and migration gates.
 - [docs/phase16d-persistence-final-quality-gate.md](docs/phase16d-persistence-final-quality-gate.md): final four-storage inventory, failure/reset/write isolation, version, privacy, security, visual QA, and Phase 16 result.
 - [docs/phase17a-production-deployment-readiness.md](docs/phase17a-production-deployment-readiness.md): production build, WASM/static smoke, base path, artifacts, security, size, and readiness result.
+- [docs/phase17b-cloudflare-pages-deployment.md](docs/phase17b-cloudflare-pages-deployment.md): Cloudflare Pages Git Integration, production WASM deployment, remote QA, and public-host evidence.
+- [docs/cloudflare-pages-git-runbook.md](docs/cloudflare-pages-git-runbook.md): credential-free Git Integration setup, build settings, host verification, and rollback procedure.
 - [docs/production-build-contract.md](docs/production-build-contract.md): WASM-first build, metadata, manifest, size, source-map, and local package contract.
 - [docs/static-host-deployment-contract.md](docs/static-host-deployment-contract.md): root/subpath serving, cache, smoke, and provider-neutral release procedure.
 - [docs/static-host-security-headers.md](docs/static-host-security-headers.md): reviewed CSP and static response header template.
@@ -438,7 +440,7 @@ The current backend is shown in the status bar as `Mock Core`, `WASM Core`, or `
 - The WASM bridge currently uses a single runtime and JSON strings.
 - The control-flow view is text and badge based; there is no full CFG graph yet.
 - File System Access confirmed writes depend on browser support and a secure context; other browsers use an explicit download-copy Save As fallback.
-- There is no public hosting target, service worker/PWA offline mode, signed desktop distribution, auto-update channel, or deployment-provider integration in this milestone.
+- Cloudflare Pages is the static public-host target; there is no custom domain, service worker/PWA offline mode, signed desktop distribution, or auto-update channel.
 - The Windows demo is unsigned and intended for local demonstrations; distributing it to other machines may trigger Windows SmartScreen or an unknown-publisher warning.
 - Tauri-native file dialogs and filesystem writes are deferred; the desktop build currently retains the browser adapter capability boundary.
 

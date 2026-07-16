@@ -9,8 +9,8 @@ if (Test-Path $bundledNode) {
   $env:Path = "$bundledNode;$bundledBin;$env:Path"
 }
 
-$emsdkEnv = "F:\tools\emsdk\emsdk_env.ps1"
-if (Test-Path $emsdkEnv) {
+$emsdkEnv = if ($env:EMSDK) { Join-Path $env:EMSDK "emsdk_env.ps1" } else { $null }
+if ($emsdkEnv -and (Test-Path $emsdkEnv)) {
   . $emsdkEnv | Out-Null
 }
 

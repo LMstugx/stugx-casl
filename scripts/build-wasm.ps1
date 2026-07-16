@@ -6,14 +6,14 @@ $buildDir = Join-Path $cppCoreDir "build-wasm"
 $outputDir = Join-Path $repoRoot "public\wasm"
 
 if (-not (Get-Command emcc -ErrorAction SilentlyContinue)) {
-  $emsdkEnv = "F:\tools\emsdk\emsdk_env.ps1"
-  if (Test-Path $emsdkEnv) {
+  $emsdkEnv = if ($env:EMSDK) { Join-Path $env:EMSDK "emsdk_env.ps1" } else { $null }
+  if ($emsdkEnv -and (Test-Path $emsdkEnv)) {
     . $emsdkEnv | Out-Null
   }
 }
 
 if (-not (Get-Command emcc -ErrorAction SilentlyContinue)) {
-  Write-Error "Emscripten not found: emcc is not available on PATH. Install/activate Emscripten SDK, then rerun scripts/build-wasm.ps1."
+  Write-Error "Emscripten not found: emcc is not available on PATH. Activate the SDK or set EMSDK to its installation directory, then rerun scripts/build-wasm.ps1."
 }
 
 if (-not (Get-Command emcmake -ErrorAction SilentlyContinue)) {

@@ -77,7 +77,7 @@ function generateManifest() {
   writeJson(join(distDir, "build-metadata.json"), metadata);
   const assetFiles = listFiles().filter((file) => file !== "deployment-manifest.json");
   const entries = assetFiles.map((file) => ({ file, bytes: statSync(join(distDir, file)).size, sha256: sha256(join(distDir, file)) }));
-  const requiredFiles = ["index.html", ".vite/manifest.json", "wasm/stugx_casl_core.js", "wasm/stugx_casl_core.wasm", "build-metadata.json", "production-size-report.json"];
+  const requiredFiles = ["index.html", "_headers", ".vite/manifest.json", "wasm/stugx_casl_core.js", "wasm/stugx_casl_core.wasm", "build-metadata.json", "production-size-report.json"];
   const manifest = {
     schemaVersion: 1,
     appVersion: metadata.version,
@@ -120,6 +120,11 @@ function verifyBuild() {
     if (localMarkers.some((marker) => text.includes(marker))) throw new Error(`Local absolute path leaked into ${file}`);
   }
   if (!readFileSync(join(distDir, "wasm", "stugx_casl_core.js"), "utf8").includes("stugx_casl_core.wasm")) throw new Error("WASM glue does not reference the expected binary.");
+  const headers = readFileSync(join(distDir, "_headers"), "utf8");
+  for (const required of ["Content-Security-Policy", "X-Content-Type-Options: nosniff", "Referrer-Policy: strict-origin-when-cross-origin", "Permissions-Policy", "X-Frame-Options: DENY", "frame-ancestors 'none'", "'wasm-unsafe-eval'", "/wasm/*", "/assets/*", "immutable", "no-cache"]) {
+    if (!headers.includes(required)) throw new Error(`Cloudflare Pages header contract is missing: ${required}`);
+  }
+  if (headers.includes("'unsafe-eval'")) throw new Error("JavaScript unsafe-eval is prohibited by the Pages CSP.");
   return manifest;
 }
 

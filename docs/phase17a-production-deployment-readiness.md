@@ -69,3 +69,5 @@ The audit found and fixed three blockers: a Monaco jsDelivr runtime dependency, 
 ## 13. Phase 17B Recommendation
 
 Perform a provider-neutral release-candidate rehearsal: choose a static host, translate the frozen header/cache contract, stage an atomic non-public upload, and verify base/cache behavior without telemetry or source persistence.
+
+Phase 17B implements this recommendation through a separate Cloudflare Pages Git Integration contract. It preserves the Phase 17A artifact, WASM, source-map, security, and no-telemetry boundaries while adding a portable Linux build entry and real-host verification.

@@ -2,7 +2,9 @@
 
 ## Pipeline
 
-`pnpm build` runs `scripts/build-production.ps1`: clean the repository `dist/`, build WASM, require non-empty glue and binary outputs, build Vite with the WASM backend, generate size/metadata/manifests, then verify the public artifact. Missing WASM, Mock selection in production, invalid base path, budget violation, or manifest mismatch exits nonzero. Production never silently substitutes `MockCoreAdapter`.
+`pnpm build` runs the platform dispatcher in `scripts/build-production.mjs`. Windows retains `scripts/build-production.ps1`; Linux x86_64 uses the pinned Cloudflare Pages path in `scripts/build-cloudflare-pages.sh`. Both clean `dist/`, build WASM, require non-empty glue and binary outputs, build Vite with the WASM backend, generate size/metadata/manifests, then verify the public artifact. Missing WASM, Mock selection in production, invalid base path, budget violation, or manifest mismatch exits nonzero. Production never silently substitutes `MockCoreAdapter`.
+
+The Pages build pins the official Emscripten SDK `6.0.2` source tag and installs it in the build-user cache. It does not depend on a checked-in binary or a machine-specific SDK path. Windows callers activate Emscripten normally or set `EMSDK` to the SDK directory.
 
 ## Configuration And Metadata
 
@@ -26,3 +28,7 @@ Metadata has no timestamp, username, hostname, branch path, token, or local dire
 ## Phase 18A Desktop Reference
 
 The static-host pipeline remains unchanged. Tauri uses the separate `build:tauri:frontend` entry with `STUGX_RUNTIME=tauri`, relative asset base, the same WASM backend, and the same `dist/` directory. Desktop artifacts are embedded by Tauri and are never accepted as static deployment artifacts or committed to Git.
+
+## Cloudflare Pages Reference
+
+The Git-integrated Pages project builds the repository root with `pnpm build` and publishes `dist`. The build environment pins Node `22.16.0` and pnpm `11.7.0`; no token, Functions binding, database, KV, R2, analytics, or server runtime is required. `public/_headers` is copied into the artifact and freezes CSP, MIME hardening, no-cache metadata/WASM, and immutable hashed assets.

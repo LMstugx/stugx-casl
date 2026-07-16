@@ -4,6 +4,8 @@ Build the root with `scripts/build-production.ps1 -BasePath /` and a subpath wit
 
 `pnpm test:e2e:production` and `pnpm test:e2e:production:subpath` rebuild and use `scripts/serve-production.mjs`, not Vite dev/preview. The server marks responses with `X-Stugx-Static-Production: 1`; Playwright rejects Mock backend, failed requests, HTTP errors, console/page errors, and horizontal overflow. Serve `.wasm` as `application/wasm` and never rewrite asset requests to HTML.
 
+Cloudflare Pages uses the repository-root Git Integration build command `pnpm build` and publishes `dist`. `scripts/build-production.mjs` retains the Windows Phase 17A pipeline and dispatches Linux x86_64 builds to the pinned Emscripten Pages script. The provider-specific `_headers` contract remains a static artifact; no Functions or runtime API is introduced.
+
 ## Cache Policy
 
 - hashed Vite JS/CSS/assets: `public, max-age=31536000, immutable`;

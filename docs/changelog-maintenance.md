@@ -31,6 +31,7 @@ Empty sections are omitted. Every title, summary, and item must provide explicit
 
 - A declared commit must be a full hexadecimal commit that exists in repository history.
 - A declared tag must already exist. Do not reserve or invent future tags in the registry.
+- Full local clones verify declared commit and tag objects with Git. Shallow deployment clones validate their canonical formats because older objects may be intentionally absent; the full-history unit gate remains authoritative for existence.
 - Dates use `YYYY-MM-DD` and must be supported by actual commit or release documentation.
 - The canonical repository URL is `https://github.com/LMstugx/stugx-casl`.
 - The permanent public Web URL is `https://stugx-casl.pages.dev/`; immutable deployment-hash URLs are not release identities.

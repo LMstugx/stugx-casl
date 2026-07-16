@@ -38,9 +38,22 @@ function gitObjectExists(value) {
   }
 }
 
+function gitRepositoryIsShallow() {
+  try {
+    return execFileSync("git", ["rev-parse", "--is-shallow-repository"], {
+      cwd: repositoryRoot,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"]
+    }).trim() === "true";
+  } catch {
+    return false;
+  }
+}
+
 export function validateReleaseRegistry(registry, packageVersion) {
   const { RELEASES, RELEASE_CHANNELS, RELEASE_SECTION_ORDER, CANONICAL_REPOSITORY_URL, PUBLIC_WEB_URL } = registry;
   if (!Array.isArray(RELEASES) || RELEASES.length === 0) throw new Error("Release registry must not be empty.");
+  const shallowRepository = gitRepositoryIsShallow();
   const versions = new Set();
   let previousDate = "9999-12-31";
   for (const [releaseIndex, release] of RELEASES.entries()) {
@@ -67,11 +80,17 @@ export function validateReleaseRegistry(registry, packageVersion) {
       if (!Array.isArray(section.items) || section.items.length === 0) throw new Error(`${context}.sections[${sectionIndex}] must have items.`);
       section.items.forEach((item, itemIndex) => assertLocalizedText(item, `${context}.sections[${sectionIndex}].items[${itemIndex}]`));
     }
-    if (release.commit && (!commitPattern.test(release.commit) || !gitObjectExists(`${release.commit}^{commit}`))) {
-      throw new Error(`${context}.commit does not resolve to a commit.`);
+    if (release.commit && !commitPattern.test(release.commit)) {
+      throw new Error(`${context}.commit is invalid.`);
     }
-    if (release.tag && (!/^v[0-9A-Za-z.-]+$/.test(release.tag) || !gitObjectExists(`refs/tags/${release.tag}`))) {
-      throw new Error(`${context}.tag does not exist.`);
+    if (release.commit && !shallowRepository && !gitObjectExists(`${release.commit}^{commit}`)) {
+      throw new Error(`${context}.commit does not resolve to a commit in the complete repository.`);
+    }
+    if (release.tag && !/^v[0-9A-Za-z.-]+$/.test(release.tag)) {
+      throw new Error(`${context}.tag is invalid.`);
+    }
+    if (release.tag && !shallowRepository && !gitObjectExists(`refs/tags/${release.tag}`)) {
+      throw new Error(`${context}.tag does not exist in the complete repository.`);
     }
     if (release.webUrl) {
       const url = new URL(release.webUrl);

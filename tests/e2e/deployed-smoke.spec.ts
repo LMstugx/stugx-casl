@@ -55,6 +55,8 @@ test("Cloudflare Pages runs the verified WASM application", async ({ page, baseU
   await expect(page.getByTestId("open-file-button")).toBeVisible();
   await expect(page.getByTestId("save-file-button")).toBeVisible();
 
+  const overview = page.getByTestId("project-overview");
+  if ((await overview.getAttribute("open")) === null) await page.getByTestId("project-overview-summary").click();
   const changelogTrigger = page.getByTestId("changelog-trigger");
   await changelogTrigger.click();
   await expect(page.getByRole("dialog", { name: "Changelog" })).toBeVisible();

@@ -30,4 +30,18 @@ Cloudflare authentication and GitHub App authorization remain in the provider da
 
 ## Deployment Evidence
 
-The final project name, public URL, deployed commit, MIME/header/cache results, remote smoke result, and rollback status are recorded after the first successful production deployment. Until that evidence is added, Phase 17B remains in progress.
+- Cloudflare project: `stugx-casl`.
+- Production branch: `master`, with automatic Git deployments enabled.
+- Public URL: <https://stugx-casl.pages.dev/>.
+- First successful production deployment: commit `41f3236ea12749e102358f5d6dea16d845cae2c1`.
+- First immutable deployment URL: <https://2d3a164e.stugx-casl.pages.dev/>.
+- Build: PASS after adding the pinned CMake bootstrap required by the Pages v3 image.
+- Host verification: PASS for HTTP success, `application/wasm`, production WASM metadata, CSP, security headers, no-cache HTML/metadata/WASM, immutable hashed assets, source-map exclusion, and directory-listing exclusion.
+- Remote Playwright smoke: PASS for WASM Assemble/Step/Run/Reset, observation modes, EN/JA/zh-CN, independent persistence hydration, file-action availability, query/hash startup, clean wires, 1280px overflow, console errors, failed requests, and third-party requests.
+- Rollback: available through Pages deployment history; it does not require Git history changes or a force push.
+
+The first attempt failed closed before deployment because the Pages image did not include CMake. No Mock backend or partial site was published. The current production commit is exposed by `build-metadata.json`; later documentation-only commits are deployed by the same `master` integration and must pass the same host and Playwright verification.
+
+## Final Result
+
+**PASS.** The public Web version is suitable for teacher and student access. There is no custom domain, Web Analytics, Pages Function, Worker, or cloud source storage.

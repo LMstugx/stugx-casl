@@ -323,6 +323,8 @@ The current backend is shown in the status bar as `Mock Core`, `WASM Core`, or `
 
 ## Documentation
 
+Public Web application: <https://stugx-casl.pages.dev/>
+
 - [CONTRIBUTING.md](CONTRIBUTING.md): contribution boundaries, generated-file policy, and required validation.
 - [SECURITY.md](SECURITY.md): private vulnerability reporting and sensitive-data handling.
 - [CHANGELOG.md](CHANGELOG.md): unreleased project history placeholder pending a formal release process.

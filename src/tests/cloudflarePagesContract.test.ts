@@ -11,6 +11,7 @@ describe("Cloudflare Pages deployment contract", () => {
   const headers = read("public/_headers");
   const pagesBuild = read("scripts/build-cloudflare-pages.sh");
   const dispatcher = read("scripts/build-production.mjs");
+  const deployedTest = read("scripts/test-deployed.mjs");
   const artifacts = read("scripts/production-artifacts.mjs");
   const vite = read("vite.config.ts");
 
@@ -55,5 +56,8 @@ describe("Cloudflare Pages deployment contract", () => {
     expect(artifacts).toContain("Public production source maps are prohibited");
     expect(packageJson.scripts["test:e2e:deployed"]).toBe("node scripts/test-deployed.mjs");
     expect(packageJson.scripts["verify:deployed"]).toBe("node scripts/verify-deployed-pages.mjs");
+    expect(deployedTest).toContain('require.resolve("@playwright/test/cli")');
+    expect(deployedTest).toContain("process.execPath");
+    expect(deployedTest).toContain("if (result.error) throw result.error");
   });
 });

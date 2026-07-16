@@ -13,10 +13,10 @@ Every push to `master` starts a production deployment. Preview branch builds may
 
 ## Verification
 
-Set the public URL only in the current process, then run:
+The production host is <https://stugx-casl.pages.dev/>. Set it only in the current process, then run:
 
 ```powershell
-$env:STUGX_DEPLOYED_BASE_URL = "https://<project>.pages.dev/"
+$env:STUGX_DEPLOYED_BASE_URL = "https://stugx-casl.pages.dev/"
 pnpm verify:deployed
 pnpm test:e2e:deployed
 ```

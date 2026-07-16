@@ -1,13 +1,16 @@
 import { spawnSync } from "node:child_process";
+import { createRequire } from "node:module";
 
 const value = process.argv.slice(2).find((argument) => argument.startsWith("--base-url="))?.slice("--base-url=".length)
   ?? process.env.STUGX_DEPLOYED_BASE_URL;
 const url = validatePagesUrl(value);
-const command = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
-const result = spawnSync(command, ["exec", "playwright", "test", "--config", "playwright.deployed.config.ts"], {
+const require = createRequire(import.meta.url);
+const playwrightCli = require.resolve("@playwright/test/cli");
+const result = spawnSync(process.execPath, [playwrightCli, "test", "--config", "playwright.deployed.config.ts"], {
   stdio: "inherit",
   env: { ...process.env, STUGX_DEPLOYED_BASE_URL: url }
 });
+if (result.error) throw result.error;
 process.exit(result.status ?? 1);
 
 function validatePagesUrl(value) {

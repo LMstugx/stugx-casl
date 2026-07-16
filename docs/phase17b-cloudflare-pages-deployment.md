@@ -14,6 +14,7 @@ Phase 17B connects the public GitHub repository `LMstugx/stugx-casl` to a Cloudf
 - Node: `22.16.0`.
 - pnpm: `11.7.0` from `packageManager`.
 - Emscripten: official pinned SDK `6.0.2` installed by the Linux Pages build script.
+- CMake: official Kitware `3.31.12` binary with a pinned SHA-256, installed in the Pages user cache because the v3 build image does not provide CMake.
 
 The build always compiles and verifies the WASM glue/binary pair before Vite. Production rejects Mock, missing WASM, source maps, prohibited files, invalid base paths, size overruns, and artifact hash mismatches.
 

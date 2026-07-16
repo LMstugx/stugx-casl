@@ -26,6 +26,9 @@ describe("Cloudflare Pages deployment contract", () => {
   it("pins the official Emscripten SDK and requires WASM outputs", () => {
     expect(pagesBuild).toContain('EMSDK_VERSION="6.0.2"');
     expect(pagesBuild).toContain("https://github.com/emscripten-core/emsdk.git");
+    expect(pagesBuild).toContain('CMAKE_VERSION="3.31.12"');
+    expect(pagesBuild).toContain("https://github.com/Kitware/CMake/releases/download/");
+    expect(pagesBuild).toContain("sha256sum --check --status");
     expect(pagesBuild).toContain("public/wasm/stugx_casl_core.js");
     expect(pagesBuild).toContain("public/wasm/stugx_casl_core.wasm");
     expect(pagesBuild).toContain('VITE_CORE_BACKEND="wasm"');

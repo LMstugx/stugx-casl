@@ -4,7 +4,7 @@
 
 `pnpm build` runs the platform dispatcher in `scripts/build-production.mjs`. Windows retains `scripts/build-production.ps1`; Linux x86_64 uses the pinned Cloudflare Pages path in `scripts/build-cloudflare-pages.sh`. Both clean `dist/`, build WASM, require non-empty glue and binary outputs, build Vite with the WASM backend, generate size/metadata/manifests, then verify the public artifact. Missing WASM, Mock selection in production, invalid base path, budget violation, or manifest mismatch exits nonzero. Production never silently substitutes `MockCoreAdapter`.
 
-The Pages build pins the official Emscripten SDK `6.0.2` source tag and installs it in the build-user cache. It does not depend on a checked-in binary or a machine-specific SDK path. Windows callers activate Emscripten normally or set `EMSDK` to the SDK directory.
+The Pages build pins the official Emscripten SDK `6.0.2` source tag and Kitware CMake `3.31.12` binary in the build-user cache. The CMake archive must match its fixed SHA-256 before extraction. The build does not depend on a checked-in binary or a machine-specific SDK path. Windows callers activate Emscripten normally or set `EMSDK` to the SDK directory.
 
 ## Configuration And Metadata
 

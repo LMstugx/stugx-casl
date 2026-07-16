@@ -2,13 +2,29 @@
 set -euo pipefail
 
 readonly EMSDK_VERSION="6.0.2"
+readonly CMAKE_VERSION="3.31.12"
+readonly CMAKE_LINUX_X64_SHA256="0dc2e9a6860f06bf10bd8fadc03e35d9eeb4df46e33763a7e480e987758f385c"
 readonly REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 readonly EMSDK_ROOT="${HOME}/.cache/stugx-casl/emsdk-${EMSDK_VERSION}"
+readonly CMAKE_ROOT="${HOME}/.cache/stugx-casl/cmake-${CMAKE_VERSION}"
 
 if [[ "$(uname -s)" != "Linux" || "$(uname -m)" != "x86_64" ]]; then
   echo "Cloudflare Pages build requires Linux x86_64." >&2
   exit 1
 fi
+
+if [[ ! -x "${CMAKE_ROOT}/bin/cmake" ]]; then
+  readonly CMAKE_ARCHIVE="$(mktemp)"
+  rm -rf "${CMAKE_ROOT}"
+  mkdir -p "${CMAKE_ROOT}"
+  curl --fail --location --silent --show-error \
+    "https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-linux-x86_64.tar.gz" \
+    --output "${CMAKE_ARCHIVE}"
+  echo "${CMAKE_LINUX_X64_SHA256}  ${CMAKE_ARCHIVE}" | sha256sum --check --status
+  tar -xzf "${CMAKE_ARCHIVE}" --strip-components=1 -C "${CMAKE_ROOT}"
+  rm -f "${CMAKE_ARCHIVE}"
+fi
+export PATH="${CMAKE_ROOT}/bin:${PATH}"
 
 if [[ ! -d "${EMSDK_ROOT}/.git" ]]; then
   mkdir -p "$(dirname "${EMSDK_ROOT}")"

@@ -10,7 +10,7 @@ The following are outside the current C++ teaching subset:
 
 - classes, structs, unions, templates, namespaces, and exceptions
 - arrays, pointers, references, dynamic allocation, and RAII
-- character, string, floating-point, and `double` types
+- character and string types; floating-point arithmetic, comparison, conversion, parameters, returns, arrays, `float`, and `long double`
 - iostreams, containers such as `std::vector`, algorithms, and the complete standard library
 - lambdas, overloads, function pointers, recursion, and more than three parameters
 - stack arguments and runtime stack-frame locals
@@ -19,3 +19,5 @@ The following are outside the current C++ teaching subset:
 - native compiler invocation or native code execution
 
 Unsupported syntax should produce a bounded parser/semantic/transpiler diagnostic. It must not be guessed, ignored, or executed outside the COMET II model.
+
+The one exception to the broader floating-point boundary is the documented four-word `double` storage and assignment observation path. It does not provide floating-point computation; see [C++ Double Support](cpp-double-support.md).

@@ -19,6 +19,6 @@ C++ teaching subset
 
 The application does not read system headers and does not invoke a native C++ compiler. C++ input is processed by the project's bounded parser and lowering pipeline, then executed only as generated COMET II code.
 
-This is not complete C++, and it does not provide the complete C++ standard library. Unsupported features include floating-point types, arrays, pointers, references, classes, templates, vectors, lambdas, iostreams, recursion, overloads, and stack-frame locals.
+This is not complete C++, and it does not provide the complete C++ standard library. A bounded `double` path exposes binary64 storage and word-by-word assignment only. It does not provide floating-point arithmetic, comparison, conversion, function parameters, returns, or arrays. Other unsupported features include pointers, references, classes, templates, vectors, lambdas, iostreams, recursion, overloads, and stack-frame locals.
 
-Always consult [C++ Subset Capabilities](../reference/cpp-subset-capabilities.md) for the current allowlist.
+Always consult [C++ Subset Capabilities](../reference/cpp-subset-capabilities.md) for the current allowlist. Use [Double Memory Observation](double-memory-observation.md) for the four-word teaching workflow.

@@ -15,6 +15,7 @@ This directory separates current product documentation from historical implement
 - [Observation Modes](user/observation-modes.md)
 - [CASL Workflow](user/casl-workflow.md)
 - [C++ Subset Workflow](user/cpp-subset-workflow.md)
+- [Double Memory Observation](user/double-memory-observation.md)
 - [Generated CASL and Machine Code](user/generated-casl-machine-code.md)
 - [Open, Save, and New](user/open-save-new.md)
 - [Diagnostics](user/diagnostics.md)
@@ -31,6 +32,7 @@ This directory separates current product documentation from historical implement
 - [Repository Structure](developer/repository-structure.md)
 - [Frontend State Management](developer/frontend-state-management.md)
 - [C++ to CASL Pipeline](developer/cpp-to-casl-pipeline.md)
+- [Double Lowering](developer/double-lowering.md)
 - [CASL Assembler](developer/casl-assembler.md)
 - [COMET II VM](developer/comet-vm.md)
 - [WASM Bridge](developer/wasm-bridge.md)
@@ -49,6 +51,7 @@ This directory separates current product documentation from historical implement
 - [Supported CASL Instructions](reference/supported-casl-instructions.md)
 - [CASL Syntax Support](reference/casl-syntax-support.md)
 - [C++ Subset Capabilities](reference/cpp-subset-capabilities.md)
+- [C++ Double Support](reference/cpp-double-support.md)
 - [Unsupported C++ Features](reference/unsupported-cpp-features.md)
 - [Diagnostic Codes](reference/diagnostic-codes.md)
 - [Storage Keys](reference/storage-keys.md)
@@ -116,6 +119,7 @@ Historical Phase reports, manifests, release-candidate evidence, and visual revi
 ### Release and UI History
 
 - [Technical Documentation Foundation](phase18a4-technical-documentation-foundation.md)
+- [Double Storage Observation](phase19a-double-storage-observation.md)
 - [Manual QA Checklist](manual-qa-checklist.md)
 - [Release Candidate Notes](release-candidate-notes.md)
 - [Visual RC Baseline](visual-rc-baseline.md)

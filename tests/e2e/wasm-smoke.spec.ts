@@ -145,6 +145,21 @@ test("WASM backend runs C++ subset break and continue in the browser UI", async 
   await expectRegister(page, "register-gr0", "0004");
 });
 
+test("WASM backend runs double storage and copy with the same logical words", async ({ page }) => {
+  await openStudio(page, "WASM Core");
+  await selectDemoProgram(page, "cpp-double-storage");
+  await assemble(page);
+  await run(page);
+
+  await page.getByRole("tab", { name: "Memory" }).click();
+  await page.getByTestId("memory-object-select").selectOption({ label: "x" });
+  await expect(page.getByTestId("double-value-inspector")).toContainText("400C000000000000");
+  await page.getByTestId("memory-object-select").selectOption({ label: "y" });
+  await expect(page.getByTestId("double-value-inspector")).toContainText("400C000000000000");
+  await expect(page.getByTestId("double-value-inspector")).toContainText("3.5");
+  await expect(page.locator('[data-double-object="cpp-storage:main:y"]')).toHaveCount(4);
+});
+
 test("WASM backend runs CASL logical add compare in the browser UI", async ({ page }) => {
   await openStudio(page, "WASM Core");
   await selectDemoProgram(page, "casl-logical-add-compare");

@@ -197,9 +197,16 @@ function memoryRowsForDefaultWindow(state: Pick<CometState, "memory" | "memoryRo
   return selectMemoryWindow(state as CometState, start, Math.min(0xffff, start + MEMORY_VIEW_DEFAULT_ROWS - 1));
 }
 
-function findLastInstructionRow(dto: CometStateDto): SourceRowDto | undefined {
+function findLastInstructionRow(dto: CometStateDto, previous?: CometState): SourceRowDto | undefined {
   const kind = dto.lastInstructionKind;
   if (!kind) return undefined;
+
+  if (dto.stepCount === (previous?.stepIndex ?? -1) + 1 && previous?.currentAddress !== undefined) {
+    const executedRow = dto.sourceRows.find(
+      (row) => row.address === previous.currentAddress && row.instruction === kind
+    );
+    if (executedRow) return executedRow;
+  }
 
   return dto.sourceRows.find((row) => {
     if (row.instruction !== kind) return false;
@@ -250,7 +257,7 @@ function traceFromDto(dto: CometStateDto, previous?: CometState): TraceEvent[] {
     return previousTrace.map((event) => ({ ...event }));
   }
 
-  const row = findLastInstructionRow(dto);
+  const row = findLastInstructionRow(dto, previous);
   const changedRegisterIndex = dto.lastRegisterWriteIndex;
   const changedMemoryAddress = dto.lastMemoryWriteAddress ?? (dto.lastInstructionKind === "RET" || dto.lastInstructionKind === "POP" ? dto.lastMemoryReadAddress ?? undefined : undefined);
   const event: TraceEvent = {
@@ -292,8 +299,8 @@ function defaultOutput(dto: CometStateDto): string[] {
   return [];
 }
 
-function lastStepFromDto(dto: CometStateDto) {
-  const row = findLastInstructionRow(dto);
+function lastStepFromDto(dto: CometStateDto, previous?: CometState) {
+  const row = findLastInstructionRow(dto, previous);
   if (!row) return undefined;
   return {
     executedAddress: row.address,
@@ -351,7 +358,7 @@ export function createCometStateFromDto(dto: CometStateDto, options: StateFromDt
     currentLine: dto.currentSourceLineIndex ?? undefined,
     currentAddress: dto.currentInstructionAddress ?? undefined,
     currentInstruction: dto.currentInstructionText ?? undefined,
-    lastStep: lastStepFromDto(dto),
+    lastStep: lastStepFromDto(dto, options.previous),
     lastMemoryReadAddress: dto.lastMemoryReadAddress ?? undefined,
     lastMemoryWriteAddress: dto.lastMemoryWriteAddress ?? undefined,
     lastBaseAddress: dto.baseAddress ?? undefined,

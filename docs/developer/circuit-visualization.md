@@ -19,4 +19,6 @@ CPU Flow prioritizes active data, address, and control relationships. Register /
 
 Address relationships use target highlights and Effective Address Unit context instead of decorative long wires. Reduced-motion preference disables nonessential signal animation.
 
+Multi-word double operations still use one real 16-bit path per CASL instruction. Signal Probe may identify the object and word index, but the circuit must not invent a 64-bit bus or FPU.
+
 The visualization is not cycle-accurate hardware and must remain subordinate to VM semantics.

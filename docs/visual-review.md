@@ -253,6 +253,8 @@ Phase 18A.1 adds focused 1180x700 Toolbar captures for EN/JA/zh-CN, 1280x720 Sou
 
 Phase 18A.3 adds `changelog-current-en.png`, `changelog-current-ja.png`, `changelog-current-zh-cn.png`, `changelog-multiple-releases.png`, `changelog-known-issues.png`, `changelog-1280.png`, `changelog-long-technical-text.png`, and `changelog-keyboard-focus.png`. Review the Project Overview entry, Current badge, section hierarchy, known-issue distinction, safe wrapping, focus visibility, large bounded modal scroll, and 1280x720 containment. The dialog must not pressure the Toolbar, create a tiny scroll trap, or alter natural page scroll and clean-wire behavior.
 
+Phase 19A adds `cpp-double-storage-source.png`, `cpp-double-storage-generated-casl.png`, `cpp-double-storage-memory-before.png`, `cpp-double-storage-memory-word-copy.png`, `cpp-double-storage-memory-after.png`, `cpp-double-inspector-en.png`, `cpp-double-inspector-ja.png`, `cpp-double-inspector-zh-cn.png`, `cpp-double-storage-inspector-details.png`, `cpp-double-trace.png`, `cpp-double-code-machine.png`, `cpp-double-1280.png`, and `cpp-double-unsupported-diagnostic.png`. Review four related word rows, one active word at a time, bounded Trace and Memory scrolling, safe binary wrapping, locale-independent technical values, and 1280x720 containment. Circuit presentation must not invent an FPU, a 64-bit bus, arrows, circular markers, or inactive ghost wires.
+
 - This is a review gallery, not a pixel-diff visual regression suite.
 - Screenshots are generated artifacts and are not committed to git.
 - The gallery is local only unless you use an existing tunnel tool.

@@ -1,5 +1,7 @@
 import { CometState, formatWord } from "../core/types";
 import { useI18n } from "../i18n/useI18n";
+import type { CppStorageObject, CppToCaslMap } from "../transpiler/cppAst";
+import { doubleOperationForCaslLine, resolveCppStorageObjects } from "../transpiler/cppStorageObjects";
 
 function traceChanges(event: CometState["trace"][number]): string {
   const changes: string[] = [];
@@ -73,8 +75,19 @@ function jumpTargetFromSource(source: string): string | undefined {
   return parts[jumpIndex + 1]?.split(",")[0];
 }
 
-export default function TracePanel({ state, embedded = false }: { state: CometState; embedded?: boolean }) {
+export default function TracePanel({
+  state,
+  embedded = false,
+  storageObjects = [],
+  cppToCaslMapping = []
+}: {
+  state: CometState;
+  embedded?: boolean;
+  storageObjects?: readonly CppStorageObject[];
+  cppToCaslMapping?: readonly CppToCaslMap[];
+}) {
   const { t } = useI18n();
+  const resolvedObjects = resolveCppStorageObjects(storageObjects, state);
   return (
     <section className={embedded ? "embedded-panel trace-panel" : "panel trace-panel"}>
       {!embedded ? (
@@ -84,10 +97,33 @@ export default function TracePanel({ state, embedded = false }: { state: CometSt
       ) : null}
       <div className="trace-list" data-testid="trace-list">
         {state.trace.length === 0 ? <p className="muted">{t("empty.noTraceEntries")}</p> : null}
-        {state.trace.map((event, index) => (
-          <article key={`${event.index}-${event.address}`} className="trace-item" data-testid="trace-item" data-latest={index === 0 ? "true" : "false"}>
+        {state.trace.map((event, index) => {
+          const caslLine = state.sourceMap.find((entry) => entry.address === event.address)?.line;
+          const doubleOperation = doubleOperationForCaslLine(cppToCaslMapping, resolvedObjects, caslLine);
+          const wordIndex = doubleOperation?.wordIndex ?? 0;
+          const sourceWord = doubleOperation?.sourceObject?.words[wordIndex];
+          const destinationWord = doubleOperation?.destinationObject?.words[wordIndex];
+          const currentWord = doubleOperation?.currentObject?.words[wordIndex];
+          const operationTitle = doubleOperation?.kind === "double-copy"
+            ? t("doubleTrace.copyAssignment", {
+              destination: doubleOperation.destinationObject?.symbolName ?? "?",
+              source: doubleOperation.sourceObject?.symbolName ?? "?"
+            })
+            : doubleOperation?.kind === "double-initializer"
+              ? t("doubleTrace.initializer", { target: doubleOperation.currentObject?.symbolName ?? "?" })
+              : doubleOperation?.kind === "double-literal-assignment"
+                ? t("doubleTrace.literalAssignment", { target: doubleOperation.currentObject?.symbolName ?? "?" })
+                : undefined;
+          const wordDetail = doubleOperation?.kind === "double-copy"
+            ? `${t("doubleTrace.wordOf", { word: wordIndex + 1 })} | ${formatObjectWord(doubleOperation.sourceObject?.symbolName, wordIndex, sourceWord?.address)} -> ${formatObjectWord(doubleOperation.destinationObject?.symbolName, wordIndex, destinationWord?.address)}`
+            : doubleOperation
+              ? `${t("doubleTrace.wordOf", { word: wordIndex + 1 })} | ${formatObjectWord(doubleOperation.currentObject?.symbolName, wordIndex, currentWord?.address)}`
+              : undefined;
+          return (
+          <article key={`${event.index}-${event.address}`} className="trace-item" data-testid="trace-item" data-latest={index === 0 ? "true" : "false"} data-double-operation={doubleOperation?.operationId}>
             <strong>Step {event.index}</strong>
             <div className="trace-item-body">
+              {operationTitle ? <p className="trace-double-operation" data-testid="trace-double-operation" title={operationTitle}>{operationTitle}</p> : null}
               <div className="trace-row" data-testid="trace-row-main">
                 <span className="trace-main text-ellipsis" title={traceMainEvent(event)}>{traceMainEvent(event)}</span>
                 <span className="mono-value">at {formatWord(event.address)}</span>
@@ -96,10 +132,16 @@ export default function TracePanel({ state, embedded = false }: { state: CometSt
               <p className="trace-note text-ellipsis" data-testid={traceControlFlow(event, state) ? "trace-control-flow" : "trace-row-note"} title={traceSecondaryNote(event, state)}>
                 {traceSecondaryNote(event, state)}
               </p>
+              {wordDetail ? <p className="trace-double-word" data-testid="trace-double-word" title={wordDetail}>{wordDetail}</p> : null}
             </div>
           </article>
-        ))}
+          );
+        })}
       </div>
     </section>
   );
+}
+
+function formatObjectWord(symbolName: string | undefined, wordIndex: number, address: number | undefined): string {
+  return `${symbolName ?? "?"}.word${wordIndex} [${address === undefined ? "----" : formatWord(address)}]`;
 }

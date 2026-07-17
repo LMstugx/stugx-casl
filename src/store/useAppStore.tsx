@@ -18,7 +18,7 @@ import { DEFAULT_APPLICATION_PREFERENCES, type InspectorActiveTab, type Observat
 import { serializeApplicationPreferences } from "../preferences/validation";
 import { cloneLessonProgress, isPersistableLessonStep } from "../lessonProgress/model";
 import type { LessonProgressState } from "../lessonProgress/types";
-import { CppToCaslMap, transpileCppToCasl } from "../transpiler/cppTranspiler";
+import { CppStorageObject, CppToCaslMap, transpileCppToCasl } from "../transpiler/cppTranspiler";
 
 type AssembleStatus = "default" | "running" | "success" | "error";
 export type SourceMode = "casl" | "cpp";
@@ -35,6 +35,7 @@ export type PreparedCoreSource =
       coreSourceText: string;
       generatedCaslSource: string;
       mapping: CppToCaslMap[];
+      storageObjects: CppStorageObject[];
       diagnostics: Diagnostic[];
       outputPrefix: string[];
     }
@@ -43,6 +44,7 @@ export type PreparedCoreSource =
       coreSourceText: "";
       generatedCaslSource: string;
       mapping: CppToCaslMap[];
+      storageObjects: CppStorageObject[];
       diagnostics: Diagnostic[];
       outputPrefix: string[];
     };
@@ -63,6 +65,7 @@ type AppStoreState = {
   backendInfo: CoreBackendInfo;
   generatedCaslSource: string;
   cppToCaslMapping: CppToCaslMap[];
+  cppStorageObjects: CppStorageObject[];
   selectedDemoProgramId: string;
   lessonProgress: LessonProgress;
   observationMode: ObservationMode;
@@ -104,8 +107,8 @@ export type AppStoreAction =
   | { type: "currentDocumentReplaced"; document: SourceDocument; selectedExampleId?: string }
   | { type: "currentDocumentSaved"; document: SourceDocument; writeBinding: DocumentWriteBinding | null }
   | { type: "fileLifecycleSet"; lifecycle: FileLifecycleState }
-  | { type: "assembled"; sourceUnitId: SourceUnitId; sourceText: string; cometState: CometState; assembleStatus: AssembleStatus; generatedCaslSource?: string; cppToCaslMapping?: CppToCaslMap[] }
-  | { type: "transpileFailed"; sourceUnitId: SourceUnitId; diagnostics: Diagnostic[]; generatedCaslSource: string; cppToCaslMapping: CppToCaslMap[]; output: string[] }
+  | { type: "assembled"; sourceUnitId: SourceUnitId; sourceText: string; cometState: CometState; assembleStatus: AssembleStatus; generatedCaslSource?: string; cppToCaslMapping?: CppToCaslMap[]; cppStorageObjects?: CppStorageObject[] }
+  | { type: "transpileFailed"; sourceUnitId: SourceUnitId; diagnostics: Diagnostic[]; generatedCaslSource: string; cppToCaslMapping: CppToCaslMap[]; cppStorageObjects: CppStorageObject[]; output: string[] }
   | { type: "runStarted"; cometState: CometState }
   | { type: "runProgress"; cometState: CometState }
   | { type: "runStopped"; cometState: CometState; reason: RunStopReason }
@@ -160,6 +163,7 @@ export function createInitialAppState(
     backendInfo: getCoreBackendInfo(),
     generatedCaslSource: "",
     cppToCaslMapping: [],
+    cppStorageObjects: [],
     selectedDemoProgramId: initialDemo?.id ?? "",
     lessonProgress: cloneLessonProgress(initialLessonProgress),
     observationMode: preferences.observationMode,
@@ -177,6 +181,7 @@ export function prepareSourceForCoreAssembly(sourceText: string, sourceMode: Sou
       coreSourceText: sourceText,
       generatedCaslSource: "",
       mapping: [],
+      storageObjects: [],
       diagnostics: [],
       outputPrefix: []
     };
@@ -189,6 +194,7 @@ export function prepareSourceForCoreAssembly(sourceText: string, sourceMode: Sou
       coreSourceText: "",
       generatedCaslSource: result.caslSource,
       mapping: result.mapping,
+      storageObjects: result.storageObjects,
       diagnostics: result.diagnostics,
       outputPrefix: ["C++ subset transpile failed.", ...result.diagnostics.map((diagnostic) => `Line ${diagnostic.line}: ${diagnostic.message}`)]
     };
@@ -199,6 +205,7 @@ export function prepareSourceForCoreAssembly(sourceText: string, sourceMode: Sou
     coreSourceText: result.caslSource,
     generatedCaslSource: result.caslSource,
     mapping: result.mapping,
+    storageObjects: result.storageObjects,
     diagnostics: [],
     outputPrefix: ["C++ subset transpiled to CASL.", `Generated CASL lines: ${result.caslSource.split(/\r?\n/).length}`]
   };
@@ -218,7 +225,8 @@ export function appStoreReducer(state: AppStoreState, action: AppStoreAction): A
       assembleStatus: "default",
       runStopReason: null,
       generatedCaslSource: "",
-      cppToCaslMapping: []
+      cppToCaslMapping: [],
+      cppStorageObjects: []
     };
   }
 
@@ -242,7 +250,8 @@ export function appStoreReducer(state: AppStoreState, action: AppStoreAction): A
       assembleStatus: "default",
       runStopReason: null,
       generatedCaslSource: "",
-      cppToCaslMapping: []
+      cppToCaslMapping: [],
+      cppStorageObjects: []
     };
   }
 
@@ -263,6 +272,7 @@ export function appStoreReducer(state: AppStoreState, action: AppStoreAction): A
       runStopReason: null,
       generatedCaslSource: "",
       cppToCaslMapping: [],
+      cppStorageObjects: [],
       selectedDemoProgramId: action.selectedExampleId ?? "",
       applicationFailure: null
     };
@@ -296,6 +306,7 @@ export function appStoreReducer(state: AppStoreState, action: AppStoreAction): A
       backendInfo: getCoreBackendInfo(),
       generatedCaslSource: action.generatedCaslSource ?? "",
       cppToCaslMapping: action.cppToCaslMapping ?? [],
+      cppStorageObjects: (action.cppStorageObjects ?? []).map((object) => ({ ...object, sourceUnitId: action.sourceUnitId })),
       applicationFailure: null
     };
   }
@@ -311,7 +322,8 @@ export function appStoreReducer(state: AppStoreState, action: AppStoreAction): A
       cometState: createEmptyUiCometState("Error", action.output),
       backendInfo: getCoreBackendInfo(),
       generatedCaslSource: action.generatedCaslSource,
-      cppToCaslMapping: action.cppToCaslMapping
+      cppToCaslMapping: action.cppToCaslMapping,
+      cppStorageObjects: []
     };
   }
 
@@ -488,6 +500,7 @@ export function AppStoreProvider({
                 diagnostics: prepared.diagnostics,
                 generatedCaslSource: prepared.generatedCaslSource,
                 cppToCaslMapping: prepared.mapping,
+                cppStorageObjects: prepared.storageObjects,
                 output: prepared.outputPrefix
               });
               return;
@@ -510,7 +523,8 @@ export function AppStoreProvider({
               cometState,
               assembleStatus: cometState.runState === "Error" ? "error" : "success",
               generatedCaslSource: prepared.generatedCaslSource,
-              cppToCaslMapping: prepared.mapping
+              cppToCaslMapping: prepared.mapping,
+              cppStorageObjects: prepared.storageObjects
             });
           } catch (error) {
             const message = coreErrorMessage(error);

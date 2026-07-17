@@ -34,6 +34,15 @@ B    DC    20
 C    DS    1
      END`;
 
+const repeatedStoreSource = `MAIN START
+     LAD   GR1,#0001
+     ST    GR1,A
+     LAD   GR1,#0002
+     ST    GR1,A
+     RET
+A    DS    1
+     END`;
+
 const whileSumCppSource = `int main() {
     int i = 3;
     int sum = 0;
@@ -175,6 +184,23 @@ describe("core adapter abstraction", () => {
 
     expect(stepState.gr[2]).toBe(0x000a);
     expect(stepState.gr[1]).toBe(0x0000);
+  });
+
+  it("adapter DTO projection identifies repeated machine instructions by executed address", async () => {
+    const adapter = new MockCoreAdapter();
+    const ready = await adapter.assemble(repeatedStoreSource);
+    let state = createCometStateFromDto(ready.state);
+    const executedAddresses: number[] = [];
+
+    for (let index = 0; index < 4; index += 1) {
+      const expectedAddress = state.currentAddress;
+      const result = await adapter.step();
+      state = createCometStateFromDto(result.state, { previous: state });
+      expect(state.lastStep?.executedAddress).toBe(expectedAddress);
+      executedAddresses.push(state.lastStep?.executedAddress ?? -1);
+    }
+
+    expect(new Set(executedAddresses).size).toBe(4);
   });
 
   it("mock run while sum reaches Finished", async () => {

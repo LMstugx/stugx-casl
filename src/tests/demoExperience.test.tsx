@@ -54,7 +54,8 @@ describe("demo recording experience", () => {
       "C++: While Sum",
       "C++: For Sum",
       "C++: For Sum Sugar",
-      "C++: Break Continue"
+      "C++: Break Continue",
+      "C++: Double Storage"
     ]);
   });
 
@@ -433,7 +434,8 @@ describe("demo recording experience", () => {
       "cpp-while-sum",
       "cpp-for-sum",
       "cpp-for-sum-sugar",
-      "cpp-break-continue"
+      "cpp-break-continue",
+      "cpp-double-storage"
     ]);
   });
 

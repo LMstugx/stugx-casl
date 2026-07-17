@@ -12,7 +12,8 @@ export function transpileCppToCasl(source: string): TranspileResult {
       ok: false,
       caslSource: "",
       diagnostics: semantic.diagnostics,
-      mapping: []
+      mapping: [],
+      storageObjects: []
     };
   }
 
@@ -22,7 +23,8 @@ export function transpileCppToCasl(source: string): TranspileResult {
       ok: true,
       caslSource: generated.caslSource,
       diagnostics: [],
-      mapping: generated.mapping
+      mapping: generated.mapping,
+      storageObjects: generated.storageObjects
     };
   } catch (error) {
     const rawContext = error instanceof Error ? error.message : String(error);
@@ -33,9 +35,10 @@ export function transpileCppToCasl(source: string): TranspileResult {
         producer: "transpiler",
         rawContext
       })],
-      mapping: []
+      mapping: [],
+      storageObjects: []
     };
   }
 }
 
-export type { CppToCaslMap, TranspileResult } from "./cppAst";
+export type { CppStorageObject, CppToCaslMap, TranspileResult } from "./cppAst";

@@ -1,6 +1,9 @@
-import type { Diagnostic } from "../core/types";
+import type { Diagnostic, SourceRange } from "../core/types";
+import type { SourceUnitId } from "../documents/types";
+import type { Binary64Representation, Binary64Words } from "./doubleRepresentation";
+import type { CppScalarType } from "./cppScalarTypes";
 
-export type CppExpression = CppIdentifier | CppIntegerLiteral | CppBinaryExpression | CppCallExpression;
+export type CppExpression = CppIdentifier | CppIntegerLiteral | CppDoubleLiteral | CppBinaryExpression | CppCallExpression;
 
 export type CppStatement =
   | CppVarDecl
@@ -39,7 +42,12 @@ export type CppToCaslMapKind =
   | "function-declaration"
   | "function-label"
   | "function-call"
-  | "function-return";
+  | "function-return"
+  | "double-initializer"
+  | "double-literal-assignment"
+  | "double-copy-read"
+  | "double-copy-write"
+  | "double-storage";
 
 export interface CppProgram {
   kind: "Program";
@@ -50,22 +58,27 @@ export interface CppProgram {
 export interface CppFunction {
   kind: "Function";
   name: string;
-  returnType: "int";
+  returnType: CppScalarType;
   line: number;
+  sourceRange?: SourceRange;
   parameters: CppParameter[];
   body: CppStatement[];
 }
 
 export interface CppParameter {
   name: string;
-  type: "int";
+  type: CppScalarType;
   line: number;
+  sourceRange?: SourceRange;
 }
 
 export interface CppVarDecl {
   kind: "VarDecl";
   line: number;
   name: string;
+  scalarType: CppScalarType;
+  declarationRange?: SourceRange;
+  isArray?: boolean;
   initializer?: CppExpression;
 }
 
@@ -123,12 +136,14 @@ export interface CppCondition {
   left: CppExpression;
   operator: CppConditionOperator;
   right: CppExpression;
+  sourceRange?: SourceRange;
 }
 
 export interface CppIdentifier {
   kind: "Identifier";
   line: number;
   name: string;
+  sourceRange?: SourceRange;
 }
 
 export interface CppIntegerLiteral {
@@ -136,14 +151,27 @@ export interface CppIntegerLiteral {
   line: number;
   value: number;
   raw: string;
+  sourceRange?: SourceRange;
+}
+
+export interface CppDoubleLiteral {
+  kind: "DoubleLiteral";
+  line: number;
+  value: number;
+  raw: string;
+  representation: Binary64Representation;
+  literalIssue?: "invalid" | "out-of-range" | "unsupported-suffix";
+  suffix?: string;
+  sourceRange?: SourceRange;
 }
 
 export interface CppBinaryExpression {
   kind: "BinaryExpression";
   line: number;
-  operator: "+" | "-";
+  operator: "+" | "-" | "*" | "/";
   left: CppExpression;
   right: CppExpression;
+  sourceRange?: SourceRange;
 }
 
 export interface CppCallExpression {
@@ -151,6 +179,7 @@ export interface CppCallExpression {
   line: number;
   callee: string;
   arguments: CppExpression[];
+  sourceRange?: SourceRange;
 }
 
 export interface CppVariableSymbol {
@@ -158,8 +187,34 @@ export interface CppVariableSymbol {
   functionName: string;
   label: string;
   declarationLine: number;
+  declarationRange?: SourceRange;
+  scalarType: CppScalarType;
+  storageWordCount: 1 | 4;
+  wordLabels: readonly string[];
   initializer?: number;
+  doubleInitializer?: Binary64Words;
   isParameter?: boolean;
+}
+
+export interface CppStorageWord {
+  index: number;
+  label: string;
+  bitRange?: string;
+  address?: number;
+}
+
+export interface CppStorageObject {
+  objectId: string;
+  symbolName: string;
+  sourceUnitId?: SourceUnitId;
+  functionName: string;
+  type: CppScalarType;
+  baseLabel: string;
+  baseAddress?: number;
+  wordCount: 1 | 4;
+  words: readonly CppStorageWord[];
+  declarationRange?: SourceRange;
+  currentLoweringMode: "static-label";
 }
 
 export interface SemanticResult {
@@ -173,6 +228,9 @@ export interface CppToCaslMap {
   caslLines: number[];
   reason: string;
   kind: CppToCaslMapKind;
+  objectId?: string;
+  wordIndex?: number;
+  operationId?: string;
 }
 
 export interface TranspileResult {
@@ -180,4 +238,5 @@ export interface TranspileResult {
   caslSource: string;
   diagnostics: Diagnostic[];
   mapping: CppToCaslMap[];
+  storageObjects: CppStorageObject[];
 }

@@ -43,7 +43,7 @@ describe("Phase 14H diagnostic localization baseline", () => {
   });
 
   it("baseline_codes_and_producers_match_runtime_registry", () => {
-    expect(baseline.structuredDiagnostics).toHaveLength(55);
+    expect(baseline.structuredDiagnostics).toHaveLength(64);
     expect(baseline.structuredDiagnostics.map((entry) => entry.code)).toEqual(diagnosticCodes);
     expect(baseline.producers).toEqual(diagnosticProducers);
     for (const entry of baseline.structuredDiagnostics) {

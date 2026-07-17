@@ -17,7 +17,7 @@ describe("C++ transpiler boundary diagnostics", () => {
     expect(diagnosticsFor("float main() { return 0; }")).toContain("only supports int function declarations");
     expect(diagnosticsFor("void main() { return 0; }")).toContain("only supports int function declarations");
     expect(diagnosticsFor("int main() { int* p; return 0; }")).toContain("pointer variables");
-    expect(diagnosticsFor("int main() { int a[1]; return 0; }")).toContain("Unsupported character '['");
+    expect(diagnosticsFor("int main() { int a[1]; return 0; }")).toContain("arrays are not supported");
     expect(diagnosticsFor("int main() { int& x; return 0; }")).toContain("Unsupported character '&'");
   });
 

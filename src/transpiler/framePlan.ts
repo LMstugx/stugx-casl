@@ -1,4 +1,5 @@
 import type { CppFunction, CppProgram, CppStatement, CppVarDecl } from "./cppAst";
+import { getScalarStorageWordCount } from "./cppScalarTypes";
 import { functionLabel } from "./cppSemantic";
 
 export type FrameSlotKind = "return-address" | "saved-fp" | "argument" | "local" | "temporary";
@@ -160,11 +161,12 @@ function buildFunctionFramePlan(fn: CppFunction, usedLabels: Set<string>, useSco
   });
 
   const localSlots = collectLocalDeclarations(fn.body).map((declaration): FrameSlot => {
+    const sizeWords = getScalarStorageWordCount(declaration.scalarType);
     const slot: FrameSlot = {
       name: declaration.name,
       kind: "local",
       offset: nextOffset,
-      sizeWords: 1,
+      sizeWords,
       sourceLine: declaration.line,
       storage: "static-label-current",
       currentLowering: "static-label",
@@ -177,7 +179,8 @@ function buildFunctionFramePlan(fn: CppFunction, usedLabels: Set<string>, useSco
   const warnings = [
     "Design-only FramePlan metadata is not emitted as CASL.",
     "Frame pointer strategy is undecided; current plan does not use a real FP.",
-    "Temporary frame slots are future work and are not generated yet."
+    "Temporary frame slots are future work and are not generated yet.",
+    "Double locals are shown as four-word static storage, not as live stack-frame slots."
   ];
   if (fn.name === "main") {
     warnings.push("main final RET currently preserves top-level finish compatibility.");

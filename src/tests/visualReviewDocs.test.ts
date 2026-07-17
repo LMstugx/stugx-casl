@@ -181,6 +181,9 @@ describe("visual review screenshot gallery setup", () => {
     expect(visualReviewDoc).toContain("Phase 15D captures the New dialog");
     expect(visualReviewDoc).toContain("Phase 18A.1");
     expect(visualReviewDoc).toContain("bounded diagnostic list");
+    expect(visualReviewDoc).toContain("cpp-double-storage-memory-word-copy.png");
+    expect(visualReviewDoc).toContain("cpp-double-inspector-ja.png");
+    expect(visualReviewDoc).toContain("cpp-double-unsupported-diagnostic.png");
   });
 
   it("package_json_has_visual_review_scripts", () => {

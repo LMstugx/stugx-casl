@@ -1,7 +1,16 @@
 import { CometState, formatWord } from "../core/types";
 import { useI18n } from "../i18n/useI18n";
+import type { CppToCaslMap } from "../transpiler/cppAst";
 
-export default function SourceMapPanel({ state, embedded = false }: { state: CometState; embedded?: boolean }) {
+export default function SourceMapPanel({
+  state,
+  embedded = false,
+  cppToCaslMapping = []
+}: {
+  state: CometState;
+  embedded?: boolean;
+  cppToCaslMapping?: readonly CppToCaslMap[];
+}) {
   const { t } = useI18n();
   return (
     <section className={embedded ? "embedded-panel" : "panel"}>
@@ -26,6 +35,7 @@ export default function SourceMapPanel({ state, embedded = false }: { state: Com
           ) : null}
           {state.sourceMap.map((entry) => {
             const isCurrent = entry.line === state.currentLine;
+            const wordMapping = cppToCaslMapping.find((mapping) => mapping.caslLines.includes(entry.line) && mapping.wordIndex !== undefined);
             return (
             <tr
               key={`${entry.line}-${entry.address}`}
@@ -35,7 +45,10 @@ export default function SourceMapPanel({ state, embedded = false }: { state: Com
             >
               <td className="mono-value" title={String(entry.line)}>{entry.line}</td>
               <td className="hex mono-value" title={formatWord(entry.address)}>{formatWord(entry.address)}</td>
-              <td className="hex mono-value" title={entry.machineWords.map((word) => formatWord(word)).join(" ")}>{entry.machineWords.map((word) => formatWord(word)).join(" ")}</td>
+              <td className="hex mono-value" title={entry.machineWords.map((word) => formatWord(word)).join(" ")}>
+                {entry.machineWords.map((word) => formatWord(word)).join(" ")}
+                {wordMapping?.wordIndex !== undefined ? <small className="source-map-word-index">{t("doubleTrace.wordOf", { word: wordMapping.wordIndex + 1 })}</small> : null}
+              </td>
             </tr>
             );
           })}

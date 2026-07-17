@@ -41,6 +41,7 @@ The C++ path is not a complete C++ compiler and does not execute native code or 
 
 - CASL II teaching-subset assembler and COMET II execution
 - bounded C++ subset lowering to inspectable CASL II
+- binary64 double storage and four-word assignment observation
 - Source, Generated CASL, Machine Code, and Trace mapping
 - CPU Flow, Register / Stack, and Code / Machine observation modes
 - clean-wire circuit visualization with active-flow-only emphasis
@@ -72,6 +73,7 @@ Additional commands are listed in [Build Commands](docs/reference/build-commands
 - [Architecture Overview](docs/developer/architecture-overview.md)
 - [Supported CASL Instructions](docs/reference/supported-casl-instructions.md)
 - [C++ Subset Capabilities](docs/reference/cpp-subset-capabilities.md)
+- [Double Memory Observation](docs/user/double-memory-observation.md)
 - [Architecture Decision Records](docs/adr/README.md)
 - [Changelog](CHANGELOG.md)
 - [Contributing](CONTRIBUTING.md)
@@ -82,7 +84,8 @@ Canonical guides describe current behavior. Existing `docs/phase*.md` files and 
 ## Limits
 
 - CASL support is the documented teaching subset, without a general macro system.
-- C++ does not include arrays, pointers, references, classes, templates, floating point, vectors, lambdas, recursion, overloads, or stack-frame lowering.
+- C++ double handling is limited to four-word storage and assignment observation; arithmetic, comparison, conversion, parameters, returns, and arrays are not included.
+- C++ does not include pointers, references, classes, templates, vectors, lambdas, recursion, overloads, or stack-frame lowering.
 - Browser direct Save depends on File System Access support; fallback creates a download copy.
 - Source, paths, handles, diagnostics, and VM state are not restored between sessions.
 - The Windows installer is unsigned and Tauri-native file I/O is deferred.

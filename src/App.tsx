@@ -153,6 +153,7 @@ function StudioShell({
     backendInfo,
     generatedCaslSource,
     cppToCaslMapping,
+    cppStorageObjects,
     selectedDemoProgramId,
     lessonProgress,
     observationMode,
@@ -462,6 +463,7 @@ function StudioShell({
           sourceText={sourceText}
           generatedCaslSource={generatedCaslSource}
           cppToCaslMapping={cppToCaslMapping}
+          cppStorageObjects={cppStorageObjects}
           isSourceDirty={isSourceDirty}
           timelineItems={timelineItems}
           observationMode={observationMode}
@@ -655,7 +657,14 @@ function StudioShell({
         </section>
 
         <aside className="right-column">
-          <InspectorPanel state={state} initialTab={inspectorActiveTab} onActiveTabChange={setInspectorActiveTab} />
+          <InspectorPanel
+            state={state}
+            initialTab={inspectorActiveTab}
+            onActiveTabChange={setInspectorActiveTab}
+            storageObjects={cppStorageObjects}
+            cppToCaslMapping={cppToCaslMapping}
+            sourceUnitId={sourceUnitId}
+          />
         </aside>
       </main>
       )}

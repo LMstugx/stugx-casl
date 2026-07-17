@@ -9,6 +9,7 @@ import type {
   CppCondition,
   CppContinueStatement,
   CppConditionOperator,
+  CppDoubleLiteral,
   CppExpression,
   CppForStatement,
   CppFunction,
@@ -22,6 +23,8 @@ import type {
   CppWhileStatement
 } from "./cppAst";
 import { CppToken, lexCpp } from "./cppLexer";
+import { encodeNumberToBinary64 } from "./doubleRepresentation";
+import type { CppScalarType } from "./cppScalarTypes";
 
 export interface ParseResult {
   program: CppProgram | null;
@@ -63,8 +66,9 @@ class Parser {
 
   private parseFunctionDeclaration(): CppFunction | null {
     const start = this.current();
-    if (!this.matchKeyword("int")) {
-      this.error(start, "Current C++ subset only supports int function declarations.", "cppParser.invalidFunctionDeclaration", { token: this.tokenText(start) });
+    const returnType = this.parseScalarType();
+    if (!returnType) {
+      this.error(start, "Current C++ subset only supports int function declarations, plus the explicitly restricted double storage subset.", "cppParser.invalidFunctionDeclaration", { token: this.tokenText(start) });
       return null;
     }
 
@@ -90,7 +94,7 @@ class Parser {
     }
 
     this.consumeSymbol("}", `Expected '}' to close ${name.value} body.`);
-    return { kind: "Function", name: name.value, returnType: "int", parameters, line: start.line, body };
+    return { kind: "Function", name: name.value, returnType, parameters, line: start.line, sourceRange: this.range(start, name), body };
   }
 
   private parseFunctionParameters(): CppParameter[] {
@@ -99,15 +103,16 @@ class Parser {
 
     while (!this.is("eof") && !this.checkSymbol(")")) {
       const start = this.current();
-      if (!this.matchKeyword("int")) {
-        this.error(start, "Function parameters must be int.", "cppParser.invalidParameterList", { token: this.tokenText(start) });
+      const type = this.parseScalarType();
+      if (!type) {
+        this.error(start, "Function parameters must use a supported scalar type.", "cppParser.invalidParameterList", { token: this.tokenText(start) });
         this.synchronizeFunctionParameter();
       } else {
         if (this.matchSymbol("*")) {
           this.error(this.previous(), "Current C++ subset does not support pointer parameters.", "cppParser.invalidParameterList", { token: "*" });
         }
-        const name = this.consume("identifier", "Expected parameter name after int.");
-        if (name) parameters.push({ name: name.value, type: "int", line: name.line });
+        const name = this.consume("identifier", `Expected parameter name after ${type}.`);
+        if (name) parameters.push({ name: name.value, type, line: name.line, sourceRange: this.range(start, name) });
       }
 
       if (!this.matchSymbol(",")) break;
@@ -117,7 +122,7 @@ class Parser {
   }
 
   private parseStatement(): CppStatement | null {
-    if (this.checkKeyword("int")) return this.parseVarDecl();
+    if (this.checkKeyword("int") || this.checkKeyword("double")) return this.parseVarDecl();
     if (this.checkKeyword("return")) return this.parseReturn();
     if (this.checkKeyword("if")) return this.parseIf();
     if (this.checkKeyword("while")) return this.parseWhile();
@@ -138,22 +143,40 @@ class Parser {
 
   private parseVarDeclInternal(expectSemicolon: boolean): CppVarDecl | null {
     const start = this.advance();
+    const scalarType = start.value as CppScalarType;
     if (this.matchSymbol("*")) {
       this.error(this.previous(), "Current C++ subset does not support pointer variables.", "cppParser.invalidVariableDeclaration", { token: "*" });
       this.synchronize();
       return null;
     }
 
-    const name = this.consume("identifier", "Expected variable name after int.");
+    const name = this.consume("identifier", `Expected variable name after ${scalarType}.`);
     if (!name) {
       this.synchronize();
       return null;
     }
 
+    let isArray = false;
+    let declarationEnd = name;
+    if (this.matchSymbol("[")) {
+      isArray = true;
+      if (this.check("integer")) declarationEnd = this.advance();
+      const closing = this.consumeSymbol("]", "Expected ']' after array bound.");
+      if (closing) declarationEnd = closing;
+    }
+
     let initializer: CppExpression | undefined;
     if (this.matchSymbol("=")) initializer = this.parseExpression();
     if (expectSemicolon) this.consumeSymbol(";", "Expected ';' after variable declaration.");
-    return { kind: "VarDecl", line: start.line, name: name.value, initializer };
+    return {
+      kind: "VarDecl",
+      line: start.line,
+      name: name.value,
+      scalarType,
+      declarationRange: this.range(start, declarationEnd),
+      isArray,
+      initializer
+    };
   }
 
   private parseAssignment(): CppAssignment | null {
@@ -296,7 +319,7 @@ class Parser {
     let initializer: CppVarDecl | CppAssignment | null = null;
     if (this.matchSymbol(";")) {
       initializer = null;
-    } else if (this.checkKeyword("int")) {
+    } else if (this.checkKeyword("int") || this.checkKeyword("double")) {
       initializer = this.parseVarDeclInternal(false);
       this.consumeSymbol(";", "Expected ';' after for initializer.");
     } else if (this.check("identifier")) {
@@ -356,16 +379,34 @@ class Parser {
     this.advance();
     const right = this.parseExpression();
     if (!right) return undefined;
-    return { kind: "Condition", line: left.line, left, operator: operator.value, right };
+    return {
+      kind: "Condition",
+      line: left.line,
+      left,
+      operator: operator.value,
+      right,
+      sourceRange: left.sourceRange && right.sourceRange
+        ? { start: left.sourceRange.start, end: right.sourceRange.end }
+        : undefined
+    };
   }
 
   private parseExpression(): CppExpression | undefined {
     let expression = this.parsePrimary();
-    while (expression && (this.matchSymbol("+") || this.matchSymbol("-"))) {
+    while (expression && (this.matchSymbol("+") || this.matchSymbol("-") || this.matchSymbol("*") || this.matchSymbol("/"))) {
       const operator = this.previous().value as CppBinaryExpression["operator"];
       const right = this.parsePrimary();
       if (!right) return expression;
-      expression = { kind: "BinaryExpression", line: expression.line, operator, left: expression, right };
+      expression = {
+        kind: "BinaryExpression",
+        line: expression.line,
+        operator,
+        left: expression,
+        right,
+        sourceRange: expression.sourceRange && right.sourceRange
+          ? { start: expression.sourceRange.start, end: right.sourceRange.end }
+          : undefined
+      };
     }
     return expression;
   }
@@ -373,14 +414,22 @@ class Parser {
   private parsePrimary(): CppExpression | undefined {
     if (this.match("integer")) {
       const token = this.previous();
-      return { kind: "IntegerLiteral", line: token.line, value: Number(token.value), raw: token.value } satisfies CppIntegerLiteral;
+      return { kind: "IntegerLiteral", line: token.line, value: Number(token.value), raw: token.value, sourceRange: this.range(token) } satisfies CppIntegerLiteral;
+    }
+
+    if (this.match("floating")) {
+      return this.doubleLiteral(this.previous());
     }
 
     if (this.matchSymbol("-")) {
       const sign = this.previous();
-      const number = this.consume("integer", "Expected integer literal after unary '-'.");
-      if (!number) return undefined;
-      return { kind: "IntegerLiteral", line: sign.line, value: -Number(number.value), raw: `-${number.value}` };
+      const number = this.current();
+      if (!this.match("integer") && !this.match("floating")) {
+        this.error(number, "Expected numeric literal after unary '-'.", "cppParser.unsupportedExpression", { token: this.tokenText(number) });
+        return undefined;
+      }
+      if (number.kind === "floating") return this.doubleLiteral(number, sign);
+      return { kind: "IntegerLiteral", line: sign.line, value: -Number(number.value), raw: `-${number.value}`, sourceRange: this.range(sign, number) };
     }
 
     if (this.match("identifier")) {
@@ -388,7 +437,7 @@ class Parser {
       if (this.checkSymbol("(")) {
         return this.parseCallExpression(token);
       }
-      return { kind: "Identifier", line: token.line, name: token.value };
+      return { kind: "Identifier", line: token.line, name: token.value, sourceRange: this.range(token) };
     }
 
     this.error(this.current(), "Expected integer literal or identifier expression.", "cppParser.unsupportedExpression", { token: this.tokenText(this.current()) });
@@ -405,8 +454,14 @@ class Parser {
         if (!this.matchSymbol(",")) break;
       }
     }
-    this.consumeSymbol(")", "Expected ')' after function call.");
-    return { kind: "CallExpression", line: callee.line, callee: callee.value, arguments: args };
+    const closing = this.consumeSymbol(")", "Expected ')' after function call.");
+    return {
+      kind: "CallExpression",
+      line: callee.line,
+      callee: callee.value,
+      arguments: args,
+      sourceRange: this.range(callee, closing ?? callee)
+    };
   }
 
   private synchronize() {
@@ -516,5 +571,47 @@ class Parser {
 
   private tokenText(token: CppToken): string {
     return token.kind === "eof" ? "end of file" : token.value;
+  }
+
+  private parseScalarType(): CppScalarType | null {
+    if (this.matchKeyword("int")) return "int";
+    if (this.matchKeyword("double")) return "double";
+    return null;
+  }
+
+  private doubleLiteral(token: CppToken, sign?: CppToken): CppDoubleLiteral {
+    const raw = `${sign ? "-" : ""}${token.value}`;
+    const numericPattern = "(?:\\d+\\.\\d*|\\d*\\.\\d+|\\d+[eE][+-]?\\d+|\\d+\\.\\d*[eE][+-]?\\d+|\\d*\\.\\d+[eE][+-]?\\d+)";
+    const exactNumeric = new RegExp(`^${numericPattern}$`);
+    const suffixParts = token.value.match(new RegExp(`^(${numericPattern})([A-Za-z_][A-Za-z0-9_]*)$`));
+    const hasMalformedExponent = /[eE][+-]?$/.test(token.value);
+    const suffix = exactNumeric.test(token.value) || hasMalformedExponent ? undefined : suffixParts?.[2];
+    const numericText = suffix ? suffixParts?.[1] ?? token.value : token.value;
+    const validSyntax = exactNumeric.test(numericText);
+    const numericValue = validSyntax ? Number(`${sign ? "-" : ""}${numericText}`) : Number.NaN;
+    const literalIssue = suffix
+      ? "unsupported-suffix"
+      : !validSyntax || token.value.length > 256
+        ? "invalid"
+        : !Number.isFinite(numericValue)
+          ? "out-of-range"
+          : undefined;
+    return {
+      kind: "DoubleLiteral",
+      line: sign?.line ?? token.line,
+      value: numericValue,
+      raw,
+      representation: encodeNumberToBinary64(numericValue),
+      ...(literalIssue ? { literalIssue } : {}),
+      ...(suffix ? { suffix } : {}),
+      sourceRange: this.range(sign ?? token, token)
+    };
+  }
+
+  private range(start: CppToken, end: CppToken = start) {
+    return {
+      start: { line: start.line, column: start.column, offset: start.startOffset },
+      end: { line: end.endLine, column: end.endColumn, offset: end.endOffset }
+    };
   }
 }

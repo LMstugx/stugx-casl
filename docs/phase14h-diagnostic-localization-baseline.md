@@ -6,13 +6,13 @@ Phase 14H freezes the structured diagnostic and localization contract created in
 
 ## Frozen Diagnostic Contract
 
-The baseline contains 55 structured codes and the eight existing producers. Runtime TypeScript registries remain the source of truth; [diagnostic-localization-baseline-v1.json](diagnostic-localization-baseline-v1.json) is a checked snapshot. Tests fail when code order, allowed producers, required/optional params, locale coverage, backend ownership, or parity scope drift.
+Phase 14H originally froze 55 structured codes and the eight existing producers. Phase 19A later appended nine explicitly reviewed double-boundary semantic codes, so the checked [diagnostic-localization-baseline-v1.json](diagnostic-localization-baseline-v1.json) now contains 64 entries while retaining the original 55 unchanged. Runtime TypeScript registries remain the source of truth.
 
 The manifest is not imported by runtime code and cannot change behavior. Future contract changes require an explicit baseline version rather than silently editing v1.
 
 ## Structured Payload Baseline
 
-Structured payloads retain `code`, `producer`, strict `params`, `severity`, optional primary range, optional related locations, optional `rawContext`, and canonical fallback text. All 55 codes have English, Japanese, and Simplified Chinese resources. Technical parameters remain verbatim.
+Structured payloads retain `code`, `producer`, strict `params`, `severity`, optional primary range, optional related locations, optional `rawContext`, and canonical fallback text. All 64 current codes have English, Japanese, and Simplified Chinese resources. Technical parameters remain verbatim.
 
 ## Legacy Compatibility
 

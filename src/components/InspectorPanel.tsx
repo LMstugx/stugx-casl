@@ -9,6 +9,7 @@ import { translateRunState } from "../i18n/locale";
 import { useI18n } from "../i18n/useI18n";
 import type { TranslationKey } from "../i18n/types";
 import type { InspectorActiveTab } from "../preferences/types";
+import type { CppStorageObject, CppToCaslMap } from "../transpiler/cppAst";
 
 type InspectorTab = "registers" | "memory" | "sourceMap" | "trace";
 
@@ -23,6 +24,9 @@ type InspectorPanelProps = {
   state: CometState;
   initialTab?: InspectorActiveTab;
   onActiveTabChange?: (tab: InspectorActiveTab) => void;
+  storageObjects?: readonly CppStorageObject[];
+  cppToCaslMapping?: readonly CppToCaslMap[];
+  sourceUnitId?: string;
 };
 
 function fromPreferenceTab(tab: InspectorActiveTab): InspectorTab {
@@ -33,7 +37,14 @@ function toPreferenceTab(tab: InspectorTab): InspectorActiveTab {
   return tab === "sourceMap" ? "source-map" : tab;
 }
 
-export default function InspectorPanel({ state, initialTab = "registers", onActiveTabChange }: InspectorPanelProps) {
+export default function InspectorPanel({
+  state,
+  initialTab = "registers",
+  onActiveTabChange,
+  storageObjects = [],
+  cppToCaslMapping = [],
+  sourceUnitId
+}: InspectorPanelProps) {
   const { t } = useI18n();
   const [activeTab, setActiveTab] = useState<InspectorTab>(() => fromPreferenceTab(initialTab));
 
@@ -80,9 +91,9 @@ export default function InspectorPanel({ state, initialTab = "registers", onActi
         aria-labelledby={`inspector-tab-${activeTab}`}
       >
         {activeTab === "registers" ? <RegisterPanel state={state} embedded /> : null}
-        {activeTab === "memory" ? <MemoryPanel state={state} embedded /> : null}
-        {activeTab === "sourceMap" ? <SourceMapPanel state={state} embedded /> : null}
-        {activeTab === "trace" ? <TracePanel state={state} embedded /> : null}
+        {activeTab === "memory" ? <MemoryPanel key={sourceUnitId} state={state} embedded storageObjects={storageObjects} /> : null}
+        {activeTab === "sourceMap" ? <SourceMapPanel state={state} embedded cppToCaslMapping={cppToCaslMapping} /> : null}
+        {activeTab === "trace" ? <TracePanel state={state} embedded storageObjects={storageObjects} cppToCaslMapping={cppToCaslMapping} /> : null}
       </div>
     </section>
   );

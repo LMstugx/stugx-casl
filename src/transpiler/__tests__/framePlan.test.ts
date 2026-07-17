@@ -33,6 +33,22 @@ int main() {
 }`;
 
 describe("FramePlan generator scaffold", () => {
+  it("represents double locals as four-word static storage", () => {
+    const collection = buildPlans(`int main() {
+    double value = 3.5;
+    return 0;
+}`);
+    const slot = collection.functions[0].localSlots[0];
+    expect(slot).toMatchObject({
+      name: "value",
+      sizeWords: 4,
+      storage: "static-label-current",
+      currentLowering: "static-label",
+      labelForDebug: "VALUE"
+    });
+    expect(collection.functions[0].frameSizeWords).toBe(5);
+  });
+
   it("frame_plan_exists_for_main", () => {
     const collection = buildPlans(`int main() {
     int x;

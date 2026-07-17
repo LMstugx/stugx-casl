@@ -5,6 +5,7 @@ export const CANONICAL_DOCS = Object.freeze([
   "docs/user/observation-modes.md",
   "docs/user/casl-workflow.md",
   "docs/user/cpp-subset-workflow.md",
+  "docs/user/double-memory-observation.md",
   "docs/user/generated-casl-machine-code.md",
   "docs/user/open-save-new.md",
   "docs/user/diagnostics.md",
@@ -18,6 +19,7 @@ export const CANONICAL_DOCS = Object.freeze([
   "docs/developer/repository-structure.md",
   "docs/developer/frontend-state-management.md",
   "docs/developer/cpp-to-casl-pipeline.md",
+  "docs/developer/double-lowering.md",
   "docs/developer/casl-assembler.md",
   "docs/developer/comet-vm.md",
   "docs/developer/wasm-bridge.md",
@@ -33,6 +35,7 @@ export const CANONICAL_DOCS = Object.freeze([
   "docs/reference/supported-casl-instructions.md",
   "docs/reference/casl-syntax-support.md",
   "docs/reference/cpp-subset-capabilities.md",
+  "docs/reference/cpp-double-support.md",
   "docs/reference/unsupported-cpp-features.md",
   "docs/reference/diagnostic-codes.md",
   "docs/reference/storage-keys.md",
@@ -50,7 +53,8 @@ export const CANONICAL_DOCS = Object.freeze([
   "docs/adr/0006-independent-persistence-stores.md",
   "docs/adr/0007-browser-file-lifecycle.md",
   "docs/adr/0008-tauri-minimal-capabilities.md",
-  "docs/adr/0009-static-cloudflare-deployment.md"
+  "docs/adr/0009-static-cloudflare-deployment.md",
+  "docs/adr/0010-double-teaching-abi.md"
 ]);
 
 export const REQUIRED_HEADER_FIELDS = Object.freeze([

@@ -1149,6 +1149,127 @@ export const learningLessons: LearningLesson[] = [
       "Why does continue target FOR_CONTINUE instead of FOR_BEGIN?",
       "How does Machine Code show the jump target address?"
     ]
+  },
+  {
+    lessonId: "cpp-double-storage",
+    exampleId: "cpp-double-storage",
+    progressCompatibilityVersion: 1,
+    title: "Observe double as four 16-bit words",
+    level: "C++ to CASL",
+    concepts: ["double storage", "IEEE-754 binary64", "four-word copy", "high-word first", "LD / ST", "teaching ABI"],
+    learningGoals: [
+      "Read a double object as four consecutive 16-bit COMET II memory words.",
+      "Follow double copy assignment as four ordinary LD / ST transfers.",
+      "Distinguish representation teaching from unsupported floating-point arithmetic."
+    ],
+    observe: ["x and y storage labels", "word 1 through word 4 transfers", "Double Value Inspector raw bits", "x remaining unchanged"],
+    suggestedSteps: [
+      {
+        stepId: "assemble-source",
+        label: "Assemble source",
+        action: "Click Assemble.",
+        expectedObservation: "The C++ subset transpiles without using a native FPU.",
+        recommendedTab: "Generated CASL"
+      },
+      {
+        stepId: "inspect-generated-storage",
+        label: "Inspect four-word storage",
+        action: "Open Generated CASL and find X, X_W1, X_W2, and X_W3.",
+        expectedObservation: "Each double object has four consecutive DS words.",
+        recommendedTab: "Generated CASL"
+      },
+      {
+        stepId: "open-memory",
+        label: "Open Memory",
+        action: "Open the Memory inspector.",
+        expectedObservation: "The x and y words are grouped with binary64 bit ranges.",
+        recommendedTab: "Memory"
+      },
+      {
+        stepId: "select-x",
+        label: "Decode x",
+        action: "Select x in the Memory object selector.",
+        expectedObservation: "Raw hex becomes 400C000000000000 after x initialization.",
+        recommendedTab: "Memory"
+      },
+      {
+        stepId: "step-to-copy",
+        label: "Step to y = x",
+        action: "Step until the double copy assignment begins.",
+        expectedObservation: "Trace identifies one semantic y = x operation.",
+        recommendedTab: "Trace"
+      },
+      {
+        stepId: "observe-word-reads",
+        label: "Observe word reads",
+        action: "Step each LD from x.",
+        expectedObservation: "Memory, MDR, and GR1 show one 16-bit word at a time.",
+        recommendedTab: "Trace"
+      },
+      {
+        stepId: "observe-word-writes",
+        label: "Observe word writes",
+        action: "Step each ST to y.",
+        expectedObservation: "Only the current y word changes on each write.",
+        recommendedTab: "Memory"
+      },
+      {
+        stepId: "confirm-y-bits",
+        label: "Confirm y raw bits",
+        action: "Select y after the fourth write.",
+        expectedObservation: "Raw hex is 400C000000000000.",
+        recommendedTab: "Memory"
+      },
+      {
+        stepId: "confirm-y-value",
+        label: "Confirm decoded value",
+        action: "Read the decoded value in Double Value Inspector.",
+        expectedObservation: "y decodes to 3.5.",
+        recommendedTab: "Memory"
+      },
+      {
+        stepId: "confirm-copy-not-move",
+        label: "Confirm copy semantics",
+        action: "Select x again.",
+        expectedObservation: "x remains 3.5; the assignment did not clear or move from x.",
+        recommendedTab: "Memory"
+      }
+    ],
+    checkpoints: [
+      {
+        id: "x-binary64",
+        label: "x representation",
+        expected: "x words are 400C 0000 0000 0000.",
+        whereToLook: "Memory / Double Value Inspector",
+        note: "The teaching ABI stores logical word 0 first."
+      },
+      {
+        id: "y-copy-order",
+        label: "y copy order",
+        expected: "Trace shows word 1 / 4 through word 4 / 4 in stable order.",
+        whereToLook: "Trace",
+        note: "Each word uses a real LD followed by a real ST."
+      },
+      {
+        id: "y-decoded-value",
+        label: "y final value",
+        expected: "y raw hex is 400C000000000000 and decoded value is 3.5.",
+        whereToLook: "Double Value Inspector",
+        note: "COMET II itself still performs only 16-bit transfers."
+      },
+      {
+        id: "x-preserved",
+        label: "x is preserved",
+        expected: "x remains 3.5 after y = x.",
+        whereToLook: "Double Value Inspector",
+        note: "This is copy assignment, not move assignment."
+      }
+    ],
+    commonQuestions: [
+      "Why are four LD / ST pairs needed?",
+      "Does COMET II have a double instruction or FPU?",
+      "Why is the high word stored first?"
+    ]
   }
 ];
 

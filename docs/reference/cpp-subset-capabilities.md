@@ -20,6 +20,7 @@ The accepted language is an explicit teaching subset.
 ## Statements
 
 - `int` variable declarations
+- function-local `double` declarations with finite floating-literal initialization
 - assignment
 - `return`
 - `if` / `else`
@@ -30,9 +31,16 @@ The accepted language is an explicit teaching subset.
 ## Expressions and Conditions
 
 - integer literals and identifiers
+- decimal and scientific floating literals in the bounded double storage path
 - binary `+` and `-`
 - direct function calls in supported positions
 - `==`, `!=`, `<`, `<=`, `>`, `>=`
 - `i++`, `++i`, `i--`, `--i`, `+=`, and `-=`
 
 The implementation parses this subset itself, emits CASL II, assembles it, and executes COMET II code. It does not use native C++ execution or system headers.
+
+## Double Storage Observation
+
+The bounded double path accepts literal initialization, literal assignment, and double-to-double assignment. Each object uses four logical high-word-first 16-bit words. It exposes binary64 storage and copy behavior only; arithmetic, comparison, conversion, parameters, returns, and arrays remain rejected.
+
+See [C++ Double Support](cpp-double-support.md) and the [Double Teaching ABI](../cpp-double-teaching-abi.md).

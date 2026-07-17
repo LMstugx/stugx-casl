@@ -133,6 +133,23 @@
       ]
     },
     {
+      "lessonId": "cpp-double-storage",
+      "exampleId": "cpp-double-storage",
+      "progressCompatibilityVersion": 1,
+      "stepIds": [
+        "assemble-source",
+        "inspect-generated-storage",
+        "open-memory",
+        "select-x",
+        "step-to-copy",
+        "observe-word-reads",
+        "observe-word-writes",
+        "confirm-y-bits",
+        "confirm-y-value",
+        "confirm-copy-not-move"
+      ]
+    },
+    {
       "lessonId": "cpp-for-sum",
       "exampleId": "cpp-for-sum",
       "progressCompatibilityVersion": 1,

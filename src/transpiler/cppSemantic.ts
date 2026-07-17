@@ -12,6 +12,7 @@ import type {
   CppVariableSymbol,
   SemanticResult
 } from "./cppAst";
+import { getScalarStorageLayout, getScalarStorageWordCount, isAssignmentCompatible, type CppScalarType } from "./cppScalarTypes";
 
 const INT16_MIN = -32768;
 const INT16_MAX = 32767;
@@ -140,6 +141,11 @@ export function checkCppSemantics(program: CppProgram | null, parseDiagnostics: 
       loopDepth: 0,
       source
     };
+    if (fn.returnType === "double") {
+      context.diagnostics.push(createStructuredDiagnostic(fn.line, "double function return types are not supported yet", "semantic.unsupportedDoubleReturn", {
+        function: fn.name
+      }, "error", fn.sourceRange ? { sourceRange: fn.sourceRange } : metadataForText(source, fn.line, fn.name)));
+    }
     validateFunctionParameters(fn, context);
     validateStatements(fn.body, context);
   }
@@ -163,6 +169,12 @@ function validateFunctionParameters(fn: CppFunction, context: ValidationContext)
   }
 
   for (const parameter of fn.parameters) {
+    if (parameter.type === "double") {
+      context.diagnostics.push(createStructuredDiagnostic(parameter.line, "double function parameters are not supported yet", "semantic.unsupportedDoubleParameter", {
+        function: fn.name,
+        parameter: parameter.name
+      }, "error", parameter.sourceRange ? { sourceRange: parameter.sourceRange } : metadataForText(context.source, parameter.line, parameter.name)));
+    }
     if (context.variables.has(parameter.name)) {
       const first = context.variables.get(parameter.name);
       context.diagnostics.push(createStructuredDiagnostic(parameter.line, "duplicate parameter name", "semantic.duplicateParameter", {
@@ -172,11 +184,16 @@ function validateFunctionParameters(fn: CppFunction, context: ValidationContext)
       continue;
     }
 
-    const symbol = {
+    const wordLabels = makeStorageLabels(`${functionLabel(context.functionName)}_${parameter.name}`, parameter.type, context.usedLabels);
+    const symbol: CppVariableSymbol = {
       name: parameter.name,
       functionName: context.functionName,
-      label: makeSafeLabel(`${functionLabel(context.functionName)}_${parameter.name}`, context.usedLabels),
+      label: wordLabels[0],
       declarationLine: parameter.line,
+      declarationRange: parameter.sourceRange,
+      scalarType: parameter.type,
+      storageWordCount: getScalarStorageWordCount(parameter.type),
+      wordLabels,
       isParameter: true
     };
     context.variables.set(parameter.name, symbol);
@@ -198,6 +215,11 @@ function validateStatements(statements: CppStatement[], context: ValidationConte
 
     if (statement.kind === "Return") {
       validateTopLevelExpression(statement.expression, context, "return");
+      if (expressionType(statement.expression, context) === "double") {
+        context.diagnostics.push(createStructuredDiagnostic(statement.line, "double return values are not supported yet", "semantic.unsupportedDoubleReturn", {
+          function: context.functionName
+        }, "error", statement.expression.sourceRange ? { sourceRange: statement.expression.sourceRange } : metadataForText(context.source, statement.line, expressionText(statement.expression))));
+      }
       continue;
     }
 
@@ -266,33 +288,92 @@ function validateVarDecl(statement: CppVarDecl, context: ValidationContext, stor
     }, "error", metadataForText(context.source, statement.line, statement.name, existing.declarationLine)));
     return;
   }
+  if (statement.isArray) {
+    if (statement.scalarType === "double") {
+      context.diagnostics.push(createStructuredDiagnostic(statement.line, "double arrays are not supported yet", "semantic.unsupportedDoubleArray", {
+        variable: statement.name
+      }, "error", statement.declarationRange ? { sourceRange: statement.declarationRange } : metadataForText(context.source, statement.line, statement.name)));
+    } else {
+      context.diagnostics.push(createStructuredDiagnostic(statement.line, "arrays are not supported by the current C++ subset", "transpiler.unsupportedExpression", {
+        construct: "arrays"
+      }, "error", statement.declarationRange ? { sourceRange: statement.declarationRange } : metadataForText(context.source, statement.line, statement.name)));
+    }
+  }
   const initializer = statement.initializer;
-  if (initializer && initializer.kind !== "IntegerLiteral") {
+  if (statement.scalarType === "int" && initializer?.kind === "DoubleLiteral") {
+    context.diagnostics.push(createStructuredDiagnostic(statement.line, "double values cannot initialize int variables", "semantic.incompatibleScalarAssignment", {
+      variable: statement.name,
+      fromType: "double",
+      toType: "int"
+    }, "error", {
+      ...(initializer.sourceRange ? { sourceRange: initializer.sourceRange } : metadataForText(context.source, statement.line, expressionText(initializer))),
+      ...(statement.declarationRange ? { relatedLocations: [{ label: "diagnostic.firstDeclaredHere", sourceRange: statement.declarationRange }] } : {})
+    }));
+  } else if (statement.scalarType === "int" && initializer && initializer.kind !== "IntegerLiteral") {
     context.diagnostics.push(createStructuredDiagnostic(statement.line, "Variable initializers in the current C++ subset must be integer literals.", "semantic.unsupportedInitializer", {
       variable: statement.name
     }, "error", metadataForText(context.source, statement.line, statement.name)));
     validateTopLevelExpression(initializer, context, "general");
   }
+  if (statement.scalarType === "double" && initializer && initializer.kind !== "DoubleLiteral") {
+    const fromType = expressionType(initializer, context) ?? "unknown";
+    context.diagnostics.push(createStructuredDiagnostic(statement.line, "double initializers must be floating-point literals", "semantic.incompatibleScalarAssignment", {
+      variable: statement.name,
+      fromType,
+      toType: "double"
+    }, "error", initializer.sourceRange ? { sourceRange: initializer.sourceRange } : metadataForText(context.source, statement.line, expressionText(initializer))));
+  }
   if (initializer?.kind === "IntegerLiteral") validateIntegerLiteral(initializer.value, initializer.raw, initializer.line, context.diagnostics, context.source);
-  const symbol = {
+  if (initializer?.kind === "DoubleLiteral") validateDoubleLiteral(initializer, context);
+  const baseName = context.useScopedLabels ? `${context.functionName}_${statement.name}` : statement.name;
+  const wordLabels = makeStorageLabels(baseName, statement.scalarType, context.usedLabels);
+  const symbol: CppVariableSymbol = {
     name: statement.name,
     functionName: context.functionName,
-    label: makeSafeLabel(context.useScopedLabels ? `${context.functionName}_${statement.name}` : statement.name, context.usedLabels),
+    label: wordLabels[0],
     declarationLine: statement.line,
-    initializer: storeLiteralInitializer && initializer?.kind === "IntegerLiteral" ? initializer.value : undefined
+    declarationRange: statement.declarationRange,
+    scalarType: statement.scalarType,
+    storageWordCount: getScalarStorageWordCount(statement.scalarType),
+    wordLabels,
+    initializer: statement.scalarType === "int" && storeLiteralInitializer && initializer?.kind === "IntegerLiteral" ? initializer.value : undefined,
+    doubleInitializer: statement.scalarType === "double" && initializer?.kind === "DoubleLiteral" && !initializer.literalIssue
+      ? initializer.representation.words
+      : undefined
   };
   context.variables.set(statement.name, symbol);
   context.allVariables.push(symbol);
 }
 
 function validateAssignment(statement: CppAssignment, context: ValidationContext): void {
-  if (!context.variables.has(statement.target)) {
+  const target = context.variables.get(statement.target);
+  if (!target) {
     context.diagnostics.push(createStructuredDiagnostic(statement.line, `Assignment target '${statement.target}' is not declared.`, "semantic.unknownVariable", {
       function: context.functionName,
       variable: statement.target
     }, "error", metadataForText(context.source, statement.line, statement.target)));
   }
   validateTopLevelExpression(statement.expression, context, "assignment");
+  const fromType = expressionType(statement.expression, context);
+  if (target && fromType && !isAssignmentCompatible(fromType, target.scalarType)) {
+    context.diagnostics.push(createStructuredDiagnostic(statement.line, "scalar assignment types are incompatible", "semantic.incompatibleScalarAssignment", {
+      variable: target.name,
+      fromType,
+      toType: target.scalarType
+    }, "error", {
+      ...(statement.expression.sourceRange ? { sourceRange: statement.expression.sourceRange } : metadataForText(context.source, statement.line, expressionText(statement.expression))),
+      ...(target.declarationRange ? { relatedLocations: [{ label: "diagnostic.firstDeclaredHere", sourceRange: target.declarationRange }] } : {})
+    }));
+  }
+  if (target?.scalarType === "double" && statement.expression.kind !== "DoubleLiteral" && statement.expression.kind !== "Identifier") {
+    if (statement.expression.kind !== "BinaryExpression") {
+      context.diagnostics.push(createStructuredDiagnostic(statement.line, "double assignment supports only a double literal or double variable", "semantic.incompatibleScalarAssignment", {
+        variable: target.name,
+        fromType: fromType ?? "unsupported expression",
+        toType: "double"
+      }, "error", statement.expression.sourceRange ? { sourceRange: statement.expression.sourceRange } : metadataForText(context.source, statement.line, expressionText(statement.expression))));
+    }
+  }
   if (statement.loweredFrom === "compound-assignment") validateCompoundAssignment(statement, context.diagnostics);
 }
 
@@ -368,6 +449,11 @@ function validateExpression(expression: CppExpression, context: ValidationContex
     return;
   }
 
+  if (expression.kind === "DoubleLiteral") {
+    validateDoubleLiteral(expression, context);
+    return;
+  }
+
   if (expression.kind === "CallExpression") {
     validateCallExpression(expression, context);
     return;
@@ -375,9 +461,30 @@ function validateExpression(expression: CppExpression, context: ValidationContex
 
   validateExpression(expression.left, context);
   validateExpression(expression.right, context);
+  const leftType = expressionType(expression.left, context);
+  const rightType = expressionType(expression.right, context);
+  if (leftType === "double" || rightType === "double") {
+    context.diagnostics.push(createStructuredDiagnostic(expression.line, "double arithmetic is not supported yet", "semantic.unsupportedDoubleArithmetic", {
+      operator: expression.operator
+    }, "error", expression.sourceRange ? { sourceRange: expression.sourceRange } : metadataForText(context.source, expression.line, expressionText(expression))));
+  } else if (expression.operator === "*" || expression.operator === "/") {
+    context.diagnostics.push(createStructuredDiagnostic(expression.line, "multiplication and division are not supported yet", "transpiler.unsupportedExpression", {
+      construct: `operator ${expression.operator}`
+    }, "error", expression.left.sourceRange ? { sourceRange: expression.left.sourceRange } : metadataForText(context.source, expression.line, expressionText(expression))));
+  }
 }
 
 function validateCondition(condition: CppCondition, context: ValidationContext): void {
+  const leftType = expressionType(condition.left, context);
+  const rightType = expressionType(condition.right, context);
+  if (leftType === "double" || rightType === "double") {
+    validateTopLevelExpression(condition.left, context, "general");
+    validateTopLevelExpression(condition.right, context, "general");
+    context.diagnostics.push(createStructuredDiagnostic(condition.line, "double comparisons are not supported yet", "semantic.unsupportedDoubleComparison", {
+      operator: condition.operator
+    }, "error", condition.sourceRange ? { sourceRange: condition.sourceRange } : metadataForText(context.source, condition.line, expressionText(condition.left))));
+    return;
+  }
   if (condition.left.kind === "BinaryExpression" || condition.right.kind === "BinaryExpression") {
     context.diagnostics.push(createStructuredDiagnostic(condition.line, "Current C++ subset if conditions support only identifiers and integer literals.", "semantic.invalidCondition", {
       construct: "if"
@@ -390,8 +497,14 @@ function validateCondition(condition: CppCondition, context: ValidationContext):
 }
 
 function validateCallExpression(expression: Extract<CppExpression, { kind: "CallExpression" }>, context: ValidationContext): void {
-  for (const arg of expression.arguments) {
+  for (const [index, arg] of expression.arguments.entries()) {
     validateFunctionCallArgument(arg, context);
+    if (expressionType(arg, context) === "double") {
+      context.diagnostics.push(createStructuredDiagnostic(arg.line, "double function arguments are not supported yet", "semantic.unsupportedDoubleParameter", {
+        function: expression.callee,
+        parameter: context.functionNames.get(expression.callee)?.parameters[index]?.name ?? `argument ${index + 1}`
+      }, "error", arg.sourceRange ? { sourceRange: arg.sourceRange } : metadataForText(context.source, arg.line, expressionText(arg))));
+    }
   }
   const callee = context.functionNames.get(expression.callee);
   if (!callee) {
@@ -421,7 +534,7 @@ function validateCallExpression(expression: Extract<CppExpression, { kind: "Call
 }
 
 function validateFunctionCallArgument(argument: CppExpression, context: ValidationContext): void {
-  if (argument.kind !== "Identifier" && argument.kind !== "IntegerLiteral") {
+  if (argument.kind !== "Identifier" && argument.kind !== "IntegerLiteral" && argument.kind !== "DoubleLiteral") {
     context.diagnostics.push(createStructuredDiagnostic(argument.line, "complex function call arguments are not supported yet", "transpiler.unsupportedCallArgument", {
       function: context.functionName,
       argumentCount: 1
@@ -444,6 +557,27 @@ function validateIntegerLiteral(value: number, raw: string, line: number, diagno
   }
 }
 
+function validateDoubleLiteral(expression: Extract<CppExpression, { kind: "DoubleLiteral" }>, context: ValidationContext): void {
+  if (expression.literalIssue === "unsupported-suffix") {
+    context.diagnostics.push(createStructuredDiagnostic(expression.line, "floating-point suffix is not supported", "semantic.unsupportedFloatingSuffix", {
+      literal: expression.raw,
+      suffix: expression.suffix ?? ""
+    }, "error", expression.sourceRange ? { sourceRange: expression.sourceRange } : metadataForText(context.source, expression.line, expression.raw)));
+    return;
+  }
+  if (expression.literalIssue === "out-of-range") {
+    context.diagnostics.push(createStructuredDiagnostic(expression.line, "floating-point literal is out of range", "semantic.floatingLiteralOutOfRange", {
+      literal: expression.raw
+    }, "error", expression.sourceRange ? { sourceRange: expression.sourceRange } : metadataForText(context.source, expression.line, expression.raw)));
+    return;
+  }
+  if (expression.literalIssue === "invalid") {
+    context.diagnostics.push(createStructuredDiagnostic(expression.line, "invalid floating-point literal", "semantic.invalidFloatingLiteral", {
+      literal: expression.raw
+    }, "error", expression.sourceRange ? { sourceRange: expression.sourceRange } : metadataForText(context.source, expression.line, expression.raw)));
+  }
+}
+
 function makeSafeLabel(name: string, usedLabels: Set<string>): string {
   let base = name.toUpperCase().replace(/[^A-Z0-9_]/g, "_");
   if (!/^[A-Z]/.test(base)) base = `VAR_${base}`;
@@ -456,6 +590,17 @@ function makeSafeLabel(name: string, usedLabels: Set<string>): string {
   }
   usedLabels.add(label);
   return label;
+}
+
+function makeStorageLabels(name: string, type: CppScalarType, usedLabels: Set<string>): readonly string[] {
+  const base = makeSafeLabel(name, usedLabels);
+  if (type === "int") return [base];
+  return [
+    base,
+    makeSafeLabel(`${base}_W1`, usedLabels),
+    makeSafeLabel(`${base}_W2`, usedLabels),
+    makeSafeLabel(`${base}_W3`, usedLabels)
+  ];
 }
 
 export function variableLabelMap(variables: CppVariableSymbol[]): Map<string, string> {
@@ -495,6 +640,17 @@ function functionNameRange(source: string, functions: readonly CppFunction[], ta
 function expressionText(expression: CppExpression): string {
   if (expression.kind === "Identifier") return expression.name;
   if (expression.kind === "IntegerLiteral") return expression.raw;
+  if (expression.kind === "DoubleLiteral") return expression.raw;
   if (expression.kind === "CallExpression") return expression.callee;
   return expressionText(expression.left);
+}
+
+function expressionType(expression: CppExpression, context: ValidationContext): CppScalarType | undefined {
+  if (expression.kind === "IntegerLiteral") return "int";
+  if (expression.kind === "DoubleLiteral") return "double";
+  if (expression.kind === "Identifier") return context.variables.get(expression.name)?.scalarType;
+  if (expression.kind === "CallExpression") return context.functionNames.get(expression.callee)?.returnType;
+  const left = expressionType(expression.left, context);
+  const right = expressionType(expression.right, context);
+  return left === "double" || right === "double" ? "double" : left ?? right;
 }

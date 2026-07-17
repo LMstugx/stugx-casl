@@ -76,6 +76,7 @@ describe("Memory Viewer", () => {
 
     expect(getByTestId("memory-view-row-0020")).toBeTruthy();
     expect(getByTestId("memory-view-row-005F")).toBeTruthy();
+    expect(getByTestId("memory-view-row-0020").dataset.objectSelected).toBe("false");
     expect(container?.querySelectorAll(".memory-table tbody tr")).toHaveLength(64);
   });
 

@@ -26,7 +26,7 @@ describe("canonical technical documentation", () => {
   }
 
   it("canonical_document_inventory_is_complete", () => {
-    expect(CANONICAL_DOC_COUNT).toBe(52);
+    expect(CANONICAL_DOC_COUNT).toBe(56);
     expect(new Set(CANONICAL_DOCS).size).toBe(CANONICAL_DOCS.length);
   });
 

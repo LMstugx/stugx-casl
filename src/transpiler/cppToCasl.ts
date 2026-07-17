@@ -4,21 +4,27 @@ import type {
   CppExpression,
   CppProgram,
   CppStatement,
+  CppStorageObject,
   CppToCaslMap,
   CppToCaslMapKind,
   CppVariableSymbol
 } from "./cppAst";
+import { getScalarStorageLayout } from "./cppScalarTypes";
 import { functionLabel, hasExplicitReturn, variableLabelMap } from "./cppSemantic";
 
 export interface GenerateCaslResult {
   caslSource: string;
   mapping: CppToCaslMap[];
+  storageObjects: CppStorageObject[];
 }
 
 type MappingInput = {
   cppLine: number;
   reason: string;
   kind: CppToCaslMapKind;
+  objectId?: string;
+  wordIndex?: number;
+  operationId?: string;
 };
 
 type PendingLabel = {
@@ -56,6 +62,7 @@ type GeneratorContext = {
   pendingLabels: PendingLabel[];
   loopStack: LoopContext[];
   currentFunction: string;
+  variables: Map<string, CppVariableSymbol>;
   nextIfId: number;
   nextLoopId: number;
 };
@@ -64,7 +71,7 @@ export function generateCaslFromCpp(program: CppProgram, variables: CppVariableS
   const context: GeneratorContext = {
     labels: variableLabelMap(variables),
     constants: new Map(),
-    usedLabels: new Set([program.main.name, ...program.functions.map((fn) => functionLabel(fn.name)), ...variables.map((variable) => variable.label)]),
+    usedLabels: new Set([program.main.name, ...program.functions.map((fn) => functionLabel(fn.name)), ...variables.flatMap((variable) => variable.wordLabels)]),
     lines: [{
       text: "MAIN START",
       mappings: [
@@ -75,6 +82,7 @@ export function generateCaslFromCpp(program: CppProgram, variables: CppVariableS
     pendingLabels: [],
     loopStack: [],
     currentFunction: "main",
+    variables: new Map(variables.map((variable) => [`${variable.functionName}:${variable.name}`, variable])),
     nextIfId: 0,
     nextLoopId: 0
   };
@@ -89,6 +97,18 @@ export function generateCaslFromCpp(program: CppProgram, variables: CppVariableS
   }
 
   for (const variable of variables) {
+    if (variable.scalarType === "double") {
+      variable.wordLabels.forEach((label, wordIndex) => {
+        emit(context, `${label} DS    1`, {
+          cppLine: variable.declarationLine,
+          reason: `reserve ${variable.name}.word${wordIndex}`,
+          kind: "double-storage",
+          objectId: storageObjectId(variable),
+          wordIndex
+        });
+      });
+      continue;
+    }
     const value = variable.initializer;
     emit(
       context,
@@ -113,7 +133,8 @@ export function generateCaslFromCpp(program: CppProgram, variables: CppVariableS
 
   return {
     caslSource: context.lines.map((line) => line.text).join("\n"),
-    mapping: buildMapping(context.lines)
+    mapping: buildMapping(context.lines),
+    storageObjects: variables.map(storageObjectFromVariable)
   };
 }
 
@@ -144,6 +165,13 @@ function emitFunctionBody(context: GeneratorContext, fn: CppProgram["main"]): vo
 }
 
 function emitStatement(context: GeneratorContext, statement: CppStatement, branchKind?: StatementMappingKind): void {
+  if (statement.kind === "VarDecl") {
+    if (statement.scalarType === "double" && statement.initializer?.kind === "DoubleLiteral") {
+      emitDoubleLiteralStores(context, statement.name, statement.initializer.representation.words, statement.line, "double-initializer");
+    }
+    return;
+  }
+
   if (statement.kind === "Assignment") {
     emitAssignment(context, statement, branchKind ?? statement.loweredFrom ?? "assignment");
     return;
@@ -187,6 +215,18 @@ function emitStatement(context: GeneratorContext, statement: CppStatement, branc
 }
 
 function emitAssignment(context: GeneratorContext, statement: Extract<CppStatement, { kind: "Assignment" }>, kind: CppToCaslMapKind): void {
+  const target = symbolForVariable(context, statement.target);
+  if (target?.scalarType === "double") {
+    if (statement.expression.kind === "DoubleLiteral") {
+      emitDoubleLiteralStores(context, statement.target, statement.expression.representation.words, statement.line, "double-literal-assignment");
+      return;
+    }
+    if (statement.expression.kind === "Identifier") {
+      emitDoubleCopy(context, statement.expression.name, statement.target, statement.line);
+      return;
+    }
+    throw new Error("Unsupported double assignment reached lowering.");
+  }
   if (statement.expression.kind === "CallExpression") {
     emitCall(context, statement.expression, statement.line, "function-call");
     emit(context, `     ST    GR0,${labelForVariable(context, statement.target)}`, {
@@ -345,6 +385,10 @@ function emitExpression(
     return;
   }
 
+  if (expression.kind === "DoubleLiteral") {
+    throw new Error("Double values require multi-word lowering.");
+  }
+
   if (expression.kind === "Identifier") {
     emit(context, `     LD    ${targetRegister},${labelForVariable(context, expression.name)}`, {
       cppLine,
@@ -362,6 +406,9 @@ function emitExpression(
 
   emitExpression(context, expression.left, targetRegister, cppLine, kind);
   const rightOperand = operandForExpression(context, expression.right, cppLine);
+  if (expression.operator !== "+" && expression.operator !== "-") {
+    throw new Error(`Unsupported arithmetic operator ${expression.operator} reached lowering.`);
+  }
   const op = expression.operator === "+" ? "ADDA" : "SUBA";
   emit(context, `     ${op.padEnd(5, " ")} ${targetRegister},${rightOperand}`, {
     cppLine,
@@ -374,6 +421,63 @@ function operandForExpression(context: GeneratorContext, expression: CppExpressi
   if (expression.kind === "Identifier") return labelForVariable(context, expression.name);
   if (expression.kind === "IntegerLiteral") return constantLabel(context, expression.value, cppLine);
   throw new Error("Nested binary right-hand expressions are not supported by the C++ subset generator.");
+}
+
+function emitDoubleLiteralStores(
+  context: GeneratorContext,
+  targetName: string,
+  words: readonly [number, number, number, number],
+  cppLine: number,
+  kind: "double-initializer" | "double-literal-assignment"
+): void {
+  const target = symbolForVariable(context, targetName);
+  if (!target || target.scalarType !== "double") throw new Error(`Missing double storage metadata for ${targetName}.`);
+  const operationId = `${kind}:${target.functionName}:${target.name}:${cppLine}`;
+  words.forEach((value, wordIndex) => {
+    const mapping = {
+      cppLine,
+      objectId: storageObjectId(target),
+      wordIndex,
+      operationId
+    };
+    emit(context, `     LAD   GR1,#${value.toString(16).toUpperCase().padStart(4, "0")}`, {
+      ...mapping,
+      reason: `${kind} load ${target.name}.word${wordIndex}`,
+      kind
+    });
+    emit(context, `     ST    GR1,${target.wordLabels[wordIndex]}`, {
+      ...mapping,
+      reason: `${kind} write ${target.name}.word${wordIndex}`,
+      kind
+    });
+  });
+}
+
+function emitDoubleCopy(context: GeneratorContext, sourceName: string, targetName: string, cppLine: number): void {
+  const source = symbolForVariable(context, sourceName);
+  const target = symbolForVariable(context, targetName);
+  if (!source || !target || source.scalarType !== "double" || target.scalarType !== "double") {
+    throw new Error("Missing double copy storage metadata.");
+  }
+  const operationId = `double-copy:${target.functionName}:${target.name}:${source.name}:${cppLine}`;
+  for (let wordIndex = 0; wordIndex < 4; wordIndex += 1) {
+    emit(context, `     LD    GR1,${source.wordLabels[wordIndex]}`, {
+      cppLine,
+      reason: `double assignment read ${source.name}.word${wordIndex}`,
+      kind: "double-copy-read",
+      objectId: storageObjectId(source),
+      wordIndex,
+      operationId
+    });
+    emit(context, `     ST    GR1,${target.wordLabels[wordIndex]}`, {
+      cppLine,
+      reason: `double assignment write ${target.name}.word${wordIndex}`,
+      kind: "double-copy-write",
+      objectId: storageObjectId(target),
+      wordIndex,
+      operationId
+    });
+  }
 }
 
 function emitCall(context: GeneratorContext, expression: Extract<CppExpression, { kind: "CallExpression" }>, cppLine: number, kind: CppToCaslMapKind): void {
@@ -423,6 +527,10 @@ function emitArgumentToRegister(
 
 function labelForVariable(context: GeneratorContext, name: string): string {
   return context.labels.get(`${context.currentFunction}:${name}`) ?? context.labels.get(`main:${name}`) ?? name.toUpperCase();
+}
+
+function symbolForVariable(context: GeneratorContext, name: string): CppVariableSymbol | undefined {
+  return context.variables.get(`${context.currentFunction}:${name}`) ?? context.variables.get(`main:${name}`);
 }
 
 function constantLabel(context: GeneratorContext, value: number, cppLine: number): string {
@@ -479,14 +587,41 @@ function buildMapping(lines: GeneratedLine[]): CppToCaslMap[] {
   const map = new Map<string, CppToCaslMap>();
   lines.forEach((line, index) => {
     for (const mapping of line.mappings) {
-      const key = `${mapping.cppLine}:${mapping.kind}:${mapping.reason}`;
+      const key = `${mapping.cppLine}:${mapping.kind}:${mapping.reason}:${mapping.objectId ?? ""}:${mapping.wordIndex ?? ""}:${mapping.operationId ?? ""}`;
       const existing = map.get(key);
       if (existing) {
         existing.caslLines.push(index + 1);
         continue;
       }
-      map.set(key, { cppLine: mapping.cppLine, caslLines: [index + 1], reason: mapping.reason, kind: mapping.kind });
+      map.set(key, {
+        cppLine: mapping.cppLine,
+        caslLines: [index + 1],
+        reason: mapping.reason,
+        kind: mapping.kind,
+        ...(mapping.objectId ? { objectId: mapping.objectId } : {}),
+        ...(mapping.wordIndex !== undefined ? { wordIndex: mapping.wordIndex } : {}),
+        ...(mapping.operationId ? { operationId: mapping.operationId } : {})
+      });
     }
   });
   return [...map.values()];
+}
+
+function storageObjectId(variable: CppVariableSymbol): string {
+  return `cpp-storage:${variable.functionName}:${variable.name}`;
+}
+
+function storageObjectFromVariable(variable: CppVariableSymbol): CppStorageObject {
+  const bitRanges = getScalarStorageLayout(variable.scalarType).wordBitRanges;
+  return {
+    objectId: storageObjectId(variable),
+    symbolName: variable.name,
+    functionName: variable.functionName,
+    type: variable.scalarType,
+    baseLabel: variable.label,
+    wordCount: variable.storageWordCount,
+    words: variable.wordLabels.map((label, index) => ({ index, label, bitRange: bitRanges[index] })),
+    declarationRange: variable.declarationRange,
+    currentLoweringMode: "static-label"
+  };
 }

@@ -2016,3 +2016,57 @@ test("Mock backend memory viewer can inspect an extended range and highlight wri
   await expect(cRow).toContainText("C");
   await expect(cRow).toHaveAttribute("data-write", "true");
 });
+
+test("Mock backend exposes double storage and stable four-word assignment", async ({ page }) => {
+  await openStudio(page, "Mock Core");
+  await selectDemoProgram(page, "cpp-double-storage");
+  await assemble(page);
+
+  await expect(page.getByTestId("generated-casl-output")).toContainText("X_W3DS1");
+  await expect(page.getByTestId("generated-casl-output")).toContainText("LDGR1,X_W3");
+  await expect(page.getByTestId("generated-casl-output")).toContainText("STGR1,Y_W3");
+
+  await page.getByRole("tab", { name: "Memory" }).click();
+  await page.getByTestId("memory-object-select").selectOption({ label: "x" });
+  await expect(page.getByTestId("double-value-inspector")).toContainText("0000000000000000");
+  await expect(page.locator('[data-double-object="cpp-storage:main:x"]')).toHaveCount(4);
+  const doubleRowBox = await page.locator('[data-double-object="cpp-storage:main:x"]').first().boundingBox();
+  const ordinaryRowBox = await page.getByTestId("memory-view-row-005B").boundingBox();
+  expect(doubleRowBox).not.toBeNull();
+  expect(ordinaryRowBox).not.toBeNull();
+  expect(Math.abs((doubleRowBox?.height ?? 0) - (ordinaryRowBox?.height ?? 0))).toBeLessThanOrEqual(1);
+  await expect(page.locator('[data-double-object="cpp-storage:main:x"]').first().locator(".memory-object-word span")).toHaveText("x.word0");
+  await expect(page.locator('[data-double-object="cpp-storage:main:x"]').first().locator(".memory-object-word small")).toHaveText("bits 63..48");
+
+  await step(page);
+  await step(page);
+  await expect(page.getByTestId("double-value-inspector")).toContainText("400C000000000000");
+  await run(page);
+
+  await page.getByTestId("memory-object-select").selectOption({ label: "y" });
+  await expect(page.getByTestId("double-value-inspector")).toContainText("400C000000000000");
+  await expect(page.getByTestId("double-value-inspector")).toContainText("3.5");
+  await page.getByRole("tab", { name: "Trace" }).click();
+  await expect(page.getByTestId("trace-double-operation").filter({ hasText: "y = x" }).first()).toBeVisible();
+  const copyTraceRows = page.locator('[data-double-operation^="double-copy:"]');
+  await expect(copyTraceRows).toHaveCount(8);
+  await expect(copyTraceRows.getByTestId("trace-double-operation")).toHaveText(Array.from({ length: 8 }, () => "double copy assignment: y = x"));
+  for (const word of ["word 1 / 4", "word 2 / 4", "word 3 / 4", "word 4 / 4"]) {
+    await expect(page.getByTestId("trace-double-word").filter({ hasText: word }).first()).toBeVisible();
+  }
+
+  await page.getByTestId("locale-ja").click();
+  await page.getByRole("tab", { name: "メモリ" }).click();
+  await expect(page.getByTestId("double-value-inspector")).toContainText("400C000000000000");
+  await page.getByTestId("locale-zh-CN").click();
+  await expect(page.getByTestId("double-value-inspector")).toContainText("400C000000000000");
+
+  await page.setViewportSize({ width: 1280, height: 720 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+
+  await page.getByTestId("locale-en").click();
+  await setSource(page, "int main() { double x = 1.0; x = x + x; return 0; }");
+  await page.getByTestId("assemble-button").click();
+  await expect(page.locator('[data-diagnostic-code="semantic.unsupportedDoubleArithmetic"]')).toBeVisible();
+  await expect(page.getByTestId("generated-casl-output")).not.toContainText("MAIN");
+});

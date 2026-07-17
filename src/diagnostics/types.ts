@@ -21,6 +21,11 @@ export const diagnosticCodes = [
   "semantic.parameterLocalConflict", "semantic.unsupportedMainParameters", "semantic.duplicateParameter",
   "semantic.duplicateVariable", "semantic.unsupportedInitializer", "semantic.invalidCondition",
   "semantic.integerLiteralOutOfRange", "semantic.forwardDeclarationUnsupported",
+  "semantic.unsupportedDoubleArithmetic", "semantic.unsupportedDoubleComparison",
+  "semantic.unsupportedDoubleParameter", "semantic.unsupportedDoubleReturn",
+  "semantic.incompatibleScalarAssignment", "semantic.invalidFloatingLiteral",
+  "semantic.floatingLiteralOutOfRange", "semantic.unsupportedFloatingSuffix",
+  "semantic.unsupportedDoubleArray",
   "transpiler.tooManyRegisterArguments", "transpiler.unsupportedCallArgument",
   "transpiler.unsupportedExpression", "transpiler.generatedLabelConflict", "transpiler.internalLoweringFailure",
   "vm.notLoaded", "vm.stepLimitReached",
@@ -78,6 +83,15 @@ export interface DiagnosticParamSchemas {
   "semantic.invalidCondition": { construct: string };
   "semantic.integerLiteralOutOfRange": { literal: string };
   "semantic.forwardDeclarationUnsupported": { function: string };
+  "semantic.unsupportedDoubleArithmetic": { operator: string };
+  "semantic.unsupportedDoubleComparison": { operator: string };
+  "semantic.unsupportedDoubleParameter": { function: string; parameter: string };
+  "semantic.unsupportedDoubleReturn": { function: string };
+  "semantic.incompatibleScalarAssignment": { variable: string; fromType: string; toType: string };
+  "semantic.invalidFloatingLiteral": { literal: string };
+  "semantic.floatingLiteralOutOfRange": { literal: string };
+  "semantic.unsupportedFloatingSuffix": { literal: string; suffix: string };
+  "semantic.unsupportedDoubleArray": { variable: string };
   /** actualCount is retained for details; the compact localized template only requires the supported maximum. */
   "transpiler.tooManyRegisterArguments": { function: string; maximum: number; actualCount?: number };
   "transpiler.unsupportedCallArgument": { argumentCount: number; function?: string };

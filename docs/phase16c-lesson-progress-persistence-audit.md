@@ -118,3 +118,12 @@ Phase 16C passed the complete validation gate:
 Run a Phase 16 persistence final quality gate covering all four independent storage contracts, upgrade/reset behavior, cross-key failure isolation, and privacy regression. Do not broaden lesson progress into source/session restoration.
 
 Phase 16D performs that gate and freezes the four-key aggregate in [`persistence-baseline-v1.json`](persistence-baseline-v1.json). The Phase 16C lesson/step IDs, compatibility versions, payload fields, and built-in-only policy are unchanged.
+
+## Phase 19A Registry Addition
+
+Phase 19A adds the built-in `cpp-double-storage` lesson under the unchanged Phase 16C identity and compatibility contract. Its decision is `stable-persistable`; checkpoint completion remains `intentionally-session-only`.
+
+- Stable step IDs: `assemble-source`, `inspect-generated-storage`, `open-memory`, `select-x`, `step-to-copy`, `observe-word-reads`, `observe-word-writes`, `confirm-y-bits`, `confirm-y-value`, `confirm-copy-not-move`.
+- Session-only checkpoint IDs: `x-binary64`, `y-copy-order`, `y-decoded-value`, `x-preserved`.
+- Compatibility version: `1`.
+- The addition changes no storage key or payload field. Existing lesson entries remain compatible, and the new lesson starts with no completed steps.

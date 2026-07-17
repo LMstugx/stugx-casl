@@ -347,6 +347,21 @@ int main() {
     whatThisShows: "break and continue are lowered into ordinary CASL JUMP instructions whose targets are shown in Generated CASL, Machine Code, and Trace.",
     expectedResult: "SUM = 0004 and GR0 = 0004 when the program finishes.",
     suggestedActions: ["Click Assemble.", "Open Generated CASL and find FOR_CONTINUE / FOR_END.", "Open Machine Code and inspect the jump explanations.", "Step through continue and break or click Run.", "Check Trace and Memory."]
+  },
+  {
+    id: "cpp-double-storage",
+    name: "C++: Double Storage",
+    mode: "cpp",
+    source: `int main() {
+    double x = 3.5;
+    double y = -1.25;
+    y = x;
+    return 0;
+}`,
+    description: "Teaching-only binary64 storage and a four-word double copy lowered to ordinary 16-bit CASL LD / ST instructions.",
+    whatThisShows: "Each double occupies four high-word-first COMET II words. COMET II has no native double instruction or FPU; the example exposes representation and copy assignment only.",
+    expectedResult: "X and Y both end as 400C 0000 0000 0000, decoded as 3.5. The source X remains unchanged.",
+    suggestedActions: ["Click Assemble.", "Open Generated CASL and locate double-storage and double-copy mappings.", "Open Memory and select x.", "Step through y = x one word at a time.", "Confirm y decodes to 3.5."]
   }
 ];
 

@@ -1289,6 +1289,63 @@ async function captureChangelogStates(page: Page, viewport: Viewport) {
   await page.setViewportSize({ width: viewport.width, height: viewport.height });
 }
 
+async function captureCppDoubleStorageStates(page: Page, viewport: Viewport) {
+  if (!viewport.primary) return;
+  const standardViewport: Viewport = { name: "1440x900", width: 1440, height: 900, primary: true };
+  const compactViewport: Viewport = { name: "1280x720", width: 1280, height: 720 };
+
+  await page.setViewportSize({ width: standardViewport.width, height: standardViewport.height });
+  await openStudio(page, "Mock Core");
+  await selectDemoProgram(page, "cpp-double-storage");
+  await capture(page, standardViewport, "cpp-double-storage-source.png", false);
+  await assemble(page);
+  await openOutputTab(page, "Generated CASL");
+  await capture(page, standardViewport, "cpp-double-storage-generated-casl.png", false);
+
+  await openOutputTab(page, "Memory");
+  await page.getByTestId("memory-object-select").selectOption({ label: "x" });
+  await capture(page, standardViewport, "cpp-double-storage-memory-before.png", false);
+  await step(page);
+  await step(page);
+  await expect(page.getByTestId("double-value-inspector")).toContainText("400C000000000000");
+  await capture(page, standardViewport, "cpp-double-storage-memory-word-copy.png", false);
+
+  await run(page);
+  await page.getByTestId("memory-object-select").selectOption({ label: "y" });
+  await expect(page.getByTestId("double-value-inspector")).toContainText("400C000000000000");
+  await capture(page, standardViewport, "cpp-double-storage-memory-after.png", false);
+  await capture(page, standardViewport, "cpp-double-inspector-en.png", false);
+  await page.getByTestId("double-value-inspector").locator("details").evaluate((element) => {
+    (element as HTMLDetailsElement).open = true;
+  });
+  await capture(page, standardViewport, "cpp-double-storage-inspector-details.png", false);
+
+  await page.getByTestId("locale-ja").click();
+  await capture(page, standardViewport, "cpp-double-inspector-ja.png", false);
+  await page.getByTestId("locale-zh-CN").click();
+  await capture(page, standardViewport, "cpp-double-inspector-zh-cn.png", false);
+  await page.getByTestId("locale-en").click();
+
+  await page.getByRole("tab", { name: "Trace" }).click();
+  await expect(page.getByTestId("trace-double-operation").filter({ hasText: "y = x" }).first()).toBeVisible();
+  await capture(page, standardViewport, "cpp-double-trace.png", false);
+  await openOutputTab(page, "Machine Code");
+  await capture(page, standardViewport, "cpp-double-code-machine.png", false);
+
+  await page.setViewportSize({ width: compactViewport.width, height: compactViewport.height });
+  await openOutputTab(page, "Memory");
+  await page.getByTestId("memory-object-select").selectOption({ label: "y" });
+  await capture(page, compactViewport, "cpp-double-1280.png", false);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+
+  await page.setViewportSize({ width: standardViewport.width, height: standardViewport.height });
+  await setSource(page, "int main() { double x = 1.0; x = x + x; return 0; }");
+  await page.getByTestId("assemble-button").click();
+  await expect(page.locator('[data-diagnostic-code="semantic.unsupportedDoubleArithmetic"]')).toBeVisible();
+  await capture(page, standardViewport, "cpp-double-unsupported-diagnostic.png", false);
+  await page.setViewportSize({ width: viewport.width, height: viewport.height });
+}
+
 test.describe("visual review screenshot gallery", () => {
   for (const viewport of viewports) {
     test(`captures visual review gallery at ${viewport.name}`, async ({ page }) => {
@@ -1352,6 +1409,7 @@ test.describe("visual review screenshot gallery", () => {
       await capturePersistenceQualityGateStates(page, viewport);
       await capturePhase18A1DesktopPolish(page, viewport);
       await captureChangelogStates(page, viewport);
+      await captureCppDoubleStorageStates(page, viewport);
     });
   }
 });

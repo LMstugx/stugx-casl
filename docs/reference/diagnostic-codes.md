@@ -18,7 +18,7 @@ Codes are stable technical identifiers. Display text is localized independently.
 
 ## Semantic
 
-`mainFunctionMissing`, `duplicateFunction`, `unknownFunction`, `unknownVariable`, `argumentCountMismatch`, `recursionUnsupported`, `breakOutsideLoop`, `continueOutsideLoop`, `parameterLocalConflict`, `unsupportedMainParameters`, `duplicateParameter`, `duplicateVariable`, `unsupportedInitializer`, `invalidCondition`, `integerLiteralOutOfRange`, `forwardDeclarationUnsupported`
+`mainFunctionMissing`, `duplicateFunction`, `unknownFunction`, `unknownVariable`, `argumentCountMismatch`, `recursionUnsupported`, `breakOutsideLoop`, `continueOutsideLoop`, `parameterLocalConflict`, `unsupportedMainParameters`, `duplicateParameter`, `duplicateVariable`, `unsupportedInitializer`, `invalidCondition`, `integerLiteralOutOfRange`, `forwardDeclarationUnsupported`, `unsupportedDoubleArithmetic`, `unsupportedDoubleComparison`, `unsupportedDoubleParameter`, `unsupportedDoubleReturn`, `incompatibleScalarAssignment`, `invalidFloatingLiteral`, `floatingLiteralOutOfRange`, `unsupportedFloatingSuffix`, `unsupportedDoubleArray`
 
 ## Transpiler
 

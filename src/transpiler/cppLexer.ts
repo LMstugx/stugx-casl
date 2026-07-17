@@ -1,7 +1,7 @@
 import type { Diagnostic } from "../core/types";
 import { createStructuredDiagnostic } from "../diagnostics/catalog";
 
-export type CppTokenKind = "keyword" | "identifier" | "integer" | "symbol" | "eof";
+export type CppTokenKind = "keyword" | "identifier" | "integer" | "floating" | "symbol" | "eof";
 
 export interface CppToken {
   kind: CppTokenKind;
@@ -19,8 +19,8 @@ export interface LexResult {
   diagnostics: Diagnostic[];
 }
 
-const keywords = new Set(["int", "return", "if", "else", "while", "for", "break", "continue"]);
-const symbols = new Set(["(", ")", "{", "}", ";", "=", "+", "-", "*", ",", "!", "<", ">"]);
+const keywords = new Set(["int", "double", "return", "if", "else", "while", "for", "break", "continue"]);
+const symbols = new Set(["(", ")", "{", "}", "[", "]", ";", "=", "+", "-", "*", "/", ",", "!", "<", ">"]);
 
 export function lexCpp(source: string): LexResult {
   const tokens: CppToken[] = [];
@@ -106,7 +106,29 @@ export function lexCpp(source: string): LexResult {
       const startOffset = index;
       let value = "";
       while (/[0-9]/.test(peek())) value += advance();
-      push("integer", value, startLine, startColumn, startOffset);
+      let floating = false;
+      if (value === "0" && /[xX]/.test(peek())) {
+        floating = true;
+        value += advance();
+        while (/[A-Za-z0-9_.+-]/.test(peek())) value += advance();
+      } else {
+        if (peek() === ".") {
+          floating = true;
+          value += advance();
+          while (/[0-9]/.test(peek())) value += advance();
+        }
+        if (/[eE]/.test(peek())) {
+          floating = true;
+          value += advance();
+          if (peek() === "+" || peek() === "-") value += advance();
+          while (/[0-9]/.test(peek())) value += advance();
+        }
+        if (/[A-Za-z_]/.test(peek())) {
+          floating = true;
+          while (/[A-Za-z0-9_]/.test(peek())) value += advance();
+        }
+      }
+      push(floating ? "floating" : "integer", value, startLine, startColumn, startOffset);
       continue;
     }
 

@@ -4,8 +4,9 @@ import { selectMachineCodeRows } from "../core/machineCodeRows";
 import type { CometState } from "../core/types";
 import { VisualPathKind, formatFlags, formatWord } from "../core/types";
 import type { ObservationMode, SourceMode } from "../store/useAppStore";
-import type { CppToCaslMap } from "../transpiler/cppAst";
+import type { CppStorageObject, CppToCaslMap } from "../transpiler/cppAst";
 import { cppLineForCaslLine } from "../transpiler/cppMapping";
+import { doubleOperationForCaslLine, resolveCppStorageObjects, type DoubleOperationContext } from "../transpiler/cppStorageObjects";
 import {
   currentStaticLabelForMapping,
   findFrameSlotMappingInCaslText,
@@ -37,6 +38,7 @@ type CircuitFocusLayoutProps = {
   sourceText: string;
   generatedCaslSource: string;
   cppToCaslMapping: CppToCaslMap[];
+  cppStorageObjects?: CppStorageObject[];
   isSourceDirty: boolean;
   timelineItems: TimelineItem[];
   observationMode?: ObservationMode;
@@ -1144,17 +1146,19 @@ function FocusSignalProbePanel({
   state,
   focus,
   density = "normal",
-  selectedFrameSlot
+  selectedFrameSlot,
+  doubleOperation
 }: {
   state: CometState;
   focus: FocusInstructionContext;
   density?: FocusPanelDensity;
   selectedFrameSlot?: FrameSlotMapping;
+  doubleOperation?: DoubleOperationContext;
 }) {
   const { t } = useI18n();
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [slotDetailsOpen, setSlotDetailsOpen] = useState(false);
-  const rows = signalProbeRows(state, focus, t);
+  const rows = [...doubleSignalProbeRows(doubleOperation, state, t), ...signalProbeRows(state, focus, t)];
   const activeRows = rows.filter((row) => row.active);
   const inactiveRows = rows.filter((row) => !row.active);
   const primaryLimit = 3;
@@ -1266,6 +1270,67 @@ function FocusSignalProbePanel({
       </div>
     </section>
   );
+}
+
+function doubleSignalProbeRows(operation: DoubleOperationContext | undefined, state: CometState, t: Translate): ProbeRow[] {
+  if (!operation) return [];
+  const wordIndex = operation.wordIndex;
+  const current = operation.currentObject;
+  const source = operation.sourceObject;
+  const destination = operation.destinationObject;
+  const sourceAddress = source?.words[wordIndex]?.address;
+  const destinationAddress = destination?.words[wordIndex]?.address;
+  const objectText = operation.kind === "double-copy"
+    ? `${source?.symbolName ?? "?"} -> ${destination?.symbolName ?? "?"}`
+    : current?.symbolName ?? "?";
+  const rows: ProbeRow[] = [
+    {
+      label: "DOUBLE_OBJECT",
+      displayLabel: t("signalProbe.object"),
+      title: t("signalProbe.object"),
+      value: objectText,
+      note: "double / binary64",
+      active: true
+    },
+    {
+      label: "DOUBLE_WORD",
+      displayLabel: t("signalProbe.wordIndex"),
+      title: t("signalProbe.wordIndex"),
+      value: `${wordIndex + 1} / 4`,
+      note: current?.words[wordIndex]?.bitRange ?? source?.words[wordIndex]?.bitRange ?? "",
+      active: true
+    }
+  ];
+  if (sourceAddress !== undefined) {
+    rows.push({
+      label: "DOUBLE_SOURCE",
+      displayLabel: t("signalProbe.sourceAddress"),
+      title: t("signalProbe.sourceAddress"),
+      value: formatWord(sourceAddress),
+      note: `${source?.symbolName}.word${wordIndex}`,
+      active: true
+    });
+  }
+  if (destinationAddress !== undefined || current?.words[wordIndex]?.address !== undefined) {
+    const address = destinationAddress ?? current?.words[wordIndex]?.address;
+    rows.push({
+      label: "DOUBLE_DESTINATION",
+      displayLabel: t("signalProbe.destinationAddress"),
+      title: t("signalProbe.destinationAddress"),
+      value: address === undefined ? "----" : formatWord(address),
+      note: `${(destination ?? current)?.symbolName}.word${wordIndex}`,
+      active: true
+    });
+  }
+  rows.push({
+    label: "DOUBLE_VALUE",
+    displayLabel: t("signalProbe.transferredWord"),
+    title: t("signalProbe.transferredWord"),
+    value: formatWord(state.mdr),
+    note: "MDR",
+    active: true
+  });
+  return rows;
 }
 
 function FocusStackPreviewPanel({ state }: { state: CometState }) {
@@ -1810,6 +1875,7 @@ export default function CircuitFocusLayout({
   sourceText,
   generatedCaslSource,
   cppToCaslMapping,
+  cppStorageObjects = [],
   isSourceDirty,
   timelineItems,
   observationMode = "cpu-flow",
@@ -1822,6 +1888,11 @@ export default function CircuitFocusLayout({
   const [selectedFrameSlot, setSelectedFrameSlot] = useState<SelectedFrameSlot | undefined>();
   const lastAppliedInitialFrameSlotId = useRef<string | undefined>();
   const focus = focusInstructionContext(state, sourceMode, sourceText, cppToCaslMapping);
+  const resolvedStorageObjects = useMemo(() => resolveCppStorageObjects(cppStorageObjects, state), [cppStorageObjects, state.symbols]);
+  const doubleOperation = useMemo(
+    () => doubleOperationForCaslLine(cppToCaslMapping, resolvedStorageObjects, focus.caslLine),
+    [cppToCaslMapping, focus.caslLine, resolvedStorageObjects]
+  );
   const preferredFunctionName = functionNameFromRoutineLabel(routineLabelForAddress(state, focus.address));
   const framePreview = useMemo(
     () => selectStackFramePreviewState(sourceMode, sourceText, selectedFrameFunctionName ?? selectedFrameSlot?.functionName, preferredFunctionName),
@@ -1943,7 +2014,7 @@ export default function CircuitFocusLayout({
         {observationMode === "cpu-flow" ? (
           <>
             <FocusMemoryWindowPanel state={state} rowCount={9} />
-            <FocusSignalProbePanel state={state} focus={focus} />
+            <FocusSignalProbePanel state={state} focus={focus} doubleOperation={doubleOperation} />
             <FocusTracePanel state={state} />
             <FocusSourceContextPanel focus={focus} sourceMode={sourceMode} />
           </>
@@ -1960,7 +2031,7 @@ export default function CircuitFocusLayout({
               onSelectFrameSlot={selectFrameSlot}
               onFunctionChange={selectFrameFunction}
             />
-            <FocusSignalProbePanel state={state} focus={focus} density="compact" selectedFrameSlot={selectedFrameSlotMapping} />
+            <FocusSignalProbePanel state={state} focus={focus} density="compact" selectedFrameSlot={selectedFrameSlotMapping} doubleOperation={doubleOperation} />
             <FocusTracePanel state={state} />
           </>
         ) : (

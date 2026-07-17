@@ -40,9 +40,9 @@ const auditDocument = readFileSync("docs/phase16c-lesson-progress-persistence-au
 
 describe("Phase 16C identity audit and baseline", () => {
   it("every_lesson_and_step_has_stable_explicit_identity", () => {
-    expect(learningLessons).toHaveLength(17);
-    expect(learningLessons.reduce((count, lesson) => count + lesson.suggestedSteps.length, 0)).toBe(58);
-    expect(learningLessons.reduce((count, lesson) => count + lesson.checkpoints.length, 0)).toBe(52);
+    expect(learningLessons).toHaveLength(18);
+    expect(learningLessons.reduce((count, lesson) => count + lesson.suggestedSteps.length, 0)).toBe(68);
+    expect(learningLessons.reduce((count, lesson) => count + lesson.checkpoints.length, 0)).toBe(56);
     expect(new Set(learningLessons.map((lesson) => lesson.lessonId)).size).toBe(learningLessons.length);
     for (const lesson of learningLessons) {
       expect(lesson.lessonId).toBe(lesson.exampleId);
@@ -84,7 +84,7 @@ describe("Phase 16C identity audit and baseline", () => {
     for (const path of ["src/App.tsx", "src/store/useAppStore.tsx", "src/lessonProgress/controller.ts", "src/lessonProgress/model.ts"]) {
       expect(readFileSync(path, "utf8")).not.toContain("lesson-progress-baseline-v1.json");
     }
-    expect((JSON.parse(readFileSync("docs/diagnostic-localization-baseline-v1.json", "utf8")) as { structuredDiagnostics: unknown[] }).structuredDiagnostics).toHaveLength(55);
+    expect((JSON.parse(readFileSync("docs/diagnostic-localization-baseline-v1.json", "utf8")) as { structuredDiagnostics: unknown[] }).structuredDiagnostics).toHaveLength(64);
     expect((JSON.parse(readFileSync("docs/file-lifecycle-operation-matrix-v1.json", "utf8")) as { coverage: { totalCombinations: number } }).coverage.totalCombinations).toBe(112);
     expect((JSON.parse(readFileSync("docs/application-preferences-baseline-v1.json", "utf8")) as { persistedFields: string[] }).persistedFields).toEqual(["observationMode", "circuitFocusEnabled", "inspectorActiveTab", "outputDockActiveTab"]);
     expect((JSON.parse(readFileSync("docs/startup-selection-baseline-v1.json", "utf8")) as { persistedFields: string[] }).persistedFields).toEqual(["lastExampleId"]);

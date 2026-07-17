@@ -2,6 +2,9 @@ import { KeyboardEvent, useEffect, useMemo, useState } from "react";
 import { MEMORY_VIEW_DEFAULT_ROWS, selectMemoryViewerRows, selectProgramStartAddress } from "../core/selectors";
 import { CometState, formatWord } from "../core/types";
 import { useI18n } from "../i18n/useI18n";
+import type { CppStorageObject } from "../transpiler/cppAst";
+import { findStorageObjectForAddress, resolveCppStorageObjects } from "../transpiler/cppStorageObjects";
+import DoubleValueInspector from "./DoubleValueInspector";
 
 const ROW_COUNT_OPTIONS = [32, 64, 128, 256] as const;
 
@@ -24,17 +27,36 @@ function memoryRowClass(row: ReturnType<typeof selectMemoryViewerRows>[number]):
     .join(" ");
 }
 
-export default function MemoryPanel({ state, embedded = false }: { state: CometState; embedded?: boolean }) {
+export default function MemoryPanel({
+  state,
+  embedded = false,
+  storageObjects = []
+}: {
+  state: CometState;
+  embedded?: boolean;
+  storageObjects?: readonly CppStorageObject[];
+}) {
   const { t } = useI18n();
   const programStart = selectProgramStartAddress(state);
   const [startAddress, setStartAddress] = useState(programStart);
   const [draftStart, setDraftStart] = useState(formatWord(programStart));
   const [rowCount, setRowCount] = useState<number>(MEMORY_VIEW_DEFAULT_ROWS);
+  const resolvedDoubleObjects = useMemo(
+    () => resolveCppStorageObjects(storageObjects, state).filter((object) => object.type === "double"),
+    [state.symbols, storageObjects]
+  );
+  const [selectedObjectId, setSelectedObjectId] = useState<string | undefined>(() => resolvedDoubleObjects[0]?.objectId);
+  const selectedObject = resolvedDoubleObjects.find((object) => object.objectId === selectedObjectId) ?? resolvedDoubleObjects[0];
 
   useEffect(() => {
     setStartAddress(programStart);
     setDraftStart(formatWord(programStart));
   }, [programStart, state.assembled]);
+
+  useEffect(() => {
+    if (selectedObjectId && resolvedDoubleObjects.some((object) => object.objectId === selectedObjectId)) return;
+    setSelectedObjectId(resolvedDoubleObjects[0]?.objectId);
+  }, [resolvedDoubleObjects, selectedObjectId]);
 
   const rows = useMemo(() => selectMemoryViewerRows(state, startAddress, rowCount), [rowCount, startAddress, state]);
 
@@ -56,6 +78,12 @@ export default function MemoryPanel({ state, embedded = false }: { state: CometS
     if (address === undefined) return;
     setStartAddress(address);
     setDraftStart(formatWord(address));
+  };
+
+  const selectObject = (objectId: string) => {
+    const object = resolvedDoubleObjects.find((candidate) => candidate.objectId === objectId);
+    setSelectedObjectId(objectId);
+    jumpTo(object?.baseAddress);
   };
 
   return (
@@ -92,6 +120,22 @@ export default function MemoryPanel({ state, embedded = false }: { state: CometS
         <button className="text-button memory-go" data-testid="memory-go-button" type="button" onClick={applyDraftStart}>
           {t("common.go")}
         </button>
+        {resolvedDoubleObjects.length ? (
+          <label>
+            {t("doubleInspector.object")}
+            <select
+              className="memory-object-select"
+              data-testid="memory-object-select"
+              value={selectedObject?.objectId ?? ""}
+              aria-label={t("doubleInspector.object")}
+              onChange={(event) => selectObject(event.target.value)}
+            >
+              {resolvedDoubleObjects.map((object) => (
+                <option key={object.objectId} value={object.objectId}>{object.symbolName}</option>
+              ))}
+            </select>
+          </label>
+        ) : null}
       </div>
 
       <div className="memory-jumps" aria-label={t("accessibility.memoryJumpControls")}>
@@ -124,6 +168,7 @@ export default function MemoryPanel({ state, embedded = false }: { state: CometS
           </thead>
           <tbody>
             {rows.map((row) => {
+              const storageRelation = findStorageObjectForAddress(resolvedDoubleObjects, row.address);
               const markers = [
                 row.isPr ? "PR" : "",
                 row.isMar ? "MAR" : "",
@@ -139,10 +184,25 @@ export default function MemoryPanel({ state, embedded = false }: { state: CometS
                   data-mar={row.isMar ? "true" : "false"}
                   data-read={row.isLastRead ? "true" : "false"}
                   data-write={row.isLastWrite ? "true" : "false"}
+                  data-double-object={storageRelation?.object.objectId}
+                  data-double-word={storageRelation?.word.index}
+                  data-object-selected={storageRelation && storageRelation.object.objectId === selectedObject?.objectId ? "true" : "false"}
                 >
                   <td className="hex mono-value">{formatWord(row.address)}</td>
                   <td className="hex mono-value">{formatWord(row.value)}</td>
-                  <td className="text-ellipsis nowrap-symbol" title={row.label ?? ""}>{row.label ?? ""}</td>
+                  <td className={storageRelation ? "memory-label-cell" : "text-ellipsis nowrap-symbol"} title={storageRelation ? `${storageRelation.object.symbolName}.word${storageRelation.word.index} ${storageRelation.word.bitRange}` : row.label ?? ""}>
+                    {storageRelation ? (
+                      <button
+                        type="button"
+                        className="memory-object-word"
+                        aria-label={`${storageRelation.object.symbolName}.word${storageRelation.word.index}, ${storageRelation.word.bitRange}`}
+                        onClick={() => setSelectedObjectId(storageRelation.object.objectId)}
+                      >
+                        <span>{storageRelation.object.symbolName}.word{storageRelation.word.index}</span>
+                        <small>{storageRelation.word.bitRange}</small>
+                      </button>
+                    ) : row.label ?? ""}
+                  </td>
                   <td className="text-ellipsis" title={markers.join(" ")}>{markers.join(" ")}</td>
                 </tr>
               );
@@ -150,6 +210,7 @@ export default function MemoryPanel({ state, embedded = false }: { state: CometS
           </tbody>
         </table>
       </div>
+      {selectedObject ? <DoubleValueInspector object={selectedObject} state={state} /> : null}
     </section>
   );
 }

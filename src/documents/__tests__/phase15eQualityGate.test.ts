@@ -53,7 +53,12 @@ const matrix = JSON.parse(matrixRaw) as {
   operations: Array<Record<string, unknown>>;
 };
 const phase15e = readFileSync("docs/phase15e-file-lifecycle-final-quality-gate.md", "utf8");
-const readme = readFileSync("README.md", "utf8");
+const documentationIndex = readFileSync("docs/README.md", "utf8");
+const historicalPathsFromIndex = documentationIndex.replace(
+  /\]\((?!https?:)([^)#]+)(?:#[^)]*)?\)/g,
+  (_match, target: string) => `](docs/${target})`
+);
+const readme = `${readFileSync("README.md", "utf8")}\n${documentationIndex}\n${historicalPathsFromIndex}`;
 const diagnosticBaseline = JSON.parse(readFileSync("docs/diagnostic-localization-baseline-v1.json", "utf8")) as { structuredDiagnostics: unknown[] };
 
 describe("Phase 15E baseline freeze", () => {

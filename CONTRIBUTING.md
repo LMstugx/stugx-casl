@@ -30,6 +30,7 @@ pnpm test:e2e
 pnpm build:wasm
 pnpm test:wasm
 pnpm test:e2e:wasm
+pnpm docs:verify
 powershell -ExecutionPolicy Bypass -File scripts/validate-all.ps1
 powershell -ExecutionPolicy Bypass -File scripts/stress-check.ps1
 pnpm audit

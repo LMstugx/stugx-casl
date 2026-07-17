@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import readme from "../../README.md?raw";
+import rootReadme from "../../README.md?raw";
+import documentationIndex from "../../docs/README.md?raw";
 import demoScript from "../../docs/demo-script.md?raw";
 import learningGuide from "../../docs/learning-guide.md?raw";
 import phase8e from "../../docs/phase8e-circuit-focus-final-layout.md?raw";
@@ -80,6 +81,12 @@ import fileIoAdapterContract from "../../docs/file-io-adapter-contract.md?raw";
 import sourceOwnershipContract from "../../docs/source-ownership-contract.md?raw";
 import unsavedChangesContract from "../../docs/unsaved-changes-contract.md?raw";
 import fileProjectDiagnosticI18nContract from "../../docs/file-project-diagnostic-i18n-contract.md?raw";
+
+const historicalPathsFromIndex = documentationIndex.replace(
+  /\]\((?!https?:)([^)#]+)(?:#[^)]*)?\)/g,
+  (_match, target: string) => `](docs/${target})`
+);
+const readme = `${rootReadme}\n${documentationIndex}\n${historicalPathsFromIndex}`;
 
 describe("learning use documentation", () => {
   it("learning_guide_exists", () => {

@@ -1,0 +1,7 @@
+# Deterministic contract and generated artifacts must compare byte-for-byte.
+docs/application-preferences-baseline-v1.json text eol=lf
+docs/file-lifecycle-baseline-v1.json text eol=lf
+docs/lesson-progress-baseline-v1.json text eol=lf
+docs/persistence-baseline-v1.json text eol=lf
+docs/startup-selection-baseline-v1.json text eol=lf
+CHANGELOG.md text eol=lf

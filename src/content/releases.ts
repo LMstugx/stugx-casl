@@ -82,6 +82,11 @@ export const RELEASES: readonly ReleaseNote[] = [
             en: "A structured, multilingual Changelog generated from the same offline release registry used by the application.",
             ja: "アプリと同じオフライン release registry から生成される、構造化された多言語の変更履歴。",
             "zh-CN": "由应用使用的同一份离线 release registry 生成的结构化多语言更新日志。"
+          },
+          {
+            en: "Binary64 double storage observation with four high-word-first COMET II words, runtime literal stores, four-word copy assignment, and a live Double Value Inspector.",
+            ja: "上位ワード優先の 4 個の COMET II ワード、実行時リテラル格納、4 ワードのコピー代入、ライブ Double Value Inspector による binary64 double ストレージ観察。",
+            "zh-CN": "通过高位 word 优先的 4 个 COMET II word、运行时字面量写入、4-word 复制赋值和实时 Double Value Inspector 观察 binary64 double 存储。"
           }
         ]
       },
@@ -122,10 +127,16 @@ export const RELEASES: readonly ReleaseNote[] = [
             en: "The Windows demo is unsigned and still uses the browser file adapter boundary; native Tauri file dialogs and updates are deferred.",
             ja: "Windows デモは未署名で、引き続き browser file adapter 境界を使用します。Tauri ネイティブ file dialog と update は延期されています。",
             "zh-CN": "Windows 演示版尚未签名，并继续使用浏览器文件适配器边界；Tauri 原生文件对话框和更新功能仍被延后。"
+          },
+          {
+            en: "Double support is limited to local storage, finite literals, and copy assignment; arithmetic, comparison, conversion, parameters, returns, and arrays remain unsupported.",
+            ja: "double 対応はローカルストレージ、有限リテラル、コピー代入に限定されます。算術、比較、変換、引数、戻り値、配列は未対応です。",
+            "zh-CN": "double 支持仅限局部存储、有限字面量和复制赋值；算术、比较、转换、参数、返回值和数组仍不受支持。"
           }
         ]
       }
     ],
+    commit: "429f6b46380388e8cf890c4051f4aa8610032350",
     webUrl: PUBLIC_WEB_URL
   },
   {

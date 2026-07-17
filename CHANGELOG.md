@@ -17,6 +17,7 @@ The learning studio is available as a production WASM application on Cloudflare 
 - Independent safe persistence for locale, UI preferences, the last built-in example, and built-in lesson progress.
 - An offline Tauri Windows demonstration build that reuses the React, Vite, Monaco, and WASM frontend without adding native filesystem permissions.
 - A structured, multilingual Changelog generated from the same offline release registry used by the application.
+- Binary64 double storage observation with four high-word-first COMET II words, runtime literal stores, four-word copy assignment, and a live Double Value Inspector.
 
 ### Improved
 
@@ -31,6 +32,9 @@ The learning studio is available as a production WASM application on Cloudflare 
 
 - The C++ path is a teaching subset, not a complete C++ compiler; arrays, pointers, classes, templates, recursion, and the full standard library are outside the current scope.
 - The Windows demo is unsigned and still uses the browser file adapter boundary; native Tauri file dialogs and updates are deferred.
+- Double support is limited to local storage, finite literals, and copy assignment; arithmetic, comparison, conversion, parameters, returns, and arrays remain unsupported.
+
+Release references: [Commit](https://github.com/LMstugx/stugx-casl/commit/429f6b46380388e8cf890c4051f4aa8610032350)
 
 ## v1.0-rc10 - 2026-07-11 (Preview)
 

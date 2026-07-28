@@ -92,6 +92,16 @@ export const RELEASES: readonly ReleaseNote[] = [
             en: "CASL Mode covers all 28 official COMET II machine instructions, IN / OUT / RPUSH / RPOP macro expansion, WaitingInput, and symbol and literal tables.",
             ja: "CASL Mode は 28 個の公式 COMET II 機械命令すべてに加え、IN / OUT / RPUSH / RPOP のマクロ展開、WaitingInput、シンボル表とリテラル表を備えています。",
             "zh-CN": "CASL Mode 覆盖全部 28 条官方 COMET II 机器指令，并提供 IN / OUT / RPUSH / RPOP 宏展开、WaitingInput、符号表和字面量表。"
+          },
+          {
+            en: "Debugger controls edit GR0-GR7, PR, SP, the three COMET II flags, individual memory words, and runtime machine words, with Full Clear and epoch-based mutation ownership.",
+            ja: "Debugger controls で GR0-GR7、PR、SP、COMET II の 3 つのフラグ、個別のメモリワード、実行時の機械語ワードを編集でき、Full Clear と epoch ベースの mutation ownership を備えています。",
+            "zh-CN": "Debugger controls 可编辑 GR0-GR7、PR、SP、COMET II 三个标志位、单个内存 word 和运行时机器 word，并提供 Full Clear 与基于 epoch 的 mutation ownership。"
+          },
+          {
+            en: "COMET Mode executes real Fetch, Decode, Effective Address, Operand Read, Execute, Write Back, Flag Update, and Instruction Complete microcycles across all 28 machine instructions.",
+            ja: "COMET Mode は 28 個すべての機械命令について、実際の Fetch、Decode、Effective Address、Operand Read、Execute、Write Back、Flag Update、Instruction Complete の microcycle を実行します。",
+            "zh-CN": "COMET Mode 对全部 28 条机器指令执行真实的 Fetch、Decode、Effective Address、Operand Read、Execute、Write Back、Flag Update 和 Instruction Complete microcycle。"
           }
         ]
       },
@@ -112,6 +122,16 @@ export const RELEASES: readonly ReleaseNote[] = [
             en: "The WCASL-compatible workflow offers hexadecimal, signed decimal, unsigned decimal, and binary displays plus explicit assembled, zero-DS, and FFFF-DS reload modes.",
             ja: "WCASL 互換ワークフローでは、16 進、符号付き 10 進、符号なし 10 進、2 進表示と、assembled、zero-DS、FFFF-DS の明示的な reload mode を利用できます。",
             "zh-CN": "WCASL 兼容工作流提供十六进制、有符号十进制、无符号十进制和二进制显示，以及明确的 assembled、zero-DS 和 FFFF-DS reload mode。"
+          },
+          {
+            en: "The COMET II flag register is modeled as the official OF, SF, and ZF bits only; shift instructions write the shifted-out bit to OF and no CF is exposed.",
+            ja: "COMET II のフラグレジスタは公式の OF、SF、ZF の 3 ビットだけで構成され、shift 命令は押し出されたビットを OF に書き込み、CF は公開しません。",
+            "zh-CN": "COMET II 标志寄存器严格建模为官方 OF、SF、ZF 三位；移位指令把移出的 bit 写入 OF，且不公开 CF。"
+          },
+          {
+            en: "Source, machine word, microcycle trace, and clean active circuit flow stay aligned through stugx.CASL Teaching Microarchitecture v1, an explanatory model rather than a claim about a unique physical implementation.",
+            ja: "source、machine word、microcycle trace、clean active circuit flow は stugx.CASL Teaching Microarchitecture v1 で対応付けられます。これは説明用モデルであり、唯一の物理実装を主張するものではありません。",
+            "zh-CN": "source、machine word、microcycle trace 与 clean active circuit flow 通过 stugx.CASL Teaching Microarchitecture v1 保持对应；这是解释模型，不代表唯一的物理实现。"
           }
         ]
       },
@@ -146,7 +166,7 @@ export const RELEASES: readonly ReleaseNote[] = [
         ]
       }
     ],
-    commit: "ed3af7880b1fa6bb010d85497ccd485f1c873f2c",
+    commit: "8f16f900fdf0cbae13e2f54f8e9832eb08210f17",
     webUrl: PUBLIC_WEB_URL
   },
   {

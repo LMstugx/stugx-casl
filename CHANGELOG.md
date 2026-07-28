@@ -19,12 +19,16 @@ The learning studio is available as a production WASM application on Cloudflare 
 - A structured, multilingual Changelog generated from the same offline release registry used by the application.
 - Binary64 double storage observation with four high-word-first COMET II words, runtime literal stores, four-word copy assignment, and a live Double Value Inspector.
 - CASL Mode covers all 28 official COMET II machine instructions, IN / OUT / RPUSH / RPOP macro expansion, WaitingInput, and symbol and literal tables.
+- Debugger controls edit GR0-GR7, PR, SP, the three COMET II flags, individual memory words, and runtime machine words, with Full Clear and epoch-based mutation ownership.
+- COMET Mode executes real Fetch, Decode, Effective Address, Operand Read, Execute, Write Back, Flag Update, and Instruction Complete microcycles across all 28 machine instructions.
 
 ### Improved
 
 - EN, JA, and zh-CN presentation for application controls and structured diagnostics, while technical identities remain locale-independent.
 - CPU Flow, Register / Stack, and Code / Machine observation modes with responsive natural scrolling and clean active-flow-only wires.
 - The WCASL-compatible workflow offers hexadecimal, signed decimal, unsigned decimal, and binary displays plus explicit assembled, zero-DS, and FFFF-DS reload modes.
+- The COMET II flag register is modeled as the official OF, SF, and ZF bits only; shift instructions write the shifted-out bit to OF and no CF is exposed.
+- Source, machine word, microcycle trace, and clean active circuit flow stay aligned through stugx.CASL Teaching Microarchitecture v1, an explanatory model rather than a claim about a unique physical implementation.
 
 ### Security
 
@@ -36,7 +40,7 @@ The learning studio is available as a production WASM application on Cloudflare 
 - The Windows demo is unsigned and still uses the browser file adapter boundary; native Tauri file dialogs and updates are deferred.
 - Double support is limited to local storage, finite literals, and copy assignment; arithmetic, comparison, conversion, parameters, returns, and arrays remain unsupported.
 
-Release references: [Commit](https://github.com/LMstugx/stugx-casl/commit/ed3af7880b1fa6bb010d85497ccd485f1c873f2c)
+Release references: [Commit](https://github.com/LMstugx/stugx-casl/commit/8f16f900fdf0cbae13e2f54f8e9832eb08210f17)
 
 ## v1.0-rc10 - 2026-07-11 (Preview)
 

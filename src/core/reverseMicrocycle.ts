@@ -26,7 +26,9 @@ export type ReverseUnavailableReason =
   | "history-capacity-boundary"
   | "history-epoch-mismatch"
   | "execution-epoch-mismatch"
+  | "timeline-revision-mismatch"
   | "runtime-not-loaded"
+  | "partial-instruction-history"
   | "history-corrupt";
 
 export interface ReverseAvailability {

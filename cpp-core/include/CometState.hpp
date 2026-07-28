@@ -152,7 +152,9 @@ enum class ReverseUnavailableReason {
     HistoryCapacityBoundary,
     HistoryEpochMismatch,
     ExecutionEpochMismatch,
+    TimelineRevisionMismatch,
     RuntimeNotLoaded,
+    PartialInstructionHistory,
     HistoryCorrupt
 };
 
@@ -169,6 +171,16 @@ struct ReverseAvailability {
     bool available = false;
     ReverseUnavailableReason reason = ReverseUnavailableReason::RuntimeNotLoaded;
     std::optional<MicrocyclePhase> targetPhase;
+};
+
+struct ReverseInstructionAvailability {
+    bool available = false;
+    ReverseUnavailableReason reason = ReverseUnavailableReason::RuntimeNotLoaded;
+    std::optional<std::uint64_t> instructionId;
+    std::optional<std::uint16_t> machineAddress;
+    std::optional<InstructionKind> instructionKind;
+    std::size_t reversibleMicrosteps = 0;
+    bool complete = false;
 };
 
 struct MicrocycleHistorySummary {
@@ -231,6 +243,7 @@ struct CometState {
     std::uint64_t historyEpoch = 0;
     std::uint64_t timelineRevision = 0;
     ReverseAvailability reverseAvailability{};
+    ReverseInstructionAvailability reverseInstructionAvailability{};
     MicrocycleHistorySummary microcycleHistorySummary{};
 };
 
@@ -283,6 +296,18 @@ struct ReverseMicrostepResult {
     std::uint64_t historyEpoch = 0;
     std::uint64_t timelineRevision = 0;
     ReverseAvailability availability{};
+};
+
+struct ReverseInstructionResult {
+    ReverseMicrostepStatus status = ReverseMicrostepStatus::Unavailable;
+    std::optional<std::uint64_t> reversedInstructionId;
+    std::size_t reversedMicrostepCount = 0;
+    std::optional<std::uint16_t> machineAddress;
+    std::optional<InstructionKind> instructionKind;
+    MicrocycleState restoredCursor{};
+    std::uint64_t historyEpoch = 0;
+    std::uint64_t timelineRevision = 0;
+    ReverseInstructionAvailability availability{};
 };
 
 struct RunResult {

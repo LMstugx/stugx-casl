@@ -126,7 +126,9 @@ std::string reverseUnavailableReasonName(casl::ReverseUnavailableReason reason) 
         case casl::ReverseUnavailableReason::HistoryCapacityBoundary: return "history-capacity-boundary";
         case casl::ReverseUnavailableReason::HistoryEpochMismatch: return "history-epoch-mismatch";
         case casl::ReverseUnavailableReason::ExecutionEpochMismatch: return "execution-epoch-mismatch";
+        case casl::ReverseUnavailableReason::TimelineRevisionMismatch: return "timeline-revision-mismatch";
         case casl::ReverseUnavailableReason::RuntimeNotLoaded: return "runtime-not-loaded";
+        case casl::ReverseUnavailableReason::PartialInstructionHistory: return "partial-instruction-history";
         case casl::ReverseUnavailableReason::HistoryCorrupt: return "history-corrupt";
     }
     return "history-corrupt";
@@ -429,6 +431,24 @@ std::string dumpStateJson(
                    ? "\"" + microcyclePhaseName(*state.reverseAvailability.targetPhase) + "\""
                    : "null")
                << "},\n";
+        output << "  \"reverseInstructionAvailability\": {"
+               << "\"available\": " << boolText(state.reverseInstructionAvailability.available)
+               << ", \"reason\": \"" << reverseUnavailableReasonName(state.reverseInstructionAvailability.reason) << "\""
+               << ", \"instructionId\": "
+               << (state.reverseInstructionAvailability.instructionId.has_value()
+                   ? std::to_string(*state.reverseInstructionAvailability.instructionId)
+                   : "null")
+               << ", \"machineAddress\": "
+               << (state.reverseInstructionAvailability.machineAddress.has_value()
+                   ? std::to_string(*state.reverseInstructionAvailability.machineAddress)
+                   : "null")
+               << ", \"instructionKind\": "
+               << (state.reverseInstructionAvailability.instructionKind.has_value()
+                   ? "\"" + casl::opcodeName(*state.reverseInstructionAvailability.instructionKind) + "\""
+                   : "null")
+               << ", \"reversibleMicrosteps\": " << state.reverseInstructionAvailability.reversibleMicrosteps
+               << ", \"complete\": " << boolText(state.reverseInstructionAvailability.complete)
+               << "},\n";
         output << "  \"microcycleHistorySummary\": {"
                << "\"retainedEntries\": " << state.microcycleHistorySummary.retainedEntries
                << ", \"capacity\": " << state.microcycleHistorySummary.capacity
@@ -728,6 +748,72 @@ EMSCRIPTEN_KEEPALIVE const char* stugx_casl_reverse_microstep(int historyEpoch, 
                << (reverse.availability.targetPhase.has_value()
                    ? "\"" + microcyclePhaseName(*reverse.availability.targetPhase) + "\""
                    : "null")
+               << "},\n";
+        output << "  \"state\": " << stateJson << "\n";
+        output << "}";
+        return setJson(output.str());
+    } catch (const std::exception& error) {
+        return setError(error.what());
+    }
+}
+
+EMSCRIPTEN_KEEPALIVE const char* stugx_casl_reverse_instruction(int historyEpoch, int timelineRevision) {
+    try {
+        auto& rt = runtime();
+        if (!rt.loaded || !rt.assembled.has_value()) {
+            rt.lastDiagnostics = {{0, casl::Severity::Error, "No program loaded"}};
+            g_lastError = "No program loaded";
+            return setJson(stateErrorJson(g_lastError));
+        }
+
+        const auto reverse = rt.vm.reverseInstruction(
+            static_cast<std::uint64_t>(historyEpoch),
+            static_cast<std::uint64_t>(timelineRevision)
+        );
+        rt.lastStep.reset();
+        rt.lastDiagnostics.clear();
+        g_lastError.clear();
+        const auto stateJson = dumpStateJson(
+            *rt.assembled,
+            rt.vm.state(),
+            rt.lastStep,
+            rt.lastDiagnostics,
+            true
+        );
+        std::ostringstream output;
+        output << "{\n";
+        output << "  \"status\": \"" << reverseStatusName(reverse.status) << "\",\n";
+        output << "  \"reversedInstructionId\": "
+               << (reverse.reversedInstructionId.has_value()
+                   ? std::to_string(*reverse.reversedInstructionId)
+                   : "null") << ",\n";
+        output << "  \"reversedMicrostepCount\": " << reverse.reversedMicrostepCount << ",\n";
+        output << "  \"machineAddress\": "
+               << (reverse.machineAddress.has_value() ? std::to_string(*reverse.machineAddress) : "null") << ",\n";
+        output << "  \"mnemonic\": "
+               << (reverse.instructionKind.has_value()
+                   ? "\"" + casl::opcodeName(*reverse.instructionKind) + "\""
+                   : "null") << ",\n";
+        output << "  \"restoredPhase\": \"" << microcyclePhaseName(reverse.restoredCursor.phase) << "\",\n";
+        output << "  \"historyEpoch\": " << reverse.historyEpoch << ",\n";
+        output << "  \"timelineRevision\": " << reverse.timelineRevision << ",\n";
+        output << "  \"availability\": {"
+               << "\"available\": " << boolText(reverse.availability.available)
+               << ", \"reason\": \"" << reverseUnavailableReasonName(reverse.availability.reason) << "\""
+               << ", \"instructionId\": "
+               << (reverse.availability.instructionId.has_value()
+                   ? std::to_string(*reverse.availability.instructionId)
+                   : "null")
+               << ", \"machineAddress\": "
+               << (reverse.availability.machineAddress.has_value()
+                   ? std::to_string(*reverse.availability.machineAddress)
+                   : "null")
+               << ", \"instructionKind\": "
+               << (reverse.availability.instructionKind.has_value()
+                   ? "\"" + casl::opcodeName(*reverse.availability.instructionKind) + "\""
+                   : "null")
+               << ", \"reversibleMicrosteps\": " << reverse.availability.reversibleMicrosteps
+               << ", \"complete\": " << boolText(reverse.availability.complete)
                << "},\n";
         output << "  \"state\": " << stateJson << "\n";
         output << "}";

@@ -41,6 +41,7 @@ The C++ path is not a complete C++ compiler and does not execute native code or 
 
 - complete official CASL II machine-instruction set, directives, standard macros, and COMET II execution
 - instruction and microcycle stepping through stugx.CASL Teaching Microarchitecture v1
+- atomic Reverse Instruction and Reverse Microstep within verified retained history
 - WCASL-compatible CASL observation workflow with nonblocking `IN` / `OUT`
 - atomic register and single-word Memory editing with explicit runtime overrides
 - Full Clear that unloads machine state without modifying source
@@ -78,6 +79,7 @@ Additional commands are listed in [Build Commands](docs/reference/build-commands
 - [Supported CASL Instructions](docs/reference/supported-casl-instructions.md)
 - [CASL Compatibility Mode](docs/user/casl-compatibility-mode.md)
 - [CASL State Editing](docs/user/casl-state-editing.md)
+- [Reverse Instruction](docs/user/reverse-instruction.md)
 - [WCASL-II Parity Audit](docs/phase20a-wcasl-parity-audit.md)
 - [C++ Subset Capabilities](docs/reference/cpp-subset-capabilities.md)
 - [Double Memory Observation](docs/user/double-memory-observation.md)
@@ -98,7 +100,7 @@ Canonical guides describe current behavior. Existing `docs/phase*.md` files and 
 - The Windows installer is unsigned and Tauri-native file I/O is deferred.
 - COMET Mode is a deterministic teaching microarchitecture, not a claim about physical COMET II timing or implementation.
 - Register/Memory editing is single-target only; bulk mutation is not included.
-- COMET Mode can reverse one retained safe microcycle. Reverse Instruction, Redo, reverse run, persistent history, and multi-program linking remain future work.
+- COMET Mode can reverse one retained safe microcycle or one grouped machine instruction. Redo, reverse run, Reverse Macro, persistent history, and multi-program linking remain future work.
 
 ## Security and Privacy
 

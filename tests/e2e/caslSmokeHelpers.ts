@@ -251,3 +251,48 @@ DATA DC #8000
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
   }
 }
+
+export async function verifyReverseInstruction(page: Page, backendLabel: "Mock Core" | "WASM Core") {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await openStudio(page, backendLabel);
+  await setSource(page, `MAIN START
+     LD GR1,DATA
+     ST GR1,TARGET
+     RET
+DATA DC #8000
+TARGET DS 1
+     END`);
+  await assemble(page);
+  await page.getByTestId("casl-mode-toggle").click();
+
+  const instructionReverse = page.getByTestId("reverse-instruction-button");
+  await expect(instructionReverse).toBeDisabled();
+  await expect(page.getByTestId("reverse-microstep-button")).toHaveCount(0);
+  await step(page);
+  await expect(page.getByTestId("casl-register-gr1")).toContainText("#8000");
+  await expect(instructionReverse).toBeEnabled();
+
+  await instructionReverse.click();
+  await expect(page.getByTestId("casl-register-gr1")).toContainText("#0000");
+  await expect(page.getByTestId("reverse-instruction-notice")).not.toBeEmpty();
+  await expect(instructionReverse).toBeFocused();
+
+  await page.getByTestId("comet-mode-toggle").click();
+  await expect(page.getByTestId("reverse-microstep-button")).toBeVisible();
+  await expect(page.getByTestId("reverse-instruction-button")).toBeVisible();
+  for (let index = 0; index < 3; index += 1) await step(page);
+  await expect(page.getByTestId("comet-current-phase")).toHaveText("Effective Address");
+  await page.getByTestId("reverse-instruction-button").click();
+  await expect(page.getByTestId("comet-current-microstep")).toHaveText("0/0");
+  await expect(page.getByTestId("reverse-instruction-notice")).not.toBeEmpty();
+
+  await step(page);
+  await page.getByTestId("reset-button").click();
+  await expect(page.getByTestId("reverse-instruction-button")).toBeDisabled();
+
+  for (const locale of ["ja", "zh-CN", "en"] as const) {
+    await page.getByTestId(`locale-${locale}`).click();
+    await expect(page.getByTestId("reverse-instruction-button")).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+  }
+}

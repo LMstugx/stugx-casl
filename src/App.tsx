@@ -188,6 +188,7 @@ function StudioShell({
     mutateDebuggerState,
     fullClear,
     reverseMicrostep,
+    reverseInstruction,
     stop,
     submitConsoleInput,
     clearOutput,
@@ -529,6 +530,9 @@ function StudioShell({
           fileOperationActive={fileLifecycle.status !== "idle"}
           onMutate={mutateDebuggerState}
           onFullClear={fullClear}
+          reverseInFlight={reverseInFlight}
+          reverseInstructionNotice={reverseNotice?.kind === "instruction" ? reverseNotice : null}
+          onReverseInstruction={reverseInstruction}
         />
       ) : workspaceMode === "comet" ? (
         <div
@@ -539,8 +543,10 @@ function StudioShell({
           <CometMicrocyclePanel
             state={state}
             reverseInFlight={reverseInFlight}
-            reverseNotice={reverseNotice}
+            reverseNotice={reverseNotice?.kind === "microstep" ? reverseNotice : null}
+            reverseInstructionNotice={reverseNotice?.kind === "instruction" ? reverseNotice : null}
             onReverse={reverseMicrostep}
+            onReverseInstruction={reverseInstruction}
           />
           <CircuitFocusLayout
             key={sourceUnitId}

@@ -2,6 +2,7 @@
 #include "DiagnosticCatalog.hpp"
 
 #include <algorithm>
+#include <memory>
 #include <utility>
 
 namespace casl {
@@ -275,18 +276,10 @@ void CometVm::load(const AssembleOutput& program) {
 }
 
 StepResult CometVm::step() {
-    if (!microcycleContext_.has_value()) {
-        auto result = stepReference();
-        state_.executionGranularity = ExecutionGranularity::Instruction;
-        state_.microcycle = {};
-        return result;
-    }
-
     StepResult result;
-    state_.executionGranularity = ExecutionGranularity::Instruction;
+    const auto timelineRevisionBefore = timelineRevision_;
     do {
         auto microResult = stepMicrocycle();
-        state_.executionGranularity = ExecutionGranularity::Instruction;
         result.ok = microResult.ok;
         result.finished = microResult.finished;
         result.executedAddress = microResult.executedAddress;
@@ -298,6 +291,7 @@ StepResult CometVm::step() {
         if (!result.ok || result.finished || microResult.instructionComplete || state_.runState == RunState::WaitingInput) break;
     } while (true);
 
+    state_.executionGranularity = ExecutionGranularity::Instruction;
     if (result.ok && result.instructionKind.has_value()) {
         if (state_.executionGranularity == ExecutionGranularity::Instruction) {
             if (result.instructionKind == Opcode::NOP || result.instructionKind == Opcode::SVC) {
@@ -347,6 +341,13 @@ StepResult CometVm::step() {
         }
     }
     state_.microcycle = {};
+    if (!microcycleHistory_.empty() && timelineRevision_ != timelineRevisionBefore) {
+        auto& latest = microcycleHistory_.back();
+        latest.after = captureStateSnapshot();
+        latest.contextAfter = microcycleContext_;
+        latest.traceSizeAfter = trace_.size();
+    }
+    syncHistoryState();
     return result;
 }
 
@@ -419,7 +420,7 @@ bool CometVm::beginMicrocycle(MicrocycleStepResult& result) {
         structureDiagnostic(result.diagnostics.back());
         return false;
     }
-    if (state_.runState == RunState::Finished || state_.runState == RunState::WaitingInput || state_.runState == RunState::Error) {
+    if (state_.runState == RunState::Finished || state_.runState == RunState::WaitingInput) {
         result.ok = state_.runState == RunState::Finished;
         result.finished = state_.runState == RunState::Finished;
         return false;
@@ -439,6 +440,7 @@ bool CometVm::beginMicrocycle(MicrocycleStepResult& result) {
     context.instructionAddress = instruction->address;
     context.sequentialPr = static_cast<std::uint16_t>(instruction->address + instruction->size);
     context.instructionStartMdr = state_.mdr;
+    context.instructionId = microcycleSequence_ + 1;
     microcycleContext_ = std::move(context);
     state_.lastInstructionKind = instruction->opcode;
     state_.lastMemoryReadAddress.reset();
@@ -777,7 +779,10 @@ MicrocycleStepResult CometVm::stepMicrocycle() {
             history.timelineRevisionBefore = timelineRevision_ - 1;
             history.timelineRevisionAfter = timelineRevision_;
             history.phase = MicrocyclePhase::None;
+            history.instructionId = microcycleSequence_;
             history.instructionAddress = before.pr;
+            history.sourceLine = before.currentLine;
+            history.startsAtFetch = true;
             history.before = before;
             history.after = captureStateSnapshot();
             history.contextBefore = contextBefore;
@@ -870,7 +875,12 @@ MicrocycleStepResult CometVm::stepMicrocycle() {
     history.timelineRevisionBefore = timelineRevision_ - 1;
     history.timelineRevisionAfter = timelineRevision_;
     history.phase = phase;
+    history.instructionId = active.instructionId;
     history.instructionAddress = instructionAddress;
+    history.instructionKind = active.instruction.opcode;
+    history.sourceLine = active.instruction.line;
+    history.startsAtFetch = phase == MicrocyclePhase::Fetch;
+    history.endsAtInstructionComplete = phase == MicrocyclePhase::Complete;
     history.before = before;
     history.after = captureStateSnapshot();
     history.contextBefore = contextBefore;
@@ -991,6 +1001,81 @@ ReverseMicrostepResult CometVm::reverseMicrocycle(
     result.historyEpoch = historyEpoch_;
     result.timelineRevision = timelineRevision_;
     result.availability = reverseAvailability();
+    return result;
+}
+
+ReverseInstructionResult CometVm::reverseInstruction(
+    std::uint64_t expectedHistoryEpoch,
+    std::uint64_t expectedTimelineRevision
+) {
+    ReverseInstructionResult result;
+    result.historyEpoch = historyEpoch_;
+    result.timelineRevision = timelineRevision_;
+    result.availability = reverseInstructionAvailability();
+
+    if (expectedHistoryEpoch != historyEpoch_ || expectedTimelineRevision != timelineRevision_) {
+        result.status = ReverseMicrostepStatus::Stale;
+        result.availability = {
+            false,
+            expectedHistoryEpoch != historyEpoch_
+                ? ReverseUnavailableReason::HistoryEpochMismatch
+                : ReverseUnavailableReason::TimelineRevisionMismatch
+        };
+        return result;
+    }
+    if (!result.availability.available || microcycleHistory_.empty()) {
+        result.status = result.availability.reason == ReverseUnavailableReason::NoHistory
+            ? ReverseMicrostepStatus::Unavailable
+            : ReverseMicrostepStatus::Blocked;
+        return result;
+    }
+
+    const auto instructionId = *result.availability.instructionId;
+    const auto microstepCount = result.availability.reversibleMicrosteps;
+    const auto machineAddress = result.availability.machineAddress;
+    const auto instructionKind = result.availability.instructionKind;
+    const auto originalTimelineRevision = timelineRevision_;
+    auto candidate = std::make_unique<CometVm>(*this);
+
+    for (std::size_t index = 0; index < microstepCount; ++index) {
+        if (
+            candidate->microcycleHistory_.empty()
+            || candidate->microcycleHistory_.back().instructionId != instructionId
+        ) {
+            result.status = ReverseMicrostepStatus::CorruptHistory;
+            result.availability = {
+                false,
+                ReverseUnavailableReason::HistoryCorrupt
+            };
+            return result;
+        }
+        const auto reversed = candidate->reverseMicrocycle(
+            expectedHistoryEpoch,
+            candidate->timelineRevision_
+        );
+        if (reversed.status != ReverseMicrostepStatus::Reversed) {
+            result.status = ReverseMicrostepStatus::CorruptHistory;
+            result.availability = {
+                false,
+                ReverseUnavailableReason::HistoryCorrupt
+            };
+            return result;
+        }
+    }
+
+    candidate->timelineRevision_ = originalTimelineRevision + 1;
+    candidate->syncHistoryState();
+    *this = std::move(*candidate);
+
+    result.status = ReverseMicrostepStatus::Reversed;
+    result.reversedInstructionId = instructionId;
+    result.reversedMicrostepCount = microstepCount;
+    result.machineAddress = machineAddress;
+    result.instructionKind = instructionKind;
+    result.restoredCursor = state_.microcycle;
+    result.historyEpoch = historyEpoch_;
+    result.timelineRevision = timelineRevision_;
+    result.availability = reverseInstructionAvailability();
     return result;
 }
 
@@ -1896,7 +1981,8 @@ bool CometVm::contextMatches(const std::optional<MicrocycleContext>& expected) c
         && actual.sequentialPr == wanted.sequentialPr
         && actual.effectiveAddress == wanted.effectiveAddress
         && actual.stackAddress == wanted.stackAddress
-        && actual.instructionStartMdr == wanted.instructionStartMdr;
+        && actual.instructionStartMdr == wanted.instructionStartMdr
+        && actual.instructionId == wanted.instructionId;
 }
 
 MicrocycleHistorySummary CometVm::historySummary() const {
@@ -1920,40 +2006,104 @@ ReverseAvailability CometVm::reverseAvailability() const {
         return {true, ReverseUnavailableReason::Available, entry.before.microcycle.phase};
     }
 
+    const auto reason = unavailableReasonFromBarrier();
+    return {false, reason, std::nullopt};
+}
+
+ReverseUnavailableReason CometVm::unavailableReasonFromBarrier() const {
     switch (lastHistoryBarrier_) {
         case HistoryBarrierReason::DebuggerMutation:
         case HistoryBarrierReason::ProgramWordOverride:
-            return {false, ReverseUnavailableReason::MutationBoundary, std::nullopt};
+            return ReverseUnavailableReason::MutationBoundary;
         case HistoryBarrierReason::Reset:
-            return {false, ReverseUnavailableReason::ResetBoundary, std::nullopt};
+            return ReverseUnavailableReason::ResetBoundary;
         case HistoryBarrierReason::Reload:
-            return {false, ReverseUnavailableReason::ReloadBoundary, std::nullopt};
+            return ReverseUnavailableReason::ReloadBoundary;
         case HistoryBarrierReason::FullClear:
-            return {false, ReverseUnavailableReason::FullClearBoundary, std::nullopt};
+            return ReverseUnavailableReason::FullClearBoundary;
         case HistoryBarrierReason::AssemblyCommit:
         case HistoryBarrierReason::ProgramReplacement:
-            return {false, ReverseUnavailableReason::AssemblyBoundary, std::nullopt};
+            return ReverseUnavailableReason::AssemblyBoundary;
         case HistoryBarrierReason::SourceReplacement:
-            return {false, ReverseUnavailableReason::SourceReplacementBoundary, std::nullopt};
+            return ReverseUnavailableReason::SourceReplacementBoundary;
         case HistoryBarrierReason::InputSubmission:
         case HistoryBarrierReason::IoSideEffect:
-            return {false, ReverseUnavailableReason::IoBoundary, std::nullopt};
+            return ReverseUnavailableReason::IoBoundary;
         case HistoryBarrierReason::Svc:
-            return {false, ReverseUnavailableReason::SvcBoundary, std::nullopt};
+            return ReverseUnavailableReason::SvcBoundary;
         case HistoryBarrierReason::HistoryCapacity:
-            return {false, ReverseUnavailableReason::HistoryCapacityBoundary, std::nullopt};
+            return ReverseUnavailableReason::HistoryCapacityBoundary;
         case HistoryBarrierReason::BackendReplacement:
         case HistoryBarrierReason::ConsoleClear:
         case HistoryBarrierReason::None:
-            return {false, ReverseUnavailableReason::NoHistory, std::nullopt};
+            return ReverseUnavailableReason::NoHistory;
     }
-    return {false, ReverseUnavailableReason::NoHistory, std::nullopt};
+    return ReverseUnavailableReason::NoHistory;
+}
+
+ReverseInstructionAvailability CometVm::reverseInstructionAvailability() const {
+    if (!hasProgram_) {
+        return {false, ReverseUnavailableReason::RuntimeNotLoaded};
+    }
+    if (state_.runState == RunState::Running) {
+        return {false, ReverseUnavailableReason::Running};
+    }
+    if (state_.runState == RunState::WaitingInput) {
+        return {false, ReverseUnavailableReason::WaitingInput};
+    }
+    if (microcycleHistory_.empty()) {
+        return {false, unavailableReasonFromBarrier()};
+    }
+
+    const auto& latest = microcycleHistory_.back();
+    if (latest.historyEpoch != historyEpoch_) {
+        return {false, ReverseUnavailableReason::HistoryEpochMismatch};
+    }
+
+    std::size_t firstIndex = microcycleHistory_.size() - 1;
+    while (
+        firstIndex > 0
+        && microcycleHistory_[firstIndex - 1].instructionId == latest.instructionId
+    ) {
+        firstIndex -= 1;
+    }
+    const auto& first = microcycleHistory_[firstIndex];
+    const auto groupSize = microcycleHistory_.size() - firstIndex;
+
+    if (!first.startsAtFetch) {
+        auto reason = unavailableReasonFromBarrier();
+        if (reason == ReverseUnavailableReason::NoHistory) {
+            reason = droppedHistoryEntries_ > 0
+                ? ReverseUnavailableReason::HistoryCapacityBoundary
+                : ReverseUnavailableReason::PartialInstructionHistory;
+        }
+        return {
+            false,
+            reason,
+            latest.instructionId,
+            latest.instructionAddress,
+            latest.instructionKind,
+            groupSize,
+            latest.endsAtInstructionComplete
+        };
+    }
+
+    return {
+        true,
+        ReverseUnavailableReason::Available,
+        latest.instructionId,
+        latest.instructionAddress,
+        latest.instructionKind,
+        groupSize,
+        latest.endsAtInstructionComplete
+    };
 }
 
 void CometVm::syncHistoryState() {
     state_.historyEpoch = historyEpoch_;
     state_.timelineRevision = timelineRevision_;
     state_.reverseAvailability = reverseAvailability();
+    state_.reverseInstructionAvailability = reverseInstructionAvailability();
     state_.microcycleHistorySummary = historySummary();
 }
 

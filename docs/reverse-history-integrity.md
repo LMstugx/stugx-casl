@@ -4,17 +4,19 @@
 - Status: Canonical
 - Last reviewed version: 0.1.0
 - Classification: Canonical
-- Related: [Reverse Runtime Contract](reverse-microstep-runtime-contract.md), [Debugger Barriers](debugger-history-barrier-contract.md), [Security Model](developer/security-model.md)
+- Related: [Reverse Microstep Contract](reverse-microstep-runtime-contract.md), [Reverse Instruction Contract](reverse-instruction-runtime-contract.md), [Debugger Barriers](debugger-history-barrier-contract.md)
 
 Microcycle history is a bounded sequence of reversible transactions, not a list of screenshots.
 
 ## Entry Contents
 
-Each C++ entry owns a stable sequence, history epoch, timeline revisions before and after, machine address, phase, architectural and teaching snapshots excluding full Memory, sparse Memory deltas, microcycle context, and exact Trace additions/removals.
+Each C++ entry owns a stable sequence, runtime instruction identity, history epoch, timeline revisions before and after, machine address, phase, Fetch/Complete boundary markers, architectural and teaching snapshots excluding full Memory, sparse Memory deltas, microcycle context, and exact Trace additions/removals.
 
 A memory delta is an address plus one before-value and one after-value. Addresses are deterministic and unique within an entry. The Core does not copy all 65536 words into every history record.
 
 Trace rollback removes only the exact suffix introduced by the reversed microcycle and restores any rows removed from the front by the bounded Trace capacity. Reverse never appends a fake execution event.
+
+Reverse Instruction checks every entry in its instruction group on a private candidate VM before replacing the live state. A group without its retained Fetch entry is unavailable; it is never partially restored and reported as a complete instruction reverse.
 
 ## Capacity
 

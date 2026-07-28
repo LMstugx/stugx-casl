@@ -27,9 +27,12 @@ export interface MicrocycleRuntimeState {
 
 export interface MicrocycleHistoryRecord {
   sequence: number;
+  instructionId: number;
   phase: Exclude<MicrocyclePhase, "none">;
   instructionAddress: number;
   instructionKind?: InstructionKind;
+  startsAtFetch: boolean;
+  endsAtInstructionComplete: boolean;
   prBefore: number;
   prAfter: number;
   spBefore: number;

@@ -339,7 +339,7 @@
         "all_official_instructions_execute_as_microcycles",
         "instruction_and_microcycle_execution_reach_the_same_architectural_state"
       ],
-      "limitations": "The cycle view is stugx.CASL Teaching Microarchitecture v1, not a claim about one required physical COMET II implementation. Reverse execution remains out of scope.",
+      "limitations": "The cycle view is stugx.CASL Teaching Microarchitecture v1, not a claim about one required physical COMET II implementation.",
       "targetPhase": "20C"
     },
     {
@@ -639,7 +639,7 @@
         "multi_program_linking_admission_is_partial"
       ],
       "limitations": "Design and admission gate only; runtime remains single-document.",
-      "targetPhase": "20E"
+      "targetPhase": "20F"
     },
     {
       "featureId": "project.wcasl-format",
@@ -774,15 +774,17 @@
       "featureId": "modern.reverse-step",
       "featureName": "Traditional reverse instruction execution",
       "sourceCategory": "WCASL debugger workflow",
-      "evidenceReference": "docs/user/reverse-microstep.md",
-      "currentStatus": "partial",
+      "evidenceReference": "docs/user/reverse-instruction.md",
+      "currentStatus": "compatible",
       "priority": "P2",
       "implementationOwner": "debugger",
       "tests": [
-        "reverse_button_only_available_when_safe"
+        "reverse_completed_instruction_restores_before_fetch",
+        "reverse_instruction_is_atomic",
+        "cannot_reverse_instruction_across_svc"
       ],
-      "limitations": "Reverse Microstep is available, but one-action Reverse Instruction, Redo, reverse run, cross-SVC/I/O rollback, and persistent timelines are not.",
-      "targetPhase": "future"
+      "limitations": "Machine-instruction rollback is available within retained history. Redo, reverse run, macro-level reverse, cross-SVC/I/O rollback, and persistent timelines are not supported.",
+      "targetPhase": "20E"
     },
     {
       "featureId": "modern.reverse-microstep",
@@ -797,7 +799,7 @@
         "reverse_write_back_and_flag_update_restore_register_and_fr",
         "cannot_reverse_across_svc"
       ],
-      "limitations": "Limited to retained transactions in the current history epoch; no Redo, Reverse Run, Reverse Instruction, persistence, or I/O reversal.",
+      "limitations": "Limited to retained transactions in the current history epoch; no Redo, Reverse Run, persistence, or I/O reversal.",
       "targetPhase": "20D"
     },
     {

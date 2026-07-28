@@ -9,6 +9,7 @@ import {
   EMPTY_MICROCYCLE_HISTORY_SUMMARY,
   EMPTY_REVERSE_AVAILABILITY
 } from "./reverseMicrocycle";
+import { EMPTY_REVERSE_INSTRUCTION_AVAILABILITY } from "./reverseInstruction";
 
 const START_ADDRESS = 0x20;
 const INITIAL_SP = 0xfffe;
@@ -462,9 +463,14 @@ export function createCometStateFromDto(dto: CometStateDto, options: StateFromDt
     microcyclePhase !== "none" && microcycleHistorySequence > previousMicrocycle.historySequence
       ? {
           sequence: microcycleHistorySequence,
+          instructionId: microcyclePhase === "fetch"
+            ? microcycleHistorySequence
+            : options.previous?.microcycleHistory[0]?.instructionId ?? microcycleHistorySequence,
           phase: microcyclePhase,
           instructionAddress: dto.microcycleInstructionAddress ?? dto.pr,
           instructionKind: dto.microcycleInstructionKind ?? undefined,
+          startsAtFetch: microcyclePhase === "fetch",
+          endsAtInstructionComplete: microcyclePhase === "complete",
           prBefore: options.previous?.pr ?? dto.pr,
           prAfter: dto.pr,
           spBefore: options.previous?.sp ?? dto.sp,
@@ -533,6 +539,20 @@ export function createCometStateFromDto(dto: CometStateDto, options: StateFromDt
           targetPhase: dto.reverseAvailability.targetPhase ?? undefined
         }
       : { ...(options.previous?.reverseAvailability ?? EMPTY_REVERSE_AVAILABILITY) },
+    reverseInstructionAvailability: dto.reverseInstructionAvailability
+      ? {
+          available: dto.reverseInstructionAvailability.available,
+          reason: dto.reverseInstructionAvailability.reason,
+          instructionId: dto.reverseInstructionAvailability.instructionId ?? undefined,
+          machineAddress: dto.reverseInstructionAvailability.machineAddress ?? undefined,
+          instructionKind: dto.reverseInstructionAvailability.instructionKind ?? undefined,
+          reversibleMicrosteps: dto.reverseInstructionAvailability.reversibleMicrosteps,
+          complete: dto.reverseInstructionAvailability.complete
+        }
+      : {
+          ...(options.previous?.reverseInstructionAvailability
+            ?? EMPTY_REVERSE_INSTRUCTION_AVAILABILITY)
+        },
     microcycleHistorySummary: dto.microcycleHistorySummary
       ? {
           retainedEntries: dto.microcycleHistorySummary.retainedEntries,

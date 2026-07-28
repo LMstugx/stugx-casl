@@ -28,6 +28,11 @@ import {
   EMPTY_REVERSE_AVAILABILITY,
   type ReverseMicrostepResultDto
 } from "./reverseMicrocycle";
+import {
+  EMPTY_REVERSE_INSTRUCTION_AVAILABILITY,
+  type ReverseInstructionAvailability,
+  type ReverseInstructionResultDto
+} from "./reverseInstruction";
 import { isDebuggerWord, isValidDebuggerMutationTarget } from "../debugger/debuggerMutation";
 import { decodeRuntimeInstruction } from "./instructionEncoding";
 
@@ -119,7 +124,7 @@ function initialFlags(): FlagsState {
   return { z: false, n: false, o: false };
 }
 
-function cloneState(state: CometState): CometState {
+function cloneState(state: CometState, includeMicrocycleHistory = true): CometState {
   return {
     ...state,
     fr: { ...state.fr },
@@ -136,8 +141,11 @@ function cloneState(state: CometState): CometState {
     consoleInputQueue: state.consoleInputQueue?.map((record) => ({ words: [...record.words], endOfFile: record.endOfFile })),
     trace: state.trace.map((event) => ({ ...event })),
     microcycle: { ...state.microcycle },
-    microcycleHistory: state.microcycleHistory.map((entry) => ({ ...entry })),
+    microcycleHistory: includeMicrocycleHistory
+      ? state.microcycleHistory.map((entry) => ({ ...entry }))
+      : [],
     reverseAvailability: { ...state.reverseAvailability },
+    reverseInstructionAvailability: { ...state.reverseInstructionAvailability },
     microcycleHistorySummary: { ...state.microcycleHistorySummary },
     program: state.program?.map((instruction) => ({ ...instruction })),
     changedRegisters: [...state.changedRegisters],
@@ -1186,6 +1194,10 @@ function createState(artifacts: AssembleArtifacts): CometState {
     historyEpoch: 1,
     timelineRevision: 1,
     reverseAvailability: { available: false, reason: "assembly-boundary" },
+    reverseInstructionAvailability: {
+      ...EMPTY_REVERSE_INSTRUCTION_AVAILABILITY,
+      reason: "assembly-boundary"
+    },
     microcycleHistorySummary: { ...EMPTY_MICROCYCLE_HISTORY_SUMMARY },
     stepIndex: 0,
     program: artifacts.program,
@@ -1226,6 +1238,7 @@ export function createEmptyCometState(runState: CometState["runState"] = "Idle",
     historyEpoch: 0,
     timelineRevision: 0,
     reverseAvailability: { ...EMPTY_REVERSE_AVAILABILITY },
+    reverseInstructionAvailability: { ...EMPTY_REVERSE_INSTRUCTION_AVAILABILITY },
     microcycleHistorySummary: { ...EMPTY_MICROCYCLE_HISTORY_SUMMARY },
     stepIndex: 0,
     program: [],
@@ -1837,6 +1850,7 @@ const mockCaslCoreReference: Omit<CaslCore, "microStep"> = {
 
 type ActiveMockMicrocycle = {
   instruction: AssembledInstruction;
+  instructionId: number;
   phases: readonly Exclude<MicrocyclePhase, "none">[];
   nextPhaseIndex: number;
   finalState: CometState;
@@ -1853,11 +1867,17 @@ type MockReversibleSnapshot = Omit<
   | "historyEpoch"
   | "timelineRevision"
   | "reverseAvailability"
+  | "reverseInstructionAvailability"
   | "microcycleHistorySummary"
 >;
 
 type MockReversibleEntry = {
   entryId: number;
+  instructionId: number;
+  instructionAddress: number;
+  instructionKind: InstructionKind;
+  startsAtFetch: boolean;
+  endsAtInstructionComplete: boolean;
   historyEpoch: number;
   before: MockReversibleSnapshot;
   after: MockReversibleSnapshot;
@@ -1871,7 +1891,7 @@ const mockReversibleHistory = new WeakMap<CometState, readonly MockReversibleEnt
 const mockMicrocycleSequence = new WeakMap<CometState, number>();
 
 function captureMockReversibleSnapshot(state: CometState): MockReversibleSnapshot {
-  const cloned = cloneState(state);
+  const cloned = cloneState(state, false);
   const {
     memory: _memory,
     initialMemory: _initialMemory,
@@ -1879,6 +1899,7 @@ function captureMockReversibleSnapshot(state: CometState): MockReversibleSnapsho
     historyEpoch: _historyEpoch,
     timelineRevision: _timelineRevision,
     reverseAvailability: _reverseAvailability,
+    reverseInstructionAvailability: _reverseInstructionAvailability,
     microcycleHistorySummary: _microcycleHistorySummary,
     ...snapshot
   } = cloned;
@@ -1903,6 +1924,7 @@ function restoreMockSnapshot(
     historyEpoch: current.historyEpoch,
     timelineRevision: current.timelineRevision,
     reverseAvailability: { ...current.reverseAvailability },
+    reverseInstructionAvailability: { ...current.reverseInstructionAvailability },
     microcycleHistorySummary: { ...current.microcycleHistorySummary }
   };
 }
@@ -1913,13 +1935,17 @@ function beginMockMicrocycle(state: CometState): ActiveMockMicrocycle | undefine
   }
   const instruction = instructionAt(state, state.pr);
   if (!instruction) return undefined;
-  const finalState = mockCaslCoreReference.step(state);
+  const finalState = mockCaslCoreReference.step({
+    ...state,
+    microcycleHistory: []
+  });
   return {
     instruction,
+    instructionId: (mockMicrocycleSequence.get(state) ?? state.microcycle.historySequence) + 1,
     phases: phasesForInstruction(instruction),
     nextPhaseIndex: 0,
     finalState,
-    instructionTrace: finalState.trace.slice(0, Math.max(0, finalState.trace.length - state.trace.length))
+    instructionTrace: finalState.trace.filter((event) => event.index === state.stepIndex + 1)
   };
 }
 
@@ -2108,12 +2134,20 @@ function applyMockMicrocyclePhase(
 function mockMicroStep(state: CometState): CometState {
   let context = activeMockMicrocycles.get(state);
   if (!context) context = beginMockMicrocycle(state);
-  if (!context) return refreshDerivedState({ ...cloneState(state), executionGranularity: "microcycle" });
+  if (!context) {
+    const next = state.assembled
+      && state.runState !== "Finished"
+      && state.runState !== "WaitingInput"
+      && state.runState !== "Error"
+      ? mockCaslCoreReference.step({ ...state, microcycleHistory: [] })
+      : cloneState(state);
+    return refreshDerivedState({ ...next, executionGranularity: "microcycle" });
+  }
   const contextBefore = context;
   const reversibleBefore = captureMockReversibleSnapshot(state);
 
   const phase = context.phases[context.nextPhaseIndex];
-  const next = cloneState(state);
+  const next = cloneState(state, false);
   const before = {
     pr: state.pr,
     sp: state.sp,
@@ -2142,9 +2176,12 @@ function mockMicroStep(state: CometState): CometState {
   };
   const history: MicrocycleHistoryRecord = {
     sequence,
+    instructionId: context.instructionId,
     phase,
     instructionAddress: context.instruction.address,
     instructionKind: context.instruction.op,
+    startsAtFetch: phase === "fetch",
+    endsAtInstructionComplete: instructionComplete,
     prBefore: before.pr,
     prAfter: next.pr,
     spBefore: before.sp,
@@ -2210,6 +2247,10 @@ function mockMicroStep(state: CometState): CometState {
       available: false,
       reason: refreshed.runState === "WaitingInput" ? "io-boundary" : "svc-boundary"
     };
+    refreshed.reverseInstructionAvailability = {
+      ...EMPTY_REVERSE_INSTRUCTION_AVAILABILITY,
+      reason: refreshed.runState === "WaitingInput" ? "io-boundary" : "svc-boundary"
+    };
     refreshed.microcycleHistorySummary = { ...EMPTY_MICROCYCLE_HISTORY_SUMMARY };
     mockReversibleHistory.set(refreshed, []);
     mockMicrocycleSequence.set(refreshed, 0);
@@ -2222,6 +2263,11 @@ function mockMicroStep(state: CometState): CometState {
   if (priorHistory.length >= MAX_TRACE_EVENTS) priorHistory.shift();
   const reversibleEntry: MockReversibleEntry = {
     entryId: sequence,
+    instructionId: context.instructionId,
+    instructionAddress: context.instruction.address,
+    instructionKind: context.instruction.op,
+    startsAtFetch: phase === "fetch",
+    endsAtInstructionComplete: instructionComplete,
     historyEpoch: refreshed.historyEpoch,
     before: reversibleBefore,
     after: captureMockReversibleSnapshot(refreshed),
@@ -2236,6 +2282,10 @@ function mockMicroStep(state: CometState): CometState {
     reason: "available",
     targetPhase: reversibleBefore.microcycle.phase
   };
+  refreshed.reverseInstructionAvailability = reverseMockInstructionAvailability(
+    refreshed,
+    reversibleHistory
+  );
   refreshed.microcycleHistorySummary = {
     retainedEntries: reversibleHistory.length,
     capacity: MAX_TRACE_EVENTS,
@@ -2248,6 +2298,105 @@ function mockMicroStep(state: CometState): CometState {
   mockReversibleHistory.set(refreshed, reversibleHistory);
   mockMicrocycleSequence.set(refreshed, sequence);
   return refreshed;
+}
+
+function reverseMockInstructionAvailability(
+  state: CometState,
+  history: readonly MockReversibleEntry[] = mockReversibleHistory.get(state) ?? []
+): ReverseInstructionAvailability {
+  if (!state.assembled) return { ...EMPTY_REVERSE_INSTRUCTION_AVAILABILITY };
+  if (state.runState === "Running") {
+    return { ...EMPTY_REVERSE_INSTRUCTION_AVAILABILITY, reason: "running" };
+  }
+  if (state.runState === "WaitingInput") {
+    return { ...EMPTY_REVERSE_INSTRUCTION_AVAILABILITY, reason: "waiting-input" };
+  }
+  const latest = history.at(-1);
+  if (!latest) {
+    return {
+      ...EMPTY_REVERSE_INSTRUCTION_AVAILABILITY,
+      reason: state.reverseAvailability.reason
+    };
+  }
+  if (latest.historyEpoch !== state.historyEpoch) {
+    return {
+      ...EMPTY_REVERSE_INSTRUCTION_AVAILABILITY,
+      reason: "history-epoch-mismatch"
+    };
+  }
+
+  let firstIndex = history.length - 1;
+  while (firstIndex > 0 && history[firstIndex - 1].instructionId === latest.instructionId) {
+    firstIndex -= 1;
+  }
+  const first = history[firstIndex];
+  const reversibleMicrosteps = history.length - firstIndex;
+  if (!first.startsAtFetch) {
+    const barrierReason = state.reverseAvailability.reason !== "available"
+      ? state.reverseAvailability.reason
+      : state.microcycleHistorySummary.droppedEntryCount > 0
+        ? "history-capacity-boundary"
+        : "partial-instruction-history";
+    return {
+      available: false,
+      reason: barrierReason,
+      instructionId: latest.instructionId,
+      machineAddress: latest.instructionAddress,
+      instructionKind: latest.instructionKind,
+      reversibleMicrosteps,
+      complete: latest.endsAtInstructionComplete
+    };
+  }
+  return {
+    available: true,
+    reason: "available",
+    instructionId: latest.instructionId,
+    machineAddress: latest.instructionAddress,
+    instructionKind: latest.instructionKind,
+    reversibleMicrosteps,
+    complete: latest.endsAtInstructionComplete
+  };
+}
+
+function mockInstructionStep(state: CometState): CometState {
+  const initialStepIndex = state.stepIndex;
+  let next = state;
+  let instructionTrace: TraceEvent[] | undefined;
+  do {
+    const advanced = mockMicroStep(next);
+    if (advanced === next) break;
+    next = advanced;
+    instructionTrace ??= activeMockMicrocycles.get(next)?.instructionTrace;
+    if (
+      next.stepIndex > initialStepIndex
+      || next.runState === "WaitingInput"
+      || next.runState === "Error"
+      || next.runState === "Finished"
+    ) break;
+  } while (true);
+
+  const normalized = refreshDerivedState({
+    ...cloneState(next, false),
+    microcycleHistory: [...next.microcycleHistory],
+    executionGranularity: "instruction",
+    microcycle: { ...EMPTY_MICROCYCLE_STATE },
+    trace: instructionTrace
+      ? [...instructionTrace.map((event) => ({ ...event })), ...state.trace].slice(0, MAX_TRACE_EVENTS)
+      : next.trace.filter((event) => event.kind !== "microcycle"),
+    visualPath: next.lastStep?.visualPath ?? next.visualPath
+  });
+  const history = [...(mockReversibleHistory.get(next) ?? [])];
+  const latest = history.at(-1);
+  if (latest && next.timelineRevision !== state.timelineRevision) {
+    latest.after = captureMockReversibleSnapshot(normalized);
+  }
+  normalized.reverseInstructionAvailability = reverseMockInstructionAvailability(normalized, history);
+  mockReversibleHistory.set(normalized, history);
+  mockMicrocycleSequence.set(
+    normalized,
+    mockMicrocycleSequence.get(next) ?? normalized.microcycleHistory[0]?.sequence ?? 0
+  );
+  return normalized;
 }
 
 export function reverseMockMicrocycle(
@@ -2313,7 +2462,7 @@ export function reverseMockMicrocycle(
   for (const change of entry.memoryChanges) memory[change.address] = change.before;
   history.pop();
   const previousHistory = state.microcycleHistory.filter((record) => record.sequence !== entry.entryId);
-  const restored = refreshDerivedState(restoreMockSnapshot(state, entry.before, memory, previousHistory));
+  const restored = restoreMockSnapshot(state, entry.before, memory, previousHistory);
   restored.timelineRevision = state.timelineRevision + 1;
   restored.historyEpoch = state.historyEpoch;
   restored.microcycleHistorySummary = {
@@ -2325,6 +2474,7 @@ export function reverseMockMicrocycle(
     : state.microcycleHistorySummary.droppedEntryCount > 0
       ? { available: false, reason: "history-capacity-boundary" }
       : { available: false, reason: entry.availabilityBefore.reason };
+  restored.reverseInstructionAvailability = reverseMockInstructionAvailability(restored, history);
   if (entry.contextBefore) activeMockMicrocycles.set(restored, entry.contextBefore);
   mockReversibleHistory.set(restored, history);
   mockMicrocycleSequence.set(restored, mockMicrocycleSequence.get(state) ?? entry.entryId);
@@ -2342,15 +2492,105 @@ export function reverseMockMicrocycle(
   };
 }
 
+export function reverseMockInstruction(
+  state: CometState,
+  expectedHistoryEpoch: number,
+  expectedTimelineRevision: number
+): { state: CometState; result: Omit<ReverseInstructionResultDto, "state"> } {
+  const availability = reverseMockInstructionAvailability(state);
+  if (expectedHistoryEpoch !== state.historyEpoch || expectedTimelineRevision !== state.timelineRevision) {
+    return {
+      state,
+      result: {
+        status: "stale",
+        reversedMicrostepCount: 0,
+        historyEpoch: state.historyEpoch,
+        timelineRevision: state.timelineRevision,
+        availability: {
+          ...EMPTY_REVERSE_INSTRUCTION_AVAILABILITY,
+          reason: expectedHistoryEpoch !== state.historyEpoch
+            ? "history-epoch-mismatch"
+            : "timeline-revision-mismatch"
+        }
+      }
+    };
+  }
+  if (!availability.available || availability.instructionId === undefined) {
+    return {
+      state,
+      result: {
+        status: availability.reason === "no-history" ? "unavailable" : "blocked",
+        reversedMicrostepCount: 0,
+        historyEpoch: state.historyEpoch,
+        timelineRevision: state.timelineRevision,
+        availability
+      }
+    };
+  }
+
+  let candidate = state;
+  for (let index = 0; index < availability.reversibleMicrosteps; index += 1) {
+    const history = mockReversibleHistory.get(candidate) ?? [];
+    if (history.at(-1)?.instructionId !== availability.instructionId) {
+      return {
+        state,
+        result: {
+          status: "corrupt-history",
+          reversedMicrostepCount: 0,
+          historyEpoch: state.historyEpoch,
+          timelineRevision: state.timelineRevision,
+          availability: {
+            ...EMPTY_REVERSE_INSTRUCTION_AVAILABILITY,
+            reason: "history-corrupt"
+          }
+        }
+      };
+    }
+    const reversed = reverseMockMicrocycle(
+      candidate,
+      candidate.historyEpoch,
+      candidate.timelineRevision
+    );
+    if (reversed.result.status !== "reversed") {
+      return {
+        state,
+        result: {
+          status: "corrupt-history",
+          reversedMicrostepCount: 0,
+          historyEpoch: state.historyEpoch,
+          timelineRevision: state.timelineRevision,
+          availability: {
+            ...EMPTY_REVERSE_INSTRUCTION_AVAILABILITY,
+            reason: "history-corrupt"
+          }
+        }
+      };
+    }
+    candidate = reversed.state;
+  }
+
+  candidate.timelineRevision = state.timelineRevision + 1;
+  candidate.reverseInstructionAvailability = reverseMockInstructionAvailability(candidate);
+  return {
+    state: candidate,
+    result: {
+      status: "reversed",
+      reversedInstructionId: availability.instructionId,
+      reversedMicrostepCount: availability.reversibleMicrosteps,
+      machineAddress: availability.machineAddress,
+      mnemonic: availability.instructionKind,
+      restoredPhase: candidate.microcycle.phase,
+      historyEpoch: candidate.historyEpoch,
+      timelineRevision: candidate.timelineRevision,
+      availability: candidate.reverseInstructionAvailability
+    }
+  };
+}
+
 export const mockCaslCore: CaslCore = {
   ...mockCaslCoreReference,
   step(state: CometState): CometState {
-    const next = mockCaslCoreReference.step(state);
-    return refreshDerivedState({
-      ...next,
-      executionGranularity: "instruction",
-      microcycle: { ...EMPTY_MICROCYCLE_STATE }
-    });
+    return mockInstructionStep(state);
   },
   microStep: mockMicroStep,
   reset(state: CometState): CometState {
@@ -2363,6 +2603,10 @@ export const mockCaslCore: CaslCore = {
       historyEpoch: state.historyEpoch + 1,
       timelineRevision: state.timelineRevision + 1,
       reverseAvailability: { available: false, reason: "reset-boundary" },
+      reverseInstructionAvailability: {
+        ...EMPTY_REVERSE_INSTRUCTION_AVAILABILITY,
+        reason: "reset-boundary"
+      },
       microcycleHistorySummary: { ...EMPTY_MICROCYCLE_HISTORY_SUMMARY }
     };
   },
@@ -2376,6 +2620,10 @@ export const mockCaslCore: CaslCore = {
       historyEpoch: state.historyEpoch + 1,
       timelineRevision: state.timelineRevision + 1,
       reverseAvailability: { available: false, reason: "reload-boundary" },
+      reverseInstructionAvailability: {
+        ...EMPTY_REVERSE_INSTRUCTION_AVAILABILITY,
+        reason: "reload-boundary"
+      },
       microcycleHistorySummary: { ...EMPTY_MICROCYCLE_HISTORY_SUMMARY }
     };
   },
@@ -2389,6 +2637,10 @@ export const mockCaslCore: CaslCore = {
       historyEpoch: state.historyEpoch + 1,
       timelineRevision: state.timelineRevision + 1,
       reverseAvailability: { available: false, reason: "io-boundary" },
+      reverseInstructionAvailability: {
+        ...EMPTY_REVERSE_INSTRUCTION_AVAILABILITY,
+        reason: "io-boundary"
+      },
       microcycleHistorySummary: { ...EMPTY_MICROCYCLE_HISTORY_SUMMARY }
     };
   },
@@ -2405,6 +2657,10 @@ export const mockCaslCore: CaslCore = {
         historyEpoch: state.historyEpoch + 1,
         timelineRevision: state.timelineRevision + 1,
         reverseAvailability: { available: false, reason: "mutation-boundary" },
+        reverseInstructionAvailability: {
+          ...EMPTY_REVERSE_INSTRUCTION_AVAILABILITY,
+          reason: "mutation-boundary"
+        },
         microcycleHistorySummary: { ...EMPTY_MICROCYCLE_HISTORY_SUMMARY }
       }
     };

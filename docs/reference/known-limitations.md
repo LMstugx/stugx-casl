@@ -10,7 +10,7 @@
 
 - CASL covers the official machine instructions, directives, literals, and fixed standard macros, without a general macro system.
 - Debugger mutation is limited to GR, PR, SP, current FR bits, and one Memory word; it has no bulk edit.
-- Reverse is limited to one retained COMET microcycle at a time. There is no Reverse Instruction, Redo, Reverse Run, persistent timeline, or rollback across SVC/I/O and mutation/lifecycle barriers.
+- Reverse Microstep and Reverse Instruction are limited to the current retained history epoch. There is no Redo, Reverse Run, Reverse Macro, persistent timeline, or rollback across SVC/I/O and mutation/lifecycle barriers.
 - Multi-program linking remains deferred. COMET microcycle stepping is available through the deterministic teaching microarchitecture, not as a physical timing simulator.
 - C++ has no complete type system, preprocessing, standard library, native ABI, recursion, or stack-frame lowering.
 - The bridge uses one C++/WASM runtime and JSON DTO transfer.

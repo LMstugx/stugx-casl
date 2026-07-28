@@ -25,5 +25,6 @@ ADRs record decisions that protect compatibility, security, and teaching behavio
 | [0015](0015-comet-flag-register-three-bit-contract.md) | Public COMET II FR state contains exactly OF, SF, and ZF |
 | [0016](0016-comet-teaching-microarchitecture.md) | COMET microcycles use a deterministic teaching microarchitecture |
 | [0017](0017-reverse-microstep-and-history-barriers.md) | Reverse Microstep uses verified transactions and hard history barriers |
+| [0018](0018-reverse-instruction-boundary.md) | Reverse Instruction groups and atomically restores runtime machine instructions |
 
 To supersede an ADR, add a new numbered record, link the old record, state migration and compatibility effects, and update affected baselines and tests explicitly.

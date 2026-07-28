@@ -16,7 +16,7 @@ The C++ Core records each reversible microcycle as an atomic transaction with sc
 
 `historyEpoch` defines a non-crossable interval. `timelineRevision` changes on every forward or reverse commit. Application `executionEpoch` invalidates pending asynchronous completions. Debugger mutations, program overrides, lifecycle replacement, SVC, and I/O establish hard barriers.
 
-History retains at most 1000 entries and is never persisted. SVC and I/O side effects are not reversed. The product exposes Reverse Microstep only; Redo, Reverse Run, Reverse Instruction, and timeline branches remain out of scope.
+History retains at most 1000 entries and is never persisted. SVC and I/O side effects are not reversed. Phase 20D exposes Reverse Microstep; ADR 0018 later admits Reverse Instruction on the same transactions. Redo, Reverse Run, Reverse Macro, and timeline branches remain out of scope.
 
 ## Consequences
 
@@ -24,4 +24,4 @@ History retains at most 1000 entries and is never persisted. SVC and I/O side ef
 - Memory integrity mismatches fail atomically as corrupt history.
 - Trace continues to represent the current execution timeline.
 - Switching locale, number format, or view does not destroy history.
-- A future Reverse Instruction must build on this contract rather than bypass it.
+- Reverse Instruction builds on this contract rather than bypassing it; see [ADR 0018](0018-reverse-instruction-boundary.md).

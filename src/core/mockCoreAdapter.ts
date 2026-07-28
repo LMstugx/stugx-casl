@@ -1,6 +1,11 @@
 import type { CoreAdapter, ReloadInitializationMode } from "./coreAdapter";
 import { toAssembleResultDto, toCometStateDto, toStepResultDto } from "./coreDto";
-import { mockCaslCore, createEmptyCometState, reverseMockMicrocycle } from "./mockCaslCore";
+import {
+  mockCaslCore,
+  createEmptyCometState,
+  reverseMockInstruction,
+  reverseMockMicrocycle
+} from "./mockCaslCore";
 import type { CometState } from "./types";
 import { encodeCaslInputRecord } from "./caslIoEncoding";
 import {
@@ -55,6 +60,40 @@ export class MockCoreAdapter implements CoreAdapter {
         reverseAvailability: {
           ...this.state.reverseAvailability,
           targetPhase: this.state.reverseAvailability.targetPhase ?? null
+        },
+        reverseInstructionAvailability: {
+          ...this.state.reverseInstructionAvailability,
+          instructionId: this.state.reverseInstructionAvailability.instructionId ?? null,
+          machineAddress: this.state.reverseInstructionAvailability.machineAddress ?? null,
+          instructionKind: this.state.reverseInstructionAvailability.instructionKind ?? null
+        },
+        microcycleHistorySummary: {
+          ...this.state.microcycleHistorySummary,
+          floorEntryId: this.state.microcycleHistorySummary.floorEntryId ?? null
+        }
+      }
+    };
+  }
+
+  async reverseInstruction(historyEpoch: number, timelineRevision: number) {
+    const reverse = reverseMockInstruction(this.state, historyEpoch, timelineRevision);
+    this.state = reverse.state;
+    const state = toCometStateDto(this.state);
+    return {
+      ...reverse.result,
+      state: {
+        ...state,
+        historyEpoch: this.state.historyEpoch,
+        timelineRevision: this.state.timelineRevision,
+        reverseAvailability: {
+          ...this.state.reverseAvailability,
+          targetPhase: this.state.reverseAvailability.targetPhase ?? null
+        },
+        reverseInstructionAvailability: {
+          ...this.state.reverseInstructionAvailability,
+          instructionId: this.state.reverseInstructionAvailability.instructionId ?? null,
+          machineAddress: this.state.reverseInstructionAvailability.machineAddress ?? null,
+          instructionKind: this.state.reverseInstructionAvailability.instructionKind ?? null
         },
         microcycleHistorySummary: {
           ...this.state.microcycleHistorySummary,
@@ -117,7 +156,13 @@ export class MockCoreAdapter implements CoreAdapter {
       ...mockCaslCore.fullClear(),
       historyEpoch: previous.historyEpoch + 1,
       timelineRevision: previous.timelineRevision + 1,
-      reverseAvailability: { available: false, reason: "runtime-not-loaded" }
+      reverseAvailability: { available: false, reason: "runtime-not-loaded" },
+      reverseInstructionAvailability: {
+        available: false,
+        reason: "runtime-not-loaded",
+        reversibleMicrosteps: 0,
+        complete: false
+      }
     };
     return toCometStateDto(this.state);
   }

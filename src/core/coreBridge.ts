@@ -126,6 +126,14 @@ export const coreBridge = {
       return activeSelection.adapter.reverseMicrostep(historyEpoch, timelineRevision);
     });
   },
+  reverseInstruction(historyEpoch: number, timelineRevision: number) {
+    return callCoreTransaction(() => {
+      if (!activeSelection.adapter.reverseInstruction) {
+        throw new Error("Core backend does not support reverse instruction.");
+      }
+      return activeSelection.adapter.reverseInstruction(historyEpoch, timelineRevision);
+    });
+  },
   run(maxSteps: number) {
     return callCoreTransaction(() => activeSelection.adapter.run(maxSteps));
   },

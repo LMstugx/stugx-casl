@@ -18,6 +18,7 @@ This directory separates current product documentation from historical implement
 - [COMET Mode](user/comet-mode.md)
 - [COMET Microcycle Mode](user/comet-microcycle-mode.md)
 - [Reverse Microstep](user/reverse-microstep.md)
+- [Reverse Instruction](user/reverse-instruction.md)
 - [CASL State Editing](user/casl-state-editing.md)
 - [Full Clear](user/full-clear.md)
 - [CASL Input and Output](user/casl-input-output.md)
@@ -58,7 +59,9 @@ This directory separates current product documentation from historical implement
 - [Debugger Mutation Contract](debugger-mutation-contract.md)
 - [Debugger History Barrier](debugger-history-barrier-contract.md)
 - [Reverse Microstep Runtime Contract](reverse-microstep-runtime-contract.md)
+- [Reverse Instruction Runtime Contract](reverse-instruction-runtime-contract.md)
 - [Reverse History Integrity](reverse-history-integrity.md)
+- [Instruction History Grouping](instruction-history-grouping.md)
 
 ## Technical Reference
 
@@ -139,11 +142,13 @@ Historical Phase reports, manifests, release-candidate evidence, and visual revi
 - [Phase 20B.1 FR Specification Alignment](phase20b1-fr-spec-alignment.md)
 - [Phase 20C COMET Instruction-Cycle Runtime](phase20c-comet-instruction-cycle-runtime.md)
 - [Phase 20D Reverse Microstep](phase20d-reverse-microstep.md)
+- [Phase 20E Reverse Instruction](phase20e-reverse-instruction.md)
 - [WCASL Debugger Editing Audit](wcasl-debugger-editing-audit.md)
 - [WCASL-compatible Workflow Roadmap](wcasl-replacement-roadmap.md)
 - [COMET Microcycle Visual Contract](comet-microcycle-visual-contract.md)
 - [COMET Microcycle Runtime Contract](comet-microcycle-runtime-contract.md)
 - [Reverse Microstep Runtime Contract](reverse-microstep-runtime-contract.md)
+- [Reverse Instruction Runtime Contract](reverse-instruction-runtime-contract.md)
 - [Multi-program Linking Design](multi-program-linking-design.md)
 
 - [Technical Documentation Foundation](phase18a4-technical-documentation-foundation.md)

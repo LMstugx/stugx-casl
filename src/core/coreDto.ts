@@ -5,6 +5,7 @@ import { encodeCaslInputRecord } from "./caslIoEncoding";
 import { decodeRuntimeInstruction } from "./instructionEncoding";
 import type { ExecutionGranularity, MicrocyclePhase } from "./microcycle";
 import type { ReverseAvailabilityDto } from "./reverseMicrocycle";
+import type { ReverseInstructionAvailabilityDto } from "./reverseInstruction";
 
 export interface DiagnosticDto {
   line: number;
@@ -58,6 +59,7 @@ export interface CometStateDto {
   historyEpoch?: number;
   timelineRevision?: number;
   reverseAvailability?: ReverseAvailabilityDto;
+  reverseInstructionAvailability?: ReverseInstructionAvailabilityDto;
   microcycleHistorySummary?: {
     retainedEntries: number;
     capacity: number;
@@ -236,6 +238,12 @@ export function toCometStateDto(state: CometState, memoryStart = 0x20, memoryEnd
             ...state.reverseAvailability,
             targetPhase: state.reverseAvailability.targetPhase ?? null
           },
+          reverseInstructionAvailability: {
+            ...state.reverseInstructionAvailability,
+            instructionId: state.reverseInstructionAvailability.instructionId ?? null,
+            machineAddress: state.reverseInstructionAvailability.machineAddress ?? null,
+            instructionKind: state.reverseInstructionAvailability.instructionKind ?? null
+          },
           microcycleHistorySummary: {
             ...state.microcycleHistorySummary,
             floorEntryId: state.microcycleHistorySummary.floorEntryId ?? null
@@ -291,7 +299,15 @@ export function toStepResultDto(state: CometState, memoryStart = 0x20, memoryEnd
 }
 
 export function normalizeCoreStateForGolden(state: CometState): CometStateDto {
-  return toCometStateDto(state, 0x20, 0x2a);
+  const {
+    historyEpoch: _historyEpoch,
+    timelineRevision: _timelineRevision,
+    reverseAvailability: _reverseAvailability,
+    reverseInstructionAvailability: _reverseInstructionAvailability,
+    microcycleHistorySummary: _microcycleHistorySummary,
+    ...stableState
+  } = toCometStateDto(state, 0x20, 0x2a);
+  return stableState;
 }
 
 export function normalizeInstructionForGolden(source?: string): string | null {

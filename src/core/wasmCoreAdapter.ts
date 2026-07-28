@@ -4,6 +4,7 @@ import { loadWasmModule, type LoadedWasmCore } from "./wasmLoader";
 import { encodeCaslInputRecord } from "./caslIoEncoding";
 import type { CoreDebuggerMutationResult, DebuggerMutationRequest } from "../debugger/debuggerMutation";
 import type { ReverseMicrostepResultDto } from "./reverseMicrocycle";
+import type { ReverseInstructionResultDto } from "./reverseInstruction";
 import {
   debuggerMutationWord,
   isValidDebuggerMutationInput,
@@ -46,6 +47,15 @@ export class WasmCoreAdapter implements CoreAdapter {
     return parseWasmJson<ReverseMicrostepResultDto>(
       core.reverseMicrostep(historyEpoch, timelineRevision),
       "reverseMicrostep",
+      core
+    );
+  }
+
+  async reverseInstruction(historyEpoch: number, timelineRevision: number): Promise<ReverseInstructionResultDto> {
+    const core = await this.ensureInitialized();
+    return parseWasmJson<ReverseInstructionResultDto>(
+      core.reverseInstruction(historyEpoch, timelineRevision),
+      "reverseInstruction",
       core
     );
   }

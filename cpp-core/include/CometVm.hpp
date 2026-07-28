@@ -22,7 +22,12 @@ public:
         std::uint64_t expectedHistoryEpoch,
         std::uint64_t expectedTimelineRevision
     );
+    [[nodiscard]] ReverseInstructionResult reverseInstruction(
+        std::uint64_t expectedHistoryEpoch,
+        std::uint64_t expectedTimelineRevision
+    );
     [[nodiscard]] ReverseAvailability reverseAvailability() const;
+    [[nodiscard]] ReverseInstructionAvailability reverseInstructionAvailability() const;
     [[nodiscard]] MicrocycleHistorySummary historySummary() const;
     [[nodiscard]] RunResult run(int maxSteps);
     [[nodiscard]] RunResult runMicrocycles(int maxMicrosteps);
@@ -73,6 +78,7 @@ private:
         std::uint16_t effectiveAddress = 0;
         std::uint16_t stackAddress = 0;
         std::uint16_t instructionStartMdr = 0;
+        std::uint64_t instructionId = 0;
     };
 
     struct MicrocycleHistoryEntry {
@@ -113,7 +119,12 @@ private:
         std::uint64_t timelineRevisionBefore = 0;
         std::uint64_t timelineRevisionAfter = 0;
         MicrocyclePhase phase = MicrocyclePhase::None;
+        std::uint64_t instructionId = 0;
         std::uint16_t instructionAddress = 0;
+        std::optional<InstructionKind> instructionKind;
+        int sourceLine = -1;
+        bool startsAtFetch = false;
+        bool endsAtInstructionComplete = false;
         StateSnapshot before{};
         StateSnapshot after{};
         std::optional<MicrocycleContext> contextBefore;
@@ -149,6 +160,7 @@ private:
     void restoreStateSnapshot(const MicrocycleHistoryEntry::StateSnapshot& snapshot);
     [[nodiscard]] bool stateMatchesSnapshot(const MicrocycleHistoryEntry::StateSnapshot& snapshot) const;
     [[nodiscard]] bool contextMatches(const std::optional<MicrocycleContext>& expected) const;
+    [[nodiscard]] ReverseUnavailableReason unavailableReasonFromBarrier() const;
     [[nodiscard]] StepResult stepReference();
     void prepareAfterManualMutation();
     void updateCurrentInstruction();

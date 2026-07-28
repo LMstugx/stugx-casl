@@ -21,7 +21,7 @@ The staged model is named **stugx.CASL Teaching Microarchitecture v1**. It expla
 
 VM faults are structured runtime diagnostics. They do not mutate source or persistence stores.
 
-COMET Mode supports atomic Reverse Microstep inside the current history epoch. The C++ VM validates the latest transaction's after-state, restores sparse Memory deltas and scalar teaching state, removes its exact Trace delta, and advances the timeline revision. Deterministic runtime machine-word failures can be reversed when they have no external side effect. SVC, I/O, backend, and lifecycle failures remain boundaries. See [Microcycle History](microcycle-history.md).
+COMET Mode supports atomic Reverse Microstep inside the current history epoch. Reverse Instruction groups the latest retained runtime machine instruction and applies the same inverse transaction on a private VM candidate before committing the complete group. The C++ VM validates after-state integrity, restores sparse Memory deltas and scalar teaching state, removes exact Trace deltas, and advances the timeline revision. Deterministic runtime machine-word failures can be reversed when they have no external side effect. SVC, I/O, backend, and lifecycle failures remain boundaries. See [Microcycle History](microcycle-history.md).
 
 `SVC` services used by expanded `IN` / `OUT` are nonblocking. Input without a queued record enters `WaitingInput` without advancing `PR`. Input and output are bounded to 256 characters; output history is bounded to 256 records. Reset and Reload clear Console and pending input.
 

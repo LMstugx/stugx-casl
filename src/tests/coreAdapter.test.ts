@@ -126,7 +126,12 @@ describe("core adapter abstraction", () => {
     await adapter.assemble(DEFAULT_CASL_SOURCE);
     const result = await adapter.step();
 
-    expect(result).toEqual(makeStepResult(simpleStep1 as CometStateDto));
+    expect(result).toMatchObject(makeStepResult(simpleStep1 as CometStateDto));
+    expect(result.state.reverseInstructionAvailability).toMatchObject({
+      available: true,
+      complete: true,
+      instructionKind: "LD"
+    });
   });
 
   it("coreBridge.usesActiveAdapter delegates to the configured adapter", async () => {

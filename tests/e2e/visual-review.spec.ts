@@ -1653,6 +1653,102 @@ DATA DC 1
 
   await page.setViewportSize({ width: standardViewport.width, height: standardViewport.height });
   await capture(page, standardViewport, "comet-1440.png");
+
+  await page.setViewportSize({ width: standardViewport.width, height: standardViewport.height });
+  await openStudio(page, "Mock Core");
+  await page.getByTestId("locale-en").click();
+  await setSource(page, `MAIN START
+     LD GR1,DATA
+     ST GR1,TARGET
+     RET
+DATA DC #0042
+TARGET DS 1
+     END`);
+  await assemble(page);
+  await page.getByTestId("casl-mode-toggle").click();
+  await step(page);
+  await capture(page, standardViewport, "reverse-instruction-casl-mode.png", false);
+
+  await page.getByTestId("comet-mode-toggle").click();
+  await page.getByTestId("reverse-instruction-button").click();
+  for (let index = 0; index < 3; index += 1) await step(page);
+  await capture(page, standardViewport, "reverse-instruction-mid-instruction.png");
+  await page.getByTestId("reverse-instruction-button").click();
+  await capture(page, standardViewport, "reverse-instruction-comet-mode.png");
+
+  for (let index = 0; index < 8; index += 1) await step(page);
+  await capture(page, standardViewport, "reverse-instruction-after-complete.png");
+  await page.getByTestId("reverse-instruction-button").click();
+  for (let index = 0; index < 8; index += 1) await step(page);
+  for (let index = 0; index < 6; index += 1) await step(page);
+  await page.getByTestId("reverse-instruction-button").click();
+  await capture(page, standardViewport, "reverse-instruction-memory.png");
+
+  await prepare(`MAIN START
+     JUMP TARGET
+     NOP
+TARGET RET
+     END`);
+  for (let index = 0; index < 5; index += 1) await step(page);
+  await page.getByTestId("reverse-instruction-button").click();
+  await capture(page, standardViewport, "reverse-instruction-branch.png");
+
+  await prepare(`MAIN START
+     CALL SUB
+     RET
+SUB  RET
+     END`);
+  for (let index = 0; index < 7; index += 1) await step(page);
+  await page.getByTestId("reverse-instruction-button").click();
+  await capture(page, standardViewport, "reverse-instruction-call-ret.png");
+
+  await prepare(`MAIN START
+     RPUSH
+     RPOP
+     RET
+     END`);
+  for (let index = 0; index < 6; index += 1) await step(page);
+  await page.getByTestId("reverse-instruction-button").click();
+  await capture(page, standardViewport, "reverse-instruction-macro-expanded.png");
+
+  await prepare(`MAIN START
+     LD GR1,DATA
+     RET
+DATA DC 1
+     END`);
+  await step(page);
+  await page.getByTestId("reset-button").click();
+  await capture(page, standardViewport, "reverse-instruction-barrier.png");
+
+  await prepare(`MAIN START
+     SVC 2
+     RET
+     END`);
+  for (let index = 0; index < 4; index += 1) await step(page);
+  await capture(page, standardViewport, "reverse-instruction-svc-blocked.png");
+
+  await prepare(`MAIN START
+     JUMP MAIN
+     END`);
+  await run(page);
+  await capture(page, standardViewport, "reverse-instruction-capacity-floor.png");
+
+  await prepare(`MAIN START
+     LD GR1,DATA
+     RET
+DATA DC 1
+     END`, minimumViewport);
+  await step(page);
+  await page.getByTestId("locale-ja").click();
+  await capture(page, minimumViewport, "reverse-instruction-ja-1180.png");
+  await page.getByTestId("locale-zh-CN").click();
+  await capture(page, minimumViewport, "reverse-instruction-zh-cn-1180.png");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+
+  await page.setViewportSize({ width: compactViewport.width, height: compactViewport.height });
+  await page.getByTestId("locale-en").click();
+  await capture(page, compactViewport, "reverse-instruction-1280.png");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
   await page.setViewportSize({ width: viewport.width, height: viewport.height });
 }
 

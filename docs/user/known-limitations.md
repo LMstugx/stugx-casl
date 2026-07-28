@@ -17,4 +17,4 @@
 - The Windows installer is unsigned and Tauri-native file I/O is deferred.
 - Circuit Focus visualizes current teaching relationships; it is not an electrical or cycle-accurate hardware simulator.
 - Register/Memory editing is limited to one 16-bit target per confirmed transaction; bulk paste, fill, search-and-replace, and editing MAR/MDR are unavailable.
-- COMET microcycle stepping uses the deterministic stugx.CASL teaching microarchitecture and does not model physical timing. Reverse is limited to one safe retained microcycle; Reverse Instruction, Redo, reverse run, persistent history, and multi-program linking are not production features.
+- COMET microcycle stepping uses the deterministic stugx.CASL teaching microarchitecture and does not model physical timing. Reverse Microstep and Reverse Instruction use safe retained history; Redo, reverse run, Reverse Macro, persistent history, and multi-program linking are not production features.

@@ -36,4 +36,4 @@ There is no Redo. After a reverse, the popped future entry is gone. A new forwar
 
 The initial UI exposes Reverse Microstep only in COMET Mode. Instruction Step retains one-instruction user semantics. Users may switch to COMET Mode and reverse retained microcycles, including into the middle of an instruction.
 
-This phase does not provide Reverse Instruction, continuous reverse run, a scrubber, branch storage, or project-file history.
+Phase 20E adds Reverse Instruction by grouping these retained transactions at runtime-owned machine boundaries. Continuous reverse run, Reverse Macro, a scrubber, branch storage, and project-file history remain outside the contract.

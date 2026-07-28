@@ -4,7 +4,7 @@
 - Status: Canonical
 - Last reviewed version: 0.1.0
 - Classification: Canonical
-- Related: [CASL Compatibility Mode](casl-compatibility-mode.md), [Observation Modes](observation-modes.md), [COMET II VM](../developer/comet-vm.md)
+- Related: [CASL Compatibility Mode](casl-compatibility-mode.md), [Reverse Instruction](reverse-instruction.md), [COMET II VM](../developer/comet-vm.md)
 
 COMET Mode advances one real machine-instruction microcycle per Step. It uses the same assembled image, registers, memory, source map, Trace, and WASM runtime as instruction mode. It does not replay an animation or recompute state from source.
 
@@ -33,6 +33,6 @@ Run in COMET Mode continuously executes microcycles using the existing bounded R
 
 ## Limits
 
-Reverse Microstep restores one completed phase when retained history is safe. It is available only in COMET Mode and may leave the machine inside an instruction. Reset, Reload, manual debugger mutation, source replacement, Full Clear, SVC, and input/output prevent crossing their boundary. See [Reverse Microstep](reverse-microstep.md).
+Reverse Microstep restores one completed phase when retained history is safe. Reverse Instruction restores the current partial or completed machine instruction to the state before Fetch. Reset, Reload, manual debugger mutation, source replacement, Full Clear, SVC, and input/output prevent crossing their boundary. See [Reverse Microstep](reverse-microstep.md) and [Reverse Instruction](reverse-instruction.md).
 
-The history is runtime-only, bounded to 1000 entries, and has no Redo, Reverse Run, Reverse Instruction, or persistence.
+The history is runtime-only, bounded to 1000 entries, and has no Redo, Reverse Run, Reverse Macro, or persistence.

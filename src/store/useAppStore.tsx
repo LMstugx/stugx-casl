@@ -11,6 +11,10 @@ import type {
   ReverseMicrostepRequest,
   ReverseMicrostepStatus
 } from "../core/reverseMicrocycle";
+import type {
+  ReverseInstructionRequest,
+  ReverseInstructionStatus
+} from "../core/reverseInstruction";
 import { CometState, Diagnostic, VisualPathKind, formatWord } from "../core/types";
 import { getDefaultDemoProgram, type DemoProgram } from "../examples/demoPrograms";
 import { learningLessons } from "../examples/learningLessons";
@@ -102,10 +106,19 @@ type AppStoreState = {
   dataModified: boolean;
   mutationInFlight: boolean;
   reverseInFlight: boolean;
-  reverseNotice: {
-    restoredPhase: MicrocyclePhase;
-    reversedEntryId?: number;
-  } | null;
+  reverseNotice:
+    | {
+        kind: "microstep";
+        restoredPhase: MicrocyclePhase;
+        reversedEntryId?: number;
+      }
+    | {
+        kind: "instruction";
+        machineAddress?: number;
+        mnemonic?: string;
+        reversedMicrostepCount: number;
+      }
+    | null;
 };
 
 type AppStoreActions = {
@@ -119,6 +132,7 @@ type AppStoreActions = {
   mutateDebuggerState: (input: DebuggerMutationInput) => Promise<DebuggerMutationResult>;
   fullClear: () => Promise<boolean>;
   reverseMicrostep: () => Promise<ReverseMicrostepStatus>;
+  reverseInstruction: () => Promise<ReverseInstructionStatus>;
   stop: () => void;
   submitConsoleInput: (text: string, endOfFile?: boolean) => void;
   clearOutput: () => void;
@@ -162,6 +176,9 @@ export type AppStoreAction =
   | { type: "reverseStarted"; request: ReverseMicrostepRequest; nextEpoch: number }
   | { type: "reverseCommitted"; request: ReverseMicrostepRequest; nextEpoch: number; cometState: CometState; restoredPhase: MicrocyclePhase; reversedEntryId?: number }
   | { type: "reverseFinished"; request: ReverseMicrostepRequest; nextEpoch: number; cometState?: CometState }
+  | { type: "reverseInstructionStarted"; request: ReverseInstructionRequest; nextEpoch: number }
+  | { type: "reverseInstructionCommitted"; request: ReverseInstructionRequest; nextEpoch: number; cometState: CometState; machineAddress?: number; mnemonic?: string; reversedMicrostepCount: number }
+  | { type: "reverseInstructionFinished"; request: ReverseInstructionRequest; nextEpoch: number; cometState?: CometState }
   | { type: "clearOutput" }
   | { type: "lessonStepToggled"; exampleId: string; stepId: string }
   | { type: "lessonProgressReset"; exampleId: string }
@@ -506,6 +523,7 @@ export function appStoreReducer(state: AppStoreState, action: AppStoreAction): A
       backendInfo: getCoreBackendInfo(),
       reverseInFlight: false,
       reverseNotice: {
+        kind: "microstep",
         restoredPhase: action.restoredPhase,
         reversedEntryId: action.reversedEntryId
       }
@@ -513,6 +531,58 @@ export function appStoreReducer(state: AppStoreState, action: AppStoreAction): A
   }
 
   if (action.type === "reverseFinished") {
+    if (
+      state.currentDocument.sourceUnitId !== action.request.sourceUnitId
+      || state.assemblyId !== action.request.assemblyId
+      || state.executionEpoch !== action.nextEpoch
+    ) return state;
+    return {
+      ...state,
+      ...(action.cometState ? { cometState: action.cometState } : {}),
+      reverseInFlight: false
+    };
+  }
+
+  if (action.type === "reverseInstructionStarted") {
+    if (
+      state.currentDocument.sourceUnitId !== action.request.sourceUnitId
+      || state.assemblyId !== action.request.assemblyId
+      || state.executionEpoch !== action.request.executionEpoch
+      || state.cometState.historyEpoch !== action.request.historyEpoch
+      || state.cometState.timelineRevision !== action.request.timelineRevision
+      || state.reverseInFlight
+    ) return state;
+    return {
+      ...state,
+      executionEpoch: action.nextEpoch,
+      reverseInFlight: true,
+      reverseNotice: null
+    };
+  }
+
+  if (action.type === "reverseInstructionCommitted") {
+    if (
+      state.currentDocument.sourceUnitId !== action.request.sourceUnitId
+      || state.assemblyId !== action.request.assemblyId
+      || state.executionEpoch !== action.nextEpoch
+      || state.cometState.historyEpoch !== action.request.historyEpoch
+    ) return state;
+    return {
+      ...state,
+      cometState: action.cometState,
+      runStopReason: null,
+      backendInfo: getCoreBackendInfo(),
+      reverseInFlight: false,
+      reverseNotice: {
+        kind: "instruction",
+        machineAddress: action.machineAddress,
+        mnemonic: action.mnemonic,
+        reversedMicrostepCount: action.reversedMicrostepCount
+      }
+    };
+  }
+
+  if (action.type === "reverseInstructionFinished") {
     if (
       state.currentDocument.sourceUnitId !== action.request.sourceUnitId
       || state.assemblyId !== action.request.assemblyId
@@ -1240,6 +1310,81 @@ export function AppStoreProvider({
         } catch (error) {
           eventBus.emit(AppEvent.VmError, { message: coreErrorMessage(error) });
           dispatch({ type: "reverseFinished", request, nextEpoch });
+          return "cancelled";
+        }
+      },
+      reverseInstruction: async () => {
+        const snapshot = stateRef.current;
+        if (
+          snapshot.reverseInFlight
+          || snapshot.mutationInFlight
+          || snapshot.cometState.runState === "Running"
+          || !snapshot.cometState.reverseInstructionAvailability.available
+          || !snapshot.assemblyId
+          || snapshot.isSourceDirty
+        ) return "unavailable";
+
+        const request: ReverseInstructionRequest = {
+          sourceUnitId: snapshot.currentDocument.sourceUnitId,
+          assemblyId: snapshot.assemblyId,
+          executionEpoch: snapshot.executionEpoch,
+          historyEpoch: snapshot.cometState.historyEpoch,
+          timelineRevision: snapshot.cometState.timelineRevision
+        };
+        const nextEpoch = snapshot.executionEpoch + 1;
+        runControlRef.current = {
+          runId: runControlRef.current.runId + 1,
+          stopRequested: true
+        };
+        dispatch({ type: "reverseInstructionStarted", request, nextEpoch });
+        stateRef.current = {
+          ...snapshot,
+          executionEpoch: nextEpoch,
+          reverseInFlight: true,
+          reverseNotice: null
+        };
+
+        try {
+          const result = await coreBridge.reverseInstruction(
+            request.historyEpoch,
+            request.timelineRevision
+          );
+          const current = stateRef.current;
+          if (
+            current.currentDocument.sourceUnitId !== request.sourceUnitId
+            || current.assemblyId !== request.assemblyId
+            || current.executionEpoch !== nextEpoch
+            || current.cometState.historyEpoch !== request.historyEpoch
+          ) {
+            dispatch({ type: "reverseInstructionFinished", request, nextEpoch });
+            return "stale";
+          }
+          const cometState = createCometStateFromDto(result.state, {
+            previous: snapshot.cometState,
+            output: snapshot.cometState.output
+          });
+          if (result.status !== "reversed") {
+            dispatch({
+              type: "reverseInstructionFinished",
+              request,
+              nextEpoch,
+              cometState
+            });
+            return result.status;
+          }
+          dispatch({
+            type: "reverseInstructionCommitted",
+            request,
+            nextEpoch,
+            cometState,
+            machineAddress: result.machineAddress ?? undefined,
+            mnemonic: result.mnemonic ?? undefined,
+            reversedMicrostepCount: result.reversedMicrostepCount
+          });
+          return "reversed";
+        } catch (error) {
+          eventBus.emit(AppEvent.VmError, { message: coreErrorMessage(error) });
+          dispatch({ type: "reverseInstructionFinished", request, nextEpoch });
           return "cancelled";
         }
       },

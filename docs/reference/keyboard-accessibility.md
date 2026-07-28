@@ -13,6 +13,7 @@
 - Related diagnostic locations are keyboard actionable.
 - Dialogs, including Changelog and Dirty replacement, trap focus, close with Escape where permitted, and restore focus to their trigger.
 - Disclosure controls are operable with keyboard and expose expanded state.
+- Reverse Instruction is keyboard reachable in CASL and COMET modes; Reverse Microstep remains exclusive to COMET Mode. Disabled barrier reasons are text, and a successful reverse keeps focus on its control.
 - Reduced-motion preference removes nonessential circuit animation.
 
 Long technical content uses bounded scrolling with usable heights, stable scrollbar gutters, and safe wrapping. The application must not create horizontal page overflow at the supported desktop viewports.

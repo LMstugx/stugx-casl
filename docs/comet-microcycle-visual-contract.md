@@ -21,3 +21,5 @@ It does not claim to be the only physical COMET II implementation. Instruction m
 The clean-wire contract remains active-flow-only, with no arrows, circular markers, inactive ghost wires, invented 64-bit bus, or FPU.
 
 Reverse Microstep restores the previously committed phase's real `IR`, `MAR`, `MDR`, mapping, selection, and active path. It does not reverse-play an animation or infer a path from source. At an instruction boundary, the Circuit returns to the corresponding idle or complete presentation.
+
+Reverse Instruction restores the recorded pre-Fetch boundary for one runtime machine instruction. Circuit, Machine Code highlight, source relation, and teaching latches come from the committed restored state; the UI does not replay phases backward or infer a synthetic path.

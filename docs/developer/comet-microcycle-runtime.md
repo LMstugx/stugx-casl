@@ -35,7 +35,7 @@ Each completed microcycle records a bounded sequence entry with:
 
 C++ records normal reversible Memory deltas and keeps SVC/input/output commits behind hard barriers. The frontend keeps the bounded DTO-visible delta summary used by Trace.
 
-Phase 20D exposes `reverseMicrocycle()` through the C++/WASM boundary. It verifies the latest entry against current state before restoring and never asks React to calculate an inverse. The operation removes the exact Trace delta and restores mapping and Circuit state. See [Microcycle History](microcycle-history.md).
+Phase 20D exposes `reverseMicrocycle()` through the C++/WASM boundary. Phase 20E exposes `reverseInstruction()` and groups the same transactions by runtime machine instruction identity. Both verify state before restoring and never ask React to calculate an inverse. The operations remove exact Trace deltas and restore mapping and Circuit state. See [Microcycle History](microcycle-history.md).
 
 ## Compatibility
 

@@ -6,4 +6,4 @@ The implementation restores architecture, teaching latches, sparse Memory change
 
 History is bounded to 1000 entries and remains session-only. Reverse increments the timeline revision and application execution ownership. Forward execution after reverse creates a new timeline because no Redo history is retained.
 
-Traditional Reverse Instruction, Reverse Run, Redo, timeline scrubbing, persistent history, cross-SVC rollback, and multi-program linking remain outside this phase.
+Phase 20E subsequently adds machine-level Reverse Instruction by grouping these same transactions. Reverse Run, Redo, timeline scrubbing, persistent history, cross-SVC rollback, and multi-program linking remain outside Phase 20D.

@@ -1702,6 +1702,154 @@ void ReverseMicrocycleClearsDeterministicRuntimeError() {
     );
 }
 
+casl::ReverseInstructionResult reverseLatestInstruction(casl::CometVm& vm) {
+    return vm.reverseInstruction(vm.state().historyEpoch, vm.state().timelineRevision);
+}
+
+void ReverseInstructionRestoresPartialAndCompleteInstruction() {
+    const auto output = assembleOrExit(R"(MAIN START
+     LD GR1,DATA
+     RET
+DATA DC #8000
+     END)");
+    casl::CometVm vm;
+    vm.load(output);
+    const auto initial = vm.state();
+
+    require(vm.stepMicrocycle().phase == casl::MicrocyclePhase::Fetch, "partial LD fetch");
+    require(vm.stepMicrocycle().phase == casl::MicrocyclePhase::Decode, "partial LD decode");
+    require(vm.stepMicrocycle().phase == casl::MicrocyclePhase::EffectiveAddress, "partial LD EA");
+    require(vm.state().reverseInstructionAvailability.available, "partial instruction is reversible");
+    require(vm.state().reverseInstructionAvailability.reversibleMicrosteps == 3, "partial group counts microsteps");
+    require(!vm.state().reverseInstructionAvailability.complete, "partial group is not marked complete");
+
+    const auto partialTimeline = vm.state().timelineRevision;
+    const auto partial = reverseLatestInstruction(vm);
+    require(partial.status == casl::ReverseMicrostepStatus::Reversed, "partial instruction reverses");
+    require(partial.reversedMicrostepCount == 3, "partial instruction reverses all committed microsteps");
+    require(vm.state().pr == initial.pr && vm.state().ir == initial.ir, "partial reverse restores before Fetch");
+    require(vm.state().microcycle.phase == casl::MicrocyclePhase::None, "partial reverse restores boundary cursor");
+    require(vm.state().timelineRevision == partialTimeline + 1, "group reverse advances timeline once");
+
+    require(vm.step().ok, "instruction mode executes LD through microcycle runtime");
+    require(vm.state().gr[1] == 0x8000, "instruction mode final LD state remains unchanged");
+    require(vm.state().reverseInstructionAvailability.available, "completed instruction is reversible");
+    require(vm.state().reverseInstructionAvailability.complete, "completed group is marked complete");
+    const auto completed = reverseLatestInstruction(vm);
+    require(completed.status == casl::ReverseMicrostepStatus::Reversed, "completed instruction reverses");
+    require(completed.reversedMicrostepCount == 8, "LD group contains its eight real phases");
+    require(vm.state().gr[1] == initial.gr[1], "completed LD reverse restores GR");
+    require(vm.state().fr.packed() == initial.fr.packed(), "completed LD reverse restores FR");
+    require(vm.state().stepCount == initial.stepCount, "completed LD reverse restores instruction count");
+}
+
+void ReverseInstructionRestoresMemoryStackBranchAndFlags() {
+    const auto output = assembleOrExit(R"(MAIN START
+     LAD GR1,#0042
+     ST GR1,DATA
+     SLL GR1,1
+     PUSH 0,GR1
+     JUMP DONE
+DONE RET
+DATA DS 1
+     END)");
+    casl::CometVm vm;
+    vm.load(output);
+    const auto data = symbolAddress(output, "DATA");
+
+    require(vm.step().ok, "LAD executes");
+    require(vm.step().ok, "ST executes");
+    require(vm.state().memory[data] == 0x0042, "ST writes memory");
+    require(reverseLatestInstruction(vm).status == casl::ReverseMicrostepStatus::Reversed, "ST reverses");
+    require(vm.state().memory[data] == 0, "ST reverse restores memory");
+
+    require(vm.step().ok, "ST re-executes");
+    const auto beforeShiftGr = vm.state().gr;
+    const auto beforeShiftFr = vm.state().fr.packed();
+    require(vm.step().ok, "SLL executes");
+    require(reverseLatestInstruction(vm).status == casl::ReverseMicrostepStatus::Reversed, "SLL reverses");
+    require(vm.state().gr == beforeShiftGr, "SLL reverse restores register");
+    require(vm.state().fr.packed() == beforeShiftFr, "SLL reverse restores OF/SF/ZF");
+
+    require(vm.step().ok, "SLL re-executes");
+    const auto beforePushSp = vm.state().sp;
+    const auto beforePushStackWord = vm.state().memory[static_cast<std::uint16_t>(vm.state().sp - 1)];
+    require(vm.step().ok, "PUSH executes");
+    require(reverseLatestInstruction(vm).status == casl::ReverseMicrostepStatus::Reversed, "PUSH reverses");
+    require(vm.state().sp == beforePushSp, "PUSH reverse restores SP");
+    require(
+        vm.state().memory[static_cast<std::uint16_t>(beforePushSp - 1)] == beforePushStackWord,
+        "PUSH reverse restores stack memory"
+    );
+
+    require(vm.step().ok, "PUSH re-executes");
+    const auto beforeJumpPr = vm.state().pr;
+    require(vm.step().ok, "JUMP executes");
+    require(reverseLatestInstruction(vm).status == casl::ReverseMicrostepStatus::Reversed, "JUMP reverses");
+    require(vm.state().pr == beforeJumpPr, "branch reverse restores PR");
+}
+
+void ReverseInstructionRespectsBarriersAndCapacity() {
+    const auto output = assembleSample();
+    auto mutationVm = std::make_unique<casl::CometVm>();
+    mutationVm->load(output);
+    require(mutationVm->step().ok, "instruction history exists before mutation");
+    require(mutationVm->writeGeneralRegister(2, 0x1234), "debugger mutation applies");
+    require(
+        mutationVm->state().reverseInstructionAvailability.reason ==
+            casl::ReverseUnavailableReason::MutationBoundary,
+        "debugger mutation blocks instruction reverse"
+    );
+
+    const auto svcOutput = assembleOrExit(R"(MAIN START
+     SVC 2
+     RET
+     END)");
+    auto svcVm = std::make_unique<casl::CometVm>();
+    svcVm->load(svcOutput);
+    require(svcVm->step().ok, "SVC output executes");
+    require(
+        svcVm->state().reverseInstructionAvailability.reason ==
+            casl::ReverseUnavailableReason::SvcBoundary,
+        "SVC commit blocks instruction reverse"
+    );
+
+    const auto loopOutput = assembleOrExit(R"(MAIN START
+LOOP JUMP LOOP
+     END)");
+    auto loopVm = std::make_unique<casl::CometVm>();
+    loopVm->load(loopOutput);
+    for (int index = 0; index < 1001; ++index) require(loopVm->stepMicrocycle().ok, "fill instruction history");
+    int reversedGroups = 0;
+    while (loopVm->state().reverseInstructionAvailability.available) {
+        require(
+            reverseLatestInstruction(*loopVm).status == casl::ReverseMicrostepStatus::Reversed,
+            "retained complete instruction group reverses"
+        );
+        reversedGroups += 1;
+    }
+    require(reversedGroups > 0, "at least one retained instruction group reversed");
+    require(
+        loopVm->state().reverseInstructionAvailability.reason ==
+            casl::ReverseUnavailableReason::HistoryCapacityBoundary,
+        "capacity-truncated instruction group is unavailable"
+    );
+}
+
+void ReverseInstructionRejectsStaleAndPreservesMicrostepReverse() {
+    const auto output = assembleSample();
+    casl::CometVm vm;
+    vm.load(output);
+    require(vm.stepMicrocycle().ok, "fetch creates history");
+    const auto stale = vm.reverseInstruction(vm.state().historyEpoch, vm.state().timelineRevision + 1);
+    require(stale.status == casl::ReverseMicrostepStatus::Stale, "stale timeline is rejected");
+    require(
+        stale.availability.reason == casl::ReverseUnavailableReason::TimelineRevisionMismatch,
+        "stale reverse reports timeline mismatch"
+    );
+    require(reverseLatest(vm).status == casl::ReverseMicrostepStatus::Reversed, "microstep reverse remains available");
+}
+
 using TestFunction = void (*)();
 
 const std::vector<std::pair<std::string_view, TestFunction>>& tests() {
@@ -1788,6 +1936,10 @@ const std::vector<std::pair<std::string_view, TestFunction>>& tests() {
         {"ReverseMicrocycleRestoresControlFlowAndFlags", ReverseMicrocycleRestoresControlFlowAndFlags},
         {"ReverseMicrocycleRestoresCallRetAndPop", ReverseMicrocycleRestoresCallRetAndPop},
         {"ReverseMicrocycleClearsDeterministicRuntimeError", ReverseMicrocycleClearsDeterministicRuntimeError},
+        {"ReverseInstructionRestoresPartialAndCompleteInstruction", ReverseInstructionRestoresPartialAndCompleteInstruction},
+        {"ReverseInstructionRestoresMemoryStackBranchAndFlags", ReverseInstructionRestoresMemoryStackBranchAndFlags},
+        {"ReverseInstructionRespectsBarriersAndCapacity", ReverseInstructionRespectsBarriersAndCapacity},
+        {"ReverseInstructionRejectsStaleAndPreservesMicrostepReverse", ReverseInstructionRejectsStaleAndPreservesMicrostepReverse},
     };
     return cases;
 }

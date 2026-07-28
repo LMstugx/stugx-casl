@@ -11,6 +11,8 @@ import { formatWord } from "../core/types";
 import { microcyclePhaseKey } from "../i18n/microcycle";
 import type { TranslationKey } from "../i18n/types";
 import { useI18n } from "../i18n/useI18n";
+import ReverseInstructionControl from "./ReverseInstructionControl";
+import type { ReverseInstructionStatus } from "../core/reverseInstruction";
 
 const ALL_PHASES: readonly Exclude<MicrocyclePhase, "none">[] = [
   "fetch",
@@ -39,7 +41,9 @@ const REVERSE_REASON_KEYS: Readonly<Record<ReverseUnavailableReason, Translation
   "history-capacity-boundary": "cometMode.reverse.capacity",
   "history-epoch-mismatch": "cometMode.reverse.otherExecution",
   "execution-epoch-mismatch": "cometMode.reverse.otherExecution",
+  "timeline-revision-mismatch": "cometMode.reverse.otherExecution",
   "runtime-not-loaded": "cometMode.reverse.noHistory",
+  "partial-instruction-history": "cometMode.reverse.noHistory",
   "history-corrupt": "cometMode.reverse.corrupt"
 };
 
@@ -50,14 +54,22 @@ type CometMicrocyclePanelProps = {
     restoredPhase: MicrocyclePhase;
     reversedEntryId?: number;
   } | null;
+  reverseInstructionNotice?: {
+    machineAddress?: number;
+    mnemonic?: string;
+    reversedMicrostepCount: number;
+  } | null;
   onReverse?: () => Promise<ReverseMicrostepStatus>;
+  onReverseInstruction?: () => Promise<ReverseInstructionStatus>;
 };
 
 export default function CometMicrocyclePanel({
   state,
   reverseInFlight = false,
   reverseNotice = null,
-  onReverse
+  reverseInstructionNotice = null,
+  onReverse,
+  onReverseInstruction
 }: CometMicrocyclePanelProps) {
   const { t } = useI18n();
   const reverseButtonRef = useRef<HTMLButtonElement>(null);
@@ -125,21 +137,29 @@ export default function CometMicrocyclePanel({
       </div>
 
       <div className="comet-reverse-controls">
-        <button
-          ref={reverseButtonRef}
-          type="button"
-          className="secondary-button comet-reverse-button"
-          data-testid="reverse-microstep-button"
-          disabled={reverseDisabled}
-          aria-describedby="comet-reverse-reason"
-          onClick={() => void handleReverse()}
-        >
-          <Undo2 size={17} aria-hidden="true" />
-          <span>{t("cometMode.reverse.label")}</span>
-        </button>
-        <span id="comet-reverse-reason" className="comet-reverse-reason">
-          {reverseReason}
-        </span>
+        <div className="reverse-control-unit">
+          <button
+            ref={reverseButtonRef}
+            type="button"
+            className="secondary-button comet-reverse-button"
+            data-testid="reverse-microstep-button"
+            disabled={reverseDisabled}
+            aria-describedby="comet-reverse-reason"
+            onClick={() => void handleReverse()}
+          >
+            <Undo2 size={17} aria-hidden="true" />
+            <span>{t("cometMode.reverse.label")}</span>
+          </button>
+          <span id="comet-reverse-reason" className="comet-reverse-reason">
+            {reverseReason}
+          </span>
+        </div>
+        <ReverseInstructionControl
+          availability={state.reverseInstructionAvailability}
+          reverseInFlight={reverseInFlight}
+          notice={reverseInstructionNotice}
+          onReverse={onReverseInstruction}
+        />
         {state.microcycleHistorySummary.droppedEntryCount > 0 ? (
           <span className="comet-history-floor-notice">
             {t("cometMode.reverse.capacity")}

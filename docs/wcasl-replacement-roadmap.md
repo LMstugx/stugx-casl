@@ -20,11 +20,13 @@ stugx.CASL is an independent, unofficial CASL II / COMET II learning studio. It 
 - Full Clear unloads machine state while preserving source ownership
 - execution and history epoch barriers for future Reverse Step
 
+## Phase 20C-20E
+
+Phase 20C implements the documented COMET teaching microarchitecture after proving instruction-specific phases and the absence of fake memory accesses. Phase 20D adds deterministic Reverse Microstep inside one history epoch, with atomic inverse deltas and strict SVC/I/O, mutation, lifecycle, ownership, and capacity barriers. Phase 20E groups those retained transactions by runtime machine instruction identity and adds atomic Reverse Instruction.
+
 ## Candidate Next Work
 
-Phase 20C implements the documented COMET teaching microarchitecture after proving instruction-specific phases and the absence of fake memory accesses. Phase 20D adds deterministic Reverse Microstep inside one history epoch, with atomic inverse deltas and strict SVC/I/O, mutation, lifecycle, ownership, and capacity barriers.
-
-Traditional Reverse Instruction, Redo, reverse run, and persistent timelines remain separate admission work. Structured multi-program linking remains behind the gate in [multi-program-linking-design.md](multi-program-linking-design.md).
+Structured multi-program linking remains behind the Phase 20F gate in [multi-program-linking-design.md](multi-program-linking-design.md). Redo, reverse run, Reverse Macro, and persistent timelines remain separate admission work.
 
 ## Prohibited Shortcuts
 

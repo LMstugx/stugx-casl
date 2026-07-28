@@ -16,6 +16,8 @@ import type {
 } from "../debugger/debuggerMutation";
 import { categorizeMemoryAddress, packDebuggerFlags } from "../debugger/debuggerMutation";
 import { DebuggerEditDialog, FullClearDialog } from "./DebuggerDialogs";
+import ReverseInstructionControl from "./ReverseInstructionControl";
+import type { ReverseInstructionStatus } from "../core/reverseInstruction";
 
 type CaslCompatibilityModeProps = {
   state: CometState;
@@ -34,6 +36,13 @@ type CaslCompatibilityModeProps = {
   fileOperationActive?: boolean;
   onMutate?: (input: DebuggerMutationInput) => Promise<DebuggerMutationResult>;
   onFullClear?: () => Promise<boolean>;
+  reverseInFlight?: boolean;
+  reverseInstructionNotice?: {
+    machineAddress?: number;
+    mnemonic?: string;
+    reversedMicrostepCount: number;
+  } | null;
+  onReverseInstruction?: () => Promise<ReverseInstructionStatus>;
 };
 
 const numericModes: CaslNumericDisplayMode[] = ["hex", "signed", "unsigned", "binary"];
@@ -128,8 +137,11 @@ export default function CaslCompatibilityMode({
   dataModified = false,
   mutationInFlight = false,
   fileOperationActive = false,
+  reverseInFlight = false,
+  reverseInstructionNotice = null,
   onMutate = async () => ({ status: "rejected", reason: "backend-rejected" }),
-  onFullClear = async () => false
+  onFullClear = async () => false,
+  onReverseInstruction
 }: CaslCompatibilityModeProps) {
   const { t } = useI18n();
   const [numericMode, setNumericMode] = useState<CaslNumericDisplayMode>("hex");
@@ -219,6 +231,12 @@ export default function CaslCompatibilityMode({
           <button type="button" className="text-button" disabled={reloadDisabled} onClick={() => onReload("zero")}>{t("caslMode.reloadZero")}</button>
           <button type="button" className="text-button" disabled={reloadDisabled} onClick={() => onReload("ffff")}>{t("caslMode.reloadFfff")}</button>
         </div>
+        <ReverseInstructionControl
+          availability={state.reverseInstructionAvailability}
+          reverseInFlight={reverseInFlight}
+          notice={reverseInstructionNotice}
+          onReverse={onReverseInstruction}
+        />
         <div className="casl-destructive-actions">
           <button
             type="button"

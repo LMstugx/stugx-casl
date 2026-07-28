@@ -232,6 +232,11 @@ function legacyGoldenWindow(state: CometStateDto): CometStateDto {
     microcycleInstructionComplete: _microcycleInstructionComplete,
     microcycleHistorySequence: _microcycleHistorySequence,
     microcycleDetail: _microcycleDetail,
+    historyEpoch: _historyEpoch,
+    timelineRevision: _timelineRevision,
+    reverseAvailability: _reverseAvailability,
+    reverseInstructionAvailability: _reverseInstructionAvailability,
+    microcycleHistorySummary: _microcycleHistorySummary,
     ...legacy
   } = state;
   return {
@@ -378,6 +383,11 @@ DATA DC #8000
     const result = await adapter.step();
 
     expect(legacyGoldenWindow(result.state)).toEqual(simpleStep1 as CometStateDto);
+    expect(result.state.reverseInstructionAvailability).toMatchObject({
+      available: true,
+      complete: true,
+      instructionKind: "LD"
+    });
     await adapter.dispose();
   });
 

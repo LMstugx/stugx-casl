@@ -18,4 +18,8 @@ VM faults are structured runtime diagnostics. They do not mutate source or persi
 
 Reload uses the current assembly owner. Optional zero or `FFFF` initialization changes only `DS` source-map spans after restoring the assembled image; code, `DC`, literals, source, and Dirty state are unchanged.
 
+Debugger mutation is an explicit runtime API for GR, PR, SP, current FR bits, and one Memory word. It clears transient instruction state but does not execute, increment the step count, recompute FR after a GR edit, or alter source. Runtime instruction fetch decodes the current program word at an original instruction start address, so a confirmed program override executes honestly. Invalid runtime opcodes use the existing VM failure path.
+
+Reset reapplies controller-owned Memory overrides. Reload removes them. Full Clear unloads the VM, clears runtime data and ownership, and requires a new Assemble. See the [Debugger Mutation Contract](../debugger-mutation-contract.md).
+
 Changes to opcode semantics, flags, stack behavior, Trace ordering, or machine-state DTOs require dedicated compatibility work and are outside documentation-only changes.

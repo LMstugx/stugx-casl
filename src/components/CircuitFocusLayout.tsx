@@ -255,6 +255,7 @@ function traceChangeText(event: CometState["trace"][number]): string {
 }
 
 function traceMainEvent(event: CometState["trace"][number]): string {
+  if (event.kind === "debugger-register-edit" || event.kind === "debugger-memory-edit") return event.instruction;
   const source = compactInstructionText(event.source);
   if (event.instruction === "RET" && event.visualPath === VisualPathKind.RET_StackToPr) return `#${event.index} RET stack return`;
   if (event.instruction === "RET") return `#${event.index} RET finish`;

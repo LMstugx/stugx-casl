@@ -162,6 +162,13 @@ function StudioShell({
     inspectorActiveTab,
     outputDockActiveTab,
     applicationFailure,
+    assemblyId,
+    executionEpoch,
+    runtimeImageRevision,
+    runtimeOverrides,
+    programModified,
+    dataModified,
+    mutationInFlight,
     currentDocument,
     currentWriteBinding,
     documentDirty,
@@ -174,6 +181,8 @@ function StudioShell({
     step,
     reset,
     reload,
+    mutateDebuggerState,
+    fullClear,
     stop,
     submitConsoleInput,
     clearOutput,
@@ -491,6 +500,16 @@ function StudioShell({
           onReset={reset}
           onReload={reload}
           onSubmitConsoleInput={submitConsoleInput}
+          assemblyId={assemblyId}
+          executionEpoch={executionEpoch}
+          runtimeImageRevision={runtimeImageRevision}
+          runtimeOverrides={runtimeOverrides}
+          programModified={programModified}
+          dataModified={dataModified}
+          mutationInFlight={mutationInFlight}
+          fileOperationActive={fileLifecycle.status !== "idle"}
+          onMutate={mutateDebuggerState}
+          onFullClear={fullClear}
         />
       ) : circuitFocusEnabled ? (
         <CircuitFocusLayout

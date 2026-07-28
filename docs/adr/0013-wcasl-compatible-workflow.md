@@ -21,6 +21,7 @@ Instruction semantics and reproducible results matter more than copying a legacy
 - no WCASL assets, binaries, copied help text, or branding
 - no claim of endorsement or official status
 - no P0/P1 semantic gap may be hidden behind a richer UI
-- debugger editing, reverse-step, and linking remain explicit later gates
+- debugger editing is admitted through a separate runtime-mutation contract
+- reverse-step and linking remain explicit later gates
 - microcycle visualization requires a separate instruction-specific contract
 - compatibility changes require an explicit baseline update and tests

@@ -1,6 +1,7 @@
 import type { CoreAdapter, ReloadInitializationMode } from "./coreAdapter";
 import { MockCoreAdapter } from "./mockCoreAdapter";
 import { WasmCoreAdapter } from "./wasmCoreAdapter";
+import type { DebuggerMutationRequest } from "../debugger/debuggerMutation";
 
 export type CoreBackendKind = "mock" | "wasm";
 export type CoreBackendStatus = "ready" | "error";
@@ -81,32 +82,60 @@ async function callCore<T>(operation: () => Promise<T>): Promise<T> {
   }
 }
 
+let mutationQueue: Promise<void> = Promise.resolve();
+
+async function callCoreTransaction<T>(operation: () => Promise<T>): Promise<T> {
+  const previous = mutationQueue;
+  let release!: () => void;
+  mutationQueue = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await previous;
+  try {
+    return await callCore(operation);
+  } finally {
+    release();
+  }
+}
+
 export const coreBridge = {
   assemble(sourceText: string) {
-    return callCore(() => activeSelection.adapter.assemble(sourceText));
+    return callCoreTransaction(() => activeSelection.adapter.assemble(sourceText));
   },
   reset() {
-    return callCore(() => activeSelection.adapter.reset());
+    return callCoreTransaction(() => activeSelection.adapter.reset());
   },
   reload(mode: ReloadInitializationMode) {
-    return callCore(() => {
+    return callCoreTransaction(() => {
       if (!activeSelection.adapter.reload) throw new Error("Core backend does not support program reload.");
       return activeSelection.adapter.reload(mode);
     });
   },
   step() {
-    return callCore(() => activeSelection.adapter.step());
+    return callCoreTransaction(() => activeSelection.adapter.step());
   },
   run(maxSteps: number) {
-    return callCore(() => activeSelection.adapter.run(maxSteps));
+    return callCoreTransaction(() => activeSelection.adapter.run(maxSteps));
   },
   getState() {
     return callCore(() => activeSelection.adapter.getState());
   },
   enqueueInput(text: string, endOfFile = false) {
-    return callCore(() => {
+    return callCoreTransaction(() => {
       if (!activeSelection.adapter.enqueueInput) throw new Error("Core backend does not support console input.");
       return activeSelection.adapter.enqueueInput(text, endOfFile);
+    });
+  },
+  mutateDebuggerState(request: DebuggerMutationRequest) {
+    return callCoreTransaction(() => {
+      if (!activeSelection.adapter.mutateDebuggerState) throw new Error("Core backend does not support debugger mutation.");
+      return activeSelection.adapter.mutateDebuggerState(request);
+    });
+  },
+  fullClear() {
+    return callCoreTransaction(() => {
+      if (!activeSelection.adapter.fullClear) throw new Error("Core backend does not support full clear.");
+      return activeSelection.adapter.fullClear();
     });
   }
 };

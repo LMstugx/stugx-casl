@@ -98,7 +98,9 @@ struct Flags {
     bool o = false;
 
     [[nodiscard]] std::uint16_t packed() const {
-        return static_cast<std::uint16_t>((z ? 0b100 : 0) | (c ? 0b010 : 0) | (n ? 0b001 : 0));
+        return static_cast<std::uint16_t>(
+            (o ? 0b1000 : 0) | (z ? 0b0100 : 0) | (c ? 0b0010 : 0) | (n ? 0b0001 : 0)
+        );
     }
 };
 

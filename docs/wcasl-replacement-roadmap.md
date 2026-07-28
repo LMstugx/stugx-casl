@@ -12,13 +12,17 @@ stugx.CASL is an independent, unofficial CASL II / COMET II learning studio. It 
 - deterministic assembler output and parity fixtures
 - machine-readable compatibility and future microcycle contracts
 
+## Phase 20B
+
+- atomic GR, PR, SP, FR, and single-word Memory editing
+- explicit program-image runtime overrides
+- Reset keeps overrides; Reload restores the assembly image
+- Full Clear unloads machine state while preserving source ownership
+- execution and history epoch barriers for future Reverse Step
+
 ## Candidate Next Work
 
-Phase 20B may implement the documented COMET teaching microcycle only after proving instruction-specific phases and the absence of fake memory accesses.
-
-Phase 20C may consider manual register/memory editing, full clear, breakpoints, and reverse-step snapshots. These are debugger features, not CASL II semantics, and require ownership and rollback contracts.
-
-Phase 20D may implement structured multi-program linking after the admission gate in [multi-program-linking-design.md](multi-program-linking-design.md).
+Phase 20C may implement Reverse Step using the frozen history barrier. Phase 20D may implement the documented COMET teaching microcycle only after proving instruction-specific phases and the absence of fake memory accesses. Phase 20E may implement structured multi-program linking after the admission gate in [multi-program-linking-design.md](multi-program-linking-design.md).
 
 ## Prohibited Shortcuts
 

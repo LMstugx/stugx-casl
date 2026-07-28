@@ -1252,6 +1252,70 @@ SPACE DS 2
     require(vm.state().consoleOutput.empty(), "reload clears console output");
 }
 
+void DebuggerMutationChangesOnlyTarget() {
+    const auto output = assembleSample();
+    casl::CometVm vm;
+    vm.load(output);
+    const auto initialMemory = vm.state().memory;
+    const auto initialPr = vm.state().pr;
+
+    require(vm.writeGeneralRegister(2, 0x0042), "GR2 debugger write applies");
+    require(vm.state().gr[2] == 0x0042, "GR2 debugger value");
+    require(vm.state().gr[1] == 0x0000, "other GR unchanged");
+    require(vm.state().pr == initialPr, "register edit does not advance PR");
+    require(vm.state().stepCount == 0, "register edit does not increment step count");
+    require(vm.state().memory == initialMemory, "register edit does not change memory");
+
+    require(vm.setProgramCounter(0x0022), "PR debugger write applies");
+    require(vm.state().pr == 0x0022, "PR debugger value");
+    require(vm.setStackPointer(0x8123), "SP debugger write applies");
+    require(vm.state().sp == 0x8123, "SP debugger value");
+    vm.setFlagsPacked(0x000f);
+    require(vm.state().fr.packed() == 0x000f, "FR debugger write uses existing four flag bits");
+}
+
+void RuntimeProgramOverrideExecutesAndInvalidFails() {
+    const auto output = assembleOrExit(R"(MAIN START
+ LAD GR2,#0003
+ RET
+ END)");
+    casl::CometVm vm;
+    vm.load(output);
+    const auto start = output.entryPoint;
+    const auto originalWord = vm.state().memory[start];
+
+    require(vm.writeMemory(start, 0x0000), "program word override applies");
+    const auto nop = vm.step();
+    require(nop.ok, "runtime NOP override executes");
+    require(vm.state().lastInstructionKind == casl::Opcode::NOP, "runtime decoder reports NOP");
+    require(vm.state().gr[2] == 0x0000, "overridden LAD does not execute");
+    require(vm.state().pr == static_cast<std::uint16_t>(start + 1), "runtime NOP advances one word");
+
+    vm.reload(std::nullopt);
+    require(vm.state().memory[start] == originalWord, "reload restores assembled program word");
+    require(vm.writeMemory(start, 0xffff), "invalid runtime opcode write applies");
+    const auto invalid = vm.step();
+    require(!invalid.ok, "invalid runtime opcode fails at execution");
+    require(vm.state().runState == casl::RunState::Error, "invalid runtime opcode uses VM Error state");
+    require(vm.state().stepCount == 0, "invalid runtime opcode does not increment step count");
+}
+
+void FullClearUnloadsVm() {
+    const auto output = assembleSample();
+    casl::CometVm vm;
+    vm.load(output);
+    require(vm.writeGeneralRegister(1, 0x0042), "pre-clear mutation applies");
+    require(vm.writeMemory(output.entryPoint, 0x0000), "pre-clear program override applies");
+
+    vm.fullClear();
+    require(vm.state().runState == casl::RunState::Idle, "full clear returns Idle state");
+    require(vm.state().stepCount == 0, "full clear resets step count");
+    require(vm.state().gr == std::array<std::uint16_t, casl::kGeneralRegisterCount>{}, "full clear zeroes GRs");
+    require(vm.state().fr.packed() == 0, "full clear zeroes FR");
+    require(!vm.writeGeneralRegister(1, 0x0001), "full clear removes loaded ownership");
+    require(!vm.step().ok, "full-cleared VM cannot execute");
+}
+
 using TestFunction = void (*)();
 
 const std::vector<std::pair<std::string_view, TestFunction>>& tests() {
@@ -1324,6 +1388,9 @@ const std::vector<std::pair<std::string_view, TestFunction>>& tests() {
         {"AssemblePhase20RegisterFormsAndLiterals", AssemblePhase20RegisterFormsAndLiterals},
         {"ExecutePhase20StandardMacrosAndIo", ExecutePhase20StandardMacrosAndIo},
         {"ReloadPhase20DsInitialization", ReloadPhase20DsInitialization},
+        {"DebuggerMutationChangesOnlyTarget", DebuggerMutationChangesOnlyTarget},
+        {"RuntimeProgramOverrideExecutesAndInvalidFails", RuntimeProgramOverrideExecutesAndInvalidFails},
+        {"FullClearUnloadsVm", FullClearUnloadsVm},
     };
     return cases;
 }

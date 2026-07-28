@@ -2,6 +2,7 @@ import { selectMemoryWindow } from "./selectors";
 import { CometState, Diagnostic, InstructionKind } from "./types";
 import type { DiagnosticParamValue, DiagnosticProducer, DiagnosticRelatedLocation, DiagnosticSeverity, SourceRange } from "../diagnostics/types";
 import { encodeCaslInputRecord } from "./caslIoEncoding";
+import { decodeRuntimeInstruction } from "./instructionEncoding";
 
 export interface DiagnosticDto {
   line: number;
@@ -87,12 +88,26 @@ function normalizeInstructionText(source?: string): string | null {
 }
 
 function instructionAtCurrentAddress(state: CometState) {
-  return state.program?.find((instruction) => instruction.address === state.currentAddress);
+  const original = state.program?.find((instruction) => instruction.address === state.currentAddress);
+  if (!original) return undefined;
+  return decodeRuntimeInstruction(
+    original.address,
+    state.memory[original.address] ?? 0,
+    state.memory[(original.address + 1) & 0xffff] ?? 0,
+    original
+  );
 }
 
 function instructionAtLastStep(state: CometState) {
   if (!state.lastStep) return undefined;
-  return state.program?.find((instruction) => instruction.address === state.lastStep?.executedAddress);
+  const original = state.program?.find((instruction) => instruction.address === state.lastStep?.executedAddress);
+  if (!original) return undefined;
+  return decodeRuntimeInstruction(
+    original.address,
+    state.memory[original.address] ?? 0,
+    state.memory[(original.address + 1) & 0xffff] ?? 0,
+    original
+  );
 }
 
 function readMemoryWord(state: CometState, address: number | undefined): number | null {

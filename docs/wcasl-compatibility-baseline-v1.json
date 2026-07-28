@@ -338,7 +338,7 @@
         "microcycle_contract_is_not_enabled_in_runtime_yet"
       ],
       "limitations": "Design contract only; no runtime microstep UI.",
-      "targetPhase": "20B"
+      "targetPhase": "20D"
     },
     {
       "featureId": "registers.observation",
@@ -358,13 +358,16 @@
       "featureId": "registers.edit",
       "featureName": "Manual register editing",
       "sourceCategory": "WCASL debugger workflow",
-      "evidenceReference": "docs/wcasl-replacement-roadmap.md",
-      "currentStatus": "missing",
+      "evidenceReference": "src/debugger/debuggerMutation.ts",
+      "currentStatus": "compatible",
       "priority": "P2",
       "implementationOwner": "debugger",
-      "tests": [],
-      "limitations": "Read-only in Phase 20A.",
-      "targetPhase": "20C"
+      "tests": [
+        "edits_each_general_register_atomically_without_recomputing_fr",
+        "edits_pr_sp_fr_and_one_memory_word_without_executing_an_instruction"
+      ],
+      "limitations": "The modern dialog and execution-epoch ownership checks are intentionally stricter than an in-place legacy cell editor.",
+      "targetPhase": "20B"
     },
     {
       "featureId": "memory.window",
@@ -398,13 +401,16 @@
       "featureId": "memory.edit",
       "featureName": "Manual memory editing",
       "sourceCategory": "WCASL debugger workflow",
-      "evidenceReference": "docs/wcasl-replacement-roadmap.md",
-      "currentStatus": "missing",
+      "evidenceReference": "src/debugger/debuggerMutation.ts",
+      "currentStatus": "compatible",
       "priority": "P2",
       "implementationOwner": "debugger",
-      "tests": [],
-      "limitations": "Read-only in Phase 20A.",
-      "targetPhase": "20C"
+      "tests": [
+        "supports_all_memory_addresses_and_all_16_bit_word_values",
+        "executes_a_modified_program_word_and_reports_invalid_opcode_as_runtime_failure"
+      ],
+      "limitations": "Single-word edits only. Program-image edits require confirmation and remain runtime overrides rather than source edits.",
+      "targetPhase": "20B"
     },
     {
       "featureId": "stack.observation",
@@ -579,13 +585,16 @@
       "featureId": "loading.full-clear",
       "featureName": "Debugger full machine clear",
       "sourceCategory": "WCASL debugger workflow",
-      "evidenceReference": "docs/wcasl-replacement-roadmap.md",
-      "currentStatus": "missing",
+      "evidenceReference": "docs/debugger-mutation-contract.md",
+      "currentStatus": "intentionally-different",
       "priority": "P2",
       "implementationOwner": "debugger",
-      "tests": [],
-      "limitations": "Not exposed because its document and assembly ownership semantics are not yet frozen.",
-      "targetPhase": "20C"
+      "tests": [
+        "full_clear_unloads_the_machine_without_retaining_runtime_state",
+        "full_clear_preserves_source_document_dirty_and_preferences_but_drops_machine_ownership"
+      ],
+      "limitations": "Exact WCASL Clear evidence is incomplete. stugx.CASL clears machine ownership while preserving source and document Dirty state.",
+      "targetPhase": "20B"
     },
     {
       "featureId": "trace.execution",
@@ -627,7 +636,7 @@
         "multi_program_linking_admission_is_partial"
       ],
       "limitations": "Design and admission gate only; runtime remains single-document.",
-      "targetPhase": "20D"
+      "targetPhase": "20E"
     },
     {
       "featureId": "project.wcasl-format",

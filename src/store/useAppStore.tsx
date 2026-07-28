@@ -6,7 +6,7 @@ import { AppEvent, AppEvents } from "../app/events";
 import { coreBridge, getCoreBackendInfo, type CoreBackendInfo } from "../core/coreBridge";
 import type { ReloadInitializationMode } from "../core/coreAdapter";
 import { createCometStateFromDto, createEmptyUiCometState } from "../core/coreStateAdapter";
-import { CometState, Diagnostic, formatWord } from "../core/types";
+import { CometState, Diagnostic, VisualPathKind, formatWord } from "../core/types";
 import { getDefaultDemoProgram, type DemoProgram } from "../examples/demoPrograms";
 import { learningLessons } from "../examples/learningLessons";
 import { createExampleDocument, createUntitledDocument, editDocument, isDocumentDirty } from "../documents/documentModel";
@@ -20,6 +20,18 @@ import { serializeApplicationPreferences } from "../preferences/validation";
 import { cloneLessonProgress, isPersistableLessonStep } from "../lessonProgress/model";
 import type { LessonProgressState } from "../lessonProgress/types";
 import { CppStorageObject, CppToCaslMap, transpileCppToCasl } from "../transpiler/cppTranspiler";
+import {
+  categorizeMemoryAddress,
+  isDebuggerWord,
+  isValidDebuggerMutationTarget,
+  sourceMappingConfidenceFor,
+  targetDisplayName,
+  type DebuggerMutationRequest,
+  type DebuggerMutationResult,
+  type DebuggerMutationTarget,
+  type DebuggerMemoryCategory,
+  type RuntimeWordOverride
+} from "../debugger/debuggerMutation";
 
 type AssembleStatus = "default" | "running" | "success" | "error";
 export type SourceMode = "casl" | "cpp";
@@ -74,6 +86,14 @@ type AppStoreState = {
   inspectorActiveTab: InspectorActiveTab;
   outputDockActiveTab: OutputDockActiveTab;
   applicationFailure: "core-unavailable" | null;
+  assemblyId: string | null;
+  executionEpoch: number;
+  historyEpoch: number;
+  runtimeImageRevision: number;
+  runtimeOverrides: Record<number, RuntimeWordOverride>;
+  programModified: boolean;
+  dataModified: boolean;
+  mutationInFlight: boolean;
 };
 
 type AppStoreActions = {
@@ -84,6 +104,8 @@ type AppStoreActions = {
   step: () => void;
   reset: () => void;
   reload: (mode: ReloadInitializationMode) => void;
+  mutateDebuggerState: (target: DebuggerMutationTarget, nextWord: number) => Promise<DebuggerMutationResult>;
+  fullClear: () => Promise<boolean>;
   stop: () => void;
   submitConsoleInput: (text: string, endOfFile?: boolean) => void;
   clearOutput: () => void;
@@ -110,14 +132,19 @@ export type AppStoreAction =
   | { type: "currentDocumentReplaced"; document: SourceDocument; selectedExampleId?: string }
   | { type: "currentDocumentSaved"; document: SourceDocument; writeBinding: DocumentWriteBinding | null }
   | { type: "fileLifecycleSet"; lifecycle: FileLifecycleState }
-  | { type: "assembled"; sourceUnitId: SourceUnitId; sourceText: string; cometState: CometState; assembleStatus: AssembleStatus; generatedCaslSource?: string; cppToCaslMapping?: CppToCaslMap[]; cppStorageObjects?: CppStorageObject[] }
+  | { type: "assembled"; sourceUnitId: SourceUnitId; sourceText: string; cometState: CometState; assembleStatus: AssembleStatus; assemblyId?: string; generatedCaslSource?: string; cppToCaslMapping?: CppToCaslMap[]; cppStorageObjects?: CppStorageObject[] }
   | { type: "transpileFailed"; sourceUnitId: SourceUnitId; diagnostics: Diagnostic[]; generatedCaslSource: string; cppToCaslMapping: CppToCaslMap[]; cppStorageObjects: CppStorageObject[]; output: string[] }
-  | { type: "runStarted"; cometState: CometState }
-  | { type: "runProgress"; cometState: CometState }
-  | { type: "runStopped"; cometState: CometState; reason: RunStopReason }
-  | { type: "stepped"; cometState: CometState }
-  | { type: "reset"; cometState: CometState; sourceUnitId: SourceUnitId }
-  | { type: "coreError"; sourceUnitId: SourceUnitId }
+  | { type: "runStarted"; cometState: CometState; owner: ExecutionOwner }
+  | { type: "runProgress"; cometState: CometState; owner: ExecutionOwner }
+  | { type: "runStopped"; cometState: CometState; reason: RunStopReason; owner: ExecutionOwner }
+  | { type: "stepped"; cometState: CometState; owner: ExecutionOwner }
+  | { type: "reset"; cometState: CometState; owner: ExecutionOwner; clearOverrides?: boolean }
+  | { type: "coreError"; sourceUnitId: SourceUnitId; owner?: ExecutionOwner }
+  | { type: "mutationStarted"; request: DebuggerMutationRequest; nextEpoch: number }
+  | { type: "mutationCommitted"; request: DebuggerMutationRequest; nextEpoch: number; cometState: CometState; previousWord: number }
+  | { type: "mutationFinished"; mutationId: string }
+  | { type: "fullClearStarted"; owner: ExecutionOwner; nextEpoch: number }
+  | { type: "fullClearCommitted"; owner: ExecutionOwner; nextEpoch: number; cometState: CometState }
   | { type: "clearOutput" }
   | { type: "lessonStepToggled"; exampleId: string; stepId: string }
   | { type: "lessonProgressReset"; exampleId: string }
@@ -126,6 +153,12 @@ export type AppStoreAction =
   | { type: "circuitFocusEnabledSet"; enabled: boolean }
   | { type: "inspectorActiveTabSet"; tab: InspectorActiveTab }
   | { type: "outputDockActiveTabSet"; tab: OutputDockActiveTab };
+
+type ExecutionOwner = {
+  sourceUnitId: SourceUnitId;
+  assemblyId: string | null;
+  executionEpoch: number;
+};
 
 type AppStoreProviderProps = {
   children: ReactNode;
@@ -173,7 +206,15 @@ export function createInitialAppState(
     circuitFocusEnabled: preferences.circuitFocusEnabled,
     inspectorActiveTab: preferences.inspectorActiveTab,
     outputDockActiveTab: preferences.outputDockActiveTab,
-    applicationFailure: null
+    applicationFailure: null,
+    assemblyId: null,
+    executionEpoch: 0,
+    historyEpoch: 0,
+    runtimeImageRevision: 0,
+    runtimeOverrides: {},
+    programModified: false,
+    dataModified: false,
+    mutationInFlight: false
   };
 }
 
@@ -229,7 +270,15 @@ export function appStoreReducer(state: AppStoreState, action: AppStoreAction): A
       runStopReason: null,
       generatedCaslSource: "",
       cppToCaslMapping: [],
-      cppStorageObjects: []
+      cppStorageObjects: [],
+      assemblyId: null,
+      executionEpoch: state.executionEpoch + 1,
+      historyEpoch: state.historyEpoch + 1,
+      runtimeImageRevision: 0,
+      runtimeOverrides: {},
+      programModified: false,
+      dataModified: false,
+      mutationInFlight: false
     };
   }
 
@@ -254,7 +303,15 @@ export function appStoreReducer(state: AppStoreState, action: AppStoreAction): A
       runStopReason: null,
       generatedCaslSource: "",
       cppToCaslMapping: [],
-      cppStorageObjects: []
+      cppStorageObjects: [],
+      assemblyId: null,
+      executionEpoch: state.executionEpoch + 1,
+      historyEpoch: state.historyEpoch + 1,
+      runtimeImageRevision: 0,
+      runtimeOverrides: {},
+      programModified: false,
+      dataModified: false,
+      mutationInFlight: false
     };
   }
 
@@ -277,7 +334,15 @@ export function appStoreReducer(state: AppStoreState, action: AppStoreAction): A
       cppToCaslMapping: [],
       cppStorageObjects: [],
       selectedDemoProgramId: action.selectedExampleId ?? "",
-      applicationFailure: null
+      applicationFailure: null,
+      assemblyId: null,
+      executionEpoch: state.executionEpoch + 1,
+      historyEpoch: state.historyEpoch + 1,
+      runtimeImageRevision: 0,
+      runtimeOverrides: {},
+      programModified: false,
+      dataModified: false,
+      mutationInFlight: false
     };
   }
 
@@ -310,7 +375,15 @@ export function appStoreReducer(state: AppStoreState, action: AppStoreAction): A
       generatedCaslSource: action.generatedCaslSource ?? "",
       cppToCaslMapping: action.cppToCaslMapping ?? [],
       cppStorageObjects: (action.cppStorageObjects ?? []).map((object) => ({ ...object, sourceUnitId: action.sourceUnitId })),
-      applicationFailure: null
+      applicationFailure: null,
+      assemblyId: ok ? action.assemblyId ?? `${action.sourceUnitId}:assembly:legacy` : null,
+      executionEpoch: state.executionEpoch + 1,
+      historyEpoch: state.historyEpoch + 1,
+      runtimeImageRevision: 0,
+      runtimeOverrides: {},
+      programModified: false,
+      dataModified: false,
+      mutationInFlight: false
     };
   }
 
@@ -326,11 +399,20 @@ export function appStoreReducer(state: AppStoreState, action: AppStoreAction): A
       backendInfo: getCoreBackendInfo(),
       generatedCaslSource: action.generatedCaslSource,
       cppToCaslMapping: action.cppToCaslMapping,
-      cppStorageObjects: []
+      cppStorageObjects: [],
+      assemblyId: null,
+      executionEpoch: state.executionEpoch + 1,
+      historyEpoch: state.historyEpoch + 1,
+      runtimeImageRevision: 0,
+      runtimeOverrides: {},
+      programModified: false,
+      dataModified: false,
+      mutationInFlight: false
     };
   }
 
   if (action.type === "runStarted" || action.type === "runProgress") {
+    if (!executionOwnerMatches(state, action.owner)) return state;
     return {
       ...state,
       cometState: action.cometState,
@@ -340,6 +422,7 @@ export function appStoreReducer(state: AppStoreState, action: AppStoreAction): A
   }
 
   if (action.type === "runStopped") {
+    if (!executionOwnerMatches(state, action.owner)) return state;
     return {
       ...state,
       cometState: action.cometState,
@@ -349,6 +432,7 @@ export function appStoreReducer(state: AppStoreState, action: AppStoreAction): A
   }
 
   if (action.type === "stepped") {
+    if (!executionOwnerMatches(state, action.owner)) return state;
     return {
       ...state,
       cometState: action.cometState,
@@ -358,26 +442,149 @@ export function appStoreReducer(state: AppStoreState, action: AppStoreAction): A
   }
 
   if (action.type === "reset") {
-    if (action.sourceUnitId !== state.currentDocument.sourceUnitId || state.isSourceDirty) return state;
+    if (!executionOwnerMatches(state, action.owner) || state.isSourceDirty) return state;
     return {
       ...state,
       cometState: action.cometState,
       diagnostics: action.cometState.diagnostics,
       assembleStatus: "success",
       runStopReason: null,
-      backendInfo: getCoreBackendInfo()
+      backendInfo: getCoreBackendInfo(),
+      executionEpoch: state.executionEpoch + 1,
+      historyEpoch: state.historyEpoch + 1,
+      runtimeImageRevision: action.clearOverrides ? 0 : state.runtimeImageRevision,
+      runtimeOverrides: action.clearOverrides ? {} : state.runtimeOverrides,
+      programModified: action.clearOverrides ? false : state.programModified,
+      dataModified: action.clearOverrides ? false : state.dataModified,
+      mutationInFlight: false
     };
   }
 
   if (action.type === "coreError") {
     if (action.sourceUnitId !== state.currentDocument.sourceUnitId) return state;
+    if (action.owner && !executionOwnerMatches(state, action.owner)) return state;
     return {
       ...state,
       assembleResult: null,
       assembleStatus: "error",
       runStopReason: "error",
       backendInfo: getCoreBackendInfo(),
-      applicationFailure: "core-unavailable"
+      applicationFailure: "core-unavailable",
+      mutationInFlight: false
+    };
+  }
+
+  if (action.type === "mutationStarted") {
+    if (!executionOwnerMatches(state, action.request) || state.mutationInFlight) return state;
+    return {
+      ...state,
+      executionEpoch: action.nextEpoch,
+      historyEpoch: state.historyEpoch + 1,
+      mutationInFlight: true
+    };
+  }
+
+  if (action.type === "mutationCommitted") {
+    if (
+      state.currentDocument.sourceUnitId !== action.request.sourceUnitId
+      || state.assemblyId !== action.request.assemblyId
+      || state.executionEpoch !== action.nextEpoch
+    ) return state;
+
+    const target = action.request.target;
+    const runtimeImageRevision = state.runtimeImageRevision + 1;
+    let runtimeOverrides = state.runtimeOverrides;
+    let mutationCategory: DebuggerMemoryCategory | undefined;
+    if (target.kind === "memory-word") {
+      const address = target.address & 0xffff;
+      const existing = state.runtimeOverrides[address];
+      const originalWord = existing?.originalWord
+        ?? state.cometState.initialMemory?.[address]
+        ?? action.previousWord;
+      mutationCategory = categorizeMemoryAddress(state.cometState.sourceMap, address, action.cometState.sp);
+      if (action.request.nextWord === originalWord) {
+        runtimeOverrides = { ...state.runtimeOverrides };
+        delete runtimeOverrides[address];
+      } else {
+        runtimeOverrides = {
+          ...state.runtimeOverrides,
+          [address]: {
+            address,
+            originalWord,
+            currentWord: action.request.nextWord,
+            category: mutationCategory,
+            sourceMappingConfidence: sourceMappingConfidenceFor(mutationCategory, true)
+          }
+        };
+      }
+    }
+    const overrideValues = Object.values(runtimeOverrides);
+    const programModified = overrideValues.some((override) => override.category === "program");
+    const dataModified = overrideValues.some((override) => override.category !== "program");
+    const traceEvent = createDebuggerTraceEvent(
+      state,
+      action.request,
+      action.previousWord,
+      runtimeImageRevision,
+      target.kind === "memory-word"
+        ? runtimeOverrides[target.address & 0xffff]?.sourceMappingConfidence ?? "exact"
+        : undefined,
+      mutationCategory
+    );
+    const cometState = {
+      ...action.cometState,
+      trace: [traceEvent, ...action.cometState.trace].slice(0, 1000)
+    };
+    return {
+      ...state,
+      cometState,
+      runtimeImageRevision,
+      runtimeOverrides,
+      programModified,
+      dataModified,
+      mutationInFlight: false,
+      runStopReason: null,
+      backendInfo: getCoreBackendInfo()
+    };
+  }
+
+  if (action.type === "mutationFinished") {
+    return state.mutationInFlight ? { ...state, mutationInFlight: false } : state;
+  }
+
+  if (action.type === "fullClearStarted") {
+    if (!executionOwnerMatches(state, action.owner) || state.mutationInFlight) return state;
+    return {
+      ...state,
+      executionEpoch: action.nextEpoch,
+      historyEpoch: state.historyEpoch + 1,
+      mutationInFlight: true
+    };
+  }
+
+  if (action.type === "fullClearCommitted") {
+    if (
+      state.currentDocument.sourceUnitId !== action.owner.sourceUnitId
+      || state.assemblyId !== action.owner.assemblyId
+      || state.executionEpoch !== action.nextEpoch
+    ) return state;
+    return {
+      ...state,
+      assembleResult: null,
+      cometState: action.cometState,
+      assembleStatus: "default",
+      runStopReason: null,
+      lastAssembledSource: "",
+      generatedCaslSource: "",
+      cppToCaslMapping: [],
+      cppStorageObjects: [],
+      assemblyId: null,
+      runtimeImageRevision: 0,
+      runtimeOverrides: {},
+      programModified: false,
+      dataModified: false,
+      mutationInFlight: false,
+      backendInfo: getCoreBackendInfo()
     };
   }
 
@@ -459,7 +666,12 @@ export function AppStoreProvider({
   const initialStateRef = useRef<AppStoreState | null>(null);
   if (!initialStateRef.current) initialStateRef.current = createInitialAppState(documentIdsRef.current, initialPreferences, initialExample, initialLessonProgress);
   const [state, dispatch] = useReducer(appStoreReducer, initialStateRef.current);
+  const stateRef = useRef(state);
+  stateRef.current = state;
   const runControlRef = useRef({ runId: 0, stopRequested: false });
+  const assemblySequenceRef = useRef(0);
+  const mutationSequenceRef = useRef(0);
+  const mutationActiveRef = useRef(false);
   const preferenceSnapshot = useMemo(
     () => selectApplicationPreferences(state),
     [state.circuitFocusEnabled, state.inspectorActiveTab, state.observationMode, state.outputDockActiveTab]
@@ -493,6 +705,7 @@ export function AppStoreProvider({
       assemble: () => {
         void (async () => {
           const sourceUnitId = state.currentDocument.sourceUnitId;
+          const assemblyId = `${sourceUnitId}:assembly:${++assemblySequenceRef.current}`;
           try {
             eventBus.emit(AppEvent.CoreAssembleStarted, { sourceLength: state.sourceText.length });
             const prepared = prepareSourceForCoreAssembly(state.sourceText, state.sourceMode);
@@ -523,6 +736,7 @@ export function AppStoreProvider({
             dispatch({
               type: "assembled",
               sourceUnitId,
+              assemblyId,
               sourceText: state.sourceText,
               cometState,
               assembleStatus: cometState.runState === "Error" ? "error" : "success",
@@ -541,6 +755,7 @@ export function AppStoreProvider({
         if (state.isSourceDirty || !state.cometState.assembled || !canExecuteFromCurrentState(state.cometState, state.runStopReason)) return;
         void (async () => {
           const sourceUnitId = state.currentDocument.sourceUnitId;
+          const owner = executionOwnerOf(state);
           try {
             const result = await coreBridge.step();
             const output = [...state.cometState.output];
@@ -561,11 +776,11 @@ export function AppStoreProvider({
               eventBus.emit(AppEvent.VmError, { message: cometState.output[cometState.output.length - 1] ?? "VM error" });
               eventBus.emit(AppEvent.VmRunStopped, { reason: "error" });
             }
-            dispatch({ type: "stepped", cometState });
+            dispatch({ type: "stepped", cometState, owner });
           } catch (error) {
             const message = coreErrorMessage(error);
             eventBus.emit(AppEvent.VmError, { message });
-            dispatch({ type: "coreError", sourceUnitId });
+            dispatch({ type: "coreError", sourceUnitId, owner });
           }
         })();
       },
@@ -575,6 +790,7 @@ export function AppStoreProvider({
         const boundedMaxSteps = Math.max(1, Math.floor(requestedMaxSteps));
         const runId = runControlRef.current.runId + 1;
         const sourceUnitId = state.currentDocument.sourceUnitId;
+        const owner = executionOwnerOf(state);
         runControlRef.current = { runId, stopRequested: false };
         void (async () => {
           let executedSteps = 0;
@@ -583,7 +799,7 @@ export function AppStoreProvider({
             runState: "Running",
             output: appendOutputLine(state.cometState.output, `Run started. Max steps: ${boundedMaxSteps}.`)
           };
-          dispatch({ type: "runStarted", cometState: workingState });
+          dispatch({ type: "runStarted", cometState: workingState, owner });
 
           try {
             while (executedSteps < boundedMaxSteps && !isRunTerminal(workingState.runState)) {
@@ -597,7 +813,7 @@ export function AppStoreProvider({
               }
 
               if (runControlRef.current.runId !== runId || runControlRef.current.stopRequested || isRunTerminal(workingState.runState) || executedSteps >= boundedMaxSteps) break;
-              dispatch({ type: "runProgress", cometState: workingState });
+              dispatch({ type: "runProgress", cometState: workingState, owner });
               await yieldToBrowser();
             }
 
@@ -641,12 +857,12 @@ export function AppStoreProvider({
 
             const stopReason = finalRunStopReason(finalState, executedSteps, boundedMaxSteps, runControlRef.current.stopRequested);
             runControlRef.current.stopRequested = false;
-            dispatch({ type: "runStopped", cometState: finalState, reason: stopReason });
+            dispatch({ type: "runStopped", cometState: finalState, reason: stopReason, owner });
           } catch (error) {
             const message = coreErrorMessage(error);
             eventBus.emit(AppEvent.VmError, { message });
             eventBus.emit(AppEvent.VmRunStopped, { reason: "error" });
-            dispatch({ type: "coreError", sourceUnitId });
+            dispatch({ type: "coreError", sourceUnitId, owner });
           }
         })();
       },
@@ -654,20 +870,35 @@ export function AppStoreProvider({
         if (state.isSourceDirty || !state.assembleResult || state.cometState.runState === "Running") return;
         runControlRef.current.stopRequested = true;
         const sourceUnitId = state.currentDocument.sourceUnitId;
+        const owner = executionOwnerOf(state);
         void (async () => {
           try {
             const dto = await coreBridge.reset();
+            let resetDto = dto;
+            for (const override of Object.values(state.runtimeOverrides).sort((left, right) => left.address - right.address)) {
+              const reapplied = await coreBridge.mutateDebuggerState({
+                mutationId: `reset-reapply:${owner.executionEpoch}:${override.address}`,
+                sourceUnitId,
+                assemblyId: owner.assemblyId!,
+                executionEpoch: owner.executionEpoch,
+                target: { kind: "memory-word", address: override.address },
+                nextWord: override.currentWord
+              });
+              if (reapplied.status !== "applied") throw new Error("Failed to reapply runtime memory override after reset.");
+              resetDto = reapplied.state;
+            }
             dispatch({
               type: "reset",
-              sourceUnitId,
-              cometState: createCometStateFromDto(dto, {
-                output: dto.runState === "Ready" ? [`Program reset. Entry point: ${formatWord(dto.pr)}`] : []
-              })
+              owner,
+              cometState: createCometStateFromDto(resetDto, {
+                output: resetDto.runState === "Ready" ? [`Program reset. Entry point: ${formatWord(resetDto.pr)}`] : []
+              }),
+              clearOverrides: false
             });
           } catch (error) {
             const message = coreErrorMessage(error);
             eventBus.emit(AppEvent.VmError, { message });
-            dispatch({ type: "coreError", sourceUnitId });
+            dispatch({ type: "coreError", sourceUnitId, owner });
           }
         })();
       },
@@ -678,11 +909,13 @@ export function AppStoreProvider({
       submitConsoleInput: (text, endOfFile = false) => {
         if (state.cometState.runState !== "WaitingInput") return;
         const sourceUnitId = state.currentDocument.sourceUnitId;
+        const owner = executionOwnerOf(state);
         void (async () => {
           try {
             const dto = await coreBridge.enqueueInput(text, endOfFile);
             dispatch({
               type: "stepped",
+              owner,
               cometState: createCometStateFromDto(dto, {
                 previous: state.cometState,
                 output: appendOutputLine(state.cometState.output, endOfFile ? "Console EOF queued." : "Console input queued.")
@@ -690,7 +923,7 @@ export function AppStoreProvider({
             });
           } catch (error) {
             eventBus.emit(AppEvent.VmError, { message: coreErrorMessage(error) });
-            dispatch({ type: "coreError", sourceUnitId });
+            dispatch({ type: "coreError", sourceUnitId, owner });
           }
         })();
       },
@@ -698,21 +931,127 @@ export function AppStoreProvider({
         if (state.isSourceDirty || !state.assembleResult || state.cometState.runState === "Running") return;
         runControlRef.current.stopRequested = true;
         const sourceUnitId = state.currentDocument.sourceUnitId;
+        const owner = executionOwnerOf(state);
         void (async () => {
           try {
             const dto = await coreBridge.reload(mode);
             dispatch({
               type: "reset",
-              sourceUnitId,
+              owner,
               cometState: createCometStateFromDto(dto, {
                 output: [`Program reloaded. DS initialization: ${mode === "assembled" ? "assembled image" : mode === "zero" ? "0000" : "FFFF"}.`]
-              })
+              }),
+              clearOverrides: true
             });
           } catch (error) {
             eventBus.emit(AppEvent.VmError, { message: coreErrorMessage(error) });
-            dispatch({ type: "coreError", sourceUnitId });
+            dispatch({ type: "coreError", sourceUnitId, owner });
           }
         })();
+      },
+      mutateDebuggerState: async (target, nextWord) => {
+        const snapshot = stateRef.current;
+        const failure = debuggerMutationFailure(snapshot, target, nextWord);
+        if (failure) return { status: "rejected", reason: failure };
+        if (mutationActiveRef.current) return { status: "rejected", reason: "transaction-active" };
+
+        const assemblyId = snapshot.assemblyId;
+        if (!assemblyId) return { status: "rejected", reason: "not-loaded" };
+        const request: DebuggerMutationRequest = {
+          mutationId: `debugger-mutation:${++mutationSequenceRef.current}`,
+          sourceUnitId: snapshot.currentDocument.sourceUnitId,
+          assemblyId,
+          executionEpoch: snapshot.executionEpoch,
+          target,
+          nextWord
+        };
+        const nextEpoch = snapshot.executionEpoch + 1;
+        mutationActiveRef.current = true;
+        runControlRef.current = { runId: runControlRef.current.runId + 1, stopRequested: true };
+        dispatch({ type: "mutationStarted", request, nextEpoch });
+        stateRef.current = { ...snapshot, executionEpoch: nextEpoch, historyEpoch: snapshot.historyEpoch + 1, mutationInFlight: true };
+        try {
+          const result = await coreBridge.mutateDebuggerState(request);
+          const current = stateRef.current;
+          if (
+            current.currentDocument.sourceUnitId !== request.sourceUnitId
+            || current.assemblyId !== request.assemblyId
+            || current.executionEpoch !== nextEpoch
+          ) {
+            return { status: "stale", reason: staleMutationReason(current, request) };
+          }
+          if (result.status !== "applied" || result.previousWord === undefined) {
+            dispatch({ type: "mutationFinished", mutationId: request.mutationId });
+            return {
+              status: result.status,
+              reason: result.reason ?? "backend-rejected"
+            };
+          }
+          const cometState = createCometStateFromDto(result.state, {
+            previous: current.cometState,
+            output: current.cometState.output
+          });
+          if (target.kind === "memory-word") {
+            cometState.memory[target.address & 0xffff] = nextWord;
+            cometState.changedMemoryAddresses = [target.address & 0xffff];
+          }
+          dispatch({
+            type: "mutationCommitted",
+            request,
+            nextEpoch,
+            cometState,
+            previousWord: result.previousWord
+          });
+          return {
+            status: "applied",
+            previousWord: result.previousWord,
+            nextWord,
+            runtimeImageRevision: current.runtimeImageRevision + 1
+          };
+        } catch (error) {
+          eventBus.emit(AppEvent.VmError, { message: coreErrorMessage(error) });
+          dispatch({ type: "mutationFinished", mutationId: request.mutationId });
+          return { status: "rejected", reason: "backend-rejected" };
+        } finally {
+          mutationActiveRef.current = false;
+        }
+      },
+      fullClear: async () => {
+        const snapshot = stateRef.current;
+        if (
+          snapshot.mutationInFlight
+          || mutationActiveRef.current
+          || snapshot.cometState.runState === "Running"
+          || snapshot.fileLifecycle.status !== "idle"
+        ) return false;
+        const owner = executionOwnerOf(snapshot);
+        const nextEpoch = snapshot.executionEpoch + 1;
+        mutationActiveRef.current = true;
+        runControlRef.current = { runId: runControlRef.current.runId + 1, stopRequested: true };
+        dispatch({ type: "fullClearStarted", owner, nextEpoch });
+        stateRef.current = { ...snapshot, executionEpoch: nextEpoch, historyEpoch: snapshot.historyEpoch + 1, mutationInFlight: true };
+        try {
+          const dto = await coreBridge.fullClear();
+          const current = stateRef.current;
+          if (
+            current.currentDocument.sourceUnitId !== owner.sourceUnitId
+            || current.assemblyId !== owner.assemblyId
+            || current.executionEpoch !== nextEpoch
+          ) return false;
+          dispatch({
+            type: "fullClearCommitted",
+            owner,
+            nextEpoch,
+            cometState: createCometStateFromDto(dto, { output: [] })
+          });
+          return true;
+        } catch (error) {
+          eventBus.emit(AppEvent.VmError, { message: coreErrorMessage(error) });
+          dispatch({ type: "mutationFinished", mutationId: "full-clear" });
+          return false;
+        } finally {
+          mutationActiveRef.current = false;
+        }
       },
       clearOutput: () => dispatch({ type: "clearOutput" }),
       toggleLessonStep: (exampleId, stepId) => dispatch({ type: "lessonStepToggled", exampleId, stepId }),
@@ -732,7 +1071,7 @@ export function AppStoreProvider({
       commitSavedDocument: (document, writeBinding) => dispatch({ type: "currentDocumentSaved", document, writeBinding }),
       setFileLifecycle: (lifecycle) => dispatch({ type: "fileLifecycleSet", lifecycle })
     }),
-    [eventBus, onAllLessonProgressClear, state.assembleResult, state.cometState, state.isSourceDirty, state.runStopReason, state.sourceMode, state.sourceText]
+    [eventBus, onAllLessonProgressClear, state.assembleResult, state.cometState, state.isSourceDirty, state.runStopReason, state.runtimeOverrides, state.sourceMode, state.sourceText]
   );
 
   const value = useMemo<AppStore>(() => ({
@@ -778,6 +1117,84 @@ function appendOutputLine(output: string[], line: string): string[] {
 
 function yieldToBrowser(): Promise<void> {
   return new Promise((resolve) => globalThis.setTimeout(resolve, 0));
+}
+
+function executionOwnerOf(state: AppStoreState): ExecutionOwner {
+  return {
+    sourceUnitId: state.currentDocument.sourceUnitId,
+    assemblyId: state.assemblyId,
+    executionEpoch: state.executionEpoch
+  };
+}
+
+function executionOwnerMatches(state: AppStoreState, owner: ExecutionOwner): boolean {
+  return state.currentDocument.sourceUnitId === owner.sourceUnitId
+    && state.assemblyId === owner.assemblyId
+    && state.executionEpoch === owner.executionEpoch;
+}
+
+function debuggerMutationFailure(
+  state: AppStoreState,
+  target: DebuggerMutationTarget,
+  nextWord: number
+): DebuggerMutationResult["reason"] | undefined {
+  if (!isDebuggerWord(nextWord) || !isValidDebuggerMutationTarget(target)) return "invalid-value";
+  if (state.mutationInFlight) return "transaction-active";
+  if (state.isSourceDirty) return "source-dirty";
+  if (!state.assemblyId || !state.cometState.assembled) return "not-loaded";
+  if (state.cometState.runState === "Running") return "running";
+  if (state.fileLifecycle.status !== "idle") return "file-operation-active";
+  return undefined;
+}
+
+function staleMutationReason(
+  state: AppStoreState,
+  request: DebuggerMutationRequest
+): NonNullable<DebuggerMutationResult["reason"]> {
+  if (state.currentDocument.sourceUnitId !== request.sourceUnitId) return "stale-source-unit";
+  if (state.assemblyId !== request.assemblyId) return "stale-assembly";
+  return "stale-execution-epoch";
+}
+
+function createDebuggerTraceEvent(
+  state: AppStoreState,
+  request: DebuggerMutationRequest,
+  previousWord: number,
+  runtimeImageRevision: number,
+  sourceMappingConfidence?: RuntimeWordOverride["sourceMappingConfidence"],
+  memoryCategory?: DebuggerMemoryCategory
+): CometState["trace"][number] {
+  const target = targetDisplayName(request.target);
+  const isMemory = request.target.kind === "memory-word";
+  const isProgramWord = isMemory && memoryCategory === "program";
+  const memoryAddress = request.target.kind === "memory-word" ? request.target.address & 0xffff : undefined;
+  return {
+    kind: isMemory ? "debugger-memory-edit" : "debugger-register-edit",
+    eventId: request.mutationId,
+    index: state.cometState.stepIndex,
+    address: memoryAddress ?? state.cometState.pr,
+    instruction: isProgramWord
+      ? "Manual machine-word override"
+      : isMemory
+        ? "Manual memory edit"
+        : "Manual register edit",
+    detail: `${target}: ${formatWord(previousWord)} -> ${formatWord(request.nextWord)}`,
+    pr: state.cometState.pr,
+    visualPath: VisualPathKind.None,
+    changedRegister: isMemory ? undefined : target,
+    changedRegisterValueBefore: isMemory ? undefined : previousWord,
+    changedRegisterValueAfter: isMemory ? undefined : request.nextWord,
+    changedMemoryAddress: memoryAddress,
+    changedMemoryValueBefore: isMemory ? previousWord : undefined,
+    changedMemoryValueAfter: isMemory ? request.nextWord : undefined,
+    runState: "Ready",
+    sourceUnitId: request.sourceUnitId,
+    assemblyId: request.assemblyId,
+    executionEpoch: state.executionEpoch,
+    runtimeImageRevision,
+    mutationTarget: target,
+    sourceMappingConfidence
+  };
 }
 
 export function useAppStore(): AppStore {

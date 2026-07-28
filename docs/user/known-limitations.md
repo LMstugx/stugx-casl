@@ -16,4 +16,5 @@
 - The public Web version has no custom domain, service worker, PWA offline cache, server backend, or account system.
 - The Windows installer is unsigned and Tauri-native file I/O is deferred.
 - Circuit Focus visualizes current teaching relationships; it is not an electrical or cycle-accurate hardware simulator.
-- COMET microcycle stepping, reverse execution, and manual register/memory editing are not production features.
+- Register/Memory editing is limited to one 16-bit target per confirmed transaction; bulk paste, fill, search-and-replace, and editing MAR/MDR are unavailable.
+- COMET microcycle stepping, reverse execution, and multi-program linking are not production features.

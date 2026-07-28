@@ -26,6 +26,8 @@ export type LoadedWasmCore = {
   run: (maxSteps: number) => string;
   getState: () => string;
   enqueueInput: (encodedWords: string, endOfFile: number) => string;
+  mutate: (kind: number, target: number, value: number) => string;
+  fullClear: () => string;
   getLastError: () => string;
 };
 
@@ -171,6 +173,8 @@ export async function loadWasmModule(options: WasmModuleLoadOptions = {}): Promi
     run: wrapJsonFunction(module, "stugx_casl_run", ["number"]) as (maxSteps: number) => string,
     getState: wrapJsonFunction(module, "stugx_casl_get_state", []) as () => string,
     enqueueInput: wrapJsonFunction(module, "stugx_casl_enqueue_input", ["string", "number"]) as (encodedWords: string, endOfFile: number) => string,
+    mutate: wrapJsonFunction(module, "stugx_casl_mutate", ["number", "number", "number"]) as (kind: number, target: number, value: number) => string,
+    fullClear: wrapJsonFunction(module, "stugx_casl_full_clear", []) as () => string,
     getLastError: wrapOptionalStringFunction(module, "stugx_casl_get_last_error", []) as () => string
   };
 }

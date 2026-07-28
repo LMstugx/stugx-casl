@@ -15,6 +15,8 @@ This directory separates current product documentation from historical implement
 - [Observation Modes](user/observation-modes.md)
 - [CASL Workflow](user/casl-workflow.md)
 - [CASL Compatibility Mode](user/casl-compatibility-mode.md)
+- [CASL State Editing](user/casl-state-editing.md)
+- [Full Clear](user/full-clear.md)
 - [CASL Input and Output](user/casl-input-output.md)
 - [C++ Subset Workflow](user/cpp-subset-workflow.md)
 - [Double Memory Observation](user/double-memory-observation.md)
@@ -48,6 +50,8 @@ This directory separates current product documentation from historical implement
 - [Cloudflare Deployment](developer/cloudflare-deployment.md)
 - [Security Model](developer/security-model.md)
 - [Contributing Workflow](developer/contributing-workflow.md)
+- [Debugger Mutation Contract](debugger-mutation-contract.md)
+- [Debugger History Barrier](debugger-history-barrier-contract.md)
 
 ## Technical Reference
 
@@ -124,6 +128,8 @@ Historical Phase reports, manifests, release-candidate evidence, and visual revi
 ### Release and UI History
 
 - [Phase 20A WCASL-II Parity Audit](phase20a-wcasl-parity-audit.md)
+- [Phase 20B Debugger Editing](phase20b-debugger-state-editing.md)
+- [WCASL Debugger Editing Audit](wcasl-debugger-editing-audit.md)
 - [WCASL-compatible Workflow Roadmap](wcasl-replacement-roadmap.md)
 - [COMET Microcycle Visual Contract](comet-microcycle-visual-contract.md)
 - [Multi-program Linking Design](multi-program-linking-design.md)

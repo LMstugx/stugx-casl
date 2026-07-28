@@ -19,6 +19,9 @@ function traceChanges(event: CometState["trace"][number]): string {
 }
 
 function traceMainEvent(event: CometState["trace"][number]): string {
+  if (event.kind === "debugger-register-edit" || event.kind === "debugger-memory-edit") {
+    return event.instruction;
+  }
   if (event.instruction === "RET" && event.visualPath === "RET_StackToPr") return `#${event.index} RET stack return`;
   if (event.instruction === "RET") return `#${event.index} RET finish`;
   return `#${event.index} ${event.source ?? event.instruction} PR ${formatWord(event.pr ?? event.address)}`;
@@ -121,7 +124,7 @@ export default function TracePanel({
               : undefined;
           return (
           <article key={`${event.index}-${event.address}`} className="trace-item" data-testid="trace-item" data-latest={index === 0 ? "true" : "false"} data-double-operation={doubleOperation?.operationId}>
-            <strong>Step {event.index}</strong>
+            <strong>{event.kind?.startsWith("debugger-") ? t("caslMode.manualEdit") : `Step ${event.index}`}</strong>
             <div className="trace-item-body">
               {operationTitle ? <p className="trace-double-operation" data-testid="trace-double-operation" title={operationTitle}>{operationTitle}</p> : null}
               <div className="trace-row" data-testid="trace-row-main">

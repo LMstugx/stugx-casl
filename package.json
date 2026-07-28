@@ -26,7 +26,7 @@
     "test:watch": "vitest",
     "test:wasm": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"$env:VITE_CORE_BACKEND='wasm'; pnpm exec vitest run src/tests/wasmCoreAdapter.test.ts\"",
     "test:e2e": "playwright test",
-    "test:e2e:wasm": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"$env:E2E_BACKEND='wasm'; pnpm exec playwright test tests/e2e/wasm-smoke.spec.ts\"",
+    "test:e2e:wasm": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"$env:E2E_BACKEND='wasm'; pnpm exec playwright test tests/e2e/wasm-smoke.spec.ts tests/e2e/debugger-editing.spec.ts\"",
     "test:e2e:production": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-production.ps1 -BasePath / -Port 5180",
     "test:e2e:production:subpath": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-production.ps1 -BasePath /stugx-casl/ -Port 5181",
     "test:e2e:deployed": "node scripts/test-deployed.mjs",

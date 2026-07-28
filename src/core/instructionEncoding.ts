@@ -1,4 +1,4 @@
-import type { InstructionKind } from "./types";
+import type { AssembledInstruction, InstructionKind } from "./types";
 
 export type InstructionFormat = "NO_OPERAND" | "R_ONLY" | "R_ADR" | "R_R" | "JUMP_ADR" | "RET" | "DATA";
 
@@ -274,4 +274,107 @@ const REGISTER_FORM_OPCODE_BYTES = new Set([0x14, 0x24, 0x25, 0x26, 0x27, 0x34, 
 
 export function isRegisterFormInstructionWord(word: number): boolean {
   return REGISTER_FORM_OPCODE_BYTES.has(decodeOpcode(word));
+}
+
+const OPCODE_TO_MNEMONIC = new Map<number, AssembledInstruction["op"]>([
+  [0x00, "NOP"],
+  [0x10, "LD"],
+  [0x11, "ST"],
+  [0x12, "LAD"],
+  [0x14, "LD"],
+  [0x20, "ADDA"],
+  [0x21, "SUBA"],
+  [0x22, "ADDL"],
+  [0x23, "SUBL"],
+  [0x24, "ADDA"],
+  [0x25, "SUBA"],
+  [0x26, "ADDL"],
+  [0x27, "SUBL"],
+  [0x30, "AND"],
+  [0x31, "OR"],
+  [0x32, "XOR"],
+  [0x34, "AND"],
+  [0x35, "OR"],
+  [0x36, "XOR"],
+  [0x40, "CPA"],
+  [0x41, "CPL"],
+  [0x44, "CPA"],
+  [0x45, "CPL"],
+  [0x50, "SLA"],
+  [0x51, "SRA"],
+  [0x52, "SLL"],
+  [0x53, "SRL"],
+  [0x61, "JMI"],
+  [0x62, "JNZ"],
+  [0x63, "JZE"],
+  [0x64, "JUMP"],
+  [0x65, "JPL"],
+  [0x66, "JOV"],
+  [0x70, "PUSH"],
+  [0x71, "POP"],
+  [0x80, "CALL"],
+  [0x81, "RET"],
+  [0xf0, "SVC"]
+]);
+
+const REGISTER_FORM_BYTES = new Set([0x14, 0x24, 0x25, 0x26, 0x27, 0x34, 0x35, 0x36, 0x44, 0x45]);
+const REGISTER_ADDRESS_BYTES = new Set([0x10, 0x11, 0x12, 0x20, 0x21, 0x22, 0x23, 0x30, 0x31, 0x32, 0x40, 0x41, 0x50, 0x51, 0x52, 0x53]);
+const ADDRESS_ONLY_BYTES = new Set([0x61, 0x62, 0x63, 0x64, 0x65, 0x66, 0x70, 0x80, 0xf0]);
+
+export function decodeRuntimeInstruction(
+  address: number,
+  firstWord: number,
+  secondWord: number,
+  original?: AssembledInstruction
+): AssembledInstruction | undefined {
+  const opcodeByte = decodeOpcode(firstWord);
+  const op = OPCODE_TO_MNEMONIC.get(opcodeByte);
+  if (!op) return undefined;
+
+  const register = decodeRegisterField(firstWord);
+  const lowRegister = decodeIndexRegisterField(firstWord);
+  const base = {
+    address: address & 0xffff,
+    line: original?.line ?? -1,
+    op,
+    source: original?.source ?? `${op} (runtime word)`,
+    operandLabel: original?.operandLabel
+  };
+
+  if (opcodeByte === 0x00) {
+    return (firstWord & 0xff) === 0 ? { ...base, size: 1 } : undefined;
+  }
+  if (opcodeByte === 0x81) {
+    return (firstWord & 0xff) === 0 ? { ...base, size: 1 } : undefined;
+  }
+  if (opcodeByte === 0x71) {
+    return register <= 7 && lowRegister === 0 ? { ...base, size: 1, gr: register } : undefined;
+  }
+  if (REGISTER_FORM_BYTES.has(opcodeByte)) {
+    return register <= 7 && lowRegister <= 7
+      ? { ...base, size: 1, gr: register, sourceRegister: lowRegister }
+      : undefined;
+  }
+  if (REGISTER_ADDRESS_BYTES.has(opcodeByte)) {
+    return register <= 7 && lowRegister <= 7
+      ? {
+          ...base,
+          size: 2,
+          gr: register,
+          operandAddress: secondWord & 0xffff,
+          indexRegister: lowRegister || undefined
+        }
+      : undefined;
+  }
+  if (ADDRESS_ONLY_BYTES.has(opcodeByte)) {
+    return register === 0 && lowRegister <= 7
+      ? {
+          ...base,
+          size: 2,
+          operandAddress: secondWord & 0xffff,
+          indexRegister: lowRegister || undefined
+        }
+      : undefined;
+  }
+  return undefined;
 }

@@ -96,6 +96,8 @@ export interface SourceMapEntry {
 }
 
 export interface TraceEvent {
+  kind?: "instruction" | "debugger-register-edit" | "debugger-memory-edit" | "debugger-full-clear";
+  eventId?: string;
   index: number;
   address: number;
   instruction: string;
@@ -123,6 +125,12 @@ export interface TraceEvent {
   macroGroup?: "IN" | "OUT" | "RPUSH" | "RPOP";
   macroStepIndex?: number;
   macroStepCount?: number;
+  sourceUnitId?: string;
+  assemblyId?: string;
+  executionEpoch?: number;
+  runtimeImageRevision?: number;
+  mutationTarget?: string;
+  sourceMappingConfidence?: "exact" | "runtime-word-modified" | "unmapped";
 }
 
 export interface Diagnostic<C extends DiagnosticCode = DiagnosticCode> {

@@ -16,6 +16,9 @@ import { DEFAULT_CASL_SOURCE } from "./defaultSource";
 import { normalizeAssemblerDiagnostics, normalizeDiagnostics } from "../diagnostics/catalog";
 import { decodeCaslOutputRecord } from "./caslIoEncoding";
 import type { ReloadInitializationMode } from "./coreAdapter";
+import type { DebuggerMutationTarget } from "../debugger/debuggerMutation";
+import { isDebuggerWord, isValidDebuggerMutationTarget } from "../debugger/debuggerMutation";
+import { decodeRuntimeInstruction } from "./instructionEncoding";
 
 export { DEFAULT_CASL_SOURCE };
 
@@ -96,6 +99,8 @@ export interface CaslCore {
   reset(state: CometState): CometState;
   reload(state: CometState, mode: ReloadInitializationMode): CometState;
   enqueueInput(state: CometState, words: number[], endOfFile?: boolean): CometState;
+  mutate(state: CometState, target: DebuggerMutationTarget, nextWord: number): { state: CometState; previousWord: number; applied: boolean };
+  fullClear(): CometState;
 }
 
 function initialFlags(): FlagsState {
@@ -1027,7 +1032,15 @@ function shiftValue(op: InstructionKind, value: number, count: number): ShiftRes
 }
 
 function instructionAt(state: CometState, address: number): AssembledInstruction | undefined {
-  return state.program?.find((instruction) => instruction.address === address);
+  const normalized = word(address);
+  const original = state.program?.find((instruction) => instruction.address === normalized);
+  if (!original) return undefined;
+  return decodeRuntimeInstruction(
+    normalized,
+    getMemory(state.memory, normalized),
+    getMemory(state.memory, word(normalized + 1)),
+    original
+  );
 }
 
 function labelByAddress(symbols: Record<string, number>): Record<number, string> {
@@ -1739,5 +1752,63 @@ export const mockCaslCore: CaslCore = {
     next.consoleInputQueue.push({ words: words.slice(0, 256).map((value) => value & 0xff), endOfFile });
     if (next.runState === "WaitingInput") next.runState = "Ready";
     return refreshDerivedState(next);
+  },
+
+  mutate(state: CometState, target: DebuggerMutationTarget, nextWord: number) {
+    if (!state.assembled || !isDebuggerWord(nextWord) || !isValidDebuggerMutationTarget(target)) {
+      return { state, previousWord: 0, applied: false };
+    }
+    const next = cloneState(state);
+    const normalized = word(nextWord);
+    let previousWord = 0;
+    next.changedRegisters = [];
+    next.changedMemoryAddresses = [];
+    next.lastStep = undefined;
+    next.lastMemoryReadAddress = undefined;
+    next.lastMemoryWriteAddress = undefined;
+    next.lastBaseAddress = undefined;
+    next.lastIndexRegister = undefined;
+    next.lastIndexValue = undefined;
+    next.lastEffectiveAddress = undefined;
+    next.visualPath = VisualPathKind.None;
+    next.runState = next.assembled ? "Ready" : "Idle";
+
+    if (target.kind === "general-register") {
+      const index = Number(target.register.slice(2));
+      previousWord = next.gr[index];
+      next.gr[index] = normalized;
+      next.changedRegisters = [target.register];
+    } else if (target.kind === "program-register") {
+      previousWord = next.pr;
+      next.pr = normalized;
+      next.changedRegisters = ["PR"];
+    } else if (target.kind === "stack-pointer") {
+      previousWord = next.sp;
+      next.sp = normalized;
+      next.changedRegisters = ["SP"];
+    } else if (target.kind === "flag-register") {
+      previousWord = (next.fr.o ? 0b1000 : 0)
+        | (next.fr.z ? 0b0100 : 0)
+        | (next.fr.c ? 0b0010 : 0)
+        | (next.fr.n ? 0b0001 : 0);
+      next.fr = {
+        o: Boolean(normalized & 0b1000),
+        z: Boolean(normalized & 0b0100),
+        c: Boolean(normalized & 0b0010),
+        n: Boolean(normalized & 0b0001)
+      };
+      next.changedRegisters = ["FR"];
+    } else {
+      const address = word(target.address);
+      previousWord = getMemory(next.memory, address);
+      next.memory[address] = normalized;
+      next.changedMemoryAddresses = [address];
+    }
+
+    return { state: refreshDerivedState(next), previousWord, applied: true };
+  },
+
+  fullClear(): CometState {
+    return createEmptyCometState("Idle", []);
   }
 };

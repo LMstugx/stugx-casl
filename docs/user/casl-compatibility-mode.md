@@ -40,12 +40,18 @@ Switching format is local UI state. It does not change registers, memory, source
 
 ## Reset And Reload
 
-`Reset` restores registers, program counter, stack pointer, memory image, Trace, console, and pending input to the state captured at assembly.
+`Reset` restores registers, program counter, stack pointer, Trace, console, and pending input, then reapplies active manual Memory overrides. This makes repeated experiments deterministic without discarding a runtime patch.
 
-`Reload image` performs the same reset without reading source or a file again. `Reload DS = 0000` and `Reload DS = FFFF` additionally fill only assembled `DS` spans. Machine instructions, `DC` values, generated literals, and other memory are preserved. Reload is disabled when source is Dirty so an old assembly result cannot silently replace current source ownership.
+`Reload image` restores the assembly-defined image and discards all runtime overrides without reading source or a file again. `Reload DS = 0000` and `Reload DS = FFFF` additionally fill only assembled `DS` spans. Machine instructions, `DC` values, generated literals, and other memory are preserved. Reload is disabled when source is Dirty so an old assembly result cannot silently replace current source ownership.
 
 The displayed value of uninitialized `DS` storage is a simulator policy. A CASL II program must not depend on `DS` being initialized by the language.
 
+## State Editing And Full Clear
+
+Register values remain visually read-only until their Edit action is activated. `GR0`-`GR7`, PR, SP, current FR bits, and one Memory word can be changed through an atomic dialog. Program words require a separate confirmation and are shown as runtime overrides rather than source changes. See [CASL State Editing](casl-state-editing.md).
+
+Full Clear unloads machine state and preserves the source document and its Dirty status. It is a separate destructive action from Reset, Reload, Clear Console, and New. See [Full Clear](full-clear.md).
+
 ## Scope
 
-Step executes one real machine instruction. Expanded macros remain visible as grouped source relations, but the VM does not skip their instructions. COMET microcycle stepping, reverse execution, and manual register or memory editing are not available in this phase.
+Step executes one real machine instruction. Expanded macros remain visible as grouped source relations, but the VM does not skip their instructions. COMET microcycle stepping, reverse execution, bulk Memory editing, and multi-program linking are not available.

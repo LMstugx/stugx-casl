@@ -25,7 +25,11 @@ public:
     [[nodiscard]] const CometState& state() const;
     [[nodiscard]] std::optional<std::uint16_t> readMemory(std::uint32_t address) const;
     [[nodiscard]] bool writeMemory(std::uint32_t address, std::uint16_t value);
+    [[nodiscard]] bool writeGeneralRegister(std::uint32_t index, std::uint16_t value);
     [[nodiscard]] bool setProgramCounter(std::uint32_t address);
+    [[nodiscard]] bool setStackPointer(std::uint32_t address);
+    void setFlagsPacked(std::uint16_t value);
+    void fullClear();
 
 private:
     static constexpr std::size_t kMaxTraceEvents = 1000;
@@ -44,6 +48,7 @@ private:
     bool hasProgram_ = false;
 
     [[nodiscard]] std::optional<Instruction> instructionAt(std::uint16_t address) const;
+    void prepareAfterManualMutation();
     void updateCurrentInstruction();
     void fail(StepResult& result, std::string message);
     void pushTrace(std::string event);

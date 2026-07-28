@@ -41,6 +41,8 @@ The C++ path is not a complete C++ compiler and does not execute native code or 
 
 - complete official CASL II machine-instruction set, directives, standard macros, and COMET II execution
 - WCASL-compatible CASL observation workflow with nonblocking `IN` / `OUT`
+- atomic register and single-word Memory editing with explicit runtime overrides
+- Full Clear that unloads machine state without modifying source
 - bounded C++ subset lowering to inspectable CASL II
 - binary64 double storage and four-word assignment observation
 - Source, Generated CASL, Machine Code, and Trace mapping
@@ -74,6 +76,7 @@ Additional commands are listed in [Build Commands](docs/reference/build-commands
 - [Architecture Overview](docs/developer/architecture-overview.md)
 - [Supported CASL Instructions](docs/reference/supported-casl-instructions.md)
 - [CASL Compatibility Mode](docs/user/casl-compatibility-mode.md)
+- [CASL State Editing](docs/user/casl-state-editing.md)
 - [WCASL-II Parity Audit](docs/phase20a-wcasl-parity-audit.md)
 - [C++ Subset Capabilities](docs/reference/cpp-subset-capabilities.md)
 - [Double Memory Observation](docs/user/double-memory-observation.md)
@@ -93,7 +96,8 @@ Canonical guides describe current behavior. Existing `docs/phase*.md` files and 
 - Source, paths, handles, diagnostics, and VM state are not restored between sessions.
 - The Windows installer is unsigned and Tauri-native file I/O is deferred.
 - Circuit Focus is pedagogical, not cycle-accurate hardware simulation.
-- Register/memory editing, reverse execution, and COMET microcycle stepping remain future debugger work.
+- Register/Memory editing is single-target only; bulk mutation and reversible history are not included.
+- Reverse execution, COMET microcycle stepping, and multi-program linking remain future work.
 
 ## Security and Privacy
 

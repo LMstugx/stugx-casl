@@ -165,6 +165,67 @@ EffectiveAddressInfo effectiveAddressFor(const CometState& state, const Instruct
     };
 }
 
+std::optional<Opcode> opcodeForMachineByte(std::uint8_t value) {
+    switch (value) {
+        case 0x00: return Opcode::NOP;
+        case 0x10:
+        case 0x14: return Opcode::LD;
+        case 0x11: return Opcode::ST;
+        case 0x12: return Opcode::LAD;
+        case 0x20:
+        case 0x24: return Opcode::ADDA;
+        case 0x21:
+        case 0x25: return Opcode::SUBA;
+        case 0x22:
+        case 0x26: return Opcode::ADDL;
+        case 0x23:
+        case 0x27: return Opcode::SUBL;
+        case 0x30:
+        case 0x34: return Opcode::AND;
+        case 0x31:
+        case 0x35: return Opcode::OR;
+        case 0x32:
+        case 0x36: return Opcode::XOR;
+        case 0x40:
+        case 0x44: return Opcode::CPA;
+        case 0x41:
+        case 0x45: return Opcode::CPL;
+        case 0x50: return Opcode::SLA;
+        case 0x51: return Opcode::SRA;
+        case 0x52: return Opcode::SLL;
+        case 0x53: return Opcode::SRL;
+        case 0x61: return Opcode::JMI;
+        case 0x62: return Opcode::JNZ;
+        case 0x63: return Opcode::JZE;
+        case 0x64: return Opcode::JUMP;
+        case 0x65: return Opcode::JPL;
+        case 0x66: return Opcode::JOV;
+        case 0x70: return Opcode::PUSH;
+        case 0x71: return Opcode::POP;
+        case 0x80: return Opcode::CALL;
+        case 0x81: return Opcode::RET;
+        case 0xf0: return Opcode::SVC;
+        default: return std::nullopt;
+    }
+}
+
+bool isRegisterFormByte(std::uint8_t value) {
+    return value == 0x14 || value == 0x24 || value == 0x25 || value == 0x26 || value == 0x27 ||
+           value == 0x34 || value == 0x35 || value == 0x36 || value == 0x44 || value == 0x45;
+}
+
+bool isRegisterAddressByte(std::uint8_t value) {
+    return value == 0x10 || value == 0x11 || value == 0x12 || value == 0x20 || value == 0x21 ||
+           value == 0x22 || value == 0x23 || value == 0x30 || value == 0x31 || value == 0x32 ||
+           value == 0x40 || value == 0x41 || value == 0x50 || value == 0x51 || value == 0x52 ||
+           value == 0x53;
+}
+
+bool isAddressOnlyByte(std::uint8_t value) {
+    return value == 0x61 || value == 0x62 || value == 0x63 || value == 0x64 || value == 0x65 ||
+           value == 0x66 || value == 0x70 || value == 0x80 || value == 0xf0;
+}
+
 }  // namespace
 
 void CometVm::load(const AssembleOutput& program) {
@@ -771,7 +832,16 @@ bool CometVm::writeMemory(std::uint32_t address, std::uint16_t value) {
         state_.runState = RunState::Error;
         return false;
     }
+    if (!hasProgram_) return false;
     state_.memory[address] = value;
+    prepareAfterManualMutation();
+    return true;
+}
+
+bool CometVm::writeGeneralRegister(std::uint32_t index, std::uint16_t value) {
+    if (index >= kGeneralRegisterCount || !hasProgram_) return false;
+    state_.gr[index] = value;
+    prepareAfterManualMutation();
     return true;
 }
 
@@ -780,15 +850,105 @@ bool CometVm::setProgramCounter(std::uint32_t address) {
         state_.runState = RunState::Error;
         return false;
     }
+    if (!hasProgram_) return false;
     state_.pr = static_cast<std::uint16_t>(address);
-    updateCurrentInstruction();
+    prepareAfterManualMutation();
     return true;
 }
 
+bool CometVm::setStackPointer(std::uint32_t address) {
+    if (address >= kMemorySize || !hasProgram_) return false;
+    state_.sp = static_cast<std::uint16_t>(address);
+    prepareAfterManualMutation();
+    return true;
+}
+
+void CometVm::setFlagsPacked(std::uint16_t value) {
+    if (!hasProgram_) return;
+    state_.fr = {
+        (value & 0b0100) != 0,
+        (value & 0b0010) != 0,
+        (value & 0b0001) != 0,
+        (value & 0b1000) != 0
+    };
+    prepareAfterManualMutation();
+}
+
+void CometVm::fullClear() {
+    initialState_ = CometState{};
+    state_ = CometState{};
+    sourceMap_ = SourceMap{};
+    instructions_.clear();
+    trace_.clear();
+    inputQueue_.clear();
+    hasProgram_ = false;
+}
+
 std::optional<Instruction> CometVm::instructionAt(std::uint16_t address) const {
-    const auto found = instructions_.find(address);
-    if (found == instructions_.end()) return std::nullopt;
-    return found->second;
+    const auto original = instructions_.find(address);
+    if (original == instructions_.end()) return std::nullopt;
+    const auto machineWord = state_.memory[address];
+    const auto opcodeByte = static_cast<std::uint8_t>((machineWord >> 8) & 0xff);
+    const auto opcode = opcodeForMachineByte(opcodeByte);
+    if (!opcode.has_value()) return std::nullopt;
+
+    const auto registerField = static_cast<std::uint8_t>((machineWord >> 4) & 0x0f);
+    const auto lowRegister = static_cast<std::uint8_t>(machineWord & 0x0f);
+    Instruction decoded;
+    decoded.address = address;
+    decoded.line = original->second.line;
+    decoded.opcode = *opcode;
+    decoded.source = original->second.source;
+    decoded.operandLabel = original->second.operandLabel;
+
+    if (opcodeByte == 0x00 || opcodeByte == 0x81) {
+        if ((machineWord & 0x00ff) != 0) return std::nullopt;
+        decoded.size = 1;
+        return decoded;
+    }
+    if (opcodeByte == 0x71) {
+        if (registerField >= kGeneralRegisterCount || lowRegister != 0) return std::nullopt;
+        decoded.gr = registerField;
+        decoded.size = 1;
+        return decoded;
+    }
+    if (isRegisterFormByte(opcodeByte)) {
+        if (registerField >= kGeneralRegisterCount || lowRegister >= kGeneralRegisterCount) return std::nullopt;
+        decoded.gr = registerField;
+        decoded.sourceRegister = lowRegister;
+        decoded.size = 1;
+        return decoded;
+    }
+    if (isRegisterAddressByte(opcodeByte)) {
+        if (registerField >= kGeneralRegisterCount || lowRegister >= kGeneralRegisterCount) return std::nullopt;
+        decoded.gr = registerField;
+        decoded.indexRegister = lowRegister;
+        decoded.operandAddress = state_.memory[static_cast<std::uint16_t>(address + 1)];
+        decoded.size = 2;
+        return decoded;
+    }
+    if (isAddressOnlyByte(opcodeByte)) {
+        if (registerField != 0 || lowRegister >= kGeneralRegisterCount) return std::nullopt;
+        decoded.indexRegister = lowRegister;
+        decoded.operandAddress = state_.memory[static_cast<std::uint16_t>(address + 1)];
+        decoded.size = 2;
+        return decoded;
+    }
+    return std::nullopt;
+}
+
+void CometVm::prepareAfterManualMutation() {
+    state_.runState = RunState::Ready;
+    state_.visualPath = VisualPathKind::None;
+    state_.lastInstructionKind.reset();
+    state_.lastMemoryReadAddress.reset();
+    state_.lastMemoryWriteAddress.reset();
+    state_.lastRegisterWriteIndex.reset();
+    state_.lastBaseAddress.reset();
+    state_.lastIndexRegister.reset();
+    state_.lastIndexValue.reset();
+    state_.lastEffectiveAddress.reset();
+    updateCurrentInstruction();
 }
 
 void CometVm::updateCurrentInstruction() {

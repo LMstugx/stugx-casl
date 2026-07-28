@@ -139,7 +139,7 @@ describe("Phase 20A CASL Mode presentation contract", () => {
   it("casl_mode_shows_all_registers", () => {
     const markup = render("en");
     for (let index = 0; index < 8; index += 1) expect(markup).toContain(`GR${index}`);
-    for (const register of ["PR", "SP", "MAR", "MDR", "OF", "SF", "ZF"]) expect(markup).toContain(register);
+    for (const register of ["PR", "SP", "MAR", "MDR", "OF", "SF", "ZF", "CF"]) expect(markup).toContain(register);
   });
 
   it("casl_mode_shows_memory_and_stack", () => {

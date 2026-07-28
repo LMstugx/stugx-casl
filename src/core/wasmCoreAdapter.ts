@@ -2,6 +2,8 @@ import type { CoreAdapter, ReloadInitializationMode } from "./coreAdapter";
 import type { AssembleResultDto, CometStateDto, StepResultDto } from "./coreDto";
 import { loadWasmModule, type LoadedWasmCore } from "./wasmLoader";
 import { encodeCaslInputRecord } from "./caslIoEncoding";
+import type { CoreDebuggerMutationResult, DebuggerMutationRequest } from "../debugger/debuggerMutation";
+import { registerIndex } from "../debugger/debuggerMutation";
 
 export class WasmCoreAdapter implements CoreAdapter {
   private corePromise: Promise<LoadedWasmCore> | null = null;
@@ -49,6 +51,21 @@ export class WasmCoreAdapter implements CoreAdapter {
     );
   }
 
+  async mutateDebuggerState(request: DebuggerMutationRequest): Promise<CoreDebuggerMutationResult> {
+    const core = await this.ensureInitialized();
+    const [kind, target] = encodeMutationTarget(request);
+    return parseWasmJson<CoreDebuggerMutationResult>(
+      core.mutate(kind, target, request.nextWord),
+      "mutateDebuggerState",
+      core
+    );
+  }
+
+  async fullClear(): Promise<CometStateDto> {
+    const core = await this.ensureInitialized();
+    return parseWasmJson<CometStateDto>(core.fullClear(), "fullClear", core);
+  }
+
   async dispose(): Promise<void> {
     if (!this.corePromise || this.disposed) return;
     const core = await this.corePromise;
@@ -70,6 +87,14 @@ export class WasmCoreAdapter implements CoreAdapter {
     }
     return core;
   }
+}
+
+function encodeMutationTarget(request: DebuggerMutationRequest): [number, number] {
+  if (request.target.kind === "general-register") return [0, registerIndex(request.target.register)];
+  if (request.target.kind === "program-register") return [1, 0];
+  if (request.target.kind === "stack-pointer") return [2, 0];
+  if (request.target.kind === "flag-register") return [3, 0];
+  return [4, request.target.address];
 }
 
 export function parseWasmJson<T>(json: string, operation: string, core: Pick<LoadedWasmCore, "getLastError">): T {

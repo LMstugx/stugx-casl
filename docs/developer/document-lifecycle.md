@@ -15,3 +15,5 @@ Asynchronous Open and Save operations use operation identity and revision checks
 Source replacement invalidates source-owned diagnostics, markers, generated output, machine code, Trace, VM state, and design metadata. Preferences and built-in lesson progress remain independent.
 
 `beforeunload` is active only while Dirty. External paths and handles are not session-restored.
+
+Debugger mutation and Full Clear do not enter the file lifecycle. Manual machine-state edits never change source revisions, write bindings, Save behavior, or `beforeunload`. Full Clear preserves the current source Dirty value while dropping only machine ownership.

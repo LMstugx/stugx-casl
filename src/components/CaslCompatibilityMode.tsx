@@ -7,6 +7,14 @@ import type { CometState, SourceMapEntry } from "../core/types";
 import { formatWord, word } from "../core/types";
 import { useI18n } from "../i18n/useI18n";
 import { translateRunState } from "../i18n/locale";
+import type {
+  DebuggerMemoryCategory,
+  DebuggerMutationResult,
+  DebuggerMutationTarget,
+  RuntimeWordOverride
+} from "../debugger/debuggerMutation";
+import { categorizeMemoryAddress, packDebuggerFlags } from "../debugger/debuggerMutation";
+import { DebuggerEditDialog, FullClearDialog } from "./DebuggerDialogs";
 
 type CaslCompatibilityModeProps = {
   state: CometState;
@@ -15,6 +23,16 @@ type CaslCompatibilityModeProps = {
   onReset: () => void;
   onReload: (mode: ReloadInitializationMode) => void;
   onSubmitConsoleInput: (text: string, endOfFile?: boolean) => void;
+  assemblyId?: string | null;
+  executionEpoch?: number;
+  runtimeImageRevision?: number;
+  runtimeOverrides?: Record<number, RuntimeWordOverride>;
+  programModified?: boolean;
+  dataModified?: boolean;
+  mutationInFlight?: boolean;
+  fileOperationActive?: boolean;
+  onMutate?: (target: DebuggerMutationTarget, nextWord: number) => Promise<DebuggerMutationResult>;
+  onFullClear?: () => Promise<boolean>;
 };
 
 const numericModes: CaslNumericDisplayMode[] = ["hex", "signed", "unsigned", "binary"];
@@ -100,7 +118,17 @@ export default function CaslCompatibilityMode({
   isSourceDirty,
   onReset,
   onReload,
-  onSubmitConsoleInput
+  onSubmitConsoleInput,
+  assemblyId = null,
+  executionEpoch = 0,
+  runtimeImageRevision = 0,
+  runtimeOverrides = {},
+  programModified = false,
+  dataModified = false,
+  mutationInFlight = false,
+  fileOperationActive = false,
+  onMutate = async () => ({ status: "rejected", reason: "backend-rejected" }),
+  onFullClear = async () => false
 }: CaslCompatibilityModeProps) {
   const { t } = useI18n();
   const [numericMode, setNumericMode] = useState<CaslNumericDisplayMode>("hex");
@@ -108,6 +136,9 @@ export default function CaslCompatibilityMode({
   const [memoryAddressText, setMemoryAddressText] = useState("0020");
   const [consoleInput, setConsoleInput] = useState("");
   const [consoleClearOffset, setConsoleClearOffset] = useState(0);
+  const [selectedMemoryAddress, setSelectedMemoryAddress] = useState(0x20);
+  const [editTarget, setEditTarget] = useState<DebuggerMutationTarget | null>(null);
+  const [fullClearOpen, setFullClearOpen] = useState(false);
   const assemblerTextRef = useRef<HTMLTextAreaElement>(null);
   const outputLines = state.consoleOutput.slice(consoleClearOffset);
   const reloadDisabled = isSourceDirty || !state.assembled || state.runState === "Running";
@@ -116,11 +147,36 @@ export default function CaslCompatibilityMode({
   const assemblerText = useMemo(() => assemblerOutput(state), [state]);
   const stackRows = Array.from({ length: 8 }, (_unused, offset) => word(state.sp + offset));
   const memoryRows = Array.from({ length: MEMORY_WINDOW_ROWS }, (_unused, offset) => word(memoryStart + offset));
+  const editingAllowed = Boolean(assemblyId)
+    && state.assembled
+    && !isSourceDirty
+    && !fileOperationActive
+    && !mutationInFlight
+    && state.runState !== "Running"
+    && state.runState !== "Idle"
+    && state.runState !== "Dirty"
+    && state.runState !== "Error";
+  const editDisabledReason = state.runState === "Running"
+    ? t("caslMode.editingUnavailableRunning")
+    : !state.assembled || !assemblyId
+      ? t("caslMode.editingUnavailableNotLoaded")
+      : isSourceDirty
+        ? t("caslMode.reloadDirtyWarning")
+        : fileOperationActive || mutationInFlight
+          ? t("caslMode.editingUnavailableBusy")
+          : "";
+  const selectedCategory = categorizeMemoryAddress(state.sourceMap, selectedMemoryAddress, state.sp);
+  const selectedOverride = runtimeOverrides[selectedMemoryAddress];
+  const editCurrentWord = currentWordForTarget(state, editTarget);
+  const editCategory = editTarget?.kind === "memory-word"
+    ? categorizeMemoryAddress(state.sourceMap, editTarget.address, state.sp)
+    : undefined;
 
   const goToAddress = (address: number) => {
     const normalized = word(address);
     setMemoryStart(normalized);
     setMemoryAddressText(formatWord(normalized));
+    setSelectedMemoryAddress(normalized);
   };
   const submitInput = (event: FormEvent) => {
     event.preventDefault();
@@ -162,9 +218,27 @@ export default function CaslCompatibilityMode({
           <button type="button" className="text-button" disabled={reloadDisabled} onClick={() => onReload("zero")}>{t("caslMode.reloadZero")}</button>
           <button type="button" className="text-button" disabled={reloadDisabled} onClick={() => onReload("ffff")}>{t("caslMode.reloadFfff")}</button>
         </div>
+        <div className="casl-destructive-actions">
+          <button
+            type="button"
+            className="text-button destructive"
+            disabled={!state.assembled || state.runState === "Running" || mutationInFlight || fileOperationActive}
+            onClick={() => setFullClearOpen(true)}
+          >
+            {t("caslMode.fullClear")}
+          </button>
+        </div>
       </section>
 
       {isSourceDirty ? <p className="casl-mode-warning">{t("caslMode.reloadDirtyWarning")}</p> : null}
+      {programModified || dataModified ? (
+        <div className="casl-runtime-status" role="status">
+          <strong>{t("caslMode.runtimeOverride")}</strong>
+          <span>rev {runtimeImageRevision}</span>
+          {programModified ? <span>{t("caslMode.programModified")}</span> : null}
+          {dataModified ? <span>{t("caslMode.dataModified")}</span> : null}
+        </div>
+      ) : null}
 
       <div className="casl-mode-grid">
         <section className="panel casl-source-observer">
@@ -192,7 +266,18 @@ export default function CaslCompatibilityMode({
             {state.gr.map((value, index) => (
               <div key={`GR${index}`} role="row" className="casl-register-cell" data-testid={`casl-register-gr${index}`} data-changed={state.changedRegisters.includes(`GR${index}`) ? "true" : "false"}>
                 <strong role="rowheader">GR{index}</strong>
-                <code role="cell">{formatCaslWord(value, numericMode)}</code>
+                <span role="cell" className="casl-register-value">
+                  <button
+                    type="button"
+                    className="casl-register-edit"
+                    disabled={!editingAllowed}
+                    title={editingAllowed ? `${t("caslMode.editRegister")} GR${index}` : editDisabledReason}
+                    aria-label={editingAllowed ? `${t("caslMode.editRegister")} GR${index}` : `${t("caslMode.editRegister")} GR${index}. ${editDisabledReason}`}
+                    onClick={() => setEditTarget({ kind: "general-register", register: `GR${index}` as `GR${0 | 1 | 2 | 3 | 4 | 5 | 6 | 7}` })}
+                  >
+                    <code>{formatCaslWord(value, numericMode)}</code>
+                  </button>
+                </span>
               </div>
             ))}
             {[
@@ -203,7 +288,20 @@ export default function CaslCompatibilityMode({
             ].map(([name, value]) => (
               <div key={name} role="row" className="casl-register-cell" data-changed={state.changedRegisters.includes(String(name)) ? "true" : "false"}>
                 <strong role="rowheader">{name}</strong>
-                <code role="cell">{formatCaslWord(Number(value), numericMode)}</code>
+                {name === "PR" || name === "SP" ? (
+                  <span role="cell" className="casl-register-value">
+                    <button
+                      type="button"
+                      className="casl-register-edit"
+                      disabled={!editingAllowed}
+                      title={editingAllowed ? `${t("caslMode.editRegister")} ${name}` : editDisabledReason}
+                      aria-label={editingAllowed ? `${t("caslMode.editRegister")} ${name}` : `${t("caslMode.editRegister")} ${name}. ${editDisabledReason}`}
+                      onClick={() => setEditTarget(name === "PR" ? { kind: "program-register" } : { kind: "stack-pointer" })}
+                    >
+                      <code>{formatCaslWord(Number(value), numericMode)}</code>
+                    </button>
+                  </span>
+                ) : <code role="cell">{formatCaslWord(Number(value), numericMode)}</code>}
               </div>
             ))}
           </div>
@@ -211,7 +309,17 @@ export default function CaslCompatibilityMode({
             <div><dt>OF</dt><dd>{state.fr.o ? "1" : "0"}</dd></div>
             <div><dt>SF</dt><dd>{state.fr.n ? "1" : "0"}</dd></div>
             <div><dt>ZF</dt><dd>{state.fr.z ? "1" : "0"}</dd></div>
+            <div><dt>CF</dt><dd>{state.fr.c ? "1" : "0"}</dd></div>
           </dl>
+          <button
+            type="button"
+            className="text-button casl-fr-edit"
+            disabled={!editingAllowed}
+            title={editingAllowed ? t("caslMode.editRegister") : editDisabledReason}
+            onClick={() => setEditTarget({ kind: "flag-register" })}
+          >
+            {t("caslMode.editRegister")} FR
+          </button>
         </section>
 
         <section className="panel casl-memory-observer">
@@ -255,17 +363,53 @@ export default function CaslCompatibilityMode({
                       data-current={address === state.pr || address === state.currentAddress ? "true" : "false"}
                       data-read={address === state.lastMemoryReadAddress ? "true" : "false"}
                       data-write={address === state.lastMemoryWriteAddress ? "true" : "false"}
+                      data-selected={address === selectedMemoryAddress ? "true" : "false"}
+                      data-manual-edit={runtimeOverrides[address] ? "true" : "false"}
+                      onClick={() => setSelectedMemoryAddress(address)}
                     >
                       <td><code>{formatWord(address)}</code></td>
-                      <td><code>{formatCaslWord(value, numericMode)}</code></td>
+                      <td>
+                        <button
+                          type="button"
+                          className="casl-memory-value-select"
+                          aria-label={`${t("common.select")} MEM[${formatWord(address)}]`}
+                          aria-pressed={address === selectedMemoryAddress}
+                          onClick={() => setSelectedMemoryAddress(address)}
+                        >
+                          <code>{formatCaslWord(value, numericMode)}</code>
+                        </button>
+                      </td>
                       <td title={labelForAddress(state.symbols, address)}>{labelForAddress(state.symbols, address) || "-"}</td>
                       <td>{characterForWord(value) || "-"}</td>
-                      <td>{kindLabel}</td>
+                      <td>{kindLabel}{runtimeOverrides[address] ? <span className="manual-edit-badge">{t("caslMode.manualEdit")}</span> : null}</td>
                     </tr>
                   );
                 })}
               </tbody>
             </table>
+          </div>
+          <div className="casl-memory-selection" data-testid="casl-memory-selection">
+            <div>
+              <strong><code>MEM[{formatWord(selectedMemoryAddress)}]</code></strong>
+              <span>{labelForAddress(state.symbols, selectedMemoryAddress) || t("caslMode.unmappedAddress")}</span>
+              <span>{selectedCategory}</span>
+            </div>
+            {selectedOverride ? (
+              <dl>
+                <div><dt>{t("caslMode.originalWord")}</dt><dd><code>{formatWord(selectedOverride.originalWord)}</code></dd></div>
+                <div><dt>{t("caslMode.currentRuntimeWord")}</dt><dd><code>{formatWord(selectedOverride.currentWord)}</code></dd></div>
+                <div><dt>{t("caslMode.sourceMapping")}</dt><dd>{selectedOverride.sourceMappingConfidence}</dd></div>
+              </dl>
+            ) : null}
+            <button
+              type="button"
+              className="text-button"
+              disabled={!editingAllowed}
+              title={editingAllowed ? t("caslMode.editMemoryWord") : editDisabledReason}
+              onClick={() => setEditTarget({ kind: "memory-word", address: selectedMemoryAddress })}
+            >
+              {t("caslMode.editMemoryWord")}
+            </button>
           </div>
         </section>
 
@@ -329,6 +473,26 @@ export default function CaslCompatibilityMode({
         </section>
       </div>
       <p className="casl-mode-footnote">{t("caslMode.dsInitializationNote")}</p>
+      <DebuggerEditDialog
+        target={editTarget}
+        currentWord={editCurrentWord}
+        numericMode={numericMode}
+        memoryCategory={editCategory as DebuggerMemoryCategory | undefined}
+        label={editTarget?.kind === "memory-word" ? labelForAddress(state.symbols, editTarget.address) : undefined}
+        onCancel={() => setEditTarget(null)}
+        onApply={onMutate}
+      />
+      <FullClearDialog open={fullClearOpen} onCancel={() => setFullClearOpen(false)} onConfirm={onFullClear} />
+      <span className="visually-hidden" data-testid="casl-debugger-owner">{assemblyId ?? "not-loaded"}:{executionEpoch}</span>
     </main>
   );
+}
+
+function currentWordForTarget(state: CometState, target: DebuggerMutationTarget | null): number {
+  if (!target) return 0;
+  if (target.kind === "general-register") return state.gr[Number(target.register.slice(2))] ?? 0;
+  if (target.kind === "program-register") return state.pr;
+  if (target.kind === "stack-pointer") return state.sp;
+  if (target.kind === "flag-register") return packDebuggerFlags(state.fr);
+  return state.memory[target.address & 0xffff] ?? 0;
 }

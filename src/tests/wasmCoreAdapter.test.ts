@@ -11,6 +11,8 @@ import type { CometStateDto } from "../core/coreDto";
 import { DEFAULT_CASL_SOURCE } from "../core/defaultSource";
 import { mockCaslCore } from "../core/mockCaslCore";
 import { parseWasmJson, WasmCoreAdapter } from "../core/wasmCoreAdapter";
+import type { DebuggerMutationRequest, DebuggerMutationTarget } from "../debugger/debuggerMutation";
+import type { SourceUnitId } from "../documents/types";
 import { transpileCppToCasl } from "../transpiler/cppTranspiler";
 
 type NodeFsSync = {
@@ -142,6 +144,17 @@ int main() {
     result = add(2, 3);
     return result;
 }`;
+
+function debuggerRequest(target: DebuggerMutationTarget, nextWord: number): DebuggerMutationRequest {
+  return {
+    mutationId: `wasm-test:${target.kind}`,
+    sourceUnitId: "source:wasm-test" as SourceUnitId,
+    assemblyId: "assembly:wasm-test",
+    executionEpoch: 1,
+    target,
+    nextWord
+  };
+}
 
 function wasmArtifactsAvailable(): boolean {
   const processLike = (globalThis as { process?: { cwd?: () => string; getBuiltinModule?: (name: string) => NodeFsSync } }).process;
@@ -443,6 +456,69 @@ describeWasm("WasmCoreAdapter golden parity", () => {
     expect(result.callDepth).toBe(0);
     expect(resultRow).toBeDefined();
     expect(result.memoryWindow.find((row) => row.address === resultRow!.address)?.value).toBe(0x0006);
+    await adapter.dispose();
+  });
+
+  it("wasm_debugger_mutation_matches_the_four_flag_and_single_target_contract", async () => {
+    const adapter = new WasmCoreAdapter();
+    const ready = await adapter.assemble(ladSource);
+    const start = ready.state.pr;
+
+    const register = await adapter.mutateDebuggerState!(
+      debuggerRequest({ kind: "general-register", register: "GR3" }, 0xabcd)
+    );
+    expect(register.status).toBe("applied");
+    expect(register.state.gr[3]).toBe(0xabcd);
+    expect(register.state.stepCount).toBe(0);
+
+    const flags = await adapter.mutateDebuggerState!(
+      debuggerRequest({ kind: "flag-register" }, 0x000f)
+    );
+    expect([flags.state.frOF, flags.state.frZF, flags.state.frCF, flags.state.frSF]).toEqual([
+      true,
+      true,
+      true,
+      true
+    ]);
+
+    const memory = await adapter.mutateDebuggerState!(
+      debuggerRequest({ kind: "memory-word", address: start }, 0x0000)
+    );
+    expect(memory.state.memoryWindow.find((row) => row.address === start)?.value).toBe(0x0000);
+    await adapter.dispose();
+  });
+
+  it("wasm_executes_runtime_program_override_and_reload_restores_assembly_image", async () => {
+    const adapter = new WasmCoreAdapter();
+    const ready = await adapter.assemble(ladSource);
+    const start = ready.state.pr;
+    const original = ready.state.memoryWindow.find((row) => row.address === start)!.value;
+
+    await adapter.mutateDebuggerState!(
+      debuggerRequest({ kind: "memory-word", address: start }, 0x0000)
+    );
+    const step = await adapter.step();
+    expect(step.state.lastInstructionKind).toBe("NOP");
+    expect(step.state.gr[1]).toBe(0);
+    expect(step.state.pr).toBe(start + 1);
+
+    const reloaded = await adapter.reload("assembled");
+    expect(reloaded.memoryWindow.find((row) => row.address === start)?.value).toBe(original);
+    await adapter.dispose();
+  });
+
+  it("wasm_full_clear_unloads_registers_memory_and_execution_metadata", async () => {
+    const adapter = new WasmCoreAdapter();
+    await adapter.assemble(ladSource);
+    await adapter.mutateDebuggerState!(
+      debuggerRequest({ kind: "general-register", register: "GR1" }, 0x0042)
+    );
+    const cleared = await adapter.fullClear!();
+
+    expect(cleared.runState).toBe("Idle");
+    expect(cleared.gr).toEqual(Array(8).fill(0));
+    expect(cleared.sourceRows).toEqual([]);
+    expect(cleared.stepCount).toBe(0);
     await adapter.dispose();
   });
 });

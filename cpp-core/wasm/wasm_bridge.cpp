@@ -451,6 +451,23 @@ std::string stateErrorJson(const std::string& message) {
     return emptyStateJson(casl::RunState::Error, diagnostics);
 }
 
+std::string mutationResultJson(
+    const std::string& status,
+    std::uint16_t previousWord,
+    std::uint16_t nextWord,
+    const std::string& stateJson,
+    const std::string& reason = ""
+) {
+    std::ostringstream output;
+    output << "{"
+           << "\"status\":\"" << status << "\","
+           << "\"previousWord\":" << previousWord << ","
+           << "\"nextWord\":" << nextWord;
+    if (!reason.empty()) output << ",\"reason\":\"" << jsonEscape(reason) << "\"";
+    output << ",\"state\":" << stateJson << "}";
+    return output.str();
+}
+
 const char* setError(std::string message) {
     g_lastError = std::move(message);
     return setJson(stateErrorJson(g_lastError));
@@ -627,6 +644,74 @@ EMSCRIPTEN_KEEPALIVE const char* stugx_casl_enqueue_input(const char* encodedWor
             }
         }
         rt.vm.enqueueInput(std::move(words), endOfFile != 0);
+        return setJson(currentStateJson(rt));
+    } catch (const std::exception& error) {
+        return setError(error.what());
+    }
+}
+
+EMSCRIPTEN_KEEPALIVE const char* stugx_casl_mutate(int kind, int target, int value) {
+    try {
+        auto& rt = runtime();
+        if (!rt.loaded || !rt.assembled.has_value()) {
+            return setJson(mutationResultJson("rejected", 0, 0, currentStateJson(rt), "not-loaded"));
+        }
+        if (value < 0 || value > 0xffff) {
+            return setJson(mutationResultJson("rejected", 0, 0, currentStateJson(rt), "invalid-value"));
+        }
+
+        const auto nextWord = static_cast<std::uint16_t>(value);
+        std::uint16_t previousWord = 0;
+        bool applied = false;
+        if (kind == 0 && target >= 0 && target < static_cast<int>(casl::kGeneralRegisterCount)) {
+            previousWord = rt.vm.state().gr[static_cast<std::size_t>(target)];
+            applied = rt.vm.writeGeneralRegister(static_cast<std::uint32_t>(target), nextWord);
+        } else if (kind == 1) {
+            previousWord = rt.vm.state().pr;
+            applied = rt.vm.setProgramCounter(static_cast<std::uint32_t>(nextWord));
+        } else if (kind == 2) {
+            previousWord = rt.vm.state().sp;
+            applied = rt.vm.setStackPointer(static_cast<std::uint32_t>(nextWord));
+        } else if (kind == 3) {
+            const auto& flags = rt.vm.state().fr;
+            previousWord = static_cast<std::uint16_t>(
+                (flags.o ? 0b1000 : 0) |
+                (flags.z ? 0b0100 : 0) |
+                (flags.c ? 0b0010 : 0) |
+                (flags.n ? 0b0001 : 0)
+            );
+            rt.vm.setFlagsPacked(nextWord);
+            applied = true;
+        } else if (kind == 4 && target >= 0 && target <= 0xffff) {
+            previousWord = rt.vm.readMemory(static_cast<std::uint32_t>(target)).value_or(0);
+            applied = rt.vm.writeMemory(static_cast<std::uint32_t>(target), nextWord);
+        }
+
+        rt.lastStep.reset();
+        rt.lastDiagnostics.clear();
+        g_lastError.clear();
+        const auto stateJson = dumpStateJson(*rt.assembled, rt.vm.state(), rt.lastStep, rt.lastDiagnostics);
+        return setJson(mutationResultJson(
+            applied ? "applied" : "rejected",
+            previousWord,
+            nextWord,
+            stateJson,
+            applied ? "" : "backend-rejected"
+        ));
+    } catch (const std::exception& error) {
+        return setError(error.what());
+    }
+}
+
+EMSCRIPTEN_KEEPALIVE const char* stugx_casl_full_clear() {
+    try {
+        auto& rt = runtime();
+        rt.vm.fullClear();
+        rt.assembled.reset();
+        rt.lastStep.reset();
+        rt.lastDiagnostics.clear();
+        rt.loaded = false;
+        g_lastError.clear();
         return setJson(currentStateJson(rt));
     } catch (const std::exception& error) {
         return setError(error.what());

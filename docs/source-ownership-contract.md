@@ -39,3 +39,7 @@ The unified New/Open/example controller verifies the pending `DocumentId`, creat
 Assemble/transpile/core-error completion also carries its initiating source unit and is rejected by the reducer after replacement.
 
 Phase 15E freezes the complete source-owned category list and verifies that cancel/failure/Save preserve it while New/Open/example replacement invalidates it atomically.
+
+## Phase 20B Runtime Mutation
+
+Manual debugger edits belong to one `SourceUnitId`, assembly ID, and execution epoch, but are not source-derived content and are never written back to source. A runtime program-word override lowers source-mapping confidence for that word without changing the original machine-code mapping. Save and Save As ignore debugger state. Reload discards runtime overrides; Full Clear discards machine ownership while preserving the source document and Dirty state.

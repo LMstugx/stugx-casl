@@ -1419,6 +1419,89 @@ DATA DC 10,20
   await page.setViewportSize({ width: viewport.width, height: viewport.height });
 }
 
+async function captureDebuggerEditingStates(page: Page, viewport: Viewport) {
+  if (!viewport.primary) return;
+  const standardViewport: Viewport = { name: "1440x900", width: 1440, height: 900, primary: true };
+  const compactViewport: Viewport = { name: "1280x720", width: 1280, height: 720 };
+  const minimumViewport: Viewport = { name: "1180x700", width: 1180, height: 700 };
+  const source = `MAIN START
+     LAD GR2,#0003
+     ST GR2,DATA
+     RET
+DATA DS 1
+     END`;
+
+  await page.setViewportSize({ width: standardViewport.width, height: standardViewport.height });
+  await openStudio(page, "Mock Core");
+  await setSource(page, source);
+  await assemble(page);
+  await page.getByTestId("casl-mode-toggle").click();
+
+  await page.getByTestId("casl-register-gr2").getByRole("button").click();
+  await capture(page, standardViewport, "casl-edit-register-hex.png", false);
+  await page.getByRole("dialog").getByRole("button", { name: "Cancel" }).click();
+  await page.getByTestId("casl-numeric-signed").click();
+  await page.getByTestId("casl-register-gr2").getByRole("button").click();
+  await capture(page, standardViewport, "casl-edit-register-signed.png", false);
+  await page.getByRole("dialog").getByRole("button", { name: "Cancel" }).click();
+  await page.getByTestId("casl-numeric-hex").click();
+
+  await page.getByTestId("casl-memory-row-0025").click();
+  await page.getByRole("button", { name: "Edit memory word" }).click();
+  await page.getByRole("dialog").getByRole("textbox").fill("FFFF");
+  await page.getByRole("dialog").getByRole("button", { name: "Apply" }).click();
+  await capture(page, standardViewport, "casl-edit-memory-data.png", false);
+
+  await page.getByTestId("casl-memory-row-0020").click();
+  await page.getByRole("button", { name: "Edit memory word" }).click();
+  const programDialog = page.getByRole("dialog");
+  await programDialog.getByRole("textbox").fill("0000");
+  await capture(page, standardViewport, "casl-edit-memory-program-warning.png", false);
+  await programDialog.locator('.debugger-program-warning input[type="checkbox"]').check();
+  await programDialog.getByRole("button", { name: "Apply" }).click();
+  await capture(page, standardViewport, "casl-runtime-override.png", false);
+
+  await page.getByRole("button", { name: /Edit register PR/ }).click();
+  await page.getByRole("dialog").getByRole("textbox").fill("1234");
+  await page.getByRole("dialog").getByRole("button", { name: "Apply" }).click();
+  await capture(page, standardViewport, "casl-edit-pr-unmapped.png", false);
+
+  await page.getByRole("button", { name: /Edit register SP/ }).click();
+  await page.getByRole("dialog").getByRole("textbox").fill("FFFC");
+  await page.getByRole("dialog").getByRole("button", { name: "Apply" }).click();
+  await capture(page, standardViewport, "casl-edit-sp-stack.png", false);
+
+  await page.getByRole("button", { name: "Edit register FR" }).click();
+  await page.getByRole("dialog").getByRole("checkbox", { name: "OF" }).check();
+  await page.getByRole("dialog").getByRole("checkbox", { name: "CF" }).check();
+  await capture(page, standardViewport, "casl-edit-fr.png", false);
+  await page.getByRole("dialog").getByRole("button", { name: "Cancel" }).click();
+
+  await page.getByRole("button", { name: "Full Clear" }).click();
+  await capture(page, standardViewport, "casl-full-clear-dialog-en.png", false);
+  await page.getByRole("dialog").getByRole("button", { name: "Cancel" }).click();
+  await page.getByTestId("locale-ja").click();
+  await page.getByRole("button", { name: "完全クリア" }).click();
+  await capture(page, standardViewport, "casl-full-clear-dialog-ja.png", false);
+  await page.getByRole("dialog").getByRole("button", { name: "キャンセル" }).click();
+  await page.getByTestId("locale-zh-CN").click();
+  await page.getByRole("button", { name: "完全清除" }).click();
+  await capture(page, standardViewport, "casl-full-clear-dialog-zh-cn.png", false);
+  await page.getByRole("dialog").getByRole("button", { name: "完全清除" }).click();
+  await capture(page, standardViewport, "casl-full-clear-result.png", false);
+
+  await page.getByTestId("locale-en").click();
+  await page.getByTestId("assemble-button").click();
+  await expect(page.getByTestId("run-state")).toHaveText("Ready");
+  await page.setViewportSize({ width: minimumViewport.width, height: minimumViewport.height });
+  await capture(page, minimumViewport, "casl-editing-1180.png", false);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+  await page.setViewportSize({ width: compactViewport.width, height: compactViewport.height });
+  await capture(page, compactViewport, "casl-editing-1280.png", false);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+  await page.setViewportSize({ width: viewport.width, height: viewport.height });
+}
+
 test.describe("visual review screenshot gallery", () => {
   for (const viewport of viewports) {
     test(`captures visual review gallery at ${viewport.name}`, async ({ page }) => {
@@ -1484,6 +1567,7 @@ test.describe("visual review screenshot gallery", () => {
       await captureChangelogStates(page, viewport);
       await captureCppDoubleStorageStates(page, viewport);
       await captureCaslCompatibilityStates(page, viewport);
+      await captureDebuggerEditingStates(page, viewport);
     });
   }
 });

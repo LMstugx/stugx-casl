@@ -15,6 +15,6 @@ The application keeps four independent browser-local settings:
 
 These values are stored locally in the browser or Tauri WebView. They are not synchronized to a server.
 
-The application does not persist source text, external files, file names or paths, file handles, document/source IDs, Dirty state, diagnostics, Generated CASL, Machine Code, Trace, registers, memory, or VM state.
+The application does not persist source text, external files, file names or paths, file handles, document/source IDs, Dirty state, diagnostics, Generated CASL, Machine Code, Trace, registers, memory, runtime word overrides, debugger epochs, or VM state.
 
 Each storage adapter fails independently. Corruption or unavailability falls back to safe defaults without clearing the other stores or changing the current document.

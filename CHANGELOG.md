@@ -21,6 +21,7 @@ The learning studio is available as a production WASM application on Cloudflare 
 - CASL Mode covers all 28 official COMET II machine instructions, IN / OUT / RPUSH / RPOP macro expansion, WaitingInput, and symbol and literal tables.
 - Debugger controls edit GR0-GR7, PR, SP, the three COMET II flags, individual memory words, and runtime machine words, with Full Clear and epoch-based mutation ownership.
 - COMET Mode executes real Fetch, Decode, Effective Address, Operand Read, Execute, Write Back, Flag Update, and Instruction Complete microcycles across all 28 machine instructions.
+- COMET Mode can reverse one committed microcycle within the current history epoch through the same C++ Core, Mock, and WASM contract, with a bounded history of 1,000 entries.
 
 ### Improved
 
@@ -29,6 +30,7 @@ The learning studio is available as a production WASM application on Cloudflare 
 - The WCASL-compatible workflow offers hexadecimal, signed decimal, unsigned decimal, and binary displays plus explicit assembled, zero-DS, and FFFF-DS reload modes.
 - The COMET II flag register is modeled as the official OF, SF, and ZF bits only; shift instructions write the shifted-out bit to OF and no CF is exposed.
 - Source, machine word, microcycle trace, and clean active circuit flow stay aligned through stugx.CASL Teaching Microarchitecture v1, an explanatory model rather than a claim about a unique physical implementation.
+- Reverse Microstep atomically restores VM state, Trace, Source Mapping, Machine Code highlighting, and Circuit flow, while refusing to cross debugger mutation, Reset, Reload, Full Clear, SVC, or input/output boundaries.
 
 ### Security
 
@@ -39,8 +41,9 @@ The learning studio is available as a production WASM application on Cloudflare 
 - The C++ path is a teaching subset, not a complete C++ compiler; arrays, pointers, classes, templates, recursion, and the full standard library are outside the current scope.
 - The Windows demo is unsigned and still uses the browser file adapter boundary; native Tauri file dialogs and updates are deferred.
 - Double support is limited to local storage, finite literals, and copy assignment; arithmetic, comparison, conversion, parameters, returns, and arrays remain unsupported.
+- Reverse Microstep is limited to COMET Mode and the current history epoch. Redo, Reverse Run, Reverse Instruction, cross-SVC or cross-I/O rollback, and a complete time-travel debugger are not supported.
 
-Release references: [Commit](https://github.com/LMstugx/stugx-casl/commit/8f16f900fdf0cbae13e2f54f8e9832eb08210f17)
+Release references: [Commit](https://github.com/LMstugx/stugx-casl/commit/172ea6ca5225f1e4dc4ef6a6a4b43fabf824e001)
 
 ## v1.0-rc10 - 2026-07-11 (Preview)
 

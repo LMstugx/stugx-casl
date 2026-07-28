@@ -102,6 +102,11 @@ export const RELEASES: readonly ReleaseNote[] = [
             en: "COMET Mode executes real Fetch, Decode, Effective Address, Operand Read, Execute, Write Back, Flag Update, and Instruction Complete microcycles across all 28 machine instructions.",
             ja: "COMET Mode は 28 個すべての機械命令について、実際の Fetch、Decode、Effective Address、Operand Read、Execute、Write Back、Flag Update、Instruction Complete の microcycle を実行します。",
             "zh-CN": "COMET Mode 对全部 28 条机器指令执行真实的 Fetch、Decode、Effective Address、Operand Read、Execute、Write Back、Flag Update 和 Instruction Complete microcycle。"
+          },
+          {
+            en: "COMET Mode can reverse one committed microcycle within the current history epoch through the same C++ Core, Mock, and WASM contract, with a bounded history of 1,000 entries.",
+            ja: "COMET Mode では、同一の C++ Core、Mock、WASM 契約を通して、現在の history epoch 内で確定済み microcycle を 1 つ戻せます。履歴は最大 1,000 件です。",
+            "zh-CN": "COMET Mode 可通过同一套 C++ Core、Mock 和 WASM 契约，在当前 history epoch 内回退一个已提交的 microcycle；历史记录最多保留 1,000 条。"
           }
         ]
       },
@@ -132,6 +137,11 @@ export const RELEASES: readonly ReleaseNote[] = [
             en: "Source, machine word, microcycle trace, and clean active circuit flow stay aligned through stugx.CASL Teaching Microarchitecture v1, an explanatory model rather than a claim about a unique physical implementation.",
             ja: "source、machine word、microcycle trace、clean active circuit flow は stugx.CASL Teaching Microarchitecture v1 で対応付けられます。これは説明用モデルであり、唯一の物理実装を主張するものではありません。",
             "zh-CN": "source、machine word、microcycle trace 与 clean active circuit flow 通过 stugx.CASL Teaching Microarchitecture v1 保持对应；这是解释模型，不代表唯一的物理实现。"
+          },
+          {
+            en: "Reverse Microstep atomically restores VM state, Trace, Source Mapping, Machine Code highlighting, and Circuit flow, while refusing to cross debugger mutation, Reset, Reload, Full Clear, SVC, or input/output boundaries.",
+            ja: "Reverse Microstep は VM 状態、Trace、Source Mapping、Machine Code の強調表示、Circuit flow を原子的に復元し、debugger mutation、Reset、Reload、Full Clear、SVC、入出力の境界を越えません。",
+            "zh-CN": "Reverse Microstep 会原子恢复 VM 状态、Trace、Source Mapping、Machine Code 高亮和 Circuit flow，并拒绝跨越 debugger mutation、Reset、Reload、Full Clear、SVC 或输入输出边界。"
           }
         ]
       },
@@ -162,11 +172,16 @@ export const RELEASES: readonly ReleaseNote[] = [
             en: "Double support is limited to local storage, finite literals, and copy assignment; arithmetic, comparison, conversion, parameters, returns, and arrays remain unsupported.",
             ja: "double 対応はローカルストレージ、有限リテラル、コピー代入に限定されます。算術、比較、変換、引数、戻り値、配列は未対応です。",
             "zh-CN": "double 支持仅限局部存储、有限字面量和复制赋值；算术、比较、转换、参数、返回值和数组仍不受支持。"
+          },
+          {
+            en: "Reverse Microstep is limited to COMET Mode and the current history epoch. Redo, Reverse Run, Reverse Instruction, cross-SVC or cross-I/O rollback, and a complete time-travel debugger are not supported.",
+            ja: "Reverse Microstep は COMET Mode と現在の history epoch に限定されます。Redo、Reverse Run、Reverse Instruction、SVC または入出力をまたぐ回退、完全な time-travel debugger は未対応です。",
+            "zh-CN": "Reverse Microstep 仅限 COMET Mode 和当前 history epoch。不支持 Redo、Reverse Run、Reverse Instruction、跨 SVC 或输入输出回退，也不提供完整的 time-travel debugger。"
           }
         ]
       }
     ],
-    commit: "8f16f900fdf0cbae13e2f54f8e9832eb08210f17",
+    commit: "172ea6ca5225f1e4dc4ef6a6a4b43fabf824e001",
     webUrl: PUBLIC_WEB_URL
   },
   {

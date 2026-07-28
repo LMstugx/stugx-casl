@@ -87,6 +87,11 @@ export const RELEASES: readonly ReleaseNote[] = [
             en: "Binary64 double storage observation with four high-word-first COMET II words, runtime literal stores, four-word copy assignment, and a live Double Value Inspector.",
             ja: "上位ワード優先の 4 個の COMET II ワード、実行時リテラル格納、4 ワードのコピー代入、ライブ Double Value Inspector による binary64 double ストレージ観察。",
             "zh-CN": "通过高位 word 优先的 4 个 COMET II word、运行时字面量写入、4-word 复制赋值和实时 Double Value Inspector 观察 binary64 double 存储。"
+          },
+          {
+            en: "CASL Mode covers all 28 official COMET II machine instructions, IN / OUT / RPUSH / RPOP macro expansion, WaitingInput, and symbol and literal tables.",
+            ja: "CASL Mode は 28 個の公式 COMET II 機械命令すべてに加え、IN / OUT / RPUSH / RPOP のマクロ展開、WaitingInput、シンボル表とリテラル表を備えています。",
+            "zh-CN": "CASL Mode 覆盖全部 28 条官方 COMET II 机器指令，并提供 IN / OUT / RPUSH / RPOP 宏展开、WaitingInput、符号表和字面量表。"
           }
         ]
       },
@@ -102,6 +107,11 @@ export const RELEASES: readonly ReleaseNote[] = [
             en: "CPU Flow, Register / Stack, and Code / Machine observation modes with responsive natural scrolling and clean active-flow-only wires.",
             ja: "CPU Flow、Register / Stack、Code / Machine の observation mode、responsive な自然スクロール、active-flow-only の clean-wire 表示。",
             "zh-CN": "CPU Flow、Register / Stack、Code / Machine 三种 observation mode，以及响应式自然滚动和仅显示 active flow 的 clean-wire。"
+          },
+          {
+            en: "The WCASL-compatible workflow offers hexadecimal, signed decimal, unsigned decimal, and binary displays plus explicit assembled, zero-DS, and FFFF-DS reload modes.",
+            ja: "WCASL 互換ワークフローでは、16 進、符号付き 10 進、符号なし 10 進、2 進表示と、assembled、zero-DS、FFFF-DS の明示的な reload mode を利用できます。",
+            "zh-CN": "WCASL 兼容工作流提供十六进制、有符号十进制、无符号十进制和二进制显示，以及明确的 assembled、zero-DS 和 FFFF-DS reload mode。"
           }
         ]
       },
@@ -136,7 +146,7 @@ export const RELEASES: readonly ReleaseNote[] = [
         ]
       }
     ],
-    commit: "429f6b46380388e8cf890c4051f4aa8610032350",
+    commit: "ed3af7880b1fa6bb010d85497ccd485f1c873f2c",
     webUrl: PUBLIC_WEB_URL
   },
   {

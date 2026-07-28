@@ -18,11 +18,13 @@ The learning studio is available as a production WASM application on Cloudflare 
 - An offline Tauri Windows demonstration build that reuses the React, Vite, Monaco, and WASM frontend without adding native filesystem permissions.
 - A structured, multilingual Changelog generated from the same offline release registry used by the application.
 - Binary64 double storage observation with four high-word-first COMET II words, runtime literal stores, four-word copy assignment, and a live Double Value Inspector.
+- CASL Mode covers all 28 official COMET II machine instructions, IN / OUT / RPUSH / RPOP macro expansion, WaitingInput, and symbol and literal tables.
 
 ### Improved
 
 - EN, JA, and zh-CN presentation for application controls and structured diagnostics, while technical identities remain locale-independent.
 - CPU Flow, Register / Stack, and Code / Machine observation modes with responsive natural scrolling and clean active-flow-only wires.
+- The WCASL-compatible workflow offers hexadecimal, signed decimal, unsigned decimal, and binary displays plus explicit assembled, zero-DS, and FFFF-DS reload modes.
 
 ### Security
 
@@ -34,7 +36,7 @@ The learning studio is available as a production WASM application on Cloudflare 
 - The Windows demo is unsigned and still uses the browser file adapter boundary; native Tauri file dialogs and updates are deferred.
 - Double support is limited to local storage, finite literals, and copy assignment; arithmetic, comparison, conversion, parameters, returns, and arrays remain unsupported.
 
-Release references: [Commit](https://github.com/LMstugx/stugx-casl/commit/429f6b46380388e8cf890c4051f4aa8610032350)
+Release references: [Commit](https://github.com/LMstugx/stugx-casl/commit/ed3af7880b1fa6bb010d85497ccd485f1c873f2c)
 
 ## v1.0-rc10 - 2026-07-11 (Preview)
 

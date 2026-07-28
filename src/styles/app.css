@@ -372,7 +372,7 @@ button {
 
 .casl-fr-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   margin: 0;
   border-top: 1px solid var(--color-border);
 }
@@ -553,7 +553,7 @@ button {
 
 .debugger-fr-editor {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--space-6);
   padding: var(--space-8);
   border: 1px solid var(--color-border);

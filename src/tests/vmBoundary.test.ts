@@ -80,7 +80,6 @@ A    DC    #FFFF
 B    DC    1
      END`, 2);
     expect(addl.gr[1]).toBe(0x0000);
-    expect(addl.fr.c).toBe(true);
     expect(addl.fr.o).toBe(true);
 
     const subl = stepSource(`MAIN START
@@ -91,7 +90,7 @@ A    DC    0
 B    DC    1
      END`, 2);
     expect(subl.gr[1]).toBe(0xffff);
-    expect(subl.fr.c).toBe(true);
+    expect(subl.fr.o).toBe(true);
   });
 
   it("stack_pointer_wraps_for_push_pop_and_call", () => {

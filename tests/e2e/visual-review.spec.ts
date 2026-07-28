@@ -1471,11 +1471,30 @@ DATA DS 1
   await page.getByRole("dialog").getByRole("button", { name: "Apply" }).click();
   await capture(page, standardViewport, "casl-edit-sp-stack.png", false);
 
-  await page.getByRole("button", { name: "Edit register FR" }).click();
+  await capture(page, standardViewport, "casl-fr-display.png", false);
+  await page.getByTestId("casl-register-fr-edit").click();
   await page.getByRole("dialog").getByRole("checkbox", { name: "OF" }).check();
-  await page.getByRole("dialog").getByRole("checkbox", { name: "CF" }).check();
-  await capture(page, standardViewport, "casl-edit-fr.png", false);
-  await page.getByRole("dialog").getByRole("button", { name: "Cancel" }).click();
+  await page.getByRole("dialog").getByRole("checkbox", { name: "ZF" }).check();
+  await capture(page, standardViewport, "casl-fr-edit-en.png", false);
+  await page.getByRole("dialog").locator(".file-dialog-actions button").first().click();
+  await page.getByTestId("locale-ja").click();
+  await page.getByTestId("casl-register-fr-edit").click();
+  await capture(page, standardViewport, "casl-fr-edit-ja.png", false);
+  await page.getByRole("dialog").locator(".file-dialog-actions button").first().click();
+  await page.getByTestId("locale-zh-CN").click();
+  await page.getByTestId("casl-register-fr-edit").click();
+  await capture(page, standardViewport, "casl-fr-edit-zh-cn.png", false);
+  await page.getByRole("dialog").locator(".file-dialog-actions button").first().click();
+  await page.getByTestId("locale-en").click();
+  await page.setViewportSize({ width: minimumViewport.width, height: minimumViewport.height });
+  await page.getByTestId("casl-register-fr-edit").click();
+  await capture(page, minimumViewport, "casl-fr-edit-1180.png", false);
+  await page.getByRole("dialog").locator(".file-dialog-actions button").first().click();
+  await page.setViewportSize({ width: compactViewport.width, height: compactViewport.height });
+  await page.getByTestId("casl-register-fr-edit").click();
+  await capture(page, compactViewport, "casl-fr-edit-1280.png", false);
+  await page.getByRole("dialog").locator(".file-dialog-actions button").first().click();
+  await page.setViewportSize({ width: standardViewport.width, height: standardViewport.height });
 
   await page.getByRole("button", { name: "Full Clear" }).click();
   await capture(page, standardViewport, "casl-full-clear-dialog-en.png", false);
@@ -1490,9 +1509,19 @@ DATA DS 1
   await page.getByRole("dialog").getByRole("button", { name: "完全清除" }).click();
   await capture(page, standardViewport, "casl-full-clear-result.png", false);
 
+  await openStudio(page, "Mock Core");
   await page.getByTestId("locale-en").click();
-  await page.getByTestId("assemble-button").click();
-  await expect(page.getByTestId("run-state")).toHaveText("Ready");
+  await setSource(page, `MAIN START
+     LAD GR1,#8000
+     SLL GR1,1
+     RET
+     END`);
+  await assemble(page);
+  await page.getByTestId("casl-mode-toggle").click();
+  await step(page);
+  await step(page);
+  await capture(page, standardViewport, "casl-shift-of.png", false);
+
   await page.setViewportSize({ width: minimumViewport.width, height: minimumViewport.height });
   await capture(page, minimumViewport, "casl-editing-1180.png", false);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);

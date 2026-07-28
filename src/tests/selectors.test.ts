@@ -18,6 +18,6 @@ describe("presentation selectors", () => {
     const fr = state.registers.find((register) => register.name === "FR");
 
     expect(gr1 && formatRegisterDisplay(gr1, state)).toBe("000A");
-    expect(fr && formatRegisterDisplay(fr, state)).toBe("000 (Z0 C0 N0 O0)");
+    expect(fr && formatRegisterDisplay(fr, state)).toBe("000 (OF0 SF0 ZF0)");
   });
 });

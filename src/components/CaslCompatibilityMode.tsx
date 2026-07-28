@@ -9,6 +9,7 @@ import { useI18n } from "../i18n/useI18n";
 import { translateRunState } from "../i18n/locale";
 import type {
   DebuggerMemoryCategory,
+  DebuggerMutationInput,
   DebuggerMutationResult,
   DebuggerMutationTarget,
   RuntimeWordOverride
@@ -31,7 +32,7 @@ type CaslCompatibilityModeProps = {
   dataModified?: boolean;
   mutationInFlight?: boolean;
   fileOperationActive?: boolean;
-  onMutate?: (target: DebuggerMutationTarget, nextWord: number) => Promise<DebuggerMutationResult>;
+  onMutate?: (input: DebuggerMutationInput) => Promise<DebuggerMutationResult>;
   onFullClear?: () => Promise<boolean>;
 };
 
@@ -309,11 +310,11 @@ export default function CaslCompatibilityMode({
             <div><dt>OF</dt><dd>{state.fr.o ? "1" : "0"}</dd></div>
             <div><dt>SF</dt><dd>{state.fr.n ? "1" : "0"}</dd></div>
             <div><dt>ZF</dt><dd>{state.fr.z ? "1" : "0"}</dd></div>
-            <div><dt>CF</dt><dd>{state.fr.c ? "1" : "0"}</dd></div>
           </dl>
           <button
             type="button"
             className="text-button casl-fr-edit"
+            data-testid="casl-register-fr-edit"
             disabled={!editingAllowed}
             title={editingAllowed ? t("caslMode.editRegister") : editDisabledReason}
             onClick={() => setEditTarget({ kind: "flag-register" })}
@@ -493,6 +494,8 @@ function currentWordForTarget(state: CometState, target: DebuggerMutationTarget 
   if (target.kind === "general-register") return state.gr[Number(target.register.slice(2))] ?? 0;
   if (target.kind === "program-register") return state.pr;
   if (target.kind === "stack-pointer") return state.sp;
-  if (target.kind === "flag-register") return packDebuggerFlags(state.fr);
+  if (target.kind === "flag-register") {
+    return packDebuggerFlags({ of: state.fr.o, sf: state.fr.n, zf: state.fr.z });
+  }
   return state.memory[target.address & 0xffff] ?? 0;
 }

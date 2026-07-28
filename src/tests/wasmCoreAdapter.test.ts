@@ -11,7 +11,7 @@ import type { CometStateDto } from "../core/coreDto";
 import { DEFAULT_CASL_SOURCE } from "../core/defaultSource";
 import { mockCaslCore } from "../core/mockCaslCore";
 import { parseWasmJson, WasmCoreAdapter } from "../core/wasmCoreAdapter";
-import type { DebuggerMutationRequest, DebuggerMutationTarget } from "../debugger/debuggerMutation";
+import type { DebuggerMutationRequest, DebuggerOfficialFlags, DebuggerWordMutationTarget } from "../debugger/debuggerMutation";
 import type { SourceUnitId } from "../documents/types";
 import { transpileCppToCasl } from "../transpiler/cppTranspiler";
 
@@ -145,7 +145,10 @@ int main() {
     return result;
 }`;
 
-function debuggerRequest(target: DebuggerMutationTarget, nextWord: number): DebuggerMutationRequest {
+function debuggerRequest(
+  target: DebuggerWordMutationTarget,
+  nextWord: number
+): DebuggerMutationRequest & { target: DebuggerWordMutationTarget; nextWord: number } {
   return {
     mutationId: `wasm-test:${target.kind}`,
     sourceUnitId: "source:wasm-test" as SourceUnitId,
@@ -153,6 +156,19 @@ function debuggerRequest(target: DebuggerMutationTarget, nextWord: number): Debu
     executionEpoch: 1,
     target,
     nextWord
+  };
+}
+
+function debuggerFlagRequest(
+  nextFlags: DebuggerOfficialFlags = { of: true, sf: true, zf: true }
+): DebuggerMutationRequest & { target: { kind: "flag-register" }; nextFlags: DebuggerOfficialFlags } {
+  return {
+    mutationId: "wasm-test:flag-register",
+    sourceUnitId: "source:wasm-test" as SourceUnitId,
+    assemblyId: "assembly:wasm-test",
+    executionEpoch: 1,
+    target: { kind: "flag-register" },
+    nextFlags
   };
 }
 
@@ -459,7 +475,7 @@ describeWasm("WasmCoreAdapter golden parity", () => {
     await adapter.dispose();
   });
 
-  it("wasm_debugger_mutation_matches_the_four_flag_and_single_target_contract", async () => {
+  it("wasm_debugger_mutation_matches_the_three_flag_and_single_target_contract", async () => {
     const adapter = new WasmCoreAdapter();
     const ready = await adapter.assemble(ladSource);
     const start = ready.state.pr;
@@ -472,14 +488,18 @@ describeWasm("WasmCoreAdapter golden parity", () => {
     expect(register.state.stepCount).toBe(0);
 
     const flags = await adapter.mutateDebuggerState!(
-      debuggerRequest({ kind: "flag-register" }, 0x000f)
+      debuggerFlagRequest()
     );
-    expect([flags.state.frOF, flags.state.frZF, flags.state.frCF, flags.state.frSF]).toEqual([
-      true,
-      true,
-      true,
-      true
-    ]);
+    expect([flags.state.frOF, flags.state.frSF, flags.state.frZF]).toEqual([true, true, true]);
+    expect(flags.state).not.toHaveProperty("frCF");
+
+    const invalidFlags = await adapter.mutateDebuggerState!({
+      ...debuggerFlagRequest(),
+      nextFlags: { of: false, sf: false, zf: false, cf: true }
+    } as unknown as DebuggerMutationRequest);
+    expect(invalidFlags.status).toBe("rejected");
+    expect(invalidFlags.reason).toBe("invalid-value");
+    expect([invalidFlags.state.frOF, invalidFlags.state.frSF, invalidFlags.state.frZF]).toEqual([true, true, true]);
 
     const memory = await adapter.mutateDebuggerState!(
       debuggerRequest({ kind: "memory-word", address: start }, 0x0000)

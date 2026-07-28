@@ -20,7 +20,6 @@
   "frOF": false,
   "frSF": false,
   "frZF": true,
-  "frCF": false,
   "callDepth": 0,
   "currentInstructionAddress": 41,
   "currentSourceLineIndex": 7,

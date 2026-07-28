@@ -19,6 +19,10 @@ The runtime state machine exposes:
 | `Finished` | Program reached normal top-level completion |
 | `Error` | Assembly or execution cannot continue |
 
+COMET II machine state exposes an exact three-field FR schema: `OF`, `SF`, and
+`ZF`. It does not expose carry as a fourth flag. The packed debugger/bridge
+representation uses bits 2, 1, and 0 respectively and rejects any other bit.
+
 Document Dirty state is revision-derived and separate from transient file operation state. Presentation selections and persisted UI preferences do not change the VM state.
 
 Source replacement returns runtime-derived views to their unloaded defaults. Persistence hydration must not create a loaded VM, diagnostics, Generated CASL, or Dirty state.

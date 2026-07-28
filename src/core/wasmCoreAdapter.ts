@@ -3,7 +3,11 @@ import type { AssembleResultDto, CometStateDto, StepResultDto } from "./coreDto"
 import { loadWasmModule, type LoadedWasmCore } from "./wasmLoader";
 import { encodeCaslInputRecord } from "./caslIoEncoding";
 import type { CoreDebuggerMutationResult, DebuggerMutationRequest } from "../debugger/debuggerMutation";
-import { registerIndex } from "../debugger/debuggerMutation";
+import {
+  debuggerMutationWord,
+  isValidDebuggerMutationInput,
+  registerIndex
+} from "../debugger/debuggerMutation";
 
 export class WasmCoreAdapter implements CoreAdapter {
   private corePromise: Promise<LoadedWasmCore> | null = null;
@@ -53,9 +57,17 @@ export class WasmCoreAdapter implements CoreAdapter {
 
   async mutateDebuggerState(request: DebuggerMutationRequest): Promise<CoreDebuggerMutationResult> {
     const core = await this.ensureInitialized();
+    if (!isValidDebuggerMutationInput(request)) {
+      return {
+        status: "rejected",
+        reason: "invalid-value",
+        state: parseWasmJson<CometStateDto>(core.getState(), "getState", core)
+      };
+    }
     const [kind, target] = encodeMutationTarget(request);
+    const nextWord = debuggerMutationWord(request);
     return parseWasmJson<CoreDebuggerMutationResult>(
-      core.mutate(kind, target, request.nextWord),
+      core.mutate(kind, target, nextWord),
       "mutateDebuggerState",
       core
     );

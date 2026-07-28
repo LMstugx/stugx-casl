@@ -28,7 +28,6 @@ Flags flagsForArithmetic(std::int32_t value, bool overflow) {
     const auto result = static_cast<std::uint16_t>(value & 0xffff);
     return {
         result == 0,
-        value > 0xffff || value < 0,
         (result & 0x8000) != 0,
         overflow
     };
@@ -37,7 +36,6 @@ Flags flagsForArithmetic(std::int32_t value, bool overflow) {
 Flags flagsForLogicalResult(std::uint16_t value) {
     return {
         value == 0,
-        false,
         (value & 0x8000) != 0,
         false
     };
@@ -49,7 +47,6 @@ Flags flagsForLogicalAdd(std::uint16_t lhs, std::uint16_t rhs) {
     const auto carry = sum > 0xffff;
     return {
         result == 0,
-        carry,
         (result & 0x8000) != 0,
         carry
     };
@@ -60,7 +57,6 @@ Flags flagsForLogicalSub(std::uint16_t lhs, std::uint16_t rhs) {
     const auto borrow = lhs < rhs;
     return {
         result == 0,
-        borrow,
         (result & 0x8000) != 0,
         borrow
     };
@@ -70,7 +66,6 @@ Flags flagsForCompare(std::uint16_t lhs, std::uint16_t rhs) {
     const auto diff = toSigned16(lhs) - toSigned16(rhs);
     return {
         diff == 0,
-        false,
         diff < 0,
         false
     };
@@ -79,7 +74,6 @@ Flags flagsForCompare(std::uint16_t lhs, std::uint16_t rhs) {
 Flags flagsForLogicalCompare(std::uint16_t lhs, std::uint16_t rhs) {
     return {
         lhs == rhs,
-        false,
         lhs < rhs,
         false
     };
@@ -93,7 +87,6 @@ struct ShiftResult {
 Flags flagsForShift(std::uint16_t value, bool shiftedOut) {
     return {
         value == 0,
-        false,
         (value & 0x8000) != 0,
         shiftedOut
     };
@@ -866,10 +859,9 @@ bool CometVm::setStackPointer(std::uint32_t address) {
 void CometVm::setFlagsPacked(std::uint16_t value) {
     if (!hasProgram_) return;
     state_.fr = {
-        (value & 0b0100) != 0,
-        (value & 0b0010) != 0,
         (value & 0b0001) != 0,
-        (value & 0b1000) != 0
+        (value & 0b0010) != 0,
+        (value & 0b0100) != 0
     };
     prepareAfterManualMutation();
 }

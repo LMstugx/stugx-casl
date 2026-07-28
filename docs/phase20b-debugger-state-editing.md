@@ -6,6 +6,12 @@
 - Classification: Historical
 - Related: [Phase 20A Audit](phase20a-wcasl-parity-audit.md), [Debugger Mutation Contract](debugger-mutation-contract.md)
 
+> Specification correction: the initial Phase 20B implementation exposed an
+> extra carry field in public FR state. Phase 20B.1 removed it and froze the
+> official `OF` / `SF` / `ZF` schema before Phase 20B was merged. See
+> [Phase 20B.1](phase20b1-fr-spec-alignment.md) and
+> [ADR 0015](adr/0015-comet-flag-register-three-bit-contract.md).
+
 ## Scope
 
 Phase 20B adds atomic editing for `GR0`-`GR7`, PR, SP, current FR bits, and one Memory word at a time. It also adds a destructive Full Clear that unloads machine state without changing source or persistence.
@@ -43,3 +49,12 @@ Reverse Step, COMET microcycle runtime, multi-program linking, and WCASL project
 - dependency audit: no known vulnerabilities
 
 The existing production main-chunk size warning remains an accepted Phase 17 limitation and is not caused by debugger state editing.
+
+## Post-Alignment Verification
+
+Phase 20B.1 corrected the public FR schema before merge and reran the complete
+matrix. The corrected result is 1,515 Vitest tests, 69 Mock/WASM browser E2E
+tests, 17 WASM-focused browser E2E tests, 71 native C++ tests, 24 WASM adapter
+tests, root/subpath production smoke, three-viewport visual review, stress,
+Tauri release/NSIS verification, and a zero-vulnerability dependency audit.
+The Phase 20B result remains **PASS** under the official three-bit FR contract.

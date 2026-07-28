@@ -65,7 +65,8 @@ export const CANONICAL_DOCS = Object.freeze([
   "docs/adr/0009-static-cloudflare-deployment.md",
   "docs/adr/0010-double-teaching-abi.md",
   "docs/adr/0013-wcasl-compatible-workflow.md",
-  "docs/adr/0014-debugger-runtime-mutation.md"
+  "docs/adr/0014-debugger-runtime-mutation.md",
+  "docs/adr/0015-comet-flag-register-three-bit-contract.md"
 ]);
 
 export const REQUIRED_HEADER_FIELDS = Object.freeze([

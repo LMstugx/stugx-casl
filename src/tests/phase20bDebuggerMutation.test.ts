@@ -3,8 +3,11 @@ import type { SourceUnitId } from "../documents/types";
 import {
   packDebuggerFlags,
   parseDebuggerWord,
+  isDebuggerOfficialFlags,
   isValidDebuggerMutationTarget,
   type DebuggerMutationRequest,
+  type DebuggerOfficialFlags,
+  type DebuggerWordMutationTarget,
   type DebuggerRegisterName,
   type DebuggerMutationTarget
 } from "../debugger/debuggerMutation";
@@ -20,7 +23,10 @@ const mutationSource = `MAIN START
 DATA DS    1
      END`;
 
-function request(target: DebuggerMutationTarget, nextWord: number): DebuggerMutationRequest {
+function request(
+  target: DebuggerWordMutationTarget,
+  nextWord: number
+): DebuggerMutationRequest & { target: DebuggerWordMutationTarget; nextWord: number } {
   return {
     mutationId: `test:${target.kind}`,
     sourceUnitId: "source:test" as SourceUnitId,
@@ -28,6 +34,19 @@ function request(target: DebuggerMutationTarget, nextWord: number): DebuggerMuta
     executionEpoch: 1,
     target,
     nextWord
+  };
+}
+
+function flagRequest(
+  nextFlags: DebuggerOfficialFlags = { of: true, sf: true, zf: true }
+): DebuggerMutationRequest & { target: { kind: "flag-register" }; nextFlags: DebuggerOfficialFlags } {
+  return {
+    mutationId: "test:flag-register",
+    sourceUnitId: "source:test" as SourceUnitId,
+    assemblyId: "assembly:test",
+    executionEpoch: 1,
+    target: { kind: "flag-register" },
+    nextFlags
   };
 }
 
@@ -52,8 +71,10 @@ describe("Phase 20B debugger word parsing", () => {
   });
 
   it("packs_only_the_existing_comet_flag_schema", () => {
-    expect(packDebuggerFlags({ o: true, z: true, c: true, n: true })).toBe(0x000f);
-    expect(packDebuggerFlags({ o: false, z: true, c: false, n: true })).toBe(0x0005);
+    expect(packDebuggerFlags({ of: true, sf: true, zf: true })).toBe(0x0007);
+    expect(packDebuggerFlags({ of: false, sf: true, zf: true })).toBe(0x0003);
+    expect(isDebuggerOfficialFlags({ of: true, sf: false, zf: true })).toBe(true);
+    expect(isDebuggerOfficialFlags({ of: true, sf: false, zf: true, cf: true })).toBe(false);
   });
 
   it("rejects_invalid_runtime_targets_without_address_wrapping", () => {
@@ -79,10 +100,9 @@ describe("Phase 20B Mock debugger mutation", () => {
       expect(result.previousWord).toBe(before.gr[index]);
       expect(result.state.gr[index]).toBe(0x1200 + index);
       expect(result.state.gr.filter((value, candidate) => candidate !== index && value !== before.gr[candidate])).toEqual([]);
-      expect([result.state.frOF, result.state.frZF, result.state.frCF, result.state.frSF]).toEqual([
+      expect([result.state.frOF, result.state.frZF, result.state.frSF]).toEqual([
         before.frOF,
         before.frZF,
-        before.frCF,
         before.frSF
       ]);
       expect(result.state.stepCount).toBe(before.stepCount);
@@ -103,14 +123,28 @@ describe("Phase 20B Mock debugger mutation", () => {
     expect(sp.state.sp).toBe(0x8123);
     expect(sp.state.stepCount).toBe(0);
 
-    const fr = await adapter.mutateDebuggerState!(request({ kind: "flag-register" }, 0x000f));
-    expect([fr.state.frOF, fr.state.frZF, fr.state.frCF, fr.state.frSF]).toEqual([true, true, true, true]);
+    const fr = await adapter.mutateDebuggerState!(flagRequest());
+    expect([fr.state.frOF, fr.state.frZF, fr.state.frSF]).toEqual([true, true, true]);
     expect(fr.state.stepCount).toBe(0);
 
     const memory = await adapter.mutateDebuggerState!(request({ kind: "memory-word", address: dataAddress }, 0xffff));
     expect(memory.previousWord).toBe(0);
     expect(memory.state.memoryWindow.find((row) => row.address === dataAddress)?.value).toBe(0xffff);
     expect(memory.state.stepCount).toBe(0);
+  });
+
+  it("rejects_unknown_flag_fields_without_changing_state", async () => {
+    const adapter = new MockCoreAdapter();
+    await adapter.assemble(mutationSource);
+    const before = await adapter.getState();
+    const invalid = {
+      ...flagRequest(),
+      nextFlags: { of: true, sf: false, zf: true, cf: true }
+    } as unknown as DebuggerMutationRequest;
+    const result = await adapter.mutateDebuggerState!(invalid);
+    expect(result.status).toBe("rejected");
+    expect(result.reason).toBe("invalid-value");
+    expect(result.state).toEqual(before);
   });
 
   it("supports_all_memory_addresses_and_all_16_bit_word_values", () => {
@@ -168,7 +202,7 @@ describe("Phase 20B Mock debugger mutation", () => {
     const cleared = await adapter.fullClear!();
     expect(cleared.runState).toBe("Idle");
     expect(cleared.gr).toEqual(Array(8).fill(0));
-    expect(cleared.frOF || cleared.frSF || cleared.frZF || cleared.frCF).toBe(false);
+    expect(cleared.frOF || cleared.frSF || cleared.frZF).toBe(false);
     expect(cleared.stepCount).toBe(0);
     expect(cleared.sourceRows).toEqual([]);
     expect(cleared.consoleOutput).toBeUndefined();
@@ -292,6 +326,25 @@ describe("Phase 20B ownership, epoch, and Full Clear reducer barriers", () => {
     });
   });
 
+  it("flag_register_trace_records_only_the_three_official_flags", () => {
+    const { state, cometState } = assembledState();
+    const mutation = flagRequest({ of: true, sf: false, zf: true });
+    mutation.sourceUnitId = state.currentDocument.sourceUnitId;
+    mutation.executionEpoch = state.executionEpoch;
+    const nextEpoch = state.executionEpoch + 1;
+    const started = appStoreReducer(state, { type: "mutationStarted", request: mutation, nextEpoch });
+    const changed = mockCaslCore.mutate(cometState, mutation.target, packDebuggerFlags(mutation.nextFlags));
+    const committed = appStoreReducer(started, {
+      type: "mutationCommitted",
+      request: mutation,
+      nextEpoch,
+      cometState: changed.state,
+      previousWord: changed.previousWord
+    });
+    expect(committed.cometState.trace[0]?.detail).toBe("OF: 0 -> 1; SF: 0 -> 0; ZF: 0 -> 1");
+    expect(committed.cometState.trace[0]?.detail).not.toMatch(/\bCF\b/);
+  });
+
   it("full_clear_preserves_source_document_dirty_and_preferences_but_drops_machine_ownership", () => {
     const { state } = assembledState();
     const dirtyLoaded = { ...state, isSourceDirty: true };
@@ -320,7 +373,6 @@ describe("Phase 20B ownership, epoch, and Full Clear reducer barriers", () => {
         frOF: false,
         frSF: false,
         frZF: false,
-        frCF: false,
         currentInstructionAddress: null,
         currentSourceLineIndex: null,
         currentInstructionText: null,

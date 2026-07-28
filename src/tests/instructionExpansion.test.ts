@@ -196,7 +196,7 @@ describe("Phase 5A instruction expansion", () => {
 
     expect(state.pr).toBe(0x21);
     expect(state.gr).toEqual([0, 0, 0, 0, 0, 0, 0, 0]);
-    expect(state.fr).toEqual({ z: false, c: false, n: false, o: false });
+    expect(state.fr).toEqual({ z: false, n: false, o: false });
     expect(state.visualPath).toBe(VisualPathKind.None);
   });
 
@@ -223,7 +223,7 @@ describe("Phase 5A instruction expansion", () => {
 
     expect(state.gr[1]).toBe(0x000f);
     expect(state.pr).toBe(0x24);
-    expect(state.fr).toEqual({ z: false, c: false, n: false, o: false });
+    expect(state.fr).toEqual({ z: false, n: false, o: false });
     expect(state.visualPath).toBe(VisualPathKind.SUBA_GrMdrToAluToGr);
   });
 
@@ -247,7 +247,7 @@ B    DC    1
      END`, 2);
 
     expect(state.gr[1]).toBe(0x0000);
-    expect(state.fr).toEqual({ z: true, c: true, n: false, o: true });
+    expect(state.fr).toEqual({ z: true, n: false, o: true });
     expect(state.visualPath).toBe(VisualPathKind.ADDA_GrMdrToAluToGr);
   });
 
@@ -261,7 +261,7 @@ B    DC    1
      END`, 2);
 
     expect(state.gr[1]).toBe(0xffff);
-    expect(state.fr).toEqual({ z: false, c: true, n: true, o: true });
+    expect(state.fr).toEqual({ z: false, n: true, o: true });
     expect(state.visualPath).toBe(VisualPathKind.SUBA_GrMdrToAluToGr);
   });
 
@@ -269,7 +269,7 @@ B    DC    1
     const state = stepTimes(logicSource, 2);
 
     expect(state.gr[1]).toBe(0x0000);
-    expect(state.fr).toEqual({ z: true, c: false, n: false, o: false });
+    expect(state.fr).toEqual({ z: true, n: false, o: false });
     expect(state.visualPath).toBe(VisualPathKind.ADDA_GrMdrToAluToGr);
   });
 
@@ -277,21 +277,21 @@ B    DC    1
     const state = stepTimes(logicSource, 3);
 
     expect(state.gr[1]).toBe(0x0003);
-    expect(state.fr).toEqual({ z: false, c: false, n: false, o: false });
+    expect(state.fr).toEqual({ z: false, n: false, o: false });
   });
 
   it("execute_xor", () => {
     const state = stepTimes(logicSource, 4);
 
     expect(state.gr[1]).toBe(0x0002);
-    expect(state.fr).toEqual({ z: false, c: false, n: false, o: false });
+    expect(state.fr).toEqual({ z: false, n: false, o: false });
   });
 
   it("steps CPA equal", () => {
     const state = stepTimes(cpaEqualSource, 2);
 
     expect(state.gr[1]).toBe(0x000a);
-    expect(state.fr).toEqual({ z: true, c: false, n: false, o: false });
+    expect(state.fr).toEqual({ z: true, n: false, o: false });
     expect(state.visualPath).toBe(VisualPathKind.CPA_GrMdrToAluToFr);
   });
 
@@ -299,7 +299,7 @@ B    DC    1
     const state = stepTimes(cpaNegativeSource, 2);
 
     expect(state.gr[1]).toBe(0x0005);
-    expect(state.fr).toEqual({ z: false, c: false, n: true, o: false });
+    expect(state.fr).toEqual({ z: false, n: true, o: false });
     expect(state.visualPath).toBe(VisualPathKind.CPA_GrMdrToAluToFr);
   });
 
@@ -313,7 +313,7 @@ B    DC    #FFFF
      END`, 2);
 
     expect(state.gr[1]).toBe(0xffff);
-    expect(state.fr).toEqual({ z: true, c: false, n: false, o: false });
+    expect(state.fr).toEqual({ z: true, n: false, o: false });
     expect(state.visualPath).toBe(VisualPathKind.CPA_GrMdrToAluToFr);
   });
 
@@ -327,8 +327,8 @@ B    DC    2
      END`, 2);
     const greater = stepTimes(cplSource, 2);
 
-    expect(less.fr).toEqual({ z: false, c: false, n: true, o: false });
-    expect(greater.fr).toEqual({ z: false, c: false, n: false, o: false });
+    expect(less.fr).toEqual({ z: false, n: true, o: false });
+    expect(greater.fr).toEqual({ z: false, n: false, o: false });
   });
 
   it("steps JUMP", () => {
@@ -410,7 +410,7 @@ A    DC    3
      END`, 2);
 
     expect(state.gr[1]).toBe(0x0006);
-    expect(state.fr).toEqual({ z: false, c: false, n: false, o: false });
+    expect(state.fr).toEqual({ z: false, n: false, o: false });
     expect(state.visualPath).toBe(VisualPathKind.Shift_AddressToAluToGr);
   });
 
@@ -423,7 +423,7 @@ A    DC    6
      END`, 2);
 
     expect(state.gr[1]).toBe(0x0003);
-    expect(state.fr).toEqual({ z: false, c: false, n: false, o: false });
+    expect(state.fr).toEqual({ z: false, n: false, o: false });
   });
 
   it("execute_sla_basic", () => {
@@ -435,7 +435,7 @@ A    DC    #8001
      END`, 2);
 
     expect(state.gr[1]).toBe(0x8002);
-    expect(state.fr).toEqual({ z: false, c: false, n: true, o: false });
+    expect(state.fr).toEqual({ z: false, n: true, o: false });
   });
 
   it("execute_sra_preserves_sign", () => {
@@ -447,7 +447,7 @@ A    DC    #8002
      END`, 2);
 
     expect(state.gr[1]).toBe(0xc001);
-    expect(state.fr).toEqual({ z: false, c: false, n: true, o: false });
+    expect(state.fr).toEqual({ z: false, n: true, o: false });
   });
 
   it("shift_updates_gr", () => {
@@ -466,7 +466,7 @@ A    DC    1
      END`, 2);
 
     expect(state.gr[1]).toBe(0x0000);
-    expect(state.fr).toEqual({ z: true, c: false, n: false, o: true });
+    expect(state.fr).toEqual({ z: true, n: false, o: true });
   });
 
   it("shift_updates_fr_overflow_when_bit_shifted_out", () => {
@@ -490,7 +490,7 @@ A    DC    #8001
      END`, 2);
 
     expect(state.gr[1]).toBe(0x8001);
-    expect(state.fr).toEqual({ z: false, c: false, n: true, o: false });
+    expect(state.fr).toEqual({ z: false, n: true, o: false });
   });
 
   it("shift_count_large_is_stable", () => {
@@ -628,7 +628,7 @@ A    DC    3
     expect(state.memory[0xfffd]).toBe(state.symbols.B);
     expect(state.lastMemoryWriteAddress).toBe(0xfffd);
     expect(state.mdr).toBe(state.symbols.B);
-    expect(state.fr).toEqual({ z: false, c: false, n: false, o: false });
+    expect(state.fr).toEqual({ z: false, n: false, o: false });
     expect(state.visualPath).toBe(VisualPathKind.PUSH_EffectiveAddressToStack);
     expect(state.trace[0].detail).toContain("SP: FFFE -> FFFD");
   });
@@ -640,7 +640,7 @@ A    DC    3
     expect(state.sp).toBe(0xfffe);
     expect(state.lastMemoryReadAddress).toBe(0xfffd);
     expect(state.lastMemoryWriteAddress).toBeUndefined();
-    expect(state.fr).toEqual({ z: false, c: false, n: false, o: false });
+    expect(state.fr).toEqual({ z: false, n: false, o: false });
     expect(state.visualPath).toBe(VisualPathKind.POP_StackToGr);
     expect(state.trace[0].detail).toContain("Read MEM[FFFD]");
   });
@@ -712,7 +712,7 @@ SUB  RET
     expect(state.memory[0xfffd]).toBe(0x0024);
     expect(state.lastMemoryWriteAddress).toBe(0xfffd);
     expect(state.callDepth).toBe(1);
-    expect(state.fr).toEqual({ z: false, c: false, n: false, o: false });
+    expect(state.fr).toEqual({ z: false, n: false, o: false });
     expect(state.visualPath).toBe(VisualPathKind.CALL_ReturnAddressToStackAndPr);
     expect(state.trace[0].detail).toContain("return: 0024");
     expect(state.trace[0].detail).toContain("callDepth: 0 -> 1");
@@ -814,8 +814,8 @@ RESULT DS  1
     const afterCall = stepTimes(callReturnSource, 2);
     const afterRet = stepTimes(callReturnSource, 4);
 
-    expect(afterCall.fr).toEqual({ z: false, c: false, n: false, o: false });
-    expect(afterRet.fr).toEqual({ z: false, c: false, n: false, o: false });
+    expect(afterCall.fr).toEqual({ z: false, n: false, o: false });
+    expect(afterRet.fr).toEqual({ z: false, n: false, o: false });
   });
 
   it("call_depth_resets_on_reset", () => {

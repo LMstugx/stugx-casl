@@ -3,10 +3,11 @@ import { useEffect, useId, useRef, useState } from "react";
 import type { CaslNumericDisplayMode } from "../core/caslNumericFormat";
 import { formatCaslWord } from "../core/caslNumericFormat";
 import {
-  packDebuggerFlags,
   parseDebuggerWord,
   targetDisplayName,
+  unpackDebuggerFlags,
   type DebuggerMemoryCategory,
+  type DebuggerMutationInput,
   type DebuggerMutationResult,
   type DebuggerMutationTarget
 } from "../debugger/debuggerMutation";
@@ -19,7 +20,7 @@ type DebuggerEditDialogProps = {
   memoryCategory?: DebuggerMemoryCategory;
   label?: string;
   onCancel: () => void;
-  onApply: (target: DebuggerMutationTarget, nextWord: number) => Promise<DebuggerMutationResult>;
+  onApply: (input: DebuggerMutationInput) => Promise<DebuggerMutationResult>;
 };
 
 export function DebuggerEditDialog({
@@ -38,7 +39,7 @@ export function DebuggerEditDialog({
   const dialogRef = useRef<HTMLDivElement>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
   const [valueText, setValueText] = useState("");
-  const [frFlags, setFrFlags] = useState({ o: false, n: false, z: false, c: false });
+  const [frFlags, setFrFlags] = useState({ of: false, sf: false, zf: false });
   const [programConfirmed, setProgramConfirmed] = useState(false);
   const [error, setError] = useState<"invalid-format" | "out-of-range" | "backend" | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -46,12 +47,7 @@ export function DebuggerEditDialog({
   useEffect(() => {
     if (!target) return;
     setValueText(formatCaslWord(currentWord, numericMode));
-    setFrFlags({
-      o: Boolean(currentWord & 0b1000),
-      z: Boolean(currentWord & 0b0100),
-      c: Boolean(currentWord & 0b0010),
-      n: Boolean(currentWord & 0b0001)
-    });
+    setFrFlags(unpackDebuggerFlags(currentWord));
     setProgramConfirmed(false);
     setError(null);
     setSubmitting(false);
@@ -69,10 +65,8 @@ export function DebuggerEditDialog({
     && previewWord.word < 0x8000;
   const title = target.kind === "memory-word" ? t("caslMode.editMemoryWord") : t("caslMode.editRegister");
   const apply = async () => {
-    const parsed = isFr
-      ? { ok: true as const, word: packDebuggerFlags(frFlags) }
-      : parseDebuggerWord(valueText, numericMode);
-    if (!parsed.ok) {
+    const parsed = isFr ? null : parseDebuggerWord(valueText, numericMode);
+    if (parsed && !parsed.ok) {
       setError(parsed.reason);
       return;
     }
@@ -81,7 +75,11 @@ export function DebuggerEditDialog({
       return;
     }
     setSubmitting(true);
-    const result = await onApply(target, parsed.word);
+    const result = await onApply(
+      isFr
+        ? { target, nextFlags: frFlags }
+        : { target, nextWord: parsed!.word }
+    );
     setSubmitting(false);
     if (result.status === "applied") onCancel();
     else setError("backend");
@@ -108,7 +106,7 @@ export function DebuggerEditDialog({
 
         <dl className="debugger-edit-summary">
           <div><dt>{t("caslMode.currentValue")}</dt><dd><code>{formatCaslWord(currentWord, numericMode)}</code></dd></div>
-          <div><dt>{t("caslMode.numberFormat")}</dt><dd>{numericMode}</dd></div>
+          {!isFr ? <div><dt>{t("caslMode.numberFormat")}</dt><dd>{numericMode}</dd></div> : null}
           {memoryCategory ? <div><dt>{t("caslMode.kind")}</dt><dd>{memoryCategory}</dd></div> : null}
         </dl>
 
@@ -116,10 +114,9 @@ export function DebuggerEditDialog({
           <fieldset className="debugger-fr-editor">
             <legend>FR</legend>
             {([
-              ["o", "OF"],
-              ["n", "SF"],
-              ["z", "ZF"],
-              ["c", "CF"]
+              ["of", "OF"],
+              ["sf", "SF"],
+              ["zf", "ZF"]
             ] as const).map(([flag, label]) => (
               <label key={flag}>
                 <input

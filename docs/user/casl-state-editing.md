@@ -10,7 +10,7 @@ CASL Mode can edit the loaded COMET II teaching state without changing source.
 
 ## Registers
 
-Activate a value for `GR0` through `GR7`, `PR`, or `SP`, enter a value in the current numeric format, and choose Apply. FR uses checkboxes for `OF`, `ZF`, `CF`, and `SF`. `MAR` and `MDR` remain read-only.
+Activate a value for `GR0` through `GR7`, `PR`, or `SP`, enter a value in the current numeric format, and choose Apply. FR uses exactly three checkboxes: `OF`, `SF`, and `ZF`. They are applied atomically. `MAR` and `MDR` remain read-only.
 
 Manual register editing:
 

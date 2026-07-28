@@ -22,8 +22,7 @@ function flagsFromDto(dto: CometStateDto): FlagsState {
   return {
     o: dto.frOF,
     n: dto.frSF,
-    z: dto.frZF,
-    c: dto.frCF
+    z: dto.frZF
   };
 }
 
@@ -187,7 +186,7 @@ function registerRowsFromDto(dto: CometStateDto, changedRegisters: string[]): Re
     { name: "MDR", value: dto.mdr, decimal: dto.mdr, changed: changed.has("MDR") },
     {
       name: "FR",
-      value: (dto.frZF ? 0b100 : 0) | (dto.frCF ? 0b010 : 0) | (dto.frSF ? 0b001 : 0),
+      value: (dto.frOF ? 0b100 : 0) | (dto.frSF ? 0b010 : 0) | (dto.frZF ? 0b001 : 0),
       decimal: 0,
       changed: changed.has("FR")
     }
@@ -413,7 +412,6 @@ export function createEmptyUiCometState(runState: CometState["runState"] = "Idle
     frOF: false,
     frSF: false,
     frZF: false,
-    frCF: false,
     currentInstructionAddress: null,
     currentSourceLineIndex: null,
     currentInstructionText: null,

@@ -65,15 +65,17 @@ For address-form instructions, word 0 stores opcode/register/index fields and wo
 
 ## FR and Overflow Notes
 
-The current FR model has `ZF`, `CF`, `SF`, and `OF`.
+Phase 20B.1 aligned the runtime with the official three-bit COMET II FR:
+`OF`, `SF`, and `ZF`.
 
-- `ADDL` performs unsigned 16-bit addition. The result wraps to 16 bits. Carry out of bit 15 sets both `CF` and `OF` in this teaching VM so `JOV` can demonstrate the overflow/carry path.
-- `SUBL` performs unsigned 16-bit subtraction. Borrow sets both `CF` and `OF`.
-- `AND`, `OR`, and `XOR` update `ZF` and `SF`, and clear `CF` / `OF`.
+- `ADDL` performs unsigned 16-bit addition. The result wraps to 16 bits. Carry out of bit 15 sets `OF`.
+- `SUBL` performs unsigned 16-bit subtraction. Borrow sets `OF`.
+- `AND`, `OR`, and `XOR` update `ZF` and `SF`, and clear `OF`.
 - `CPL` compares operands as unsigned 16-bit values. It updates `ZF` and `SF`; it does not write a GR register.
 - `NOP` does not change FR.
 
-This is documented as a simplified learning model. A later phase can refine exact COMET II flag compatibility if needed.
+Carry and borrow remain private arithmetic intermediates only; they are not
+public VM state, DTO fields, debugger controls, or serialized data.
 
 ## Visual Path Reuse
 

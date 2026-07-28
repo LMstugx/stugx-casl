@@ -22,13 +22,14 @@ import type { LessonProgressState } from "../lessonProgress/types";
 import { CppStorageObject, CppToCaslMap, transpileCppToCasl } from "../transpiler/cppTranspiler";
 import {
   categorizeMemoryAddress,
-  isDebuggerWord,
-  isValidDebuggerMutationTarget,
+  debuggerMutationWord,
+  isValidDebuggerMutationInput,
   sourceMappingConfidenceFor,
   targetDisplayName,
+  unpackDebuggerFlags,
+  type DebuggerMutationInput,
   type DebuggerMutationRequest,
   type DebuggerMutationResult,
-  type DebuggerMutationTarget,
   type DebuggerMemoryCategory,
   type RuntimeWordOverride
 } from "../debugger/debuggerMutation";
@@ -104,7 +105,7 @@ type AppStoreActions = {
   step: () => void;
   reset: () => void;
   reload: (mode: ReloadInitializationMode) => void;
-  mutateDebuggerState: (target: DebuggerMutationTarget, nextWord: number) => Promise<DebuggerMutationResult>;
+  mutateDebuggerState: (input: DebuggerMutationInput) => Promise<DebuggerMutationResult>;
   fullClear: () => Promise<boolean>;
   stop: () => void;
   submitConsoleInput: (text: string, endOfFile?: boolean) => void;
@@ -496,13 +497,14 @@ export function appStoreReducer(state: AppStoreState, action: AppStoreAction): A
     let runtimeOverrides = state.runtimeOverrides;
     let mutationCategory: DebuggerMemoryCategory | undefined;
     if (target.kind === "memory-word") {
+      const nextWord = debuggerMutationWord(action.request);
       const address = target.address & 0xffff;
       const existing = state.runtimeOverrides[address];
       const originalWord = existing?.originalWord
         ?? state.cometState.initialMemory?.[address]
         ?? action.previousWord;
       mutationCategory = categorizeMemoryAddress(state.cometState.sourceMap, address, action.cometState.sp);
-      if (action.request.nextWord === originalWord) {
+      if (nextWord === originalWord) {
         runtimeOverrides = { ...state.runtimeOverrides };
         delete runtimeOverrides[address];
       } else {
@@ -511,7 +513,7 @@ export function appStoreReducer(state: AppStoreState, action: AppStoreAction): A
           [address]: {
             address,
             originalWord,
-            currentWord: action.request.nextWord,
+            currentWord: nextWord,
             category: mutationCategory,
             sourceMappingConfidence: sourceMappingConfidenceFor(mutationCategory, true)
           }
@@ -949,21 +951,22 @@ export function AppStoreProvider({
           }
         })();
       },
-      mutateDebuggerState: async (target, nextWord) => {
+      mutateDebuggerState: async (input) => {
         const snapshot = stateRef.current;
-        const failure = debuggerMutationFailure(snapshot, target, nextWord);
+        const failure = debuggerMutationFailure(snapshot, input);
         if (failure) return { status: "rejected", reason: failure };
         if (mutationActiveRef.current) return { status: "rejected", reason: "transaction-active" };
 
         const assemblyId = snapshot.assemblyId;
         if (!assemblyId) return { status: "rejected", reason: "not-loaded" };
+        const target = input.target;
+        const nextWord = debuggerMutationWord(input);
         const request: DebuggerMutationRequest = {
           mutationId: `debugger-mutation:${++mutationSequenceRef.current}`,
           sourceUnitId: snapshot.currentDocument.sourceUnitId,
           assemblyId,
           executionEpoch: snapshot.executionEpoch,
-          target,
-          nextWord
+          ...input
         };
         const nextEpoch = snapshot.executionEpoch + 1;
         mutationActiveRef.current = true;
@@ -1135,10 +1138,9 @@ function executionOwnerMatches(state: AppStoreState, owner: ExecutionOwner): boo
 
 function debuggerMutationFailure(
   state: AppStoreState,
-  target: DebuggerMutationTarget,
-  nextWord: number
+  input: DebuggerMutationInput
 ): DebuggerMutationResult["reason"] | undefined {
-  if (!isDebuggerWord(nextWord) || !isValidDebuggerMutationTarget(target)) return "invalid-value";
+  if (!isValidDebuggerMutationInput(input)) return "invalid-value";
   if (state.mutationInFlight) return "transaction-active";
   if (state.isSourceDirty) return "source-dirty";
   if (!state.assemblyId || !state.cometState.assembled) return "not-loaded";
@@ -1168,6 +1170,13 @@ function createDebuggerTraceEvent(
   const isMemory = request.target.kind === "memory-word";
   const isProgramWord = isMemory && memoryCategory === "program";
   const memoryAddress = request.target.kind === "memory-word" ? request.target.address & 0xffff : undefined;
+  const nextWord = debuggerMutationWord(request);
+  const flagDetail = "nextFlags" in request
+    ? (() => {
+        const previous = unpackDebuggerFlags(previousWord);
+        return `OF: ${Number(previous.of)} -> ${Number(request.nextFlags.of)}; SF: ${Number(previous.sf)} -> ${Number(request.nextFlags.sf)}; ZF: ${Number(previous.zf)} -> ${Number(request.nextFlags.zf)}`;
+      })()
+    : undefined;
   return {
     kind: isMemory ? "debugger-memory-edit" : "debugger-register-edit",
     eventId: request.mutationId,
@@ -1178,15 +1187,15 @@ function createDebuggerTraceEvent(
       : isMemory
         ? "Manual memory edit"
         : "Manual register edit",
-    detail: `${target}: ${formatWord(previousWord)} -> ${formatWord(request.nextWord)}`,
+    detail: flagDetail ?? `${target}: ${formatWord(previousWord)} -> ${formatWord(nextWord)}`,
     pr: state.cometState.pr,
     visualPath: VisualPathKind.None,
     changedRegister: isMemory ? undefined : target,
     changedRegisterValueBefore: isMemory ? undefined : previousWord,
-    changedRegisterValueAfter: isMemory ? undefined : request.nextWord,
+    changedRegisterValueAfter: isMemory ? undefined : nextWord,
     changedMemoryAddress: memoryAddress,
     changedMemoryValueBefore: isMemory ? previousWord : undefined,
-    changedMemoryValueAfter: isMemory ? request.nextWord : undefined,
+    changedMemoryValueAfter: isMemory ? nextWord : undefined,
     runState: "Ready",
     sourceUnitId: request.sourceUnitId,
     assemblyId: request.assemblyId,

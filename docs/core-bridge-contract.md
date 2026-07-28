@@ -110,7 +110,6 @@ type CometStateDto = {
   frOF: boolean;
   frSF: boolean;
   frZF: boolean;
-  frCF: boolean;
   currentInstructionAddress: number | null;
   currentSourceLineIndex: number | null;
   currentInstructionText: string | null;
@@ -147,7 +146,8 @@ type StepResultDto = {
 - `ir0` is the currently latched instruction word.
 - `ir1` is the second word for the current or last two-word instruction. It is `null` for one-word instructions such as `RET`.
 - `gr` must contain exactly eight numbers.
-- `frOF`, `frSF`, `frZF`, and `frCF` map to overflow, sign, zero, and carry.
+- `frOF`, `frSF`, and `frZF` are the complete public COMET II flag-register
+  schema. No carry field is serialized.
 - `currentSourceLineIndex` currently uses the 1-based source line number used by the parser and SourceMap.
 - `effectiveAddress` is the resolved operand address for the last executed instruction, when present.
 - `lastMemoryReadAddress` is set for `LD`, `ADDA`, `SUBA`, and `CPA`.

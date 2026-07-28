@@ -118,15 +118,17 @@ C++ state records the latest execution facts used for visual bridge mapping:
 
 - `ZF`: true when the 16-bit result is zero.
 - `SF`: true when bit 15 of the 16-bit result is set.
-- `CF`: true when the unsigned arithmetic result is outside `0x0000..0xFFFF`.
 - `OF`: true when signed 16-bit addition/subtraction overflows.
 
 `CPA` updates:
 
 - `ZF`: true when signed `GRn` equals signed memory operand.
 - `SF`: true when signed `GRn` is less than signed memory operand.
-- `CF`: false.
 - `OF`: false.
+
+COMET II FR exposes exactly `OF`, `SF`, and `ZF`. Unsigned carry or borrow
+needed while implementing `ADDL` or `SUBL` is an internal arithmetic
+intermediate and is represented publicly through `OF` as specified.
 
 `LAD`, `JUMP`, conditional jumps, `ST`, and `RET` do not update FR in the Phase 5A contract.
 

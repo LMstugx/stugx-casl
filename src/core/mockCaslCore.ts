@@ -104,7 +104,7 @@ export interface CaslCore {
 }
 
 function initialFlags(): FlagsState {
-  return { z: false, c: false, n: false, o: false };
+  return { z: false, n: false, o: false };
 }
 
 function cloneState(state: CometState): CometState {
@@ -907,7 +907,6 @@ function setFlagsForArithmeticResult(value: number, overflow = false): FlagsStat
   const result = word(value);
   return {
     z: result === 0,
-    c: value > 0xffff || value < 0,
     n: (result & 0x8000) !== 0,
     o: overflow
   };
@@ -917,7 +916,6 @@ function setFlagsForLogicalResult(value: number): FlagsState {
   const result = word(value);
   return {
     z: result === 0,
-    c: false,
     n: (result & 0x8000) !== 0,
     o: false
   };
@@ -928,7 +926,6 @@ function setFlagsForLogicalAdd(lhs: number, rhs: number): FlagsState {
   const carry = result > 0xffff;
   return {
     z: word(result) === 0,
-    c: carry,
     n: (word(result) & 0x8000) !== 0,
     o: carry
   };
@@ -939,7 +936,6 @@ function setFlagsForLogicalSub(lhs: number, rhs: number): FlagsState {
   const result = word(lhs - rhs);
   return {
     z: result === 0,
-    c: borrow,
     n: (result & 0x8000) !== 0,
     o: borrow
   };
@@ -963,7 +959,6 @@ function flagsForCompare(lhs: number, rhs: number): FlagsState {
   const diff = toSigned16(lhs) - toSigned16(rhs);
   return {
     z: diff === 0,
-    c: false,
     n: diff < 0,
     o: false
   };
@@ -972,7 +967,6 @@ function flagsForCompare(lhs: number, rhs: number): FlagsState {
 function flagsForLogicalCompare(lhs: number, rhs: number): FlagsState {
   return {
     z: word(lhs) === word(rhs),
-    c: false,
     n: word(lhs) < word(rhs),
     o: false
   };
@@ -987,7 +981,6 @@ function flagsForShiftResult(value: number, shiftedOut: boolean): FlagsState {
   const result = word(value);
   return {
     z: result === 0,
-    c: false,
     n: (result & 0x8000) !== 0,
     o: shiftedOut
   };
@@ -1091,7 +1084,7 @@ function buildRegisterRows(state: Pick<CometState, "gr" | "pr" | "sp" | "ir" | "
     { name: "MDR", value: state.mdr, decimal: state.mdr, changed: changed.has("MDR") },
     {
       name: "FR",
-      value: (state.fr.z ? 0b100 : 0) | (state.fr.c ? 0b010 : 0) | (state.fr.n ? 0b001 : 0),
+      value: (state.fr.o ? 0b100 : 0) | (state.fr.n ? 0b010 : 0) | (state.fr.z ? 0b001 : 0),
       decimal: 0,
       changed: changed.has("FR")
     }
@@ -1787,15 +1780,14 @@ export const mockCaslCore: CaslCore = {
       next.sp = normalized;
       next.changedRegisters = ["SP"];
     } else if (target.kind === "flag-register") {
-      previousWord = (next.fr.o ? 0b1000 : 0)
-        | (next.fr.z ? 0b0100 : 0)
-        | (next.fr.c ? 0b0010 : 0)
-        | (next.fr.n ? 0b0001 : 0);
+      if ((normalized & 0xfff8) !== 0) return { state, previousWord: 0, applied: false };
+      previousWord = (next.fr.o ? 0b0100 : 0)
+        | (next.fr.n ? 0b0010 : 0)
+        | (next.fr.z ? 0b0001 : 0);
       next.fr = {
-        o: Boolean(normalized & 0b1000),
-        z: Boolean(normalized & 0b0100),
-        c: Boolean(normalized & 0b0010),
-        n: Boolean(normalized & 0b0001)
+        o: Boolean(normalized & 0b0100),
+        n: Boolean(normalized & 0b0010),
+        z: Boolean(normalized & 0b0001)
       };
       next.changedRegisters = ["FR"];
     } else {

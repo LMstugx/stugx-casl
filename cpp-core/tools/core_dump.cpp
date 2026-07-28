@@ -389,7 +389,6 @@ std::string dumpStateJson(const casl::AssembleOutput& assembled, const casl::Com
     output << "  \"frOF\": " << boolText(state.fr.o) << ",\n";
     output << "  \"frSF\": " << boolText(state.fr.n) << ",\n";
     output << "  \"frZF\": " << boolText(state.fr.z) << ",\n";
-    output << "  \"frCF\": " << boolText(state.fr.c) << ",\n";
     output << "  \"currentInstructionAddress\": " << nullableNumber(currentAddress ? std::optional<std::uint32_t>(*currentAddress) : std::nullopt) << ",\n";
     output << "  \"currentSourceLineIndex\": " << nullableNumber(currentLine) << ",\n";
     output << "  \"currentInstructionText\": " << nullableString(currentText) << ",\n";

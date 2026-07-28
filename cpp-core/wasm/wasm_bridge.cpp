@@ -355,7 +355,6 @@ std::string dumpStateJson(
     output << "  \"frOF\": " << boolText(state.fr.o) << ",\n";
     output << "  \"frSF\": " << boolText(state.fr.n) << ",\n";
     output << "  \"frZF\": " << boolText(state.fr.z) << ",\n";
-    output << "  \"frCF\": " << boolText(state.fr.c) << ",\n";
     output << "  \"currentInstructionAddress\": " << nullableNumber(currentAddress ? std::optional<std::uint32_t>(*currentAddress) : std::nullopt) << ",\n";
     output << "  \"currentSourceLineIndex\": " << nullableNumber(currentLine) << ",\n";
     output << "  \"currentInstructionText\": " << nullableString(currentText) << ",\n";
@@ -417,7 +416,6 @@ std::string emptyStateJson(casl::RunState runState, const std::vector<casl::Diag
     output << "  \"frOF\": false,\n";
     output << "  \"frSF\": false,\n";
     output << "  \"frZF\": false,\n";
-    output << "  \"frCF\": false,\n";
     output << "  \"currentInstructionAddress\": null,\n";
     output << "  \"currentSourceLineIndex\": null,\n";
     output << "  \"currentInstructionText\": null,\n";
@@ -672,14 +670,8 @@ EMSCRIPTEN_KEEPALIVE const char* stugx_casl_mutate(int kind, int target, int val
         } else if (kind == 2) {
             previousWord = rt.vm.state().sp;
             applied = rt.vm.setStackPointer(static_cast<std::uint32_t>(nextWord));
-        } else if (kind == 3) {
-            const auto& flags = rt.vm.state().fr;
-            previousWord = static_cast<std::uint16_t>(
-                (flags.o ? 0b1000 : 0) |
-                (flags.z ? 0b0100 : 0) |
-                (flags.c ? 0b0010 : 0) |
-                (flags.n ? 0b0001 : 0)
-            );
+        } else if (kind == 3 && (nextWord & 0xfff8U) == 0) {
+            previousWord = rt.vm.state().fr.packed();
             rt.vm.setFlagsPacked(nextWord);
             applied = true;
         } else if (kind == 4 && target >= 0 && target <= 0xffff) {

@@ -3,7 +3,11 @@ import { toAssembleResultDto, toCometStateDto, toStepResultDto } from "./coreDto
 import { mockCaslCore, createEmptyCometState } from "./mockCaslCore";
 import type { CometState } from "./types";
 import { encodeCaslInputRecord } from "./caslIoEncoding";
-import type { DebuggerMutationRequest } from "../debugger/debuggerMutation";
+import {
+  debuggerMutationWord,
+  isValidDebuggerMutationInput,
+  type DebuggerMutationRequest
+} from "../debugger/debuggerMutation";
 
 export class MockCoreAdapter implements CoreAdapter {
   private state: CometState = createEmptyCometState("Idle", ["Editor ready. Assemble to load the current source."]);
@@ -47,12 +51,20 @@ export class MockCoreAdapter implements CoreAdapter {
   }
 
   async mutateDebuggerState(request: DebuggerMutationRequest) {
-    const result = mockCaslCore.mutate(this.state, request.target, request.nextWord);
+    if (!isValidDebuggerMutationInput(request)) {
+      return {
+        status: "rejected" as const,
+        reason: "invalid-value" as const,
+        state: toCometStateDto(this.state)
+      };
+    }
+    const nextWord = debuggerMutationWord(request);
+    const result = mockCaslCore.mutate(this.state, request.target, nextWord);
     this.state = result.state;
     return {
       status: result.applied ? "applied" as const : "rejected" as const,
       previousWord: result.applied ? result.previousWord : undefined,
-      nextWord: result.applied ? request.nextWord : undefined,
+      nextWord: result.applied ? nextWord : undefined,
       reason: result.applied ? undefined : "backend-rejected" as const,
       state: toCometStateDto(this.state)
     };

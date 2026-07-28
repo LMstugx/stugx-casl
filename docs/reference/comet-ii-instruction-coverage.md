@@ -41,6 +41,20 @@ The runtime registry, assembler, VM dispatch, machine decoder, source mapping, a
 
 `GR1` through `GR7` may be index registers. `GR0` is rejected as an index. Register forms do not perform effective-address generation or a data-memory read.
 
+## Flag Register
+
+The public COMET II flag register contains exactly:
+
+- `OF`: overflow, or the last bit shifted out by `SLA`, `SRA`, `SLL`, and `SRL`
+- `SF`: sign of the result
+- `ZF`: zero result
+
+`ADDL` carry and `SUBL` borrow set `OF`. Any carry/borrow variable used by an
+implementation is function-local and is never a fourth flag. Logical
+instructions clear `OF` and update `SF`/`ZF`; compare instructions update the
+three official fields according to their signed or logical comparison rules.
+`JOV` reads `OF`.
+
 The canonical machine-cycle design input is [the Phase 20B matrix](../comet-instruction-cycle-matrix-v1.json). It is not imported by the runtime and does not claim a unique physical COMET II implementation.
 
 `IN`, `OUT`, `RPUSH`, and `RPOP` are macros, not extra machine instructions. Their real expanded words are covered separately.

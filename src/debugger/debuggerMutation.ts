@@ -20,14 +20,26 @@ export type DebuggerMutationTarget =
   | { kind: "flag-register" }
   | { kind: "memory-word"; address: number };
 
-export interface DebuggerMutationRequest {
+export type DebuggerWordMutationTarget = Exclude<DebuggerMutationTarget, { kind: "flag-register" }>;
+
+export interface DebuggerOfficialFlags {
+  of: boolean;
+  sf: boolean;
+  zf: boolean;
+}
+
+export type DebuggerMutationInput =
+  | { target: DebuggerWordMutationTarget; nextWord: number }
+  | { target: { kind: "flag-register" }; nextFlags: DebuggerOfficialFlags };
+
+interface DebuggerMutationOwnership {
   mutationId: string;
   sourceUnitId: SourceUnitId;
   assemblyId: string;
   executionEpoch: number;
-  target: DebuggerMutationTarget;
-  nextWord: number;
 }
+
+export type DebuggerMutationRequest = DebuggerMutationOwnership & DebuggerMutationInput;
 
 export type SafeDebuggerMutationFailure =
   | "invalid-value"
@@ -121,15 +133,48 @@ export function isValidDebuggerMutationTarget(target: DebuggerMutationTarget): b
     || target.kind === "flag-register";
 }
 
+export function isDebuggerOfficialFlags(value: unknown): value is DebuggerOfficialFlags {
+  if (typeof value !== "object" || value === null || Object.getPrototypeOf(value) !== Object.prototype) return false;
+  const keys = Object.keys(value).sort();
+  if (keys.join(",") !== "of,sf,zf") return false;
+  const flags = value as Record<string, unknown>;
+  return typeof flags.of === "boolean" && typeof flags.sf === "boolean" && typeof flags.zf === "boolean";
+}
+
+export function isValidDebuggerMutationInput(input: DebuggerMutationInput): boolean {
+  if (!isValidDebuggerMutationTarget(input.target)) return false;
+  if (input.target.kind === "flag-register") {
+    return !("nextWord" in input)
+      && "nextFlags" in input
+      && isDebuggerOfficialFlags(input.nextFlags);
+  }
+  return !("nextFlags" in input)
+    && "nextWord" in input
+    && isDebuggerWord(input.nextWord);
+}
+
 export function registerIndex(register: DebuggerRegisterName): number {
   return Number(register.slice(2));
 }
 
-export function packDebuggerFlags(flags: { o: boolean; n: boolean; z: boolean; c: boolean }): number {
-  return (flags.o ? 0b1000 : 0)
-    | (flags.z ? 0b0100 : 0)
-    | (flags.c ? 0b0010 : 0)
-    | (flags.n ? 0b0001 : 0);
+export function packDebuggerFlags(flags: DebuggerOfficialFlags): number {
+  return (flags.of ? 0b0100 : 0)
+    | (flags.sf ? 0b0010 : 0)
+    | (flags.zf ? 0b0001 : 0);
+}
+
+export function unpackDebuggerFlags(value: number): DebuggerOfficialFlags {
+  return {
+    of: Boolean(value & 0b0100),
+    sf: Boolean(value & 0b0010),
+    zf: Boolean(value & 0b0001)
+  };
+}
+
+export function debuggerMutationWord(input: DebuggerMutationInput): number {
+  return "nextFlags" in input
+    ? packDebuggerFlags(input.nextFlags)
+    : input.nextWord;
 }
 
 export function categorizeMemoryAddress(

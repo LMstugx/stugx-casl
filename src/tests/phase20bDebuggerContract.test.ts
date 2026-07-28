@@ -36,7 +36,6 @@ function emptyDto(): CometStateDto {
     frOF: false,
     frSF: false,
     frZF: false,
-    frCF: false,
     currentInstructionAddress: 0x20,
     currentSourceLineIndex: 1,
     currentInstructionText: "NOP",

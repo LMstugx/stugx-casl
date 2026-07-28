@@ -540,7 +540,7 @@ function CometCircuitSvg({ state, sourceMapFocus }: { state: CometState; sourceM
         <AnchorPoint id="mdr-anchor-bottom" x={mdrBottom.x} y={mdrBottom.y} />
         <AnchorPoint id="mdr-anchor-output-to-alu" x={mdrAlu.x} y={mdrAlu.y} />
       </Module>
-      <Module layout={circuitLayout.fr} title="FR" value={formatWord((state.fr.z ? 4 : 0) | (state.fr.c ? 2 : 0) | (state.fr.n ? 1 : 0))} accent={activeWireIds.has("alu-to-fr")} testId="module-fr" layer="flags">
+      <Module layout={circuitLayout.fr} title="FR" value={formatWord((state.fr.o ? 4 : 0) | (state.fr.n ? 2 : 0) | (state.fr.z ? 1 : 0))} accent={activeWireIds.has("alu-to-fr")} testId="module-fr" layer="flags">
         <AnchorPoint id="fr-anchor-input" x={frInput.x} y={frInput.y} />
       </Module>
       <MemoryModule state={state} focusAddress={memoryAddress} windowStart={memoryWindowStart} visualPath={visualPath} />

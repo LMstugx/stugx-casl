@@ -129,6 +129,7 @@ Historical Phase reports, manifests, release-candidate evidence, and visual revi
 
 - [Phase 20A WCASL-II Parity Audit](phase20a-wcasl-parity-audit.md)
 - [Phase 20B Debugger Editing](phase20b-debugger-state-editing.md)
+- [Phase 20B.1 FR Specification Alignment](phase20b1-fr-spec-alignment.md)
 - [WCASL Debugger Editing Audit](wcasl-debugger-editing-audit.md)
 - [WCASL-compatible Workflow Roadmap](wcasl-replacement-roadmap.md)
 - [COMET Microcycle Visual Contract](comet-microcycle-visual-contract.md)

@@ -33,3 +33,11 @@ No P0 feature is missing or unclassified. Every P1 feature is `exact`, `compatib
 Phase 14 diagnostic identity is unchanged. Phase 15 single-document file lifecycle and Phase 16 independent persistence stores are unchanged. Existing C++ lowering, double storage, COMET II opcodes, and clean-wire behavior remain regression-tested.
 
 Final wording is **WCASL-II replacement candidate** and **WCASL-compatible workflow in progress**, not perfect replacement.
+
+## Phase 20B.1 Specification Alignment
+
+The later debugger review found that an implementation-specific carry field had
+escaped into public VM and bridge state. Phase 20B.1 removed it and froze the
+official three-bit `OF` / `SF` / `ZF` contract. This correction does not change
+the Phase 20A instruction-coverage result. See [ADR 0015](adr/0015-comet-flag-register-three-bit-contract.md)
+and the [Phase 20B.1 report](phase20b1-fr-spec-alignment.md).

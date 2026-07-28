@@ -90,17 +90,18 @@ Conditional jumps:
 
 - `ZF`: true when the 16-bit result is zero.
 - `SF`: true when bit 15 of the 16-bit result is set.
-- `CF`: true when the unsigned arithmetic result is outside `0x0000..0xFFFF`.
 - `OF`: true when signed 16-bit addition/subtraction overflows.
 
 `CPA` updates:
 
 - `ZF`: true when signed `GRx` equals signed `Memory[addr]`.
 - `SF`: true when signed `GRx` is less than signed `Memory[addr]`.
-- `CF`: false.
 - `OF`: false.
 
 `LAD`, `ST`, jumps, and `RET` do not update FR in the current contract.
+
+Phase 20B.1 corrected the historical flag description: official COMET II FR
+contains only `OF`, `SF`, and `ZF`. There is no public carry flag.
 
 ## VisualPathKind Mapping
 

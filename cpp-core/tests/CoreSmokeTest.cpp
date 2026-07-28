@@ -271,7 +271,7 @@ void StepAdda() {
     require(step.instructionKind.has_value() && *step.instructionKind == casl::InstructionKind::ADDA, "StepResult ADDA kind");
     require(vm.state().pr == 0x24, "PR after ADDA");
     require(vm.state().gr[1] == 0x001e, "GR1 after ADDA");
-    require(!vm.state().fr.z && !vm.state().fr.c && !vm.state().fr.n && !vm.state().fr.o, "FR after ADDA");
+    require(!vm.state().fr.z && !vm.state().fr.n && !vm.state().fr.o, "FR after ADDA");
     require(vm.state().fr.packed() == 0, "FR packed after ADDA");
     require(vm.state().lastInstructionKind.has_value() && *vm.state().lastInstructionKind == casl::InstructionKind::ADDA, "state last ADDA kind");
     require(vm.state().lastMemoryReadAddress.has_value() && *vm.state().lastMemoryReadAddress == 0x28, "ADDA read address");
@@ -322,7 +322,7 @@ B    DC    5
     require(step.ok, "SUBA step should succeed");
     require(vm.state().gr[1] == 0x000f, "GR1 after SUBA");
     require(vm.state().pr == 0x24, "PR after SUBA");
-    require(!vm.state().fr.z && !vm.state().fr.c && !vm.state().fr.n && !vm.state().fr.o, "FR after SUBA positive");
+    require(!vm.state().fr.z && !vm.state().fr.n && !vm.state().fr.o, "FR after SUBA positive");
     require(vm.state().lastMemoryReadAddress.has_value() && *vm.state().lastMemoryReadAddress == symbolAddress(output, "B"), "SUBA read address");
     require(vm.state().lastRegisterWriteIndex.has_value() && *vm.state().lastRegisterWriteIndex == 1, "SUBA write register");
     require(vm.state().visualPath == casl::VisualPathKind::SUBA_GrMdrToAluToGr, "SUBA visual path");
@@ -472,7 +472,7 @@ void ExecuteNopAdvancesPr() {
     require(step.ok, "NOP step should succeed");
     require(vm.state().pr == 0x21, "NOP should advance PR by one");
     require(vm.state().gr[1] == 0, "NOP should not modify GR");
-    require(!vm.state().fr.z && !vm.state().fr.c && !vm.state().fr.n && !vm.state().fr.o, "NOP should not modify FR");
+    require(!vm.state().fr.z && !vm.state().fr.n && !vm.state().fr.o, "NOP should not modify FR");
     require(vm.state().visualPath == casl::VisualPathKind::None, "NOP visual path");
 }
 
@@ -504,7 +504,7 @@ B    DC    1
     const auto step = vm.step();
     require(step.ok, "ADDL step should succeed");
     require(vm.state().gr[1] == 0x0000, "ADDL should wrap to zero");
-    require(vm.state().fr.z && vm.state().fr.c && !vm.state().fr.n && vm.state().fr.o, "ADDL carry flags");
+    require(vm.state().fr.z && !vm.state().fr.n && vm.state().fr.o, "ADDL overflow flag");
     require(vm.state().lastRegisterWriteIndex.has_value() && *vm.state().lastRegisterWriteIndex == 1, "ADDL write register");
     require(vm.state().visualPath == casl::VisualPathKind::ADDA_GrMdrToAluToGr, "ADDL visual path");
 }
@@ -523,7 +523,7 @@ B    DC    1
     const auto step = vm.step();
     require(step.ok, "SUBL step should succeed");
     require(vm.state().gr[1] == 0xffff, "SUBL should wrap to FFFF");
-    require(!vm.state().fr.z && vm.state().fr.c && vm.state().fr.n && vm.state().fr.o, "SUBL borrow flags");
+    require(!vm.state().fr.z && vm.state().fr.n && vm.state().fr.o, "SUBL overflow flag");
     require(vm.state().visualPath == casl::VisualPathKind::SUBA_GrMdrToAluToGr, "SUBL visual path");
 }
 
@@ -541,7 +541,7 @@ MASK DC    #0F0F
     const auto step = vm.step();
     require(step.ok, "AND step should succeed");
     require(vm.state().gr[1] == 0x0000, "AND result");
-    require(vm.state().fr.z && !vm.state().fr.c && !vm.state().fr.n && !vm.state().fr.o, "AND flags");
+    require(vm.state().fr.z && !vm.state().fr.n && !vm.state().fr.o, "AND flags");
 }
 
 void ExecuteOr() {
@@ -558,7 +558,7 @@ B    DC    #0002
     const auto step = vm.step();
     require(step.ok, "OR step should succeed");
     require(vm.state().gr[1] == 0x0003, "OR result");
-    require(!vm.state().fr.z && !vm.state().fr.c && !vm.state().fr.n && !vm.state().fr.o, "OR flags");
+    require(!vm.state().fr.z && !vm.state().fr.n && !vm.state().fr.o, "OR flags");
 }
 
 void ExecuteXor() {
@@ -575,7 +575,7 @@ B    DC    #0001
     const auto step = vm.step();
     require(step.ok, "XOR step should succeed");
     require(vm.state().gr[1] == 0x0002, "XOR result");
-    require(!vm.state().fr.z && !vm.state().fr.c && !vm.state().fr.n && !vm.state().fr.o, "XOR flags");
+    require(!vm.state().fr.z && !vm.state().fr.n && !vm.state().fr.o, "XOR flags");
 }
 
 void ExecuteCplEqual() {
@@ -592,7 +592,7 @@ B    DC    #FFFF
     const auto step = vm.step();
     require(step.ok, "CPL equal should succeed");
     require(vm.state().gr[1] == 0xffff, "CPL should not modify GR");
-    require(vm.state().fr.z && !vm.state().fr.c && !vm.state().fr.n && !vm.state().fr.o, "CPL equal flags");
+    require(vm.state().fr.z && !vm.state().fr.n && !vm.state().fr.o, "CPL equal flags");
     require(!vm.state().lastRegisterWriteIndex.has_value(), "CPL should not write register");
 }
 
@@ -701,7 +701,7 @@ A    DC    3
     const auto step = vm.step();
     require(step.ok, "SLL step should succeed");
     require(vm.state().gr[1] == 0x0006, "SLL result");
-    require(!vm.state().fr.z && !vm.state().fr.c && !vm.state().fr.n && !vm.state().fr.o, "SLL flags");
+    require(!vm.state().fr.z && !vm.state().fr.n && !vm.state().fr.o, "SLL flags");
     require(vm.state().lastRegisterWriteIndex.has_value() && *vm.state().lastRegisterWriteIndex == 1, "SLL write register");
     require(!vm.state().lastMemoryReadAddress.has_value(), "SLL should not read memory");
     require(vm.state().visualPath == casl::VisualPathKind::Shift_AddressToAluToGr, "SLL visual path");
@@ -733,7 +733,7 @@ A    DC    #8001
     (void)vm.step();
     (void)vm.step();
     require(vm.state().gr[1] == 0x8002, "SLA should preserve sign bit");
-    require(!vm.state().fr.z && !vm.state().fr.c && vm.state().fr.n && !vm.state().fr.o, "SLA flags");
+    require(!vm.state().fr.z && vm.state().fr.n && !vm.state().fr.o, "SLA flags");
 }
 
 void ExecuteSraPreservesSign() {
@@ -748,7 +748,7 @@ A    DC    #8002
     (void)vm.step();
     (void)vm.step();
     require(vm.state().gr[1] == 0xc001, "SRA should preserve sign bit");
-    require(!vm.state().fr.z && !vm.state().fr.c && vm.state().fr.n && !vm.state().fr.o, "SRA flags");
+    require(!vm.state().fr.z && vm.state().fr.n && !vm.state().fr.o, "SRA flags");
 }
 
 void ShiftUpdatesOverflowWhenBitShiftedOut() {
@@ -763,7 +763,7 @@ A    DC    #8000
     (void)vm.step();
     (void)vm.step();
     require(vm.state().gr[1] == 0x0000, "SLL shifted out result");
-    require(vm.state().fr.z && !vm.state().fr.c && !vm.state().fr.n && vm.state().fr.o, "SLL should set OF");
+    require(vm.state().fr.z && !vm.state().fr.n && vm.state().fr.o, "SLL should set OF");
 }
 
 void ShiftCountZeroNoChange() {
@@ -778,7 +778,7 @@ A    DC    #8001
     (void)vm.step();
     (void)vm.step();
     require(vm.state().gr[1] == 0x8001, "SLL count zero no value change");
-    require(!vm.state().fr.z && !vm.state().fr.c && vm.state().fr.n && !vm.state().fr.o, "SLL count zero flags");
+    require(!vm.state().fr.z && vm.state().fr.n && !vm.state().fr.o, "SLL count zero flags");
 }
 
 void ShiftCountLargeLogicalStableBehavior() {
@@ -1270,8 +1270,8 @@ void DebuggerMutationChangesOnlyTarget() {
     require(vm.state().pr == 0x0022, "PR debugger value");
     require(vm.setStackPointer(0x8123), "SP debugger write applies");
     require(vm.state().sp == 0x8123, "SP debugger value");
-    vm.setFlagsPacked(0x000f);
-    require(vm.state().fr.packed() == 0x000f, "FR debugger write uses existing four flag bits");
+    vm.setFlagsPacked(0x0007);
+    require(vm.state().fr.packed() == 0x0007, "FR debugger write uses the three official flag bits");
 }
 
 void RuntimeProgramOverrideExecutesAndInvalidFails() {

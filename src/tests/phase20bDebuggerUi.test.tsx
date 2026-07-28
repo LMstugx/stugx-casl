@@ -129,6 +129,40 @@ describe("Phase 20B debugger dialog accessibility", () => {
       .find((button) => button.textContent === "Apply");
     expect(apply?.disabled).toBe(false);
   });
+
+  it("fr_editor_exposes_only_official_flags_and_applies_them_atomically", async () => {
+    const apply = vi.fn(async () => ({ status: "applied" as const }));
+    await act(async () => root.render(
+      <I18nProvider initialLocale="en">
+        <DebuggerEditDialog
+          target={{ kind: "flag-register" }}
+          currentWord={0}
+          numericMode="hex"
+          onCancel={() => undefined}
+          onApply={apply}
+        />
+      </I18nProvider>
+    ));
+
+    const dialog = container.querySelector<HTMLElement>('[role="dialog"]')!;
+    const checkboxes = Array.from(dialog.querySelectorAll<HTMLInputElement>('input[type="checkbox"]'));
+    expect(checkboxes.map((checkbox) => checkbox.parentElement?.textContent?.trim())).toEqual(["OF", "SF", "ZF"]);
+    expect(dialog.querySelector(".debugger-value-field")).toBeNull();
+    expect(dialog.textContent).not.toContain("CF");
+
+    await act(async () => {
+      checkboxes[0].click();
+      checkboxes[2].click();
+    });
+    const applyButton = Array.from(dialog.querySelectorAll<HTMLButtonElement>("button"))
+      .find((button) => button.textContent === "Apply")!;
+    await act(async () => applyButton.click());
+
+    expect(apply).toHaveBeenCalledWith({
+      target: { kind: "flag-register" },
+      nextFlags: { of: true, sf: false, zf: true }
+    });
+  });
 });
 
 describe("Phase 20B CASL Mode editing surface", () => {
@@ -149,7 +183,8 @@ describe("Phase 20B CASL Mode editing surface", () => {
         </I18nProvider>
       ));
       expect(container.querySelector('[data-testid="casl-register-gr2"] button')).not.toBeNull();
-      expect(container.querySelectorAll(".casl-fr-grid div")).toHaveLength(4);
+      expect(container.querySelectorAll(".casl-fr-grid div")).toHaveLength(3);
+      expect(container.querySelector(".casl-fr-grid")?.textContent).toBe("OF0SF0ZF0");
       expect(container.querySelector(".casl-destructive-actions button")?.textContent?.trim()).toBeTruthy();
       expect(container.querySelector("main")?.scrollWidth).toBeLessThanOrEqual(container.querySelector("main")!.clientWidth);
     });

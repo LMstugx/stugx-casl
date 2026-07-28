@@ -10,7 +10,7 @@ Debugger editing is a runtime transaction. Components request a mutation through
 
 ## Ownership DTO
 
-Each request carries a stable mutation ID, `SourceUnitId`, assembly ID, execution epoch, target, and one 16-bit next value. Targets are `GR0`-`GR7`, `PR`, `SP`, `FR`, or one memory address. IDs never derive from locale text, labels, filenames, or numeric display mode.
+Each request carries a stable mutation ID, `SourceUnitId`, assembly ID, execution epoch, and a discriminated mutation input. `GR0`-`GR7`, `PR`, `SP`, and one Memory address carry one 16-bit `nextWord`. FR carries the exact structured value `{ of, sf, zf }`. IDs never derive from locale text, labels, filenames, or numeric display mode.
 
 The controller rechecks source ownership, assembly ownership, epoch, run state, file operation state, source Dirty, and the single active transaction lock immediately before dispatch. A stale request is ignored. Failures are atomic and never create partial state, a code diagnostic, source Dirty, or a success notice.
 
@@ -29,16 +29,19 @@ There is no wrap, expression evaluation, label evaluation, locale punctuation, o
 
 A GR edit changes only the selected register. It does not execute an instruction or recompute FR. A PR edit clears transient instruction state and permits later explicit Step or Run. An unmapped PR remains safe and does not fabricate a source line. An SP edit updates Stack Preview without changing memory or inventing a stack frame. Values below `#8000` remain valid but receive a non-blocking warning because they are outside the usual high-memory teaching stack area.
 
-FR uses exactly four current bits:
+FR exposes exactly the three bits defined by COMET II:
 
 | Bit | Flag |
 | --- | --- |
-| 3 | `OF` |
-| 2 | `ZF` |
-| 1 | `CF` |
-| 0 | `SF` |
+| 2 | `OF` |
+| 1 | `SF` |
+| 0 | `ZF` |
 
-Unknown bits are not exposed. COMET FR remains independent from software floating-point status.
+The UI edits those flags atomically through the structured input and never
+exposes a generic FR numeric field. Adapters reject missing, mistyped, or
+additional flag properties. Packed bits are an internal bridge detail; any bit
+outside the low three is rejected. COMET FR remains independent from software
+floating-point status.
 
 ## Memory Rules
 

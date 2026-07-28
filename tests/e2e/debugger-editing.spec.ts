@@ -59,12 +59,12 @@ test("CASL Mode debugger editing and Full Clear preserve document ownership", as
 
   await page.getByRole("button", { name: "Edit register FR" }).click();
   const frDialog = page.getByRole("dialog");
-  for (const flag of ["OF", "SF", "ZF", "CF"]) {
+  for (const flag of ["OF", "SF", "ZF"]) {
     await frDialog.getByRole("checkbox", { name: flag }).check();
   }
   await frDialog.getByRole("button", { name: "Apply" }).click();
   await expect(page.locator(".casl-fr-grid")).toContainText("OF1");
-  await expect(page.locator(".casl-fr-grid")).toContainText("CF1");
+  await expect(page.locator(".casl-fr-grid")).toContainText("SF1");
 
   await editMemoryWord(page, "0025", "FFFF");
   await expect(page.getByTestId("casl-memory-row-0025")).toContainText("#FFFF");

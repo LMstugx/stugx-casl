@@ -53,7 +53,6 @@ export interface CometStateDto {
   frOF: boolean;
   frSF: boolean;
   frZF: boolean;
-  frCF: boolean;
   currentInstructionAddress: number | null;
   currentSourceLineIndex: number | null;
   currentInstructionText: string | null;
@@ -206,7 +205,6 @@ export function toCometStateDto(state: CometState, memoryStart = 0x20, memoryEnd
     frOF: state.fr.o,
     frSF: state.fr.n,
     frZF: state.fr.z,
-    frCF: state.fr.c,
     currentInstructionAddress: state.currentAddress ?? null,
     currentSourceLineIndex: state.currentLine ?? null,
     currentInstructionText: state.currentInstruction ?? null,

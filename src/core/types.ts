@@ -62,7 +62,6 @@ export type InstructionKind =
 
 export interface FlagsState {
   z: boolean;
-  c: boolean;
   n: boolean;
   o: boolean;
 }
@@ -217,5 +216,5 @@ export function formatWord(value: number, width = 4): string {
 }
 
 export function formatFlags(flags: FlagsState): string {
-  return `${flags.z ? "Z1" : "Z0"} ${flags.c ? "C1" : "C0"} ${flags.n ? "N1" : "N0"} ${flags.o ? "O1" : "O0"}`;
+  return `${flags.o ? "OF1" : "OF0"} ${flags.n ? "SF1" : "SF0"} ${flags.z ? "ZF1" : "ZF0"}`;
 }

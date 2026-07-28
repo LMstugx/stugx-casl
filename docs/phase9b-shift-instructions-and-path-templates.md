@@ -46,14 +46,14 @@ The result is written back to the target GR register.
 
 ## FR / OF Behavior
 
-The current teaching VM uses `ZF`, `CF`, `SF`, and `OF`.
+The COMET II FR uses exactly `OF`, `SF`, and `ZF`.
 
 - `ZF` is set when the shifted result is `0000`.
 - `SF` is set when bit 15 of the result is set.
 - `OF` is set from the last bit shifted out when the count makes that bit well-defined.
-- `CF` remains clear for shift instructions in this simplified model.
 
-This keeps TS mock core, C++ core, and WASM behavior stable and consistent. It is a documented teaching model rather than a full hardware compatibility claim.
+There is no separate public carry bit. The TypeScript mock, C++ core, and WASM
+bridge expose the same official three-bit result.
 
 ## Shift Count Behavior
 

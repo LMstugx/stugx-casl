@@ -8,6 +8,11 @@
 
 The COMET II VM executes assembled 16-bit machine words and exposes GR0-GR7, PR, SP, FR, IR, MAR, MDR, memory, Trace, and source mapping to the UI.
 
+Public FR state contains exactly `OF`, `SF`, and `ZF`. Shift instructions put
+the final shifted-out bit in `OF`. `ADDL` carry and `SUBL` borrow may exist only
+as function-local implementation intermediates used to compute `OF`; they are
+not VM state and never cross the DTO or WASM boundary.
+
 `Step` executes one machine instruction. `Run` repeats execution within an explicit safety limit and can be stopped. `Reset` restores the loaded program's runtime state. Source edits do not automatically reassemble or replace the VM.
 
 `PUSH` stores the effective-address value after decrementing SP. `POP` reads from `Memory[SP]` and then increments SP. `CALL` pushes the return address and jumps. `RET` uses the stack when a call frame exists and otherwise preserves the top-level finish behavior.
@@ -18,7 +23,12 @@ VM faults are structured runtime diagnostics. They do not mutate source or persi
 
 Reload uses the current assembly owner. Optional zero or `FFFF` initialization changes only `DS` source-map spans after restoring the assembled image; code, `DC`, literals, source, and Dirty state are unchanged.
 
-Debugger mutation is an explicit runtime API for GR, PR, SP, current FR bits, and one Memory word. It clears transient instruction state but does not execute, increment the step count, recompute FR after a GR edit, or alter source. Runtime instruction fetch decodes the current program word at an original instruction start address, so a confirmed program override executes honestly. Invalid runtime opcodes use the existing VM failure path.
+Debugger mutation is an explicit runtime API for GR, PR, SP, the exact
+three-field FR object, and one Memory word. It clears transient instruction
+state but does not execute, increment the step count, recompute FR after a GR
+edit, or alter source. Runtime instruction fetch decodes the current program
+word at an original instruction start address, so a confirmed program override
+executes honestly. Invalid runtime opcodes use the existing VM failure path.
 
 Reset reapplies controller-owned Memory overrides. Reload removes them. Full Clear unloads the VM, clears runtime data and ownership, and requires a new Assemble. See the [Debugger Mutation Contract](../debugger-mutation-contract.md).
 

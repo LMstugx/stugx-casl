@@ -20,7 +20,7 @@ describe("mock COMET VM", () => {
     expect(state.lastStep?.executedInstruction).toContain("ADDA");
     expect(state.pr).toBe(0x24);
     expect(state.gr[1]).toBe(0x001e);
-    expect(state.fr).toEqual({ z: false, c: false, n: false, o: false });
+    expect(state.fr).toEqual({ z: false, n: false, o: false });
     expect(state.currentInstruction).toContain("ST");
     expect(state.visualPath).toBe(VisualPathKind.ADDA_GrMdrToAluToGr);
   });

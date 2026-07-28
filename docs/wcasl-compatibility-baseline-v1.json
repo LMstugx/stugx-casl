@@ -364,9 +364,10 @@
       "implementationOwner": "debugger",
       "tests": [
         "edits_each_general_register_atomically_without_recomputing_fr",
-        "edits_pr_sp_fr_and_one_memory_word_without_executing_an_instruction"
+        "edits_pr_sp_fr_and_one_memory_word_without_executing_an_instruction",
+        "fr_edit_updates_of_sf_zf_atomically"
       ],
-      "limitations": "The modern dialog and execution-epoch ownership checks are intentionally stricter than an in-place legacy cell editor.",
+      "limitations": "The modern dialog and execution-epoch ownership checks are intentionally stricter than an in-place legacy cell editor. FR exposes exactly the official OF, SF, and ZF fields.",
       "targetPhase": "20B"
     },
     {

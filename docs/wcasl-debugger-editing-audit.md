@@ -15,7 +15,7 @@ This audit compares public WCASL-II workflow evidence with the frozen IPA CASL I
 | `GR0`-`GR7` edit | compatible safe behavior | Public WCASL debugger workflow and local VM state model | Atomic 16-bit edit through the controller; no instruction, FR update, source edit, or persistence write |
 | `PR` edit | compatible safe behavior | Debugger workflow and instruction mapping | Atomic 16-bit edit; mapped source is shown when available and otherwise remains explicitly unmapped |
 | `SP` edit | compatible safe behavior | Debugger workflow and stack model | Any 16-bit value is accepted; Stack Preview updates without inventing a frame |
-| `FR` edit | compatible safe behavior | Current COMET state schema | Only existing `OF`, `ZF`, `CF`, and `SF` bits are editable; soft-float status is excluded |
+| `FR` edit | compatible safe behavior | IPA COMET II flag-register schema | Exactly `OF`, `SF`, and `ZF` are edited atomically; soft-float status and internal arithmetic carry/borrow are excluded |
 | `MAR` / `MDR` | intentionally-different | Current microcycle boundary | Read-only because they are exposed observation state, not stable debugger mutation targets |
 | Memory edit | compatible safe behavior | Public debugger workflow | Exactly one 16-bit word per transaction at any address |
 | Program-image edit | compatible safe behavior | Traditional debugger capability | Allowed only after a warning and explicit confirmation; source and assembled output remain unchanged |

@@ -2,7 +2,7 @@ import type { CometState, InstructionKind } from "./types";
 import { formatWord, word as toWord } from "./types";
 import type { CppToCaslMap } from "../transpiler/cppAst";
 import { cppLineForCaslLine } from "../transpiler/cppMapping";
-import { decodeIndexRegisterField, decodeOpcode, decodeRegisterField, encodingForMnemonic } from "./instructionEncoding";
+import { decodeIndexRegisterField, decodeOpcode, decodeRegisterField, encodingForMnemonic, isRegisterFormInstructionWord } from "./instructionEncoding";
 
 export type MachineCodeRowKind = "instruction" | "operand" | "data" | "reserved";
 
@@ -14,6 +14,7 @@ export type MachineCodeRow = {
   label?: string;
   kind: MachineCodeRowKind;
   instruction?: InstructionKind;
+  sourceRegister?: number;
   wordOffset: number;
   baseAddress?: number;
   operandAddress?: number;
@@ -45,6 +46,7 @@ export type MachineCodeExplanation = {
   wordRole: MachineCodeRowKind;
   opcode?: number;
   register?: number;
+  sourceRegister?: number;
   indexRegister?: number;
   indexValue?: number;
   baseAddress?: number;
@@ -89,7 +91,8 @@ const EXECUTABLE_INSTRUCTIONS = new Set<InstructionKind>([
   "JPL",
   "JMI",
   "JOV",
-  "RET"
+  "RET",
+  "SVC"
 ]);
 
 export function selectMachineCodeRows(state: CometState, mapping: CppToCaslMap[] = []): MachineCodeRow[] {
@@ -107,7 +110,11 @@ export function selectMachineCodeRows(state: CometState, mapping: CppToCaslMap[]
 
   return state.sourceMap.flatMap((entry) => {
     const instruction = state.program?.find((programInstruction) => programInstruction.address === entry.address);
-    const rawIndexRegister = instruction?.indexRegister ?? (entry.instruction && EXECUTABLE_INSTRUCTIONS.has(entry.instruction) ? decodeIndexRegisterField(entry.machineWords[0] ?? 0) : 0);
+    const sourceRegister = instruction?.sourceRegister
+      ?? (isRegisterFormInstructionWord(entry.machineWords[0] ?? 0) ? decodeIndexRegisterField(entry.machineWords[0] ?? 0) : undefined);
+    const rawIndexRegister = sourceRegister === undefined
+      ? instruction?.indexRegister ?? (entry.instruction && EXECUTABLE_INSTRUCTIONS.has(entry.instruction) ? decodeIndexRegisterField(entry.machineWords[0] ?? 0) : 0)
+      : 0;
     const indexRegister = rawIndexRegister > 0 ? rawIndexRegister : undefined;
     const indexValue = indexRegister !== undefined ? state.gr[indexRegister] : undefined;
     const baseOperand = entry.machineWords[1];
@@ -126,6 +133,7 @@ export function selectMachineCodeRows(state: CometState, mapping: CppToCaslMap[]
         sourceText: normalizeSourceText(entry.source),
         label: offset === 0 ? entry.label : undefined,
         instruction: entry.instruction,
+        sourceRegister,
         wordOffset: offset,
         baseAddress: rowBaseAddress,
         operandAddress: rowBaseAddress,
@@ -162,7 +170,9 @@ export function explainMachineCodeRow(row: MachineCodeRow): MachineCodeExplanati
     const opcode = decodeOpcode(row.word);
     const encoding = encodingForMnemonic(row.instruction);
     const register = encoding?.format === "R_ADR" || encoding?.format === "R_ONLY" ? decodeRegisterField(row.word) : undefined;
-    const indexRegister = encoding?.format === "R_ADR" || encoding?.format === "JUMP_ADR" ? decodeIndexRegisterField(row.word) : undefined;
+    const registerForm = row.sourceRegister !== undefined || isRegisterFormInstructionWord(row.word);
+    const sourceRegister = registerForm ? row.sourceRegister ?? decodeIndexRegisterField(row.word) : undefined;
+    const indexRegister = !registerForm && (encoding?.format === "R_ADR" || encoding?.format === "JUMP_ADR") ? decodeIndexRegisterField(row.word) : undefined;
     return {
       address: row.address,
       word: row.word,
@@ -171,6 +181,7 @@ export function explainMachineCodeRow(row: MachineCodeRow): MachineCodeExplanati
       wordRole: row.kind,
       opcode,
       register,
+      sourceRegister,
       indexRegister: indexRegister === 0 ? undefined : indexRegister,
       indexValue: row.indexValue,
       baseAddress: row.baseAddress,
@@ -272,33 +283,34 @@ function labelByAddress(state: CometState): Map<number, string> {
 function instructionMeaning(row: MachineCodeRow, register?: number): string {
   const operand = operandDisplay(row);
   const gr = register === undefined ? "register" : `GR${register}`;
+  const registerSource = row.sourceRegister === undefined ? undefined : `GR${row.sourceRegister}`;
   switch (row.instruction) {
     case "NOP":
       return "No operation; PR advances to the next word.";
     case "LD":
-      return `Load memory[${operand}] into ${gr}.`;
+      return registerSource ? `Copy ${registerSource} into ${gr}; no data-memory operand is read.` : `Load memory[${operand}] into ${gr}.`;
     case "LAD":
       return `Load address value ${operand} into ${gr}.`;
     case "ST":
       return `Store ${gr} into memory[${operand}].`;
     case "ADDA":
-      return `Add memory[${operand}] to ${gr}.`;
+      return registerSource ? `Add ${registerSource} to ${gr}.` : `Add memory[${operand}] to ${gr}.`;
     case "SUBA":
-      return `Subtract memory[${operand}] from ${gr}.`;
+      return registerSource ? `Subtract ${registerSource} from ${gr}.` : `Subtract memory[${operand}] from ${gr}.`;
     case "ADDL":
-      return `Unsigned add memory[${operand}] to ${gr}.`;
+      return registerSource ? `Unsigned add ${registerSource} to ${gr}.` : `Unsigned add memory[${operand}] to ${gr}.`;
     case "SUBL":
-      return `Unsigned subtract memory[${operand}] from ${gr}.`;
+      return registerSource ? `Unsigned subtract ${registerSource} from ${gr}.` : `Unsigned subtract memory[${operand}] from ${gr}.`;
     case "AND":
-      return `Bitwise AND ${gr} with memory[${operand}].`;
+      return registerSource ? `Bitwise AND ${gr} with ${registerSource}.` : `Bitwise AND ${gr} with memory[${operand}].`;
     case "OR":
-      return `Bitwise OR ${gr} with memory[${operand}].`;
+      return registerSource ? `Bitwise OR ${gr} with ${registerSource}.` : `Bitwise OR ${gr} with memory[${operand}].`;
     case "XOR":
-      return `Bitwise XOR ${gr} with memory[${operand}].`;
+      return registerSource ? `Bitwise XOR ${gr} with ${registerSource}.` : `Bitwise XOR ${gr} with memory[${operand}].`;
     case "CPA":
-      return `Compare ${gr} with memory[${operand}].`;
+      return registerSource ? `Compare ${gr} with ${registerSource}.` : `Compare ${gr} with memory[${operand}].`;
     case "CPL":
-      return `Compare ${gr} with memory[${operand}] as unsigned 16-bit values.`;
+      return registerSource ? `Compare ${gr} with ${registerSource} as unsigned 16-bit values.` : `Compare ${gr} with memory[${operand}] as unsigned 16-bit values.`;
     case "SLA":
       return `Arithmetic left shift ${gr} by ${operand}. The shifted-out bit updates OF when available.`;
     case "SRA":
@@ -329,6 +341,8 @@ function instructionMeaning(row: MachineCodeRow, register?: number): string {
       return row.isStackReturnContext
         ? `Stack return: read ${row.stackAddress !== undefined ? `MEM[${formatWord(row.stackAddress)}]` : "memory[SP]"} into PR${row.returnAddress !== undefined ? ` (${formatWord(row.returnAddress)})` : ""}, increment SP${row.callDepthBefore !== undefined && row.callDepthAfter !== undefined ? `, and change callDepth ${row.callDepthBefore} -> ${row.callDepthAfter}` : ""}.`
         : "Top-level return: finish execution because there is no active call frame.";
+    case "SVC":
+      return `Invoke teaching operating-system service ${operand}; service 1 is input and service 2 is output.`;
     default:
       return row.meaning;
   }

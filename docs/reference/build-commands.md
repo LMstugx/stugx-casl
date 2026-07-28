@@ -22,6 +22,7 @@
 | `pnpm changelog:generate` | Regenerate `CHANGELOG.md` |
 | `pnpm changelog:verify` | Detect changelog drift |
 | `pnpm docs:verify` | Verify canonical documentation |
+| `pnpm casl:parity:verify` | Verify the Phase 20A compatibility and instruction-cycle manifests |
 | `pnpm visual:review` | Run visual review scenarios |
 | `pnpm tauri:build` | Build the Windows Tauri demo |
 | `pnpm tauri:verify` | Verify Tauri configuration and outputs |

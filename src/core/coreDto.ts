@@ -1,6 +1,7 @@
 import { selectMemoryWindow } from "./selectors";
 import { CometState, Diagnostic, InstructionKind } from "./types";
 import type { DiagnosticParamValue, DiagnosticProducer, DiagnosticRelatedLocation, DiagnosticSeverity, SourceRange } from "../diagnostics/types";
+import { encodeCaslInputRecord } from "./caslIoEncoding";
 
 export interface DiagnosticDto {
   line: number;
@@ -24,6 +25,7 @@ export interface SourceRowDto {
   label: string | null;
   instruction: InstructionKind | null;
   operandAddress: number | null;
+  sourceRegister?: number | null;
   indexRegister: number | null;
   isCurrent: boolean;
 }
@@ -65,6 +67,7 @@ export interface CometStateDto {
   memoryWindow: MemoryRowDto[];
   sourceRows: SourceRowDto[];
   diagnostics: DiagnosticDto[];
+  consoleOutput?: number[][];
 }
 
 export interface AssembleResultDto {
@@ -128,6 +131,7 @@ function sourceRowsToDto(state: CometState): SourceRowDto[] {
       label: entry.label ?? null,
       instruction: entry.instruction ?? null,
       operandAddress: programInstruction?.operandAddress ?? null,
+      ...(programInstruction?.sourceRegister !== undefined ? { sourceRegister: programInstruction.sourceRegister } : {}),
       indexRegister: programInstruction?.indexRegister ?? null,
       isCurrent: entry.address === state.currentAddress
     };
@@ -160,7 +164,8 @@ export function toCometStateDto(state: CometState, memoryStart = 0x20, memoryEnd
   const indexRegister = state.lastIndexRegister ?? lastInstruction?.indexRegister ?? null;
   const indexValue = state.lastIndexValue ?? (indexRegister !== null ? state.gr[indexRegister] : null);
   const effectiveAddress = state.lastEffectiveAddress ?? (baseAddress !== null ? (baseAddress + (indexValue ?? 0)) & 0xffff : null);
-  const derivedLastMemoryReadAddress = lastInstructionKind === "LD" || lastInstructionKind === "ADDA" || lastInstructionKind === "SUBA" ||
+  const derivedLastMemoryReadAddress = lastInstruction?.sourceRegister !== undefined ? null :
+    lastInstructionKind === "LD" || lastInstructionKind === "ADDA" || lastInstructionKind === "SUBA" ||
     lastInstructionKind === "ADDL" || lastInstructionKind === "SUBL" || lastInstructionKind === "AND" ||
     lastInstructionKind === "OR" || lastInstructionKind === "XOR" || lastInstructionKind === "CPA" ||
     lastInstructionKind === "CPL" ? effectiveAddress : null;
@@ -198,6 +203,7 @@ export function toCometStateDto(state: CometState, memoryStart = 0x20, memoryEnd
     indexRegister,
     indexValue,
     effectiveAddress,
+    ...(state.consoleOutput.length ? { consoleOutput: state.consoleOutput.map(encodeCaslInputRecord) } : {}),
     memoryWindow: memoryWindowToDto(state, memoryStart, memoryEnd),
     sourceRows: sourceRowsToDto(state),
     diagnostics: diagnosticsToDto(state.diagnostics)

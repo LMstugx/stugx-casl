@@ -25,7 +25,7 @@ export enum VisualPathKind {
   Finished_None = "Finished_None"
 }
 
-export type RunState = "Idle" | "Dirty" | "Ready" | "Running" | "Stopped" | "Finished" | "Error";
+export type RunState = "Idle" | "Dirty" | "Ready" | "Running" | "WaitingInput" | "Stopped" | "Finished" | "Error";
 export type InstructionKind =
   | "START"
   | "END"
@@ -57,7 +57,8 @@ export type InstructionKind =
   | "JPL"
   | "JMI"
   | "JOV"
-  | "RET";
+  | "RET"
+  | "SVC";
 
 export interface FlagsState {
   z: boolean;
@@ -119,6 +120,9 @@ export interface TraceEvent {
   indexValue?: number;
   effectiveAddress?: number;
   runState?: RunState;
+  macroGroup?: "IN" | "OUT" | "RPUSH" | "RPOP";
+  macroStepIndex?: number;
+  macroStepCount?: number;
 }
 
 export interface Diagnostic<C extends DiagnosticCode = DiagnosticCode> {
@@ -138,10 +142,11 @@ export interface Diagnostic<C extends DiagnosticCode = DiagnosticCode> {
 export interface AssembledInstruction {
   address: number;
   line: number;
-  op: "NOP" | "LD" | "LAD" | "ADDA" | "SUBA" | "ADDL" | "SUBL" | "AND" | "OR" | "XOR" | "CPA" | "CPL" | "SLA" | "SRA" | "SLL" | "SRL" | "PUSH" | "POP" | "CALL" | "ST" | "JUMP" | "JZE" | "JNZ" | "JPL" | "JMI" | "JOV" | "RET";
+  op: "NOP" | "LD" | "LAD" | "ADDA" | "SUBA" | "ADDL" | "SUBL" | "AND" | "OR" | "XOR" | "CPA" | "CPL" | "SLA" | "SRA" | "SLL" | "SRL" | "PUSH" | "POP" | "CALL" | "ST" | "JUMP" | "JZE" | "JNZ" | "JPL" | "JMI" | "JOV" | "RET" | "SVC";
   source: string;
   size: number;
   gr?: number;
+  sourceRegister?: number;
   operandLabel?: string;
   operandAddress?: number;
   indexRegister?: number;
@@ -157,6 +162,7 @@ export interface StepResult {
 export interface CometState {
   assembled: boolean;
   runState: RunState;
+  entryPoint?: number;
   pr: number;
   sp: number;
   callDepth: number;
@@ -173,6 +179,8 @@ export interface CometState {
   symbols: Record<string, number>;
   diagnostics: Diagnostic[];
   output: string[];
+  consoleOutput: string[];
+  consoleInputQueue?: Array<{ words: number[]; endOfFile: boolean }>;
   trace: TraceEvent[];
   visualPath: VisualPathKind;
   stepIndex: number;

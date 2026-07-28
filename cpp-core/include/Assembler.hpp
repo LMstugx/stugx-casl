@@ -18,6 +18,7 @@ struct Instruction {
     Opcode opcode = Opcode::RET;
     std::string source;
     std::uint8_t gr = 0;
+    std::optional<std::uint8_t> sourceRegister;
     std::optional<std::uint16_t> operandAddress;
     std::string operandLabel;
     std::uint8_t indexRegister = 0;
@@ -29,6 +30,7 @@ struct AssembleOutput {
     SourceMap sourceMap;
     std::unordered_map<std::string, std::uint16_t> symbols;
     std::vector<Instruction> instructions;
+    std::uint16_t entryPoint = kDefaultStartAddress;
 };
 
 using AssembleResult = Result<AssembleOutput>;

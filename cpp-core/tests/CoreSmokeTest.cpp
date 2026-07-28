@@ -236,8 +236,10 @@ void AssembleMalformedOperandBoundary() {
 
 void AssembleStorageBoundaryDiagnostics() {
     casl::Assembler assembler;
-    require(hasError(assembler.assemble("MAIN START\nA DC -1\n END"), "Invalid numeric literal"), "negative numeric diagnostic");
-    require(hasError(assembler.assemble("MAIN START\nA DC 65536\n END"), "DC value out of 16-bit range"), "DC range diagnostic");
+    const auto signedDc = assembler.assemble("MAIN START\nNEG DC -1\nWRAP DC 65536\n END");
+    require(signedDc.ok, "signed and wrapping decimal DC should assemble");
+    require(signedDc.value.state.memory.at(signedDc.value.symbols.at("NEG")) == 0xffff, "negative DC low 16 bits");
+    require(signedDc.value.state.memory.at(signedDc.value.symbols.at("WRAP")) == 0x0000, "large DC low 16 bits");
     require(hasError(assembler.assemble("MAIN START\nA DS 65505\n END"), "Program memory exceeds 0xFFFF"), "large DS range diagnostic");
 
     const auto zero = assembler.assemble("MAIN START\nA DS 0\n RET\n END");
@@ -1164,6 +1166,92 @@ void MemoryAccess_OutOfRange_ShouldError() {
     require(vm.state().runState == casl::RunState::Error, "out-of-range PR should enter error");
 }
 
+void AssemblePhase20RegisterFormsAndLiterals() {
+    const auto output = assembleOrExit(R"(MAIN START
+STL00001 DC 9
+ LD GR1,GR2
+ ADDA GR1,GR2
+ SUBA GR1,GR2
+ ADDL GR1,GR2
+ SUBL GR1,GR2
+ AND GR1,GR2
+ OR GR1,GR2
+ XOR GR1,GR2
+ CPA GR1,GR2
+ CPL GR1,GR2
+ LD GR3,=10
+ LD GR4,=#1234
+ LD GR5,='A'
+ RET
+ END)");
+    const std::array<std::uint16_t, 10> expected{
+        0x1412, 0x2412, 0x2512, 0x2612, 0x2712,
+        0x3412, 0x3512, 0x3612, 0x4412, 0x4512
+    };
+    for (std::size_t index = 0; index < expected.size(); ++index) {
+        require(output.state.memory[0x21 + index] == expected[index], "register form machine word");
+        require(output.instructions[index].size == 1, "register form size");
+        require(output.instructions[index].sourceRegister.has_value() && *output.instructions[index].sourceRegister == 2, "register source metadata");
+    }
+    require(output.symbols.contains("STL00002"), "generated literal avoids user label");
+    require(output.state.memory[symbolAddress(output, "STL00002")] == 10, "decimal literal");
+    require(output.state.memory[symbolAddress(output, "STL00003")] == 0x1234, "hex literal");
+    require(output.state.memory[symbolAddress(output, "STL00004")] == 0x0041, "character literal");
+}
+
+void ExecutePhase20StandardMacrosAndIo() {
+    const auto output = assembleOrExit(R"(MAIN START
+ IN BUF,LEN
+ OUT BUF,LEN
+ RET
+BUF DS 256
+LEN DS 1
+ END)");
+    require(output.instructions.size() == 15, "IN/OUT expansion count plus RET");
+    require(output.instructions[4].opcode == casl::Opcode::SVC, "IN expansion uses real SVC");
+    require(output.instructions[11].opcode == casl::Opcode::SVC, "OUT expansion uses real SVC");
+
+    casl::CometVm vm;
+    vm.load(output);
+    for (int step = 0; step < 5; ++step) (void)vm.step();
+    require(vm.state().runState == casl::RunState::WaitingInput, "IN waits without blocking");
+    vm.enqueueInput({0x41, 0x42, 0x43});
+    const auto input = vm.step();
+    require(input.ok, "queued input resumes SVC");
+    require(vm.state().memory[symbolAddress(output, "LEN")] == 3, "IN stores length");
+    require(vm.state().memory[symbolAddress(output, "BUF")] == 0x41, "IN stores first byte");
+
+    const auto run = vm.run(32);
+    require(run.ok, "I/O macro program should finish");
+    require(vm.state().runState == casl::RunState::Finished, "I/O macro program finished");
+    require(vm.state().consoleOutput.size() == 1, "OUT emitted one record");
+    require(vm.state().consoleOutput.front() == std::vector<std::uint16_t>({0x41, 0x42, 0x43}), "OUT record bytes");
+    require(vm.state().sp == casl::kDefaultStackPointer, "IN/OUT preserve SP");
+}
+
+void ReloadPhase20DsInitialization() {
+    const auto output = assembleOrExit(R"(MAIN START
+ LAD GR1,#4321
+ ST GR1,SPACE
+ RET
+CONST DC #1234
+SPACE DS 2
+ END)");
+    casl::CometVm vm;
+    vm.load(output);
+    (void)vm.step();
+    (void)vm.step();
+    require(vm.state().memory[symbolAddress(output, "SPACE")] == 0x4321, "pre-reload write");
+
+    vm.reload(0xffff);
+    require(vm.state().memory[symbolAddress(output, "CONST")] == 0x1234, "reload preserves DC");
+    require(vm.state().memory[symbolAddress(output, "SPACE")] == 0xffff, "reload fills first DS word");
+    require(vm.state().memory[symbolAddress(output, "SPACE") + 1] == 0xffff, "reload fills second DS word");
+    require(vm.state().pr == output.entryPoint, "reload restores entry point");
+    require(vm.state().sp == casl::kDefaultStackPointer, "reload restores SP");
+    require(vm.state().consoleOutput.empty(), "reload clears console output");
+}
+
 using TestFunction = void (*)();
 
 const std::vector<std::pair<std::string_view, TestFunction>>& tests() {
@@ -1233,6 +1321,9 @@ const std::vector<std::pair<std::string_view, TestFunction>>& tests() {
         {"Run_ShouldStopAtMaxSteps", Run_ShouldStopAtMaxSteps},
         {"VmStructuredDiagnostics", VmStructuredDiagnostics},
         {"MemoryAccess_OutOfRange_ShouldError", MemoryAccess_OutOfRange_ShouldError},
+        {"AssemblePhase20RegisterFormsAndLiterals", AssemblePhase20RegisterFormsAndLiterals},
+        {"ExecutePhase20StandardMacrosAndIo", ExecutePhase20StandardMacrosAndIo},
+        {"ReloadPhase20DsInitialization", ReloadPhase20DsInitialization},
     };
     return cases;
 }

@@ -38,7 +38,12 @@ enum class Opcode {
     JPL,
     JMI,
     JOV,
-    RET
+    RET,
+    SVC,
+    IN,
+    OUT,
+    RPUSH,
+    RPOP
 };
 
 using InstructionKind = Opcode;
@@ -47,6 +52,13 @@ std::optional<Opcode> parseOpcode(std::string_view text);
 std::string opcodeName(Opcode opcode);
 bool isExecutableOpcode(Opcode opcode);
 bool hasAddressOperand(Opcode opcode);
-std::uint16_t encodeInstruction(Opcode opcode, std::uint8_t gr, std::uint8_t indexRegister = 0);
+bool supportsRegisterForm(Opcode opcode);
+bool isMacroOpcode(Opcode opcode);
+std::uint16_t encodeInstruction(
+    Opcode opcode,
+    std::uint8_t gr,
+    std::uint8_t indexRegister = 0,
+    bool registerForm = false
+);
 
 }  // namespace casl

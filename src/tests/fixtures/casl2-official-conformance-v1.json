@@ -1,0 +1,123 @@
+{
+  "schemaVersion": 1,
+  "profile": "IPA CASL II / COMET II public specification",
+  "wordSizeBits": 16,
+  "startAddress": "0020",
+  "vectors": [
+    {
+      "id": "official-register-register-opcodes",
+      "category": "instruction-encoding",
+      "source": "MAIN START\n LD GR1,GR2\n ADDA GR1,GR2\n SUBA GR1,GR2\n ADDL GR1,GR2\n SUBL GR1,GR2\n AND GR1,GR2\n OR GR1,GR2\n XOR GR1,GR2\n CPA GR1,GR2\n CPL GR1,GR2\n RET\n END",
+      "expectedMachineWords": [
+        "1412",
+        "2412",
+        "2512",
+        "2612",
+        "2712",
+        "3412",
+        "3512",
+        "3612",
+        "4412",
+        "4512",
+        "8100"
+      ],
+      "evidenceCategory": "official-spec"
+    },
+    {
+      "id": "direct-index-address-forms",
+      "category": "addressing",
+      "source": "MAIN START\n LAD GR2,1\n LD GR1,DATA\n ST GR1,DATA,GR2\n RET\nDATA DS 3\n END",
+      "expectedFinalRegisters": {
+        "GR1": "0000",
+        "GR2": "0001"
+      },
+      "expectedFR": {
+        "OF": false,
+        "SF": false,
+        "ZF": true
+      },
+      "evidenceCategory": "official-spec"
+    },
+    {
+      "id": "directives-and-constants",
+      "category": "directives",
+      "source": "MAIN START ENTRY\nDATA DC -1,65536,#1234,'A''B',ENTRY\nSPACE DS 2\nENTRY RET\n END",
+      "expectedMemory": [
+        {
+          "label": "DATA",
+          "offset": 0,
+          "value": "FFFF"
+        },
+        {
+          "label": "DATA",
+          "offset": 1,
+          "value": "0000"
+        },
+        {
+          "label": "DATA",
+          "offset": 2,
+          "value": "1234"
+        },
+        {
+          "label": "DATA",
+          "offset": 3,
+          "value": "0041"
+        },
+        {
+          "label": "DATA",
+          "offset": 4,
+          "value": "0027"
+        },
+        {
+          "label": "DATA",
+          "offset": 5,
+          "value": "0042"
+        }
+      ],
+      "expectedError": null,
+      "evidenceCategory": "official-spec"
+    },
+    {
+      "id": "literal-storage",
+      "category": "literals",
+      "source": "MAIN START\n LD GR1,=10\n LD GR2,=#1234\n LD GR3,='A'\n RET\n END",
+      "expectedAssembly": {
+        "literalCount": 3,
+        "deduplicated": false
+      },
+      "expectedFinalRegisters": {
+        "GR1": "000A",
+        "GR2": "1234",
+        "GR3": "0041"
+      },
+      "evidenceCategory": "official-spec"
+    },
+    {
+      "id": "standard-register-macros",
+      "category": "macros",
+      "source": "MAIN START\n RPUSH\n RPOP\n RET\n END",
+      "expectedSP": "FFFE",
+      "expectedAssembly": {
+        "expandedInstructionCount": 15
+      },
+      "evidenceCategory": "official-spec"
+    },
+    {
+      "id": "deterministic-input-output",
+      "category": "system-io",
+      "source": "MAIN START\n IN BUF,LEN\n OUT BUF,LEN\n RET\nBUF DS 256\nLEN DS 1\n END",
+      "input": "ABC",
+      "expectedOutput": [
+        "ABC"
+      ],
+      "expectedMemory": [
+        {
+          "label": "LEN",
+          "offset": 0,
+          "value": "0003"
+        }
+      ],
+      "evidenceCategory": "official-spec-and-teaching-os-profile"
+    }
+  ]
+}

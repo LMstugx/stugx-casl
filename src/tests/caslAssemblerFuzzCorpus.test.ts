@@ -17,8 +17,6 @@ const malformedCorpus = [
   ["malformed DC", "MAIN START\nA    DC    NOPE\n     END"],
   ["malformed DS", "MAIN START\nA    DS    NOPE\n     END"],
   ["huge DS overflow", "MAIN START\nA    DS    65505\n     END"],
-  ["negative numeric unsupported", "MAIN START\nA    DC    -1\n     END"],
-  ["over 16-bit numeric", "MAIN START\nA    DC    65536\n     END"],
   ["trailing comma", "MAIN START\n     LD    GR1,A,\nA    DC    1\n     END"],
   ["bad hex literal", "MAIN START\nA    DC    #GGGG\n     END"],
   ["very long label undefined operand", `MAIN START\n     LD    GR1,${"LONG".repeat(80)}\n     END`],
@@ -41,6 +39,14 @@ a       dc    1
   [
     "program exactly at memory boundary",
     "MAIN START\n     RET\nFILL DS 65503\n     END"
+  ],
+  [
+    "signed decimal constant uses low 16 bits",
+    "MAIN START\nA    DC    -1\n     END"
+  ],
+  [
+    "large decimal constant uses low 16 bits",
+    "MAIN START\nA    DC    65536\n     END"
   ]
 ] as const;
 

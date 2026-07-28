@@ -46,6 +46,8 @@ Phase 13C adds keyboard, contrast, state-consistency, clipping, and viewport aud
 
 Phase 14C adds English, Japanese, and Simplified Chinese Circuit Focus captures across CPU Flow, Register / Stack, and Code / Machine modes. Review translated compact labels for overlap and clipping while confirming that circuit geometry, source, Generated CASL, machine words, register names, addresses, and clean-wire behavior remain unchanged.
 
+Phase 20A adds `casl-mode-hex`, signed/unsigned/binary, stack, `RPUSH`/`RPOP`, input-waiting, output, indexed-addressing, JA/zh-CN 1280, and assembler-output symbol-table scenes. Review that CASL Mode remains a responsive modern view, keeps the Console and long technical tables bounded, exposes all 16-bit formats without changing machine state, and does not copy a legacy simulator interface.
+
 ## Open Gallery Locally
 
 After capture, open:

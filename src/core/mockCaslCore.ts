@@ -14,6 +14,8 @@ import {
 } from "./types";
 import { DEFAULT_CASL_SOURCE } from "./defaultSource";
 import { normalizeAssemblerDiagnostics, normalizeDiagnostics } from "../diagnostics/catalog";
+import { decodeCaslOutputRecord } from "./caslIoEncoding";
+import type { ReloadInitializationMode } from "./coreAdapter";
 
 export { DEFAULT_CASL_SOURCE };
 
@@ -50,20 +52,29 @@ const SUPPORTED_OPS = new Set([
   "JPL",
   "JMI",
   "JOV",
-  "RET"
+  "RET",
+  "SVC",
+  "IN",
+  "OUT",
+  "RPUSH",
+  "RPOP"
 ]);
+type MacroInstructionKind = "IN" | "OUT" | "RPUSH" | "RPOP";
+type ParsedOperation = InstructionKind | MacroInstructionKind;
 const REGISTER_ADDRESS_OPS = new Set<InstructionKind>(["LD", "LAD", "ADDA", "SUBA", "ADDL", "SUBL", "AND", "OR", "XOR", "CPA", "CPL", "SLA", "SRA", "SLL", "SRL", "ST"]);
+const REGISTER_FORM_OPS = new Set<InstructionKind>(["LD", "ADDA", "SUBA", "ADDL", "SUBL", "AND", "OR", "XOR", "CPA", "CPL"]);
 const JUMP_OPS = new Set<InstructionKind>(["JUMP", "JZE", "JNZ", "JPL", "JMI", "JOV"]);
 const SHIFT_OPS = new Set<InstructionKind>(["SLA", "SRA", "SLL", "SRL"]);
 const STACK_ADDRESS_OPS = new Set<InstructionKind>(["PUSH"]);
 const CALL_OPS = new Set<InstructionKind>(["CALL"]);
+const SYSTEM_ADDRESS_OPS = new Set<InstructionKind>(["SVC"]);
 
 type ParsedLine = {
   line: number;
   raw: string;
   source: string;
   label?: string;
-  op?: InstructionKind;
+  op?: ParsedOperation;
   unknownOpcode?: string;
   operands: string[];
   parserDiagnostics?: Diagnostic[];
@@ -76,12 +87,15 @@ type AssembleArtifacts = {
   program: AssembledInstruction[];
   symbols: Record<string, number>;
   diagnostics: Diagnostic[];
+  entryPoint: number;
 };
 
 export interface CaslCore {
   assemble(source: string): CometState;
   step(state: CometState): CometState;
   reset(state: CometState): CometState;
+  reload(state: CometState, mode: ReloadInitializationMode): CometState;
+  enqueueInput(state: CometState, words: number[], endOfFile?: boolean): CometState;
 }
 
 function initialFlags(): FlagsState {
@@ -101,6 +115,8 @@ function cloneState(state: CometState): CometState {
     symbols: { ...state.symbols },
     diagnostics: state.diagnostics.map((diagnostic) => ({ ...diagnostic })),
     output: [...state.output],
+    consoleOutput: [...state.consoleOutput],
+    consoleInputQueue: state.consoleInputQueue?.map((record) => ({ words: [...record.words], endOfFile: record.endOfFile })),
     trace: state.trace.map((event) => ({ ...event })),
     program: state.program?.map((instruction) => ({ ...instruction })),
     changedRegisters: [...state.changedRegisters],
@@ -110,17 +126,58 @@ function cloneState(state: CometState): CometState {
 }
 
 function stripComment(line: string): string {
-  return line.split(";")[0].trimEnd();
+  let inCharacterConstant = false;
+  for (let index = 0; index < line.length; index += 1) {
+    if (line[index] === "'") {
+      if (inCharacterConstant && line[index + 1] === "'") {
+        index += 1;
+      } else {
+        inCharacterConstant = !inCharacterConstant;
+      }
+    } else if (line[index] === ";" && !inCharacterConstant) {
+      return line.slice(0, index).trimEnd();
+    }
+  }
+  return line.trimEnd();
+}
+
+function tokenizeCaslLine(source: string): string[] {
+  const tokens: string[] = [];
+  let token = "";
+  let inCharacterConstant = false;
+  for (let index = 0; index < source.length; index += 1) {
+    const character = source[index];
+    if (character === "'") {
+      token += character;
+      if (inCharacterConstant && source[index + 1] === "'") {
+        token += source[index + 1];
+        index += 1;
+      } else {
+        inCharacterConstant = !inCharacterConstant;
+      }
+      continue;
+    }
+    if (!inCharacterConstant && (character === "," || /\s/.test(character))) {
+      if (token) {
+        tokens.push(token);
+        token = "";
+      }
+      continue;
+    }
+    token += character;
+  }
+  if (token) tokens.push(token);
+  return tokens;
 }
 
 function parseLine(raw: string, index: number): ParsedLine {
   const source = stripComment(raw);
   const trimmedSource = source.trim();
   const parserDiagnostics: Diagnostic[] = [];
-  if (/,\s*$/.test(trimmedSource) || /,\s*,/.test(trimmedSource)) {
+  if (hasMalformedStructuralComma(trimmedSource)) {
     parserDiagnostics.push({ line: index + 1, message: "Malformed operand list near comma", severity: "error" });
   }
-  const tokens = source.replace(/,/g, " ").trim().split(/\s+/).filter(Boolean);
+  const tokens = tokenizeCaslLine(source.trim());
 
   if (tokens.length === 0) {
     return { line: index + 1, raw, source: raw.trim(), operands: [], parserDiagnostics };
@@ -132,7 +189,7 @@ function parseLine(raw: string, index: number): ParsedLine {
       line: index + 1,
       raw,
       source: source.trim(),
-      op: first as InstructionKind,
+      op: first as ParsedOperation,
       operands: tokens.slice(1),
       parserDiagnostics
     };
@@ -144,11 +201,39 @@ function parseLine(raw: string, index: number): ParsedLine {
     raw,
     source: source.trim(),
     label: tokens[0],
-    op: SUPPORTED_OPS.has(op) ? (op as InstructionKind) : undefined,
+    op: SUPPORTED_OPS.has(op) ? (op as ParsedOperation) : undefined,
     unknownOpcode: !SUPPORTED_OPS.has(op) ? tokens[1] : undefined,
     operands: tokens.slice(2),
     parserDiagnostics
   };
+}
+
+function hasMalformedStructuralComma(source: string): boolean {
+  let inCharacterConstant = false;
+  let previousStructuralComma = false;
+  let lastNonSpaceWasComma = false;
+  for (let index = 0; index < source.length; index += 1) {
+    const character = source[index];
+    if (character === "'") {
+      if (inCharacterConstant && source[index + 1] === "'") index += 1;
+      else inCharacterConstant = !inCharacterConstant;
+      previousStructuralComma = false;
+      lastNonSpaceWasComma = false;
+      continue;
+    }
+    if (inCharacterConstant) continue;
+    if (character === ",") {
+      if (previousStructuralComma) return true;
+      previousStructuralComma = true;
+      lastNonSpaceWasComma = true;
+      continue;
+    }
+    if (!/\s/.test(character)) {
+      previousStructuralComma = false;
+      lastNonSpaceWasComma = false;
+    }
+  }
+  return lastNonSpaceWasComma;
 }
 
 function parseNumber(token: string): number {
@@ -173,14 +258,59 @@ function parseNumber(token: string): number {
   return value;
 }
 
+function parseCharacterConstant(token: string): number[] | undefined {
+  if (token.length < 2 || !token.startsWith("'") || !token.endsWith("'")) return undefined;
+  const words: number[] = [];
+  for (let index = 1; index < token.length - 1; index += 1) {
+    const character = token[index];
+    if (character === "'") {
+      if (token[index + 1] !== "'" || index + 1 >= token.length - 1) return undefined;
+      words.push(0x27);
+      index += 1;
+      continue;
+    }
+    const code = character.codePointAt(0) ?? 0;
+    if (code >= 0x20 && code <= 0x7e) {
+      words.push(code);
+    } else if (code >= 0xff61 && code <= 0xff9f) {
+      words.push(0xa1 + (code - 0xff61));
+    } else {
+      return undefined;
+    }
+  }
+  return words.length ? words : undefined;
+}
+
+function parseDcOperand(token: string, symbols?: Record<string, number>): number[] {
+  const characters = parseCharacterConstant(token);
+  if (characters) return characters;
+  if (token.startsWith("'")) throw new Error(`Invalid numeric value: ${token}`);
+  if (/^[+-]?\d+$/.test(token)) {
+    const value = Number(token);
+    if (!Number.isSafeInteger(value)) throw new Error(`Numeric value out of supported range: ${token}`);
+    return [word(value)];
+  }
+  try {
+    return [word(parseNumber(token))];
+  } catch {
+    const address = symbols?.[symbolKey(token)];
+    if (address === undefined) throw new Error(`Invalid numeric value: ${token}`);
+    return [address];
+  }
+}
+
 function symbolKey(label: string): string {
   return label.toUpperCase();
 }
 
 function instructionSize(line: ParsedLine): number {
-  if (line.op && (REGISTER_ADDRESS_OPS.has(line.op) || JUMP_OPS.has(line.op) || STACK_ADDRESS_OPS.has(line.op) || CALL_OPS.has(line.op))) return 2;
+  if (line.op && REGISTER_FORM_OPS.has(line.op as InstructionKind) && line.operands.length === 2 && /^GR[0-7]$/i.test(line.operands[1])) return 1;
+  if (line.op && (REGISTER_ADDRESS_OPS.has(line.op as InstructionKind) || JUMP_OPS.has(line.op as InstructionKind) || STACK_ADDRESS_OPS.has(line.op as InstructionKind) || CALL_OPS.has(line.op as InstructionKind) || SYSTEM_ADDRESS_OPS.has(line.op as InstructionKind))) return 2;
   if (line.op === "NOP" || line.op === "RET" || line.op === "POP") return 1;
-  if (line.op === "DC") return Math.max(1, line.operands.length);
+  if (line.op === "DC") {
+    if (!line.operands.length) throw new Error("Missing numeric value");
+    return line.operands.reduce((count, operand) => count + (parseCharacterConstant(operand)?.length ?? 1), 0);
+  }
   if (line.op === "DS") return Math.max(0, parseNumber(line.operands[0] ?? "0"));
   return 0;
 }
@@ -197,34 +327,35 @@ function indexRegisterNumber(token: string): number {
   return register;
 }
 
-function encodeInstruction(op: AssembledInstruction["op"], gr = 0, indexRegister = 0): number {
+function encodeInstruction(op: AssembledInstruction["op"], gr = 0, indexRegister = 0, registerForm = false): number {
   const registerBits = (gr & 0x0f) << 4;
   const indexBits = indexRegister & 0x0f;
+  const registerFormBits = registerForm ? 0x0400 : 0;
   switch (op) {
     case "NOP":
       return 0x0000;
     case "LD":
-      return 0x1000 | registerBits | indexBits;
+      return 0x1000 | registerFormBits | registerBits | indexBits;
     case "LAD":
       return 0x1200 | registerBits | indexBits;
     case "ADDA":
-      return 0x2000 | registerBits | indexBits;
+      return 0x2000 | registerFormBits | registerBits | indexBits;
     case "SUBA":
-      return 0x2100 | registerBits | indexBits;
+      return 0x2100 | registerFormBits | registerBits | indexBits;
     case "ADDL":
-      return 0x2200 | registerBits | indexBits;
+      return 0x2200 | registerFormBits | registerBits | indexBits;
     case "SUBL":
-      return 0x2300 | registerBits | indexBits;
+      return 0x2300 | registerFormBits | registerBits | indexBits;
     case "AND":
-      return 0x3000 | registerBits | indexBits;
+      return 0x3000 | registerFormBits | registerBits | indexBits;
     case "OR":
-      return 0x3100 | registerBits | indexBits;
+      return 0x3100 | registerFormBits | registerBits | indexBits;
     case "XOR":
-      return 0x3200 | registerBits | indexBits;
+      return 0x3200 | registerFormBits | registerBits | indexBits;
     case "CPA":
-      return 0x4000 | registerBits | indexBits;
+      return 0x4000 | registerFormBits | registerBits | indexBits;
     case "CPL":
-      return 0x4100 | registerBits | indexBits;
+      return 0x4100 | registerFormBits | registerBits | indexBits;
     case "SLA":
       return 0x5000 | registerBits | indexBits;
     case "SRA":
@@ -255,6 +386,8 @@ function encodeInstruction(op: AssembledInstruction["op"], gr = 0, indexRegister
       return 0x6600 | indexBits;
     case "RET":
       return 0x8100;
+    case "SVC":
+      return 0xf000 | indexBits;
   }
 }
 
@@ -275,7 +408,95 @@ function parseOptionalIndexOperand(operand: string | undefined): number | undefi
 }
 
 function parseProgram(source: string): ParsedLine[] {
-  return source.split(/\r?\n/).map(parseLine).filter((line) => line.op || line.label);
+  const parsed = source.split(/\r?\n/).map(parseLine).filter((line) => line.op || line.label);
+  const expanded: ParsedLine[] = [];
+  const literals: ParsedLine[] = [];
+  let literalIndex = 0;
+  const usedLabels = new Set(parsed.flatMap((line) => line.label ? [symbolKey(line.label)] : []));
+
+  const expandedInstruction = (
+    line: ParsedLine,
+    op: InstructionKind,
+    operands: string[],
+    label?: string
+  ): ParsedLine => ({
+    ...line,
+    label,
+    op,
+    operands,
+    unknownOpcode: undefined,
+    parserDiagnostics: label === line.label ? line.parserDiagnostics : []
+  });
+
+  for (const line of parsed) {
+    if (line.op === "RPUSH") {
+      if (line.operands.length !== 0) {
+        expanded.push(line);
+        continue;
+      }
+      for (let register = 1; register <= 7; register += 1) {
+        expanded.push(expandedInstruction(line, "PUSH", ["0", `GR${register}`], register === 1 ? line.label : undefined));
+      }
+      continue;
+    }
+    if (line.op === "RPOP") {
+      if (line.operands.length !== 0) {
+        expanded.push(line);
+        continue;
+      }
+      for (let register = 7; register >= 1; register -= 1) {
+        expanded.push(expandedInstruction(line, "POP", [`GR${register}`], register === 7 ? line.label : undefined));
+      }
+      continue;
+    }
+    if (line.op === "IN" || line.op === "OUT") {
+      if (line.operands.length !== 2) {
+        expanded.push(line);
+        continue;
+      }
+      const service = line.op === "IN" ? "1" : "2";
+      const macroLines: Array<[InstructionKind, string[]]> = [
+        ["PUSH", ["0", "GR1"]],
+        ["PUSH", ["0", "GR2"]],
+        ["LAD", ["GR1", line.operands[0]]],
+        ["LAD", ["GR2", line.operands[1]]],
+        ["SVC", [service]],
+        ["POP", ["GR2"]],
+        ["POP", ["GR1"]]
+      ];
+      macroLines.forEach(([op, operands], index) => {
+        expanded.push(expandedInstruction(line, op, operands, index === 0 ? line.label : undefined));
+      });
+      continue;
+    }
+
+    const next = { ...line, operands: [...line.operands] };
+    next.operands = next.operands.map((operand) => {
+      if (!operand.startsWith("=")) return operand;
+      if (operand.length === 1) return operand;
+      let literalLabel: string;
+      do {
+        literalIndex += 1;
+        literalLabel = `STL${literalIndex.toString().padStart(5, "0")}`;
+      } while (usedLabels.has(symbolKey(literalLabel)));
+      usedLabels.add(symbolKey(literalLabel));
+      literals.push({
+        line: line.line,
+        raw: line.raw,
+        source: line.source,
+        label: literalLabel,
+        op: "DC",
+        operands: [operand.slice(1)]
+      });
+      return literalLabel;
+    });
+    expanded.push(next);
+  }
+
+  const endIndex = expanded.findIndex((line) => line.op === "END");
+  if (endIndex >= 0) expanded.splice(endIndex, 0, ...literals);
+  else expanded.push(...literals);
+  return expanded;
 }
 
 function assembleArtifacts(source: string): AssembleArtifacts {
@@ -286,16 +507,39 @@ function assembleArtifacts(source: string): AssembleArtifacts {
   const sourceMap: SourceMapEntry[] = [];
   const program: AssembledInstruction[] = [];
   let address = START_ADDRESS;
+  let entryPoint = START_ADDRESS;
 
   const directiveLine = lines[0]?.line ?? 0;
   for (const line of lines) {
     diagnostics.push(...(line.parserDiagnostics ?? []));
   }
-  if (!lines.some((line) => line.op === "START")) {
+  const startLines = lines.filter((line) => line.op === "START");
+  const endLines = lines.filter((line) => line.op === "END");
+  if (startLines.length === 0) {
     diagnostics.push({ line: directiveLine, message: "CASL source must contain START directive", severity: "error" });
+  } else {
+    if (startLines.length > 1) {
+      startLines.slice(1).forEach((line) => diagnostics.push({ line: line.line, message: "CASL source must contain exactly one START directive", severity: "error" }));
+    }
+    if (lines[0]?.op !== "START") {
+      diagnostics.push({ line: startLines[0].line, message: "START must be the first program directive", severity: "error" });
+    }
+    if (startLines[0].operands.length > 1) {
+      diagnostics.push({ line: startLines[0].line, message: "START accepts at most one entry label", severity: "error" });
+    }
   }
-  if (!lines.some((line) => line.op === "END")) {
+  if (endLines.length === 0) {
     diagnostics.push({ line: directiveLine, message: "CASL source must contain END directive", severity: "error" });
+  } else {
+    if (endLines.length > 1) {
+      endLines.slice(1).forEach((line) => diagnostics.push({ line: line.line, message: "CASL source must contain exactly one END directive", severity: "error" }));
+    }
+    if (lines[lines.length - 1]?.op !== "END") {
+      diagnostics.push({ line: endLines[0].line, message: "END must be the final non-comment directive", severity: "error" });
+    }
+    if (endLines[0].operands.length > 0) {
+      diagnostics.push({ line: endLines[0].line, message: "END does not accept operands", severity: "error" });
+    }
   }
 
   for (const line of lines) {
@@ -341,13 +585,35 @@ function assembleArtifacts(source: string): AssembleArtifacts {
     if (!line.op || line.op === "START" || line.op === "END") continue;
     const sourceText = line.source || line.raw.trim();
 
-    if (line.op && REGISTER_ADDRESS_OPS.has(line.op)) {
+    if (line.op === "IN" || line.op === "OUT" || line.op === "RPUSH" || line.op === "RPOP") {
+      diagnostics.push({ line: line.line, message: `Invalid operands for macro instruction ${line.op}`, severity: "error" });
+      continue;
+    }
+
+    if (line.op && REGISTER_ADDRESS_OPS.has(line.op as InstructionKind)) {
       try {
         const op = line.op as AssembledInstruction["op"];
         if (line.operands.length < 2) throw new Error(`${line.op} requires register and address operands`);
         if (line.operands.length > 3) throw new Error(`${line.op} has too many operands`);
         const gr = registerNumber(line.operands[0] ?? "");
         const operand = line.operands[1];
+        if (REGISTER_FORM_OPS.has(op) && /^GR[0-7]$/i.test(operand)) {
+          if (line.operands.length !== 2) throw new Error(`${line.op} register form requires exactly two registers`);
+          const sourceRegister = registerNumber(operand);
+          const machine = encodeInstruction(op, gr, sourceRegister, true);
+          memory[address] = machine;
+          sourceMap.push({
+            line: line.line,
+            address,
+            machineWords: [machine],
+            source: sourceText,
+            label: line.label,
+            instruction: op
+          });
+          program.push({ address, line: line.line, op, source: sourceText, size: 1, gr, sourceRegister });
+          address += 1;
+          continue;
+        }
         const indexRegister = parseOptionalIndexOperand(line.operands[2]);
         const operandAddress = resolveAddressOperand(operand, symbols);
         const machine = encodeInstruction(op, gr, indexRegister ?? 0);
@@ -379,7 +645,7 @@ function assembleArtifacts(source: string): AssembleArtifacts {
       continue;
     }
 
-    if (line.op && JUMP_OPS.has(line.op)) {
+    if (line.op && JUMP_OPS.has(line.op as InstructionKind)) {
       try {
         const op = line.op as AssembledInstruction["op"];
         if (line.operands.length < 1) throw new Error(`${line.op} requires an address operand`);
@@ -438,6 +704,41 @@ function assembleArtifacts(source: string): AssembleArtifacts {
           address,
           line: line.line,
           op,
+          source: sourceText,
+          size: 2,
+          operandLabel: symbols[symbolKey(operand)] === operandAddress ? operand : undefined,
+          operandAddress,
+          indexRegister
+        });
+        address += 2;
+      } catch (error) {
+        diagnostics.push({ line: line.line, message: (error as Error).message, severity: "error" });
+      }
+      continue;
+    }
+
+    if (line.op === "SVC") {
+      try {
+        if (line.operands.length < 1) throw new Error("SVC requires an address operand");
+        if (line.operands.length > 2) throw new Error("SVC has too many operands");
+        const operand = line.operands[0];
+        const indexRegister = parseOptionalIndexOperand(line.operands[1]);
+        const operandAddress = resolveAddressOperand(operand, symbols);
+        const machine = encodeInstruction("SVC", 0, indexRegister ?? 0);
+        memory[address] = machine;
+        memory[address + 1] = operandAddress;
+        sourceMap.push({
+          line: line.line,
+          address,
+          machineWords: [machine, operandAddress],
+          source: sourceText,
+          label: line.label,
+          instruction: "SVC"
+        });
+        program.push({
+          address,
+          line: line.line,
+          op: "SVC",
           source: sourceText,
           size: 2,
           operandLabel: symbols[symbolKey(operand)] === operandAddress ? operand : undefined,
@@ -529,9 +830,9 @@ function assembleArtifacts(source: string): AssembleArtifacts {
     }
 
     if (line.op === "DC") {
-      const values = line.operands.length ? line.operands : ["0"];
       try {
-        const machineWords = values.map((valueToken) => word(parseNumber(valueToken)));
+        if (!line.operands.length) throw new Error("DC requires at least one operand");
+        const machineWords = line.operands.flatMap((valueToken) => parseDcOperand(valueToken, symbols));
         machineWords.forEach((value, valueIndex) => {
           memory[address + valueIndex] = value;
         });
@@ -543,7 +844,7 @@ function assembleArtifacts(source: string): AssembleArtifacts {
           label: line.label,
           instruction: "DC"
         });
-        address += values.length;
+        address += machineWords.length;
       } catch (error) {
         diagnostics.push({ line: line.line, message: (error as Error).message, severity: "error" });
       }
@@ -576,7 +877,16 @@ function assembleArtifacts(source: string): AssembleArtifacts {
     }
   }
 
-  return { memory, sourceMap, program, symbols, diagnostics: normalizeAssemblerDiagnostics(diagnostics, source) };
+  const startLine = lines.find((line) => line.op === "START");
+  if (startLine?.operands[0]) {
+    try {
+      entryPoint = resolveAddressOperand(startLine.operands[0], symbols);
+    } catch (error) {
+      diagnostics.push({ line: startLine.line, message: (error as Error).message, severity: "error" });
+    }
+  }
+
+  return { memory, sourceMap, program, symbols, entryPoint, diagnostics: normalizeAssemblerDiagnostics(diagnostics, source) };
 }
 
 function getMemory(memory: Record<number, number>, address: number): number {
@@ -825,11 +1135,12 @@ function createState(artifacts: AssembleArtifacts): CometState {
   const state: CometState = {
     assembled: !hasErrors,
     runState: hasErrors ? "Error" : "Ready",
-    pr: START_ADDRESS,
+    entryPoint: artifacts.entryPoint,
+    pr: artifacts.entryPoint,
     sp: 0xfffe,
     callDepth: 0,
     ir: 0,
-    mar: START_ADDRESS,
+    mar: artifacts.entryPoint,
     mdr: 0,
     fr: initialFlags(),
     gr: Array.from({ length: 8 }, () => 0),
@@ -842,7 +1153,9 @@ function createState(artifacts: AssembleArtifacts): CometState {
     diagnostics,
     output: hasErrors
       ? ["Assemble failed.", ...diagnostics.map((diagnostic) => `Line ${diagnostic.line}: ${diagnostic.message}`)]
-      : ["Assemble succeeded. (0 errors, 0 warnings)", "Program loaded. Entry point: START (0020)"],
+      : ["Assemble succeeded. (0 errors, 0 warnings)", `Program loaded. Entry point: ${formatWord(artifacts.entryPoint)}`],
+    consoleOutput: [],
+    consoleInputQueue: [],
     trace: [],
     visualPath: hasErrors ? VisualPathKind.None : VisualPathKind.Ready_PrToMar,
     stepIndex: 0,
@@ -857,6 +1170,7 @@ export function createEmptyCometState(runState: CometState["runState"] = "Idle",
   return refreshDerivedState({
     assembled: false,
     runState,
+    entryPoint: START_ADDRESS,
     pr: START_ADDRESS,
     sp: 0xfffe,
     callDepth: 0,
@@ -873,6 +1187,8 @@ export function createEmptyCometState(runState: CometState["runState"] = "Idle",
     symbols: {},
     diagnostics: [],
     output,
+    consoleOutput: [],
+    consoleInputQueue: [],
     trace: [],
     visualPath: VisualPathKind.None,
     stepIndex: 0,
@@ -956,10 +1272,11 @@ export const mockCaslCore: CaslCore = {
     next.lastIndexValue = undefined;
     next.lastEffectiveAddress = undefined;
     next.ir = getMemory(next.memory, instruction.address);
+    next.mar = instruction.address;
     const effective = effectiveAddressFor(next, instruction);
     const indexDetail = formatIndexDetail(effective);
-    next.mar = effective.effectiveAddress;
     if (instruction.operandAddress !== undefined) {
+      next.mar = effective.effectiveAddress;
       next.lastBaseAddress = effective.baseAddress;
       next.lastIndexRegister = effective.indexRegister;
       next.lastIndexValue = effective.indexValue;
@@ -980,15 +1297,26 @@ export const mockCaslCore: CaslCore = {
     }
 
     if (instruction.op === "LD") {
-      const value = getMemory(next.memory, effective.effectiveAddress);
-      next.lastMemoryReadAddress = effective.effectiveAddress;
-      next.mdr = value;
+      const registerForm = instruction.sourceRegister !== undefined;
+      const value = registerForm ? next.gr[instruction.sourceRegister!] : getMemory(next.memory, effective.effectiveAddress);
+      if (!registerForm) {
+        next.lastMemoryReadAddress = effective.effectiveAddress;
+        next.mdr = value;
+      }
       next.gr[instruction.gr!] = value;
-      next.pr = word(next.pr + 2);
-      next.visualPath = VisualPathKind.LD_MemoryToMdrToGr;
+      next.fr = setFlagsForLogicalResult(value);
+      next.pr = word(next.pr + instruction.size);
+      next.visualPath = registerForm ? VisualPathKind.None : VisualPathKind.LD_MemoryToMdrToGr;
       next.lastStep.visualPath = next.visualPath;
-      next.changedRegisters.push(`GR${instruction.gr}`, "MAR", "MDR");
-      prependTrace(next, traceEvent(next, instruction.address, "LD", `${indexDetail}Memory[${formatWord(effective.effectiveAddress)}] -> MDR -> GR${instruction.gr}`));
+      next.changedRegisters.push(`GR${instruction.gr}`, "FR", ...(registerForm ? [] : ["MAR", "MDR"]));
+      prependTrace(next, traceEvent(
+        next,
+        instruction.address,
+        "LD",
+        registerForm
+          ? `GR${instruction.sourceRegister} -> GR${instruction.gr}; FR updated`
+          : `${indexDetail}Memory[${formatWord(effective.effectiveAddress)}] -> MDR -> GR${instruction.gr}; FR updated`
+      ));
     }
 
     if (instruction.op === "LAD") {
@@ -1002,101 +1330,136 @@ export const mockCaslCore: CaslCore = {
     }
 
     if (instruction.op === "ADDA") {
-      const value = getMemory(next.memory, effective.effectiveAddress);
+      const registerForm = instruction.sourceRegister !== undefined;
+      const value = registerForm ? next.gr[instruction.sourceRegister!] : getMemory(next.memory, effective.effectiveAddress);
       const lhs = next.gr[instruction.gr!];
       const result = lhs + value;
-      next.lastMemoryReadAddress = effective.effectiveAddress;
-      next.mdr = value;
+      if (!registerForm) {
+        next.lastMemoryReadAddress = effective.effectiveAddress;
+        next.mdr = value;
+      }
       next.gr[instruction.gr!] = word(result);
       next.fr = setFlagsForArithmeticResult(result, signedAddOverflow(lhs, value, result));
-      next.pr = word(next.pr + 2);
-      next.visualPath = VisualPathKind.ADDA_GrMdrToAluToGr;
+      next.pr = word(next.pr + instruction.size);
+      next.visualPath = registerForm ? VisualPathKind.None : VisualPathKind.ADDA_GrMdrToAluToGr;
       next.lastStep.visualPath = next.visualPath;
-      next.changedRegisters.push(`GR${instruction.gr}`, "MAR", "MDR", "FR");
-      prependTrace(next, traceEvent(next, instruction.address, "ADDA", `${indexDetail}GR${instruction.gr} + MDR -> ALU -> GR${instruction.gr}`));
+      next.changedRegisters.push(`GR${instruction.gr}`, "FR", ...(registerForm ? [] : ["MAR", "MDR"]));
+      prependTrace(next, traceEvent(next, instruction.address, "ADDA", registerForm
+        ? `GR${instruction.gr} + GR${instruction.sourceRegister} -> GR${instruction.gr} / FR`
+        : `${indexDetail}GR${instruction.gr} + MDR -> ALU -> GR${instruction.gr}`));
     }
 
     if (instruction.op === "SUBA") {
-      const value = getMemory(next.memory, effective.effectiveAddress);
+      const registerForm = instruction.sourceRegister !== undefined;
+      const value = registerForm ? next.gr[instruction.sourceRegister!] : getMemory(next.memory, effective.effectiveAddress);
       const lhs = next.gr[instruction.gr!];
       const result = lhs - value;
-      next.lastMemoryReadAddress = effective.effectiveAddress;
-      next.mdr = value;
+      if (!registerForm) {
+        next.lastMemoryReadAddress = effective.effectiveAddress;
+        next.mdr = value;
+      }
       next.gr[instruction.gr!] = word(result);
       next.fr = setFlagsForArithmeticResult(result, signedSubOverflow(lhs, value, result));
-      next.pr = word(next.pr + 2);
-      next.visualPath = VisualPathKind.SUBA_GrMdrToAluToGr;
+      next.pr = word(next.pr + instruction.size);
+      next.visualPath = registerForm ? VisualPathKind.None : VisualPathKind.SUBA_GrMdrToAluToGr;
       next.lastStep.visualPath = next.visualPath;
-      next.changedRegisters.push(`GR${instruction.gr}`, "MAR", "MDR", "FR");
-      prependTrace(next, traceEvent(next, instruction.address, "SUBA", `${indexDetail}GR${instruction.gr} - MDR -> ALU -> GR${instruction.gr}`));
+      next.changedRegisters.push(`GR${instruction.gr}`, "FR", ...(registerForm ? [] : ["MAR", "MDR"]));
+      prependTrace(next, traceEvent(next, instruction.address, "SUBA", registerForm
+        ? `GR${instruction.gr} - GR${instruction.sourceRegister} -> GR${instruction.gr} / FR`
+        : `${indexDetail}GR${instruction.gr} - MDR -> ALU -> GR${instruction.gr}`));
     }
 
     if (instruction.op === "ADDL") {
-      const value = getMemory(next.memory, effective.effectiveAddress);
+      const registerForm = instruction.sourceRegister !== undefined;
+      const value = registerForm ? next.gr[instruction.sourceRegister!] : getMemory(next.memory, effective.effectiveAddress);
       const lhs = next.gr[instruction.gr!];
       const result = lhs + value;
-      next.lastMemoryReadAddress = effective.effectiveAddress;
-      next.mdr = value;
+      if (!registerForm) {
+        next.lastMemoryReadAddress = effective.effectiveAddress;
+        next.mdr = value;
+      }
       next.gr[instruction.gr!] = word(result);
       next.fr = setFlagsForLogicalAdd(lhs, value);
-      next.pr = word(next.pr + 2);
-      next.visualPath = VisualPathKind.ADDA_GrMdrToAluToGr;
+      next.pr = word(next.pr + instruction.size);
+      next.visualPath = registerForm ? VisualPathKind.None : VisualPathKind.ADDA_GrMdrToAluToGr;
       next.lastStep.visualPath = next.visualPath;
-      next.changedRegisters.push(`GR${instruction.gr}`, "MAR", "MDR", "FR");
-      prependTrace(next, traceEvent(next, instruction.address, "ADDL", `${indexDetail}GR${instruction.gr} + MDR (unsigned) -> ALU -> GR${instruction.gr}`));
+      next.changedRegisters.push(`GR${instruction.gr}`, "FR", ...(registerForm ? [] : ["MAR", "MDR"]));
+      prependTrace(next, traceEvent(next, instruction.address, "ADDL", registerForm
+        ? `GR${instruction.gr} + GR${instruction.sourceRegister} (unsigned) -> GR${instruction.gr} / FR`
+        : `${indexDetail}GR${instruction.gr} + MDR (unsigned) -> ALU -> GR${instruction.gr}`));
     }
 
     if (instruction.op === "SUBL") {
-      const value = getMemory(next.memory, effective.effectiveAddress);
+      const registerForm = instruction.sourceRegister !== undefined;
+      const value = registerForm ? next.gr[instruction.sourceRegister!] : getMemory(next.memory, effective.effectiveAddress);
       const lhs = next.gr[instruction.gr!];
-      next.lastMemoryReadAddress = effective.effectiveAddress;
-      next.mdr = value;
+      if (!registerForm) {
+        next.lastMemoryReadAddress = effective.effectiveAddress;
+        next.mdr = value;
+      }
       next.gr[instruction.gr!] = word(lhs - value);
       next.fr = setFlagsForLogicalSub(lhs, value);
-      next.pr = word(next.pr + 2);
-      next.visualPath = VisualPathKind.SUBA_GrMdrToAluToGr;
+      next.pr = word(next.pr + instruction.size);
+      next.visualPath = registerForm ? VisualPathKind.None : VisualPathKind.SUBA_GrMdrToAluToGr;
       next.lastStep.visualPath = next.visualPath;
-      next.changedRegisters.push(`GR${instruction.gr}`, "MAR", "MDR", "FR");
-      prependTrace(next, traceEvent(next, instruction.address, "SUBL", `${indexDetail}GR${instruction.gr} - MDR (unsigned) -> ALU -> GR${instruction.gr}`));
+      next.changedRegisters.push(`GR${instruction.gr}`, "FR", ...(registerForm ? [] : ["MAR", "MDR"]));
+      prependTrace(next, traceEvent(next, instruction.address, "SUBL", registerForm
+        ? `GR${instruction.gr} - GR${instruction.sourceRegister} (unsigned) -> GR${instruction.gr} / FR`
+        : `${indexDetail}GR${instruction.gr} - MDR (unsigned) -> ALU -> GR${instruction.gr}`));
     }
 
     if (instruction.op === "AND" || instruction.op === "OR" || instruction.op === "XOR") {
-      const value = getMemory(next.memory, effective.effectiveAddress);
+      const registerForm = instruction.sourceRegister !== undefined;
+      const value = registerForm ? next.gr[instruction.sourceRegister!] : getMemory(next.memory, effective.effectiveAddress);
       const lhs = next.gr[instruction.gr!];
       const result = instruction.op === "AND" ? lhs & value : instruction.op === "OR" ? lhs | value : lhs ^ value;
-      next.lastMemoryReadAddress = effective.effectiveAddress;
-      next.mdr = value;
+      if (!registerForm) {
+        next.lastMemoryReadAddress = effective.effectiveAddress;
+        next.mdr = value;
+      }
       next.gr[instruction.gr!] = word(result);
       next.fr = setFlagsForLogicalResult(result);
-      next.pr = word(next.pr + 2);
-      next.visualPath = VisualPathKind.ADDA_GrMdrToAluToGr;
+      next.pr = word(next.pr + instruction.size);
+      next.visualPath = registerForm ? VisualPathKind.None : VisualPathKind.ADDA_GrMdrToAluToGr;
       next.lastStep.visualPath = next.visualPath;
-      next.changedRegisters.push(`GR${instruction.gr}`, "MAR", "MDR", "FR");
-      prependTrace(next, traceEvent(next, instruction.address, instruction.op, `${indexDetail}GR${instruction.gr} ${instruction.op} MDR -> ALU -> GR${instruction.gr}`));
+      next.changedRegisters.push(`GR${instruction.gr}`, "FR", ...(registerForm ? [] : ["MAR", "MDR"]));
+      prependTrace(next, traceEvent(next, instruction.address, instruction.op, registerForm
+        ? `GR${instruction.gr} ${instruction.op} GR${instruction.sourceRegister} -> GR${instruction.gr} / FR`
+        : `${indexDetail}GR${instruction.gr} ${instruction.op} MDR -> ALU -> GR${instruction.gr}`));
     }
 
     if (instruction.op === "CPA") {
-      const value = getMemory(next.memory, effective.effectiveAddress);
-      next.lastMemoryReadAddress = effective.effectiveAddress;
-      next.mdr = value;
+      const registerForm = instruction.sourceRegister !== undefined;
+      const value = registerForm ? next.gr[instruction.sourceRegister!] : getMemory(next.memory, effective.effectiveAddress);
+      if (!registerForm) {
+        next.lastMemoryReadAddress = effective.effectiveAddress;
+        next.mdr = value;
+      }
       next.fr = flagsForCompare(next.gr[instruction.gr!], value);
-      next.pr = word(next.pr + 2);
-      next.visualPath = VisualPathKind.CPA_GrMdrToAluToFr;
+      next.pr = word(next.pr + instruction.size);
+      next.visualPath = registerForm ? VisualPathKind.None : VisualPathKind.CPA_GrMdrToAluToFr;
       next.lastStep.visualPath = next.visualPath;
-      next.changedRegisters.push("MAR", "MDR", "FR");
-      prependTrace(next, traceEvent(next, instruction.address, "CPA", `${indexDetail}GR${instruction.gr} - MDR -> ALU -> FR`));
+      next.changedRegisters.push("FR", ...(registerForm ? [] : ["MAR", "MDR"]));
+      prependTrace(next, traceEvent(next, instruction.address, "CPA", registerForm
+        ? `GR${instruction.gr} - GR${instruction.sourceRegister} -> FR`
+        : `${indexDetail}GR${instruction.gr} - MDR -> ALU -> FR`));
     }
 
     if (instruction.op === "CPL") {
-      const value = getMemory(next.memory, effective.effectiveAddress);
-      next.lastMemoryReadAddress = effective.effectiveAddress;
-      next.mdr = value;
+      const registerForm = instruction.sourceRegister !== undefined;
+      const value = registerForm ? next.gr[instruction.sourceRegister!] : getMemory(next.memory, effective.effectiveAddress);
+      if (!registerForm) {
+        next.lastMemoryReadAddress = effective.effectiveAddress;
+        next.mdr = value;
+      }
       next.fr = flagsForLogicalCompare(next.gr[instruction.gr!], value);
-      next.pr = word(next.pr + 2);
-      next.visualPath = VisualPathKind.CPA_GrMdrToAluToFr;
+      next.pr = word(next.pr + instruction.size);
+      next.visualPath = registerForm ? VisualPathKind.None : VisualPathKind.CPA_GrMdrToAluToFr;
       next.lastStep.visualPath = next.visualPath;
-      next.changedRegisters.push("MAR", "MDR", "FR");
-      prependTrace(next, traceEvent(next, instruction.address, "CPL", `${indexDetail}GR${instruction.gr} compared with MDR (unsigned) -> FR`));
+      next.changedRegisters.push("FR", ...(registerForm ? [] : ["MAR", "MDR"]));
+      prependTrace(next, traceEvent(next, instruction.address, "CPL", registerForm
+        ? `GR${instruction.gr} compared with GR${instruction.sourceRegister} (unsigned) -> FR`
+        : `${indexDetail}GR${instruction.gr} compared with MDR (unsigned) -> FR`));
     }
 
     if (SHIFT_OPS.has(instruction.op)) {
@@ -1223,6 +1586,64 @@ export const mockCaslCore: CaslCore = {
       prependTrace(next, traceEvent(next, instruction.address, instruction.op, taken ? `${indexDetail}PR <- ${formatWord(effective.effectiveAddress)}` : `${indexDetail}Condition not met; PR advanced`));
     }
 
+    if (instruction.op === "SVC") {
+      const service = effective.effectiveAddress;
+      if (service === 1) {
+        const record = next.consoleInputQueue?.shift();
+        if (!record) {
+          next.runState = "WaitingInput";
+          next.visualPath = VisualPathKind.None;
+          next.lastStep.visualPath = next.visualPath;
+          prependTrace(next, traceEvent(next, instruction.address, "SVC", "Input service waiting for one record."));
+          return refreshDerivedState(next);
+        }
+        const area = next.gr[1];
+        const lengthArea = next.gr[2];
+        next.changedMemoryAddresses = [];
+        if (record.endOfFile) {
+          next.memory[lengthArea] = 0xffff;
+          next.changedMemoryAddresses.push(lengthArea);
+          next.mdr = 0xffff;
+        } else {
+          const words = record.words.slice(0, 256);
+          words.forEach((value, index) => {
+            const target = word(area + index);
+            next.memory[target] = value & 0xff;
+            next.changedMemoryAddresses.push(target);
+          });
+          next.memory[lengthArea] = words.length;
+          next.changedMemoryAddresses.push(lengthArea);
+          next.mdr = words.length;
+        }
+        next.lastMemoryWriteAddress = lengthArea;
+        next.fr = initialFlags();
+        next.runState = "Ready";
+        next.changedRegisters.push("MAR", "MDR", "FR");
+        prependTrace(next, traceEvent(next, instruction.address, "SVC", record.endOfFile
+          ? `Input EOF; Memory[${formatWord(lengthArea)}] <- FFFF`
+          : `Input ${record.words.slice(0, 256).length} character(s) at ${formatWord(area)}; length stored at ${formatWord(lengthArea)}`));
+      } else if (service === 2) {
+        const area = next.gr[1];
+        const lengthArea = next.gr[2];
+        const count = Math.min(256, getMemory(next.memory, lengthArea));
+        const words = Array.from({ length: count }, (_, index) => getMemory(next.memory, word(area + index)) & 0xff);
+        next.consoleOutput.push(decodeCaslOutputRecord(words));
+        if (next.consoleOutput.length > 256) next.consoleOutput.shift();
+        next.lastMemoryReadAddress = lengthArea;
+        next.mdr = getMemory(next.memory, lengthArea);
+        next.fr = initialFlags();
+        next.changedRegisters.push("MAR", "MDR", "FR");
+        prependTrace(next, traceEvent(next, instruction.address, "SVC", `Output ${count} character(s) from ${formatWord(area)}.`));
+      } else {
+        next.runState = "Error";
+        next.output.push(`Unsupported SVC service ${formatWord(service)}.`);
+        return refreshDerivedState(next);
+      }
+      next.pr = word(next.pr + 2);
+      next.visualPath = VisualPathKind.None;
+      next.lastStep.visualPath = next.visualPath;
+    }
+
     if (instruction.op === "RET") {
       if (next.callDepth > 0) {
         const spBefore = next.sp;
@@ -1268,16 +1689,18 @@ export const mockCaslCore: CaslCore = {
     const resetState: CometState = {
       ...cloneState(state),
       runState: state.assembled ? "Ready" : "Idle",
-      pr: START_ADDRESS,
+      pr: state.entryPoint ?? START_ADDRESS,
       sp: 0xfffe,
       callDepth: 0,
       ir: 0,
-      mar: START_ADDRESS,
+      mar: state.entryPoint ?? START_ADDRESS,
       mdr: 0,
       fr: initialFlags(),
       gr: Array.from({ length: 8 }, () => 0),
       trace: [],
-      output: state.assembled ? ["Program reset. Entry point: START (0020)"] : [],
+      output: state.assembled ? [`Program reset. Entry point: ${formatWord(state.entryPoint ?? START_ADDRESS)}`] : [],
+      consoleOutput: [],
+      consoleInputQueue: [],
       visualPath: state.assembled ? VisualPathKind.Ready_PrToMar : VisualPathKind.None,
       stepIndex: 0,
       lastStep: undefined,
@@ -1294,5 +1717,27 @@ export const mockCaslCore: CaslCore = {
     resetState.memory = state.initialMemory ? { ...state.initialMemory } : { ...state.memory };
 
     return refreshDerivedState(resetState);
+  },
+
+  reload(state: CometState, mode: ReloadInitializationMode): CometState {
+    const reloaded = this.reset(state);
+    if (mode === "assembled") return reloaded;
+    const fill = mode === "zero" ? 0x0000 : 0xffff;
+    for (const entry of reloaded.sourceMap) {
+      if (entry.instruction !== "DS") continue;
+      entry.machineWords.forEach((_unused, offset) => {
+        reloaded.memory[word(entry.address + offset)] = fill;
+      });
+    }
+    reloaded.output = [`Program reloaded. DS initialization: ${mode === "zero" ? "0000" : "FFFF"}.`];
+    return refreshDerivedState(reloaded);
+  },
+
+  enqueueInput(state: CometState, words: number[], endOfFile = false): CometState {
+    const next = cloneState(state);
+    next.consoleInputQueue ??= [];
+    next.consoleInputQueue.push({ words: words.slice(0, 256).map((value) => value & 0xff), endOfFile });
+    if (next.runState === "WaitingInput") next.runState = "Ready";
+    return refreshDerivedState(next);
   }
 };

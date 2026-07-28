@@ -8,10 +8,6 @@
 namespace casl {
 namespace {
 
-bool isSeparator(char ch) {
-    return ch == ',' || std::isspace(static_cast<unsigned char>(ch)) != 0;
-}
-
 std::string_view trimView(std::string_view value) {
     while (!value.empty() && std::isspace(static_cast<unsigned char>(value.front())) != 0) {
         value.remove_prefix(1);
@@ -31,19 +27,49 @@ std::string upperCopy(std::string_view value) {
 }
 
 std::string_view stripCommentView(std::string_view line) {
-    const auto comment = line.find(';');
-    return trimView(line.substr(0, comment));
+    bool inCharacterConstant = false;
+    for (std::size_t index = 0; index < line.size(); ++index) {
+        const auto ch = line[index];
+        if (ch == '\'') {
+            if (inCharacterConstant && index + 1 < line.size() && line[index + 1] == '\'') {
+                ++index;
+                continue;
+            }
+            inCharacterConstant = !inCharacterConstant;
+            continue;
+        }
+        if (ch == ';' && !inCharacterConstant) {
+            return trimView(line.substr(0, index));
+        }
+    }
+    return trimView(line);
 }
 
 std::vector<std::string_view> tokenizeViews(std::string_view source) {
     std::vector<std::string_view> tokens;
     std::size_t index = 0;
     while (index < source.size()) {
-        while (index < source.size() && isSeparator(source[index])) {
+        while (index < source.size() &&
+               (source[index] == ',' || std::isspace(static_cast<unsigned char>(source[index])) != 0)) {
             index += 1;
         }
         const auto begin = index;
-        while (index < source.size() && !isSeparator(source[index])) {
+        bool inCharacterConstant = false;
+        while (index < source.size()) {
+            const auto ch = source[index];
+            if (ch == '\'') {
+                if (inCharacterConstant && index + 1 < source.size() && source[index + 1] == '\'') {
+                    index += 2;
+                    continue;
+                }
+                inCharacterConstant = !inCharacterConstant;
+                index += 1;
+                continue;
+            }
+            if (!inCharacterConstant &&
+                (ch == ',' || std::isspace(static_cast<unsigned char>(ch)) != 0)) {
+                break;
+            }
             index += 1;
         }
         if (begin < index) {

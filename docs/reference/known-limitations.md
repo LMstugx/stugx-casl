@@ -8,7 +8,8 @@
 
 ## Compiler and VM
 
-- CASL is the listed teaching subset, without a general macro system.
+- CASL covers the official machine instructions, directives, literals, and fixed standard macros, without a general macro system.
+- Multi-program linking, debugger mutation, reverse execution, and COMET microcycle stepping remain deferred.
 - C++ has no complete type system, preprocessing, standard library, native ABI, recursion, or stack-frame lowering.
 - The bridge uses one C++/WASM runtime and JSON DTO transfer.
 - Control-flow display is relationship-oriented, not a complete CFG analysis.

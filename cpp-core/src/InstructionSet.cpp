@@ -50,6 +50,11 @@ std::optional<Opcode> parseOpcode(std::string_view text) {
     if (op == "JMI") return Opcode::JMI;
     if (op == "JOV") return Opcode::JOV;
     if (op == "RET") return Opcode::RET;
+    if (op == "SVC") return Opcode::SVC;
+    if (op == "IN") return Opcode::IN;
+    if (op == "OUT") return Opcode::OUT;
+    if (op == "RPUSH") return Opcode::RPUSH;
+    if (op == "RPOP") return Opcode::RPOP;
     return std::nullopt;
 }
 
@@ -86,6 +91,11 @@ std::string opcodeName(Opcode opcode) {
         case Opcode::JMI: return "JMI";
         case Opcode::JOV: return "JOV";
         case Opcode::RET: return "RET";
+        case Opcode::SVC: return "SVC";
+        case Opcode::IN: return "IN";
+        case Opcode::OUT: return "OUT";
+        case Opcode::RPUSH: return "RPUSH";
+        case Opcode::RPOP: return "RPOP";
     }
     return "UNKNOWN";
 }
@@ -96,7 +106,8 @@ bool isExecutableOpcode(Opcode opcode) {
            opcode == Opcode::OR || opcode == Opcode::XOR || opcode == Opcode::CPA || opcode == Opcode::CPL ||
            opcode == Opcode::SLA || opcode == Opcode::SRA || opcode == Opcode::SLL || opcode == Opcode::SRL ||
            opcode == Opcode::PUSH || opcode == Opcode::POP || opcode == Opcode::CALL || opcode == Opcode::ST || opcode == Opcode::JUMP || opcode == Opcode::JZE || opcode == Opcode::JNZ ||
-           opcode == Opcode::JPL || opcode == Opcode::JMI || opcode == Opcode::JOV || opcode == Opcode::RET;
+           opcode == Opcode::JPL || opcode == Opcode::JMI || opcode == Opcode::JOV || opcode == Opcode::RET ||
+           opcode == Opcode::SVC;
 }
 
 bool hasAddressOperand(Opcode opcode) {
@@ -105,25 +116,37 @@ bool hasAddressOperand(Opcode opcode) {
            opcode == Opcode::XOR || opcode == Opcode::CPA || opcode == Opcode::CPL || opcode == Opcode::SLA ||
            opcode == Opcode::SRA || opcode == Opcode::SLL || opcode == Opcode::SRL || opcode == Opcode::ST ||
            opcode == Opcode::JUMP || opcode == Opcode::JZE || opcode == Opcode::JNZ || opcode == Opcode::JPL ||
-           opcode == Opcode::JMI || opcode == Opcode::JOV || opcode == Opcode::PUSH || opcode == Opcode::CALL;
+           opcode == Opcode::JMI || opcode == Opcode::JOV || opcode == Opcode::PUSH || opcode == Opcode::CALL ||
+           opcode == Opcode::SVC;
 }
 
-std::uint16_t encodeInstruction(Opcode opcode, std::uint8_t gr, std::uint8_t indexRegister) {
+bool supportsRegisterForm(Opcode opcode) {
+    return opcode == Opcode::LD || opcode == Opcode::ADDA || opcode == Opcode::SUBA || opcode == Opcode::ADDL ||
+           opcode == Opcode::SUBL || opcode == Opcode::AND || opcode == Opcode::OR || opcode == Opcode::XOR ||
+           opcode == Opcode::CPA || opcode == Opcode::CPL;
+}
+
+bool isMacroOpcode(Opcode opcode) {
+    return opcode == Opcode::IN || opcode == Opcode::OUT || opcode == Opcode::RPUSH || opcode == Opcode::RPOP;
+}
+
+std::uint16_t encodeInstruction(Opcode opcode, std::uint8_t gr, std::uint8_t indexRegister, bool registerForm) {
     const auto registerBits = static_cast<std::uint16_t>((gr & 0x0f) << 4);
     const auto indexBits = static_cast<std::uint16_t>(indexRegister & 0x0f);
+    const auto registerFormBits = registerForm ? static_cast<std::uint16_t>(0x0400) : 0;
     switch (opcode) {
         case Opcode::NOP: return 0x0000;
-        case Opcode::LD: return static_cast<std::uint16_t>(0x1000 | registerBits | indexBits);
+        case Opcode::LD: return static_cast<std::uint16_t>(0x1000 | registerFormBits | registerBits | indexBits);
         case Opcode::LAD: return static_cast<std::uint16_t>(0x1200 | registerBits | indexBits);
-        case Opcode::ADDA: return static_cast<std::uint16_t>(0x2000 | registerBits | indexBits);
-        case Opcode::SUBA: return static_cast<std::uint16_t>(0x2100 | registerBits | indexBits);
-        case Opcode::ADDL: return static_cast<std::uint16_t>(0x2200 | registerBits | indexBits);
-        case Opcode::SUBL: return static_cast<std::uint16_t>(0x2300 | registerBits | indexBits);
-        case Opcode::AND: return static_cast<std::uint16_t>(0x3000 | registerBits | indexBits);
-        case Opcode::OR: return static_cast<std::uint16_t>(0x3100 | registerBits | indexBits);
-        case Opcode::XOR: return static_cast<std::uint16_t>(0x3200 | registerBits | indexBits);
-        case Opcode::CPA: return static_cast<std::uint16_t>(0x4000 | registerBits | indexBits);
-        case Opcode::CPL: return static_cast<std::uint16_t>(0x4100 | registerBits | indexBits);
+        case Opcode::ADDA: return static_cast<std::uint16_t>(0x2000 | registerFormBits | registerBits | indexBits);
+        case Opcode::SUBA: return static_cast<std::uint16_t>(0x2100 | registerFormBits | registerBits | indexBits);
+        case Opcode::ADDL: return static_cast<std::uint16_t>(0x2200 | registerFormBits | registerBits | indexBits);
+        case Opcode::SUBL: return static_cast<std::uint16_t>(0x2300 | registerFormBits | registerBits | indexBits);
+        case Opcode::AND: return static_cast<std::uint16_t>(0x3000 | registerFormBits | registerBits | indexBits);
+        case Opcode::OR: return static_cast<std::uint16_t>(0x3100 | registerFormBits | registerBits | indexBits);
+        case Opcode::XOR: return static_cast<std::uint16_t>(0x3200 | registerFormBits | registerBits | indexBits);
+        case Opcode::CPA: return static_cast<std::uint16_t>(0x4000 | registerFormBits | registerBits | indexBits);
+        case Opcode::CPL: return static_cast<std::uint16_t>(0x4100 | registerFormBits | registerBits | indexBits);
         case Opcode::SLA: return static_cast<std::uint16_t>(0x5000 | registerBits | indexBits);
         case Opcode::SRA: return static_cast<std::uint16_t>(0x5100 | registerBits | indexBits);
         case Opcode::SLL: return static_cast<std::uint16_t>(0x5200 | registerBits | indexBits);
@@ -139,6 +162,7 @@ std::uint16_t encodeInstruction(Opcode opcode, std::uint8_t gr, std::uint8_t ind
         case Opcode::JPL: return static_cast<std::uint16_t>(0x6500 | indexBits);
         case Opcode::JOV: return static_cast<std::uint16_t>(0x6600 | indexBits);
         case Opcode::RET: return 0x8100;
+        case Opcode::SVC: return static_cast<std::uint16_t>(0xf000 | indexBits);
         default: throw std::invalid_argument("Opcode has no machine encoding");
     }
 }

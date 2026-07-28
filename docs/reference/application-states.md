@@ -14,6 +14,7 @@ The runtime state machine exposes:
 | `Dirty` | Source differs from the revision associated with current derived state |
 | `Ready` | A program is assembled and ready to execute |
 | `Running` | Run is actively executing |
+| `WaitingInput` | An expanded `IN` service is waiting nonblockingly for one Console record |
 | `Stopped` | Run was explicitly stopped |
 | `Finished` | Program reached normal top-level completion |
 | `Error` | Assembly or execution cannot continue |

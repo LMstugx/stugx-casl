@@ -1,4 +1,4 @@
-import type { CoreAdapter } from "./coreAdapter";
+import type { CoreAdapter, ReloadInitializationMode } from "./coreAdapter";
 import { MockCoreAdapter } from "./mockCoreAdapter";
 import { WasmCoreAdapter } from "./wasmCoreAdapter";
 
@@ -88,6 +88,12 @@ export const coreBridge = {
   reset() {
     return callCore(() => activeSelection.adapter.reset());
   },
+  reload(mode: ReloadInitializationMode) {
+    return callCore(() => {
+      if (!activeSelection.adapter.reload) throw new Error("Core backend does not support program reload.");
+      return activeSelection.adapter.reload(mode);
+    });
+  },
   step() {
     return callCore(() => activeSelection.adapter.step());
   },
@@ -96,5 +102,11 @@ export const coreBridge = {
   },
   getState() {
     return callCore(() => activeSelection.adapter.getState());
+  },
+  enqueueInput(text: string, endOfFile = false) {
+    return callCore(() => {
+      if (!activeSelection.adapter.enqueueInput) throw new Error("Core backend does not support console input.");
+      return activeSelection.adapter.enqueueInput(text, endOfFile);
+    });
   }
 };

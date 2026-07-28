@@ -10,8 +10,13 @@ import {
   selectDemoProgram,
   setSource,
   sourceWithA100,
-  step
+  step,
+  verifyCaslCompatibilityMode
 } from "./caslSmokeHelpers";
+
+test("WASM backend completes the CASL compatibility mode workflow", async ({ page }) => {
+  await verifyCaslCompatibilityMode(page, "WASM Core");
+});
 
 test.beforeAll(() => {
   mkdirSync("artifacts/e2e", { recursive: true });

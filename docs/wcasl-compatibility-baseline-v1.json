@@ -1,0 +1,802 @@
+{
+  "baselineVersion": "1.0.0",
+  "auditedWcaslVersion": "WCASL-II public web manual and command reference, audited 2026-07-28",
+  "officialSpecProfile": "IPA CASL II / COMET II public specification",
+  "sourceHierarchy": [
+    "IPA official CASL II / COMET II specification",
+    "WCASL-II public manual and command reference",
+    "stugx.CASL frozen runtime contracts",
+    "course examples and independent regression programs"
+  ],
+  "statusDefinitions": {
+    "exact": "Specified semantics and observable result agree.",
+    "compatible": "Presentation differs, but the same program and core workflow produce the same result.",
+    "superset": "The audited capability is covered with additional modern functionality.",
+    "missing": "The audited capability is not implemented.",
+    "partial": "Only a documented subset or design contract is available.",
+    "intentionally-different": "A documented modernization differs without changing CASL II semantics.",
+    "not-applicable": "The item is a product or distribution property, not a compatibility feature.",
+    "blocked-needs-spec-evidence": "Implementation is blocked until a public, unambiguous format or semantic contract is available."
+  },
+  "featureCategories": [
+    "CASL editor",
+    "assembler",
+    "directives",
+    "macros",
+    "literals/constants",
+    "CASL simulation",
+    "COMET simulation",
+    "registers",
+    "memory",
+    "stack",
+    "numeric formats",
+    "input/output",
+    "loading/reset",
+    "trace",
+    "project/linking",
+    "diagnostics",
+    "files",
+    "teaching visualization",
+    "accessibility",
+    "modern superset"
+  ],
+  "features": [
+    {
+      "featureId": "editor.cas-source",
+      "featureName": "CASL II source editing",
+      "sourceCategory": "WCASL workflow",
+      "evidenceReference": "src/App.tsx",
+      "currentStatus": "compatible",
+      "priority": "P0",
+      "implementationOwner": "frontend",
+      "tests": [
+        "standard_cas_file_opens"
+      ],
+      "limitations": "Modern Monaco editor; no WCASL UI replication.",
+      "targetPhase": "20A"
+    },
+    {
+      "featureId": "editor-formatting",
+      "featureName": "Tabs, spaces, CRLF, and case-insensitive mnemonics",
+      "sourceCategory": "official-spec-and-workflow",
+      "evidenceReference": "cpp-core/src/CaslParser.cpp",
+      "currentStatus": "compatible",
+      "priority": "P1",
+      "implementationOwner": "assembler",
+      "tests": [
+        "casl_parser_formatting_compatibility"
+      ],
+      "limitations": "Source is not silently rewritten.",
+      "targetPhase": "20A"
+    },
+    {
+      "featureId": "assembler.official-opcodes",
+      "featureName": "All official COMET II machine instructions",
+      "sourceCategory": "official-spec",
+      "evidenceReference": "cpp-core/src/InstructionSet.cpp",
+      "currentStatus": "exact",
+      "priority": "P0",
+      "implementationOwner": "core",
+      "tests": [
+        "every_official_opcode_is_registered_and_assemblable"
+      ],
+      "limitations": null,
+      "targetPhase": "20A"
+    },
+    {
+      "featureId": "assembler.register-forms",
+      "featureName": "Official register-to-register forms and opcodes",
+      "sourceCategory": "official-spec",
+      "evidenceReference": "cpp-core/src/InstructionSet.cpp",
+      "currentStatus": "exact",
+      "priority": "P0",
+      "implementationOwner": "core",
+      "tests": [
+        "every_register_register_form_uses_the_official_single_word_opcode"
+      ],
+      "limitations": null,
+      "targetPhase": "20A"
+    },
+    {
+      "featureId": "assembler.indexed-addressing",
+      "featureName": "Direct and indexed address forms",
+      "sourceCategory": "official-spec",
+      "evidenceReference": "cpp-core/src/Assembler.cpp",
+      "currentStatus": "exact",
+      "priority": "P0",
+      "implementationOwner": "core",
+      "tests": [
+        "direct_and_indexed_forms_match_spec",
+        "gr0_index_is_rejected"
+      ],
+      "limitations": null,
+      "targetPhase": "20A"
+    },
+    {
+      "featureId": "directives.start",
+      "featureName": "START and optional execution entry",
+      "sourceCategory": "official-spec",
+      "evidenceReference": "cpp-core/src/Assembler.cpp",
+      "currentStatus": "exact",
+      "priority": "P0",
+      "implementationOwner": "assembler",
+      "tests": [
+        "start_entry_point_and_end_rules_are_enforced"
+      ],
+      "limitations": "Single assembled program only.",
+      "targetPhase": "20A"
+    },
+    {
+      "featureId": "directives.end",
+      "featureName": "END placement and finality",
+      "sourceCategory": "official-spec",
+      "evidenceReference": "cpp-core/src/Assembler.cpp",
+      "currentStatus": "exact",
+      "priority": "P0",
+      "implementationOwner": "assembler",
+      "tests": [
+        "start_entry_point_and_end_rules_are_enforced"
+      ],
+      "limitations": null,
+      "targetPhase": "20A"
+    },
+    {
+      "featureId": "directives.ds",
+      "featureName": "DS word allocation",
+      "sourceCategory": "official-spec",
+      "evidenceReference": "cpp-core/src/Assembler.cpp",
+      "currentStatus": "exact",
+      "priority": "P0",
+      "implementationOwner": "assembler",
+      "tests": [
+        "ds_allocation_is_correct",
+        "reload_initialization_changes_only_ds_words"
+      ],
+      "limitations": "Displayed initial values are a deterministic simulator policy.",
+      "targetPhase": "20A"
+    },
+    {
+      "featureId": "directives.dc",
+      "featureName": "DC numeric, address, multi-value, and string constants",
+      "sourceCategory": "official-spec",
+      "evidenceReference": "cpp-core/src/Assembler.cpp",
+      "currentStatus": "exact",
+      "priority": "P0",
+      "implementationOwner": "assembler",
+      "tests": [
+        "dc_supports_address_multi_string_and_escaped_quote_constants"
+      ],
+      "limitations": "Characters follow the documented CASL character profile.",
+      "targetPhase": "20A"
+    },
+    {
+      "featureId": "macros.rpush",
+      "featureName": "RPUSH expansion",
+      "sourceCategory": "official-spec",
+      "evidenceReference": "cpp-core/src/Assembler.cpp",
+      "currentStatus": "exact",
+      "priority": "P0",
+      "implementationOwner": "assembler",
+      "tests": [
+        "rpush_rpop_expand_in_standard_order_and_restore_sp"
+      ],
+      "limitations": null,
+      "targetPhase": "20A"
+    },
+    {
+      "featureId": "macros.rpop",
+      "featureName": "RPOP expansion",
+      "sourceCategory": "official-spec",
+      "evidenceReference": "cpp-core/src/Assembler.cpp",
+      "currentStatus": "exact",
+      "priority": "P0",
+      "implementationOwner": "assembler",
+      "tests": [
+        "rpush_rpop_expand_in_standard_order_and_restore_sp"
+      ],
+      "limitations": null,
+      "targetPhase": "20A"
+    },
+    {
+      "featureId": "macros.in",
+      "featureName": "IN expansion and teaching OS service",
+      "sourceCategory": "official-spec",
+      "evidenceReference": "cpp-core/src/Assembler.cpp",
+      "currentStatus": "compatible",
+      "priority": "P0",
+      "implementationOwner": "core",
+      "tests": [
+        "in_out_waiting_is_nonblocking_and_uses_plain_text_records"
+      ],
+      "limitations": "FR is deterministically cleared because the official macro leaves FR undefined.",
+      "targetPhase": "20A"
+    },
+    {
+      "featureId": "macros.out",
+      "featureName": "OUT expansion and teaching OS service",
+      "sourceCategory": "official-spec",
+      "evidenceReference": "cpp-core/src/Assembler.cpp",
+      "currentStatus": "compatible",
+      "priority": "P0",
+      "implementationOwner": "core",
+      "tests": [
+        "in_out_waiting_is_nonblocking_and_uses_plain_text_records"
+      ],
+      "limitations": "FR is deterministically cleared because the official macro leaves FR undefined.",
+      "targetPhase": "20A"
+    },
+    {
+      "featureId": "literals.standard",
+      "featureName": "Decimal, hexadecimal, and character literals",
+      "sourceCategory": "official-spec",
+      "evidenceReference": "cpp-core/src/Assembler.cpp",
+      "currentStatus": "exact",
+      "priority": "P0",
+      "implementationOwner": "assembler",
+      "tests": [
+        "decimal_hex_and_character_literals_generate_owned_dc_storage"
+      ],
+      "limitations": null,
+      "targetPhase": "20A"
+    },
+    {
+      "featureId": "literals.ownership",
+      "featureName": "Literal storage, mapping, and collision-safe labels",
+      "sourceCategory": "official-spec-and-runtime",
+      "evidenceReference": "cpp-core/src/Assembler.cpp",
+      "currentStatus": "superset",
+      "priority": "P1",
+      "implementationOwner": "assembler",
+      "tests": [
+        "generated_literal_storage_is_correct",
+        "generated_label_conflict_remains_safe"
+      ],
+      "limitations": "Each literal occurrence owns distinct storage; no deduplication.",
+      "targetPhase": "20A"
+    },
+    {
+      "featureId": "simulation.step",
+      "featureName": "Single machine-instruction Step",
+      "sourceCategory": "official-spec-and-workflow",
+      "evidenceReference": "cpp-core/src/CometVm.cpp",
+      "currentStatus": "exact",
+      "priority": "P0",
+      "implementationOwner": "core",
+      "tests": [
+        "step_executes_one_machine_instruction"
+      ],
+      "limitations": null,
+      "targetPhase": "20A"
+    },
+    {
+      "featureId": "simulation.run",
+      "featureName": "Continuous Run with bounded scheduling",
+      "sourceCategory": "WCASL workflow",
+      "evidenceReference": "src/store/useAppStore.tsx",
+      "currentStatus": "compatible",
+      "priority": "P0",
+      "implementationOwner": "frontend",
+      "tests": [
+        "run_does_not_block_ui",
+        "max_steps_recovers_after_reset"
+      ],
+      "limitations": "A safety step limit stops unbounded programs.",
+      "targetPhase": "20A"
+    },
+    {
+      "featureId": "simulation.stop",
+      "featureName": "Responsive Stop",
+      "sourceCategory": "WCASL workflow",
+      "evidenceReference": "src/store/useAppStore.tsx",
+      "currentStatus": "compatible",
+      "priority": "P0",
+      "implementationOwner": "frontend",
+      "tests": [
+        "stop_is_responsive"
+      ],
+      "limitations": null,
+      "targetPhase": "20A"
+    },
+    {
+      "featureId": "simulation.finish",
+      "featureName": "Top-level RET completion",
+      "sourceCategory": "official-spec-and-runtime",
+      "evidenceReference": "cpp-core/src/CometVm.cpp",
+      "currentStatus": "compatible",
+      "priority": "P0",
+      "implementationOwner": "core",
+      "tests": [
+        "top_level_ret_finishes"
+      ],
+      "limitations": "The teaching runtime treats RET without an active CALL frame as program finish.",
+      "targetPhase": "20A"
+    },
+    {
+      "featureId": "comet.machine-execution",
+      "featureName": "COMET II instruction execution",
+      "sourceCategory": "official-spec",
+      "evidenceReference": "cpp-core/src/CometVm.cpp",
+      "currentStatus": "exact",
+      "priority": "P0",
+      "implementationOwner": "core",
+      "tests": [
+        "assembler_and_vm_opcode_sets_match",
+        "fr_behavior_has_vectors"
+      ],
+      "limitations": null,
+      "targetPhase": "20A"
+    },
+    {
+      "featureId": "comet.microcycle",
+      "featureName": "Fetch/decode/execute microcycle view",
+      "sourceCategory": "future-teaching-contract",
+      "evidenceReference": "docs/comet-instruction-cycle-matrix-v1.json",
+      "currentStatus": "partial",
+      "priority": "P2",
+      "implementationOwner": "visualization",
+      "tests": [
+        "microcycle_contract_is_not_enabled_in_runtime_yet"
+      ],
+      "limitations": "Design contract only; no runtime microstep UI.",
+      "targetPhase": "20B"
+    },
+    {
+      "featureId": "registers.observation",
+      "featureName": "GR0-GR7, PR, SP, MAR, MDR, and FR observation",
+      "sourceCategory": "WCASL workflow",
+      "evidenceReference": "src/components/CaslCompatibilityMode.tsx",
+      "currentStatus": "superset",
+      "priority": "P1",
+      "implementationOwner": "frontend",
+      "tests": [
+        "casl_mode_shows_all_registers"
+      ],
+      "limitations": null,
+      "targetPhase": "20A"
+    },
+    {
+      "featureId": "registers.edit",
+      "featureName": "Manual register editing",
+      "sourceCategory": "WCASL debugger workflow",
+      "evidenceReference": "docs/wcasl-replacement-roadmap.md",
+      "currentStatus": "missing",
+      "priority": "P2",
+      "implementationOwner": "debugger",
+      "tests": [],
+      "limitations": "Read-only in Phase 20A.",
+      "targetPhase": "20C"
+    },
+    {
+      "featureId": "memory.window",
+      "featureName": "Bounded navigable memory window",
+      "sourceCategory": "WCASL workflow",
+      "evidenceReference": "src/components/CaslCompatibilityMode.tsx",
+      "currentStatus": "compatible",
+      "priority": "P1",
+      "implementationOwner": "frontend",
+      "tests": [
+        "casl_mode_shows_memory_and_stack"
+      ],
+      "limitations": "A 32-word window is rendered instead of 65536 DOM rows.",
+      "targetPhase": "20A"
+    },
+    {
+      "featureId": "memory.labels",
+      "featureName": "Label and label+offset navigation",
+      "sourceCategory": "modern-runtime",
+      "evidenceReference": "src/components/CaslCompatibilityMode.tsx",
+      "currentStatus": "superset",
+      "priority": "P1",
+      "implementationOwner": "frontend",
+      "tests": [
+        "memory_label_offsets_are_safe"
+      ],
+      "limitations": null,
+      "targetPhase": "20A"
+    },
+    {
+      "featureId": "memory.edit",
+      "featureName": "Manual memory editing",
+      "sourceCategory": "WCASL debugger workflow",
+      "evidenceReference": "docs/wcasl-replacement-roadmap.md",
+      "currentStatus": "missing",
+      "priority": "P2",
+      "implementationOwner": "debugger",
+      "tests": [],
+      "limitations": "Read-only in Phase 20A.",
+      "targetPhase": "20C"
+    },
+    {
+      "featureId": "stack.observation",
+      "featureName": "SP, stack words, PUSH/POP/CALL/RET relations",
+      "sourceCategory": "WCASL workflow",
+      "evidenceReference": "src/components/CaslCompatibilityMode.tsx",
+      "currentStatus": "superset",
+      "priority": "P1",
+      "implementationOwner": "frontend",
+      "tests": [
+        "rpush_rpop_expand_in_standard_order_and_restore_sp"
+      ],
+      "limitations": null,
+      "targetPhase": "20A"
+    },
+    {
+      "featureId": "numeric.hex",
+      "featureName": "Hexadecimal word display",
+      "sourceCategory": "WCASL workflow",
+      "evidenceReference": "src/core/caslNumericFormat.ts",
+      "currentStatus": "compatible",
+      "priority": "P1",
+      "implementationOwner": "frontend",
+      "tests": [
+        "numeric_formats_preserve_the_same_16_bit_word"
+      ],
+      "limitations": null,
+      "targetPhase": "20A"
+    },
+    {
+      "featureId": "numeric.signed",
+      "featureName": "Signed 16-bit decimal display",
+      "sourceCategory": "WCASL workflow",
+      "evidenceReference": "src/core/caslNumericFormat.ts",
+      "currentStatus": "compatible",
+      "priority": "P1",
+      "implementationOwner": "frontend",
+      "tests": [
+        "signed_decimal_uses_twos_complement"
+      ],
+      "limitations": null,
+      "targetPhase": "20A"
+    },
+    {
+      "featureId": "numeric.unsigned",
+      "featureName": "Unsigned 16-bit decimal display",
+      "sourceCategory": "WCASL workflow",
+      "evidenceReference": "src/core/caslNumericFormat.ts",
+      "currentStatus": "compatible",
+      "priority": "P1",
+      "implementationOwner": "frontend",
+      "tests": [
+        "unsigned_decimal_is_0_to_65535"
+      ],
+      "limitations": null,
+      "targetPhase": "20A"
+    },
+    {
+      "featureId": "numeric.binary",
+      "featureName": "Fixed 16-bit binary display",
+      "sourceCategory": "modern-superset",
+      "evidenceReference": "src/core/caslNumericFormat.ts",
+      "currentStatus": "superset",
+      "priority": "P1",
+      "implementationOwner": "frontend",
+      "tests": [
+        "binary_display_is_16_bits"
+      ],
+      "limitations": null,
+      "targetPhase": "20A"
+    },
+    {
+      "featureId": "io.input-queue",
+      "featureName": "Nonblocking input record queue",
+      "sourceCategory": "official-spec-and-workflow",
+      "evidenceReference": "cpp-core/src/CometVm.cpp",
+      "currentStatus": "compatible",
+      "priority": "P0",
+      "implementationOwner": "core",
+      "tests": [
+        "input_wait_does_not_block_ui"
+      ],
+      "limitations": "Input is submitted explicitly; no synchronous prompt is used.",
+      "targetPhase": "20A"
+    },
+    {
+      "featureId": "io.eof",
+      "featureName": "IN end-of-file record",
+      "sourceCategory": "official-spec",
+      "evidenceReference": "cpp-core/src/CometVm.cpp",
+      "currentStatus": "exact",
+      "priority": "P1",
+      "implementationOwner": "core",
+      "tests": [
+        "input_eof_writes_ffff_length"
+      ],
+      "limitations": null,
+      "targetPhase": "20A"
+    },
+    {
+      "featureId": "io.output-console",
+      "featureName": "Plain-text OUT console",
+      "sourceCategory": "official-spec-and-workflow",
+      "evidenceReference": "src/components/OutputPanel.tsx",
+      "currentStatus": "compatible",
+      "priority": "P0",
+      "implementationOwner": "frontend",
+      "tests": [
+        "output_is_plain_text",
+        "io_does_not_use_network_or_storage"
+      ],
+      "limitations": "History retains at most 256 output records.",
+      "targetPhase": "20A"
+    },
+    {
+      "featureId": "loading.reset",
+      "featureName": "Reset execution to assembled image",
+      "sourceCategory": "WCASL workflow",
+      "evidenceReference": "cpp-core/src/CometVm.cpp",
+      "currentStatus": "compatible",
+      "priority": "P0",
+      "implementationOwner": "core",
+      "tests": [
+        "reset_restores_defined_state"
+      ],
+      "limitations": "Console, pending input, and Trace are cleared.",
+      "targetPhase": "20A"
+    },
+    {
+      "featureId": "loading.reload-assembled",
+      "featureName": "Reload current assembled image",
+      "sourceCategory": "WCASL workflow",
+      "evidenceReference": "src/store/useAppStore.tsx",
+      "currentStatus": "compatible",
+      "priority": "P1",
+      "implementationOwner": "application",
+      "tests": [
+        "reload_uses_current_assembly_owner"
+      ],
+      "limitations": "Disabled when source is dirty or assembly ownership is stale.",
+      "targetPhase": "20A"
+    },
+    {
+      "featureId": "loading.reload-zero",
+      "featureName": "Reload with DS words initialized to 0000",
+      "sourceCategory": "WCASL workflow",
+      "evidenceReference": "cpp-core/src/CometVm.cpp",
+      "currentStatus": "compatible",
+      "priority": "P1",
+      "implementationOwner": "core",
+      "tests": [
+        "reload_zero_mode_preserves_program_image"
+      ],
+      "limitations": "Only DS spans are changed.",
+      "targetPhase": "20A"
+    },
+    {
+      "featureId": "loading.reload-ffff",
+      "featureName": "Reload with DS words initialized to FFFF",
+      "sourceCategory": "WCASL workflow",
+      "evidenceReference": "cpp-core/src/CometVm.cpp",
+      "currentStatus": "compatible",
+      "priority": "P1",
+      "implementationOwner": "core",
+      "tests": [
+        "reload_ffff_mode_preserves_program_image"
+      ],
+      "limitations": "Only DS spans are changed.",
+      "targetPhase": "20A"
+    },
+    {
+      "featureId": "loading.full-clear",
+      "featureName": "Debugger full machine clear",
+      "sourceCategory": "WCASL debugger workflow",
+      "evidenceReference": "docs/wcasl-replacement-roadmap.md",
+      "currentStatus": "missing",
+      "priority": "P2",
+      "implementationOwner": "debugger",
+      "tests": [],
+      "limitations": "Not exposed because its document and assembly ownership semantics are not yet frozen.",
+      "targetPhase": "20C"
+    },
+    {
+      "featureId": "trace.execution",
+      "featureName": "Bounded instruction Trace",
+      "sourceCategory": "modern-superset",
+      "evidenceReference": "src/core/coreStateAdapter.ts",
+      "currentStatus": "superset",
+      "priority": "P1",
+      "implementationOwner": "frontend",
+      "tests": [
+        "trace_records_execution_order"
+      ],
+      "limitations": null,
+      "targetPhase": "20A"
+    },
+    {
+      "featureId": "trace.macro-groups",
+      "featureName": "Macro group and expanded-step Trace",
+      "sourceCategory": "modern-superset",
+      "evidenceReference": "src/core/coreStateAdapter.ts",
+      "currentStatus": "superset",
+      "priority": "P1",
+      "implementationOwner": "frontend",
+      "tests": [
+        "macro_source_mapping_groups_real_expanded_instructions"
+      ],
+      "limitations": null,
+      "targetPhase": "20A"
+    },
+    {
+      "featureId": "project.multi-source-link",
+      "featureName": "Multiple CASL source linking",
+      "sourceCategory": "WCASL workflow",
+      "evidenceReference": "docs/multi-program-linking-design.md",
+      "currentStatus": "partial",
+      "priority": "P2",
+      "implementationOwner": "linker",
+      "tests": [
+        "multi_program_linking_admission_is_partial"
+      ],
+      "limitations": "Design and admission gate only; runtime remains single-document.",
+      "targetPhase": "20D"
+    },
+    {
+      "featureId": "project.wcasl-format",
+      "featureName": "Import of a WCASL-specific project format",
+      "sourceCategory": "WCASL workflow",
+      "evidenceReference": "docs/multi-program-linking-design.md",
+      "currentStatus": "blocked-needs-spec-evidence",
+      "priority": "P2",
+      "implementationOwner": "files",
+      "tests": [
+        "wcasl_project_import_is_not_claimed"
+      ],
+      "limitations": "No audited public project-file contract; standard .cas files remain supported.",
+      "targetPhase": "deferred"
+    },
+    {
+      "featureId": "diagnostics.structured",
+      "featureName": "Structured localized diagnostics with source ranges",
+      "sourceCategory": "modern-superset",
+      "evidenceReference": "docs/diagnostic-localization-baseline-v1.json",
+      "currentStatus": "superset",
+      "priority": "P1",
+      "implementationOwner": "diagnostics",
+      "tests": [
+        "Phase14_diagnostic_baseline_is_preserved_or_explicitly_updated"
+      ],
+      "limitations": null,
+      "targetPhase": "20A"
+    },
+    {
+      "featureId": "files.standard-cas",
+      "featureName": "Open and save standard .cas files",
+      "sourceCategory": "WCASL workflow",
+      "evidenceReference": "docs/file-lifecycle-baseline-v1.json",
+      "currentStatus": "compatible",
+      "priority": "P0",
+      "implementationOwner": "files",
+      "tests": [
+        "Phase15_file_lifecycle_unchanged"
+      ],
+      "limitations": "Single-document browser lifecycle.",
+      "targetPhase": "20A"
+    },
+    {
+      "featureId": "files.modern-lifecycle",
+      "featureName": "New, Open, Save, Save As, Dirty guard, and beforeunload",
+      "sourceCategory": "modern-superset",
+      "evidenceReference": "docs/file-lifecycle-baseline-v1.json",
+      "currentStatus": "superset",
+      "priority": "P1",
+      "implementationOwner": "files",
+      "tests": [
+        "Phase15_file_lifecycle_unchanged"
+      ],
+      "limitations": null,
+      "targetPhase": "20A"
+    },
+    {
+      "featureId": "visualization.casl-mode",
+      "featureName": "CASL compatibility observation mode",
+      "sourceCategory": "WCASL-workflow-modernized",
+      "evidenceReference": "src/components/CaslCompatibilityMode.tsx",
+      "currentStatus": "compatible",
+      "priority": "P0",
+      "implementationOwner": "frontend",
+      "tests": [
+        "casl_mode_1280_has_no_overflow"
+      ],
+      "limitations": "A modern responsive layout, not a copy of the WCASL interface.",
+      "targetPhase": "20A"
+    },
+    {
+      "featureId": "visualization.clean-wire",
+      "featureName": "Active-flow circuit and source mapping",
+      "sourceCategory": "modern-superset",
+      "evidenceReference": "docs/adr/0003-clean-wire-visual-contract.md",
+      "currentStatus": "superset",
+      "priority": "P1",
+      "implementationOwner": "visualization",
+      "tests": [
+        "clean_wire_contract_remains"
+      ],
+      "limitations": "Not cycle-accurate hardware.",
+      "targetPhase": "20A"
+    },
+    {
+      "featureId": "accessibility.keyboard",
+      "featureName": "Keyboard and localized accessible controls",
+      "sourceCategory": "modern-superset",
+      "evidenceReference": "docs/reference/keyboard-accessibility.md",
+      "currentStatus": "superset",
+      "priority": "P1",
+      "implementationOwner": "frontend",
+      "tests": [
+        "console_input_is_keyboard_accessible",
+        "no_horizontal_overflow_in_three_locales"
+      ],
+      "limitations": null,
+      "targetPhase": "20A"
+    },
+    {
+      "featureId": "modern.web-tauri",
+      "featureName": "Shared Web, WASM, and Tauri application",
+      "sourceCategory": "modern-superset",
+      "evidenceReference": "docs/developer/architecture-overview.md",
+      "currentStatus": "superset",
+      "priority": "P1",
+      "implementationOwner": "platform",
+      "tests": [
+        "Cloudflare_production_build_unchanged",
+        "Tauri_build_unchanged"
+      ],
+      "limitations": null,
+      "targetPhase": "20A"
+    },
+    {
+      "featureId": "modern.persistence",
+      "featureName": "Independent allowlisted preference persistence",
+      "sourceCategory": "modern-superset",
+      "evidenceReference": "docs/persistence-baseline-v1.json",
+      "currentStatus": "superset",
+      "priority": "P1",
+      "implementationOwner": "persistence",
+      "tests": [
+        "Phase16_persistence_unchanged",
+        "no_new_persistence_key"
+      ],
+      "limitations": "Source and machine state are never persisted.",
+      "targetPhase": "20A"
+    },
+    {
+      "featureId": "modern.reverse-step",
+      "featureName": "Reverse execution",
+      "sourceCategory": "WCASL debugger workflow",
+      "evidenceReference": "docs/wcasl-replacement-roadmap.md",
+      "currentStatus": "partial",
+      "priority": "P2",
+      "implementationOwner": "debugger",
+      "tests": [],
+      "limitations": "No production reverse-step action; snapshot design requires a separate safety contract.",
+      "targetPhase": "20C"
+    },
+    {
+      "featureId": "modern.independent-ui",
+      "featureName": "Independent modern interface and branding",
+      "sourceCategory": "product-boundary",
+      "evidenceReference": "docs/adr/0013-wcasl-compatible-workflow.md",
+      "currentStatus": "intentionally-different",
+      "priority": "P2",
+      "implementationOwner": "product",
+      "tests": [
+        "no_wcasl_assets_are_tracked"
+      ],
+      "limitations": "Workflow compatibility does not imply identical UI or endorsement.",
+      "targetPhase": "20A"
+    },
+    {
+      "featureId": "modern.third-party-assets",
+      "featureName": "Bundling WCASL binaries, logos, or screenshots",
+      "sourceCategory": "copyright-boundary",
+      "evidenceReference": "docs/phase20a-wcasl-parity-audit.md",
+      "currentStatus": "not-applicable",
+      "priority": "P2",
+      "implementationOwner": "security",
+      "tests": [
+        "no_wcasl_assets_are_tracked"
+      ],
+      "limitations": "Explicitly prohibited.",
+      "targetPhase": "never"
+    }
+  ]
+}

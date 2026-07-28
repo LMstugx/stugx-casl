@@ -30,6 +30,7 @@ type OutputPanelProps = {
   initialTab?: OutputTab | OutputDockActiveTab;
   onActiveTabChange?: (tab: OutputDockActiveTab) => void;
   autoOpenGenerated?: boolean;
+  onConsoleInput?: (text: string, endOfFile?: boolean) => void;
   onClear: () => void;
 };
 
@@ -57,7 +58,7 @@ function toPreferenceTab(tab: OutputTab): OutputDockActiveTab {
 
 function lineTone(line: string): "success" | "danger" | "warn" | "muted" | "default" {
   const normalized = line.toLowerCase();
-  if (/\b(failed|error:|runtime error|undefined|invalid|max steps)\b/.test(normalized)) return "danger";
+  if (/\b(failed|error:|runtime error|undefined|invalid|max steps reached)\b/.test(normalized)) return "danger";
   if (/\b(warning:|warn)\b/.test(normalized) && !normalized.includes("0 warnings")) return "warn";
   if (normalized.includes("succeeded") || normalized.includes("loaded") || normalized.includes("finished") || normalized.includes("reset")) return "success";
   if (normalized.includes("reserved") || normalized.includes("ready")) return "muted";
@@ -86,10 +87,13 @@ export default function OutputPanel({
   initialTab = "output",
   autoOpenGenerated = false,
   onActiveTabChange,
+  onConsoleInput,
   onClear
 }: OutputPanelProps) {
   const { t } = useI18n();
   const [activeTab, setActiveTab] = useState<OutputTab>(() => fromPreferenceTab(initialTab));
+  const [consoleInput, setConsoleInput] = useState("");
+  const [consoleClearOffset, setConsoleClearOffset] = useState(0);
   const lastAutoOpenedSource = useRef("");
   useEffect(() => {
     if (!autoOpenGenerated || !generatedCaslSource || lastAutoOpenedSource.current === generatedCaslSource) return;
@@ -102,9 +106,7 @@ export default function OutputPanel({
       ? lines.length
         ? lines
         : [t("empty.noOutput")]
-      : activeTab === "console"
-        ? ["Console is reserved for future runtime logs."]
-        : activeTab === "messages"
+      : activeTab === "messages"
           ? messages.length
             ? messages
             : [t("empty.noMessages")]
@@ -157,7 +159,13 @@ export default function OutputPanel({
             );
           })}
         </div>
-        <button className="text-button" onClick={onClear} disabled={activeTab !== "output"} aria-label={t("accessibility.clearOutput")} title={t("accessibility.clearOutput")}>
+        <button
+          className="text-button"
+          onClick={() => activeTab === "console" ? setConsoleClearOffset(state?.consoleOutput.length ?? 0) : onClear()}
+          disabled={activeTab !== "output" && activeTab !== "console"}
+          aria-label={t("accessibility.clearOutput")}
+          title={t("accessibility.clearOutput")}
+        >
           {t("common.clear")}
         </button>
       </header>
@@ -169,7 +177,51 @@ export default function OutputPanel({
         aria-label={t(tabs.find((tab) => tab.id === activeTab)?.labelKey ?? "tabs.outputLog")}
         data-testid={activeTab === "generated" ? "generated-casl-output" : activeTab === "machine" ? "machine-code-output" : undefined}
       >
-        {activeTab === "generated"
+        {activeTab === "console"
+          ? (
+              <div className="runtime-console" data-testid="runtime-console">
+                <div className="runtime-console-records" role="log" aria-live="polite" aria-label={t("caslMode.consoleOutput")}>
+                  {(state?.consoleOutput.slice(consoleClearOffset) ?? []).length
+                    ? state?.consoleOutput.slice(consoleClearOffset).map((line, index) => (
+                        <div key={`${index}-${line}`} className="console-line">
+                          <span className="console-prefix">&gt;</span>
+                          <span className="runtime-console-text">{line}</span>
+                        </div>
+                      ))
+                    : (
+                        <div className="console-line muted">
+                          <span className="console-prefix">info</span>
+                          <span>{t("caslMode.consoleEmpty")}</span>
+                        </div>
+                      )}
+                </div>
+                <form
+                  className="runtime-console-input"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    if (state?.runState !== "WaitingInput" || !onConsoleInput) return;
+                    onConsoleInput(consoleInput);
+                    setConsoleInput("");
+                  }}
+                >
+                  <label>
+                    {t("caslMode.consoleInput")}
+                    <input
+                      value={consoleInput}
+                      maxLength={256}
+                      disabled={state?.runState !== "WaitingInput"}
+                      onChange={(event) => setConsoleInput(event.target.value)}
+                    />
+                  </label>
+                  <button type="submit" className="text-button" disabled={state?.runState !== "WaitingInput" || !onConsoleInput}>{t("caslMode.submitInput")}</button>
+                  <button type="button" className="text-button" disabled={state?.runState !== "WaitingInput" || !onConsoleInput} onClick={() => onConsoleInput?.("", true)}>{t("caslMode.submitEof")}</button>
+                </form>
+                <p className="runtime-console-state" role="status">
+                  {state?.runState === "WaitingInput" ? t("caslMode.waitingInput") : t("caslMode.consoleReady")}
+                </p>
+              </div>
+            )
+          : activeTab === "generated"
           ? (
               <>
                 <div className="generated-casl-title" data-testid="generated-casl-title">
@@ -316,6 +368,10 @@ export default function OutputPanel({
                             <div>
                               <dt>{t("codeMachine.register")}</dt>
                               <dd className="nowrap-symbol" title={machineExplanation.register !== undefined ? `GR${machineExplanation.register}` : "-"}>{machineExplanation.register !== undefined ? `GR${machineExplanation.register}` : "-"}</dd>
+                            </div>
+                            <div>
+                              <dt>Source register</dt>
+                              <dd className="nowrap-symbol" title={machineExplanation.sourceRegister !== undefined ? `GR${machineExplanation.sourceRegister}` : "-"}>{machineExplanation.sourceRegister !== undefined ? `GR${machineExplanation.sourceRegister}` : "-"}</dd>
                             </div>
                             <div>
                               <dt>{t("codeMachine.index")}</dt>

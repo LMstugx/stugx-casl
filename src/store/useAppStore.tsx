@@ -4,8 +4,9 @@ import { EventBus } from "../app/eventBus";
 import { createAppEventBus } from "../app/createAppEventBus";
 import { AppEvent, AppEvents } from "../app/events";
 import { coreBridge, getCoreBackendInfo, type CoreBackendInfo } from "../core/coreBridge";
+import type { ReloadInitializationMode } from "../core/coreAdapter";
 import { createCometStateFromDto, createEmptyUiCometState } from "../core/coreStateAdapter";
-import { CometState, Diagnostic } from "../core/types";
+import { CometState, Diagnostic, formatWord } from "../core/types";
 import { getDefaultDemoProgram, type DemoProgram } from "../examples/demoPrograms";
 import { learningLessons } from "../examples/learningLessons";
 import { createExampleDocument, createUntitledDocument, editDocument, isDocumentDirty } from "../documents/documentModel";
@@ -23,7 +24,7 @@ import { CppStorageObject, CppToCaslMap, transpileCppToCasl } from "../transpile
 type AssembleStatus = "default" | "running" | "success" | "error";
 export type SourceMode = "casl" | "cpp";
 export type { ObservationMode } from "../preferences/types";
-type RunStopReason = "manual" | "maxSteps" | "finished" | "error" | null;
+type RunStopReason = "manual" | "maxSteps" | "waitingInput" | "finished" | "error" | null;
 export type LessonProgress = LessonProgressState;
 
 const DEFAULT_RUN_MAX_STEPS = 1000;
@@ -82,7 +83,9 @@ type AppStoreActions = {
   run: (maxSteps?: number) => void;
   step: () => void;
   reset: () => void;
+  reload: (mode: ReloadInitializationMode) => void;
   stop: () => void;
+  submitConsoleInput: (text: string, endOfFile?: boolean) => void;
   clearOutput: () => void;
   toggleLessonStep: (exampleId: string, stepId: string) => void;
   resetLessonProgress: (exampleId: string) => void;
@@ -113,7 +116,7 @@ export type AppStoreAction =
   | { type: "runProgress"; cometState: CometState }
   | { type: "runStopped"; cometState: CometState; reason: RunStopReason }
   | { type: "stepped"; cometState: CometState }
-  | { type: "reset"; cometState: CometState }
+  | { type: "reset"; cometState: CometState; sourceUnitId: SourceUnitId }
   | { type: "coreError"; sourceUnitId: SourceUnitId }
   | { type: "clearOutput" }
   | { type: "lessonStepToggled"; exampleId: string; stepId: string }
@@ -355,6 +358,7 @@ export function appStoreReducer(state: AppStoreState, action: AppStoreAction): A
   }
 
   if (action.type === "reset") {
+    if (action.sourceUnitId !== state.currentDocument.sourceUnitId || state.isSourceDirty) return state;
     return {
       ...state,
       cometState: action.cometState,
@@ -620,6 +624,12 @@ export function AppStoreProvider({
               };
               eventBus.emit(AppEvent.VmRunStopped, { reason: "error" });
               eventBus.emit(AppEvent.VmError, { message: finalState.output[finalState.output.length - 1] ?? "VM error" });
+            } else if (workingState.runState === "WaitingInput") {
+              finalState = {
+                ...workingState,
+                output: appendOutputLine(workingState.output, "Execution is waiting for console input.")
+              };
+              eventBus.emit(AppEvent.VmRunStopped, { reason: "waitingInput" });
             } else if (executedSteps >= boundedMaxSteps) {
               finalState = {
                 ...workingState,
@@ -649,8 +659,9 @@ export function AppStoreProvider({
             const dto = await coreBridge.reset();
             dispatch({
               type: "reset",
+              sourceUnitId,
               cometState: createCometStateFromDto(dto, {
-                output: dto.runState === "Ready" ? ["Program reset. Entry point: START (0020)"] : []
+                output: dto.runState === "Ready" ? [`Program reset. Entry point: ${formatWord(dto.pr)}`] : []
               })
             });
           } catch (error) {
@@ -663,6 +674,45 @@ export function AppStoreProvider({
       stop: () => {
         if (state.cometState.runState !== "Running") return;
         runControlRef.current.stopRequested = true;
+      },
+      submitConsoleInput: (text, endOfFile = false) => {
+        if (state.cometState.runState !== "WaitingInput") return;
+        const sourceUnitId = state.currentDocument.sourceUnitId;
+        void (async () => {
+          try {
+            const dto = await coreBridge.enqueueInput(text, endOfFile);
+            dispatch({
+              type: "stepped",
+              cometState: createCometStateFromDto(dto, {
+                previous: state.cometState,
+                output: appendOutputLine(state.cometState.output, endOfFile ? "Console EOF queued." : "Console input queued.")
+              })
+            });
+          } catch (error) {
+            eventBus.emit(AppEvent.VmError, { message: coreErrorMessage(error) });
+            dispatch({ type: "coreError", sourceUnitId });
+          }
+        })();
+      },
+      reload: (mode) => {
+        if (state.isSourceDirty || !state.assembleResult || state.cometState.runState === "Running") return;
+        runControlRef.current.stopRequested = true;
+        const sourceUnitId = state.currentDocument.sourceUnitId;
+        void (async () => {
+          try {
+            const dto = await coreBridge.reload(mode);
+            dispatch({
+              type: "reset",
+              sourceUnitId,
+              cometState: createCometStateFromDto(dto, {
+                output: [`Program reloaded. DS initialization: ${mode === "assembled" ? "assembled image" : mode === "zero" ? "0000" : "FFFF"}.`]
+              })
+            });
+          } catch (error) {
+            eventBus.emit(AppEvent.VmError, { message: coreErrorMessage(error) });
+            dispatch({ type: "coreError", sourceUnitId });
+          }
+        })();
       },
       clearOutput: () => dispatch({ type: "clearOutput" }),
       toggleLessonStep: (exampleId, stepId) => dispatch({ type: "lessonStepToggled", exampleId, stepId }),
@@ -704,7 +754,7 @@ function coreErrorMessage(error: unknown): string {
 }
 
 function isRunTerminal(runState: CometState["runState"]): boolean {
-  return runState === "Finished" || runState === "Error" || runState === "Stopped";
+  return runState === "Finished" || runState === "WaitingInput" || runState === "Error" || runState === "Stopped";
 }
 
 function canExecuteFromCurrentState(cometState: CometState, runStopReason: RunStopReason): boolean {
@@ -713,6 +763,7 @@ function canExecuteFromCurrentState(cometState: CometState, runStopReason: RunSt
 
 function finalRunStopReason(finalState: CometState, executedSteps: number, maxSteps: number, stopRequested: boolean): RunStopReason {
   if (stopRequested) return "manual";
+  if (finalState.runState === "WaitingInput") return "waitingInput";
   if (finalState.runState === "Finished") return "finished";
   if (finalState.runState === "Error") return "error";
   if (finalState.runState === "Stopped" && executedSteps >= maxSteps) return "maxSteps";

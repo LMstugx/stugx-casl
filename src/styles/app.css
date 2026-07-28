@@ -132,6 +132,394 @@ button {
   overflow: visible;
 }
 
+.workspace-region {
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: var(--space-8);
+}
+
+.workspace-mode-switch {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+.workspace-mode-switch button {
+  min-height: 32px;
+  padding: 5px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-muted);
+  font-weight: 700;
+}
+
+.workspace-mode-switch button.selected {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+  box-shadow: inset 0 0 0 1px var(--color-primary);
+}
+
+.casl-mode-workspace {
+  min-width: 0;
+  display: grid;
+  align-content: start;
+  gap: var(--space-8);
+}
+
+.casl-mode-heading,
+.casl-mode-controls {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-12);
+}
+
+.casl-mode-heading h2,
+.casl-mode-heading p {
+  margin: 0;
+}
+
+.casl-mode-heading p,
+.casl-mode-footnote,
+.casl-console-state {
+  color: var(--color-muted);
+  font-size: var(--font-size-caption);
+}
+
+.casl-mode-controls {
+  padding: var(--space-8);
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.casl-number-format,
+.casl-reload-actions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: var(--space-4);
+}
+
+.casl-reload-actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.casl-mode-warning {
+  margin: 0;
+  padding: var(--space-8);
+  border-left: 3px solid var(--color-warning);
+  color: var(--color-muted);
+}
+
+.casl-mode-grid {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(260px, 0.72fr) minmax(0, 1.2fr);
+  gap: var(--space-8);
+  align-items: start;
+}
+
+.casl-mode-grid > .panel {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.casl-source-lines {
+  max-height: 326px;
+  overflow-y: auto;
+}
+
+.casl-source-line {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr);
+  min-height: 26px;
+  align-items: center;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-border) 65%, transparent);
+}
+
+.casl-source-line > span {
+  padding: 4px 7px;
+  color: var(--color-muted);
+  font-family: var(--font-family-mono);
+  text-align: right;
+}
+
+.casl-source-line code {
+  min-width: 0;
+  padding: 4px 8px;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.casl-source-line[data-current="true"] {
+  background: var(--color-active-bg);
+  box-shadow: inset 3px 0 0 var(--color-primary);
+}
+
+.casl-current-instruction {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-8);
+  padding: var(--space-8);
+  border-top: 1px solid var(--color-border);
+}
+
+.casl-current-instruction code {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.casl-register-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  background: var(--color-border);
+}
+
+.casl-register-cell {
+  min-width: 0;
+  min-height: 46px;
+  display: grid;
+  align-content: center;
+  gap: 2px;
+  padding: 5px 8px;
+  background: var(--color-surface);
+}
+
+.casl-register-cell code {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--color-code-green);
+  font-family: var(--font-family-mono);
+  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.casl-register-cell[data-changed="true"] {
+  background: var(--color-register-highlight);
+  box-shadow: inset 3px 0 0 var(--color-primary);
+}
+
+.casl-fr-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.casl-fr-grid div {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-6);
+  padding: var(--space-8);
+}
+
+.casl-fr-grid dt,
+.casl-fr-grid dd {
+  margin: 0;
+  font-family: var(--font-family-mono);
+}
+
+.casl-memory-controls,
+.casl-console-input,
+.runtime-console-input {
+  min-width: 0;
+  display: flex;
+  align-items: end;
+  gap: var(--space-6);
+  padding: var(--space-8);
+}
+
+.casl-memory-controls label,
+.casl-console-input label,
+.runtime-console-input label {
+  min-width: 0;
+  display: grid;
+  flex: 1 1 auto;
+  gap: 3px;
+  color: var(--color-muted);
+  font-size: var(--font-size-caption);
+}
+
+.casl-memory-controls input,
+.casl-console-input input,
+.runtime-console-input input {
+  min-width: 0;
+  height: 32px;
+  padding: 4px 7px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.casl-memory-scroll {
+  max-height: 360px;
+  overflow: auto;
+  scrollbar-gutter: stable;
+}
+
+.casl-memory-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: var(--font-size-caption);
+}
+
+.casl-memory-table th,
+.casl-memory-table td {
+  min-width: 0;
+  padding: 5px 6px;
+  border-bottom: 1px solid var(--color-border);
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.casl-memory-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--color-surface);
+}
+
+.casl-memory-table th:nth-child(1) { width: 62px; }
+.casl-memory-table th:nth-child(2) { width: 150px; }
+.casl-memory-table th:nth-child(4) { width: 44px; }
+.casl-memory-table th:nth-child(5) { width: 64px; }
+
+.casl-memory-table tr[data-current="true"] td {
+  background: var(--color-active-bg);
+}
+
+.casl-memory-table tr[data-read="true"] td {
+  box-shadow: inset 0 2px 0 var(--color-active-control);
+}
+
+.casl-memory-table tr[data-write="true"] td {
+  box-shadow: inset 0 -2px 0 var(--color-warning);
+}
+
+.casl-stack-list {
+  max-height: 290px;
+  overflow-y: auto;
+}
+
+.casl-stack-row {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 45px 54px minmax(120px, 1fr) minmax(0, 0.8fr);
+  gap: var(--space-6);
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.casl-stack-row code {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--color-code-green);
+  font-family: var(--font-family-mono);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.casl-stack-row[data-top="true"] {
+  background: var(--color-active-bg);
+  box-shadow: inset 3px 0 0 var(--color-primary);
+}
+
+.casl-console-output,
+.runtime-console-records {
+  min-height: 116px;
+  max-height: 240px;
+  overflow-y: auto;
+  padding: var(--space-8);
+  background: var(--color-text-primary);
+  color: var(--color-surface);
+}
+
+.casl-console-output > div {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  gap: var(--space-4);
+}
+
+.casl-console-output pre {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.casl-console-output p,
+.casl-console-state,
+.runtime-console-state {
+  margin: 0;
+}
+
+.casl-console-state,
+.runtime-console-state {
+  padding: 0 var(--space-8) var(--space-8);
+}
+
+.casl-assembler-output {
+  grid-column: span 2;
+}
+
+.casl-assembler-output textarea {
+  width: 100%;
+  min-height: 238px;
+  max-height: 360px;
+  resize: vertical;
+  padding: var(--space-8);
+  border: 0;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-text-primary);
+  color: var(--color-surface);
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-caption);
+  line-height: 1.45;
+  white-space: pre;
+}
+
+.runtime-console {
+  min-width: 0;
+}
+
+.runtime-console-text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+@media (max-width: 1320px) {
+  .casl-mode-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .casl-assembler-output {
+    grid-column: auto;
+  }
+}
+
+@media (min-width: 1321px) and (max-width: 1600px) {
+  .casl-register-grid[data-format="binary"] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 .toolbar {
   display: grid;
   grid-template-columns: minmax(260px, 320px) 1fr auto;

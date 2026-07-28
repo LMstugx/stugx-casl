@@ -109,6 +109,19 @@ describe("demo recording experience", () => {
     expect(container?.querySelector('[data-testid="generated-casl-output"]')?.textContent).toContain("ADDA");
   });
 
+  it("run_start_message_is_not_styled_as_an_error", async () => {
+    await renderOutputPanel(
+      <OutputPanel
+        lines={["Run started. Max steps: 1000.", "Max steps reached. Possible infinite loop. (1000 steps)"]}
+        onClear={() => undefined}
+      />
+    );
+
+    const outputLines = container?.querySelectorAll(".console-line");
+    expect(outputLines?.[0]?.classList.contains("danger")).toBe(false);
+    expect(outputLines?.[1]?.classList.contains("danger")).toBe(true);
+  });
+
   it("demo_while_sum_run_finishes", () => {
     const program = getDemoProgram("cpp-while-sum");
     expect(program).toBeDefined();

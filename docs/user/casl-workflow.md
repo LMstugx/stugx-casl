@@ -21,4 +21,6 @@ Select or enter CASL source, then choose `Assemble`. Successful assembly replace
 
 `Step` executes one instruction. `Run` executes until completion, stop, error, or the configured safety limit. `Reset` restores the assembled program's runtime state without changing source.
 
-Use source mapping and Machine Code to connect source rows to emitted words. Use Trace and Circuit Focus to inspect effects after execution.
+Use source mapping and Machine Code to connect source rows to emitted words. Use Trace and Circuit Focus to inspect effects after execution. [CASL Compatibility Mode](casl-compatibility-mode.md) keeps registers, memory, stack, Console, and source together for a traditional instruction-level workflow.
+
+The assembler supports the official machine instructions, `START` / `END` / `DS` / `DC`, CASL literals, and the fixed standard `IN` / `OUT` / `RPUSH` / `RPOP` macros. It does not provide a user-defined macro language or multi-program linker.

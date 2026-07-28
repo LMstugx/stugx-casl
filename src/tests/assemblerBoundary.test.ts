@@ -41,11 +41,14 @@ describe("assembler boundary diagnostics", () => {
     }
   });
 
-  it("numeric_and_storage_boundaries_are_diagnosed", () => {
+  it("numeric_and_storage_boundaries_follow_the_official_word_contract", () => {
     expect(messagesFor("MAIN START\nA    DC    NOPE\n     END")).toContain("Invalid numeric value");
-    expect(messagesFor("MAIN START\nA    DC    -1\n     END")).toContain("Invalid numeric value");
-    expect(messagesFor("MAIN START\nA    DC    65536\n     END")).toContain("Numeric value out of 16-bit range");
     expect(messagesFor("MAIN START\nA    DS    65505\n     END")).toMatch(/Program memory exceeds 0xFFFF|DS address out of range/);
+
+    const decimalWords = mockCaslCore.assemble("MAIN START\nNEG  DC -1\nWRAP DC 65536\n     END");
+    expect(decimalWords.runState).toBe("Ready");
+    expect(decimalWords.memory[decimalWords.symbols.NEG]).toBe(0xffff);
+    expect(decimalWords.memory[decimalWords.symbols.WRAP]).toBe(0x0000);
 
     const zeroDs = mockCaslCore.assemble("MAIN START\nA    DS    0\n     RET\n     END");
     expect(zeroDs.runState).toBe("Ready");

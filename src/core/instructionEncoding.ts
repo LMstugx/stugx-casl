@@ -1,6 +1,6 @@
 import type { InstructionKind } from "./types";
 
-export type InstructionFormat = "NO_OPERAND" | "R_ONLY" | "R_ADR" | "JUMP_ADR" | "RET" | "DATA";
+export type InstructionFormat = "NO_OPERAND" | "R_ONLY" | "R_ADR" | "R_R" | "JUMP_ADR" | "RET" | "DATA";
 
 export type InstructionEncoding = {
   mnemonic: InstructionKind;
@@ -228,6 +228,14 @@ export const instructionEncodings: Partial<Record<InstructionKind, InstructionEn
     description: "Return through the stack when a call frame exists; otherwise finish execution.",
     fields: ["opcode"]
   },
+  SVC: {
+    mnemonic: "SVC",
+    opcode: 0xf0,
+    format: "JUMP_ADR",
+    wordLength: 2,
+    description: "Invoke the teaching operating-system service selected by the effective address.",
+    fields: ["opcode", "x", "address"]
+  },
   DC: {
     mnemonic: "DC",
     opcode: 0,
@@ -260,4 +268,10 @@ export function decodeIndexRegisterField(word: number): number {
 
 export function encodingForMnemonic(mnemonic: InstructionKind | undefined): InstructionEncoding | undefined {
   return mnemonic ? instructionEncodings[mnemonic] : undefined;
+}
+
+const REGISTER_FORM_OPCODE_BYTES = new Set([0x14, 0x24, 0x25, 0x26, 0x27, 0x34, 0x35, 0x36, 0x44, 0x45]);
+
+export function isRegisterFormInstructionWord(word: number): boolean {
+  return REGISTER_FORM_OPCODE_BYTES.has(decodeOpcode(word));
 }

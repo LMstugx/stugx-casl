@@ -88,3 +88,60 @@ export async function step(page: Page) {
 export async function run(page: Page) {
   await page.getByTestId("run-button").click();
 }
+
+export async function verifyCaslCompatibilityMode(page: Page, backendLabel: "Mock Core" | "WASM Core") {
+  const source = `MAIN START
+     LAD GR3,#FFFF
+     IN BUF,LEN
+     OUT BUF,LEN
+     RET
+BUF DS 256
+LEN DS 1
+     END`;
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await openStudio(page, backendLabel);
+  await setSource(page, source);
+  await assemble(page);
+  await page.getByTestId("casl-mode-toggle").click();
+  await expect(page.getByTestId("casl-compatibility-mode")).toBeVisible();
+  await expect(page.getByTestId("casl-register-gr7")).toBeVisible();
+  await expect(page.getByTestId("casl-assembler-output")).toContainText("SYMBOL TABLE");
+  await expect(page.getByTestId("casl-assembler-output")).toContainText("TOTAL WORDS");
+
+  await step(page);
+  await page.getByTestId("casl-numeric-hex").click();
+  await expect(page.getByTestId("casl-register-gr3")).toContainText("#FFFF");
+  await page.getByTestId("casl-numeric-signed").click();
+  await expect(page.getByTestId("casl-register-gr3")).toContainText("-1");
+  await page.getByTestId("casl-numeric-unsigned").click();
+  await expect(page.getByTestId("casl-register-gr3")).toContainText("65535");
+  await page.getByTestId("casl-numeric-binary").click();
+  await expect(page.getByTestId("casl-register-gr3")).toContainText("1111 1111 1111 1111");
+
+  await run(page);
+  await expect(page.getByTestId("run-state")).toHaveAttribute("data-run-state", "WaitingInput");
+  await expect(page.getByTestId("casl-console-input")).toBeEnabled();
+  await page.getByTestId("casl-console-input").fill("ABC");
+  await page.getByTestId("casl-console-submit").click();
+  await expect(page.getByTestId("run-state")).toHaveAttribute("data-run-state", "Ready");
+  await run(page);
+  await expect(page.getByTestId("run-state")).toHaveAttribute("data-run-state", "Finished");
+  await expect(page.locator(".casl-console-output")).toContainText("ABC");
+
+  for (const locale of ["ja", "zh-CN", "en"] as const) {
+    await page.getByTestId(`locale-${locale}`).click();
+    await expect(page.getByTestId("casl-compatibility-mode")).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+  }
+
+  for (const viewport of [
+    { width: 1180, height: 700 },
+    { width: 1280, height: 720 },
+    { width: 1440, height: 900 }
+  ]) {
+    await page.setViewportSize(viewport);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+    const binaryValue = page.getByTestId("casl-register-gr3").locator("code");
+    expect(await binaryValue.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
+  }
+}

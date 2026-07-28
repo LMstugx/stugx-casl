@@ -10,7 +10,7 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1",
     "dev:wasm": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"$env:VITE_CORE_BACKEND='wasm'; pnpm exec vite --host 127.0.0.1\"",
-    "prebuild": "node scripts/verify-docs.mjs && node scripts/verify-changelog.mjs",
+    "prebuild": "node scripts/verify-docs.mjs && node scripts/verify-changelog.mjs && node scripts/verify-casl-parity.mjs",
     "build": "node scripts/build-production.mjs",
     "build:web": "tsc -b && vite build",
     "build:tauri:frontend": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-tauri-frontend.ps1",
@@ -19,6 +19,7 @@
     "changelog:generate": "node scripts/generate-changelog.mjs",
     "changelog:verify": "node scripts/verify-changelog.mjs",
     "docs:verify": "node scripts/verify-docs.mjs",
+    "casl:parity:verify": "node scripts/verify-casl-parity.mjs",
     "build:wasm": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-wasm.ps1",
     "preview": "vite preview --host 127.0.0.1",
     "test": "vitest run",

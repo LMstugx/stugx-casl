@@ -4,6 +4,7 @@
 #include <memory>
 #include <optional>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 #include <type_traits>
 #include <unordered_map>
@@ -83,6 +84,7 @@ std::string runStateName(casl::RunState state) {
         case casl::RunState::Dirty: return "Dirty";
         case casl::RunState::Ready: return "Ready";
         case casl::RunState::Running: return "Running";
+        case casl::RunState::WaitingInput: return "WaitingInput";
         case casl::RunState::Finished: return "Finished";
         case casl::RunState::Error: return "Error";
     }
@@ -293,6 +295,9 @@ void writeSourceRows(std::ostream& output, const casl::AssembleOutput& assembled
         output << "        \"label\": " << (entry.label.empty() ? "null" : "\"" + jsonEscape(entry.label) + "\"") << ",\n";
         output << "        \"instruction\": \"" << casl::opcodeName(entry.instruction) << "\",\n";
         output << "        \"operandAddress\": " << nullableNumber(instruction && instruction->operandAddress ? std::optional<std::uint32_t>(*instruction->operandAddress) : std::nullopt) << ",\n";
+        if (instruction && instruction->sourceRegister) {
+            output << "        \"sourceRegister\": " << static_cast<unsigned int>(*instruction->sourceRegister) << ",\n";
+        }
         output << "        \"indexRegister\": " << nullableNumber(instruction && instruction->indexRegister != 0 ? std::optional<std::uint32_t>(instruction->indexRegister) : std::nullopt) << ",\n";
         output << "        \"isCurrent\": " << boolText(currentAddress.has_value() && *currentAddress == entry.address) << "\n";
         output << "      }";
@@ -362,6 +367,14 @@ std::string dumpStateJson(
     output << "  \"indexRegister\": " << nullableNumber(indexRegister) << ",\n";
     output << "  \"indexValue\": " << nullableNumber(indexValue) << ",\n";
     output << "  \"effectiveAddress\": " << nullableNumber(effectiveAddress) << ",\n";
+    if (!state.consoleOutput.empty()) {
+        output << "  \"consoleOutput\": [";
+        for (std::size_t recordIndex = 0; recordIndex < state.consoleOutput.size(); ++recordIndex) {
+            if (recordIndex != 0) output << ", ";
+            writeNumberArray(output, state.consoleOutput[recordIndex]);
+        }
+        output << "],\n";
+    }
     output << "  \"memoryWindow\": ";
     writeMemoryWindow(output, state, assembled, currentAddress);
     output << ",\n";
@@ -542,6 +555,31 @@ EMSCRIPTEN_KEEPALIVE const char* stugx_casl_reset() {
     }
 }
 
+EMSCRIPTEN_KEEPALIVE const char* stugx_casl_reload(int mode) {
+    try {
+        auto& rt = runtime();
+        if (!rt.loaded || !rt.assembled.has_value()) {
+            rt.lastDiagnostics = {{0, casl::Severity::Error, "No program loaded"}};
+            g_lastError = "No program loaded";
+            return setJson(stateErrorJson(g_lastError));
+        }
+        if (mode < 0 || mode > 2) {
+            return setError("Invalid reload initialization mode");
+        }
+
+        const auto fill = mode == 0
+            ? std::optional<std::uint16_t>{}
+            : std::optional<std::uint16_t>{mode == 1 ? static_cast<std::uint16_t>(0x0000) : static_cast<std::uint16_t>(0xffff)};
+        rt.vm.reload(fill);
+        rt.lastStep.reset();
+        rt.lastDiagnostics.clear();
+        g_lastError.clear();
+        return setJson(dumpStateJson(*rt.assembled, rt.vm.state(), rt.lastStep, rt.lastDiagnostics));
+    } catch (const std::exception& error) {
+        return setError(error.what());
+    }
+}
+
 EMSCRIPTEN_KEEPALIVE const char* stugx_casl_run(int maxSteps) {
     try {
         auto& rt = runtime();
@@ -568,6 +606,27 @@ EMSCRIPTEN_KEEPALIVE const char* stugx_casl_run(int maxSteps) {
 EMSCRIPTEN_KEEPALIVE const char* stugx_casl_get_state() {
     try {
         auto& rt = runtime();
+        return setJson(currentStateJson(rt));
+    } catch (const std::exception& error) {
+        return setError(error.what());
+    }
+}
+
+EMSCRIPTEN_KEEPALIVE const char* stugx_casl_enqueue_input(const char* encodedWords, int endOfFile) {
+    try {
+        auto& rt = runtime();
+        std::vector<std::uint16_t> words;
+        if (encodedWords != nullptr && *encodedWords != '\0') {
+            std::istringstream input(encodedWords);
+            std::string token;
+            while (std::getline(input, token, ',')) {
+                const auto value = std::stoul(token);
+                if (value > 0xff) throw std::out_of_range("input character is outside JIS X 0201 byte range");
+                words.push_back(static_cast<std::uint16_t>(value));
+                if (words.size() == 256) break;
+            }
+        }
+        rt.vm.enqueueInput(std::move(words), endOfFile != 0);
         return setJson(currentStateJson(rt));
     } catch (const std::exception& error) {
         return setError(error.what());

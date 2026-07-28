@@ -22,3 +22,5 @@ Address relationships use target highlights and Effective Address Unit context i
 Multi-word double operations still use one real 16-bit path per CASL instruction. Signal Probe may identify the object and word index, but the circuit must not invent a 64-bit bus or FPU.
 
 The visualization is not cycle-accurate hardware and must remain subordinate to VM semantics.
+
+The [Phase 20B microcycle contract](../comet-microcycle-visual-contract.md) is documentation-only in Phase 20A. Register-register forms must not invent effective-address or operand-memory paths, and macros must be observed through their real expanded instructions.

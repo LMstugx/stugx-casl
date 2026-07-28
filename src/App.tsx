@@ -7,6 +7,7 @@ import StatusBar from "./components/StatusBar";
 import LearningFlowPanel from "./components/LearningFlowPanel";
 import DemoGuidePanel from "./components/DemoGuidePanel";
 import CircuitFocusLayout from "./components/CircuitFocusLayout";
+import CaslCompatibilityMode from "./components/CaslCompatibilityMode";
 import CometCircuitSvg from "./visual/CometCircuitSvg";
 import { formatWord } from "./core/types";
 import { summarizeCurrentInstruction } from "./visual/visualState";
@@ -172,7 +173,9 @@ function StudioShell({
     run,
     step,
     reset,
+    reload,
     stop,
+    submitConsoleInput,
     clearOutput,
     toggleLessonStep,
     resetLessonProgress,
@@ -191,6 +194,7 @@ function StudioShell({
   const [showNewDocumentDialog, setShowNewDocumentDialog] = useState(false);
   const [pendingReplacementIntent, setPendingReplacementIntent] = useState<SourceReplacementIntent | null>(null);
   const [fileNotice, setFileNotice] = useState<FileOperationNoticeModel | null>(null);
+  const [workspaceMode, setWorkspaceMode] = useState<"modern" | "casl">("modern");
   const openIdsRef = useRef(createSequentialDocumentIdFactory("browser-open"));
   const currentDocumentRef = useRef(currentDocument);
   const writeBindingRef = useRef(currentWriteBinding);
@@ -397,7 +401,7 @@ function StudioShell({
   }
 
   return (
-    <div className={circuitFocusEnabled ? "app-shell circuit-focus-active" : "app-shell"}>
+    <div className={workspaceMode === "modern" && circuitFocusEnabled ? "app-shell circuit-focus-active" : "app-shell"}>
       <Toolbar
         assembleStatus={assembleStatus}
         canRun={canRun}
@@ -405,7 +409,10 @@ function StudioShell({
         canReset={canReset}
         isRunning={isRunning}
         isCircuitFocusMode={circuitFocusEnabled}
-        onToggleCircuitFocusMode={() => setCircuitFocusEnabled(!circuitFocusEnabled)}
+        onToggleCircuitFocusMode={() => {
+          setWorkspaceMode("modern");
+          setCircuitFocusEnabled(!circuitFocusEnabled);
+        }}
         isReplacingSource={replacementBusy}
         onNewDocument={() => setShowNewDocumentDialog(true)}
         isOpeningFile={fileLifecycle.status === "opening"}
@@ -455,7 +462,37 @@ function StudioShell({
       />
       <FileOperationNotice notice={fileNotice} onDismiss={() => setFileNotice(null)} />
 
-      {circuitFocusEnabled ? (
+      <div className="workspace-region">
+      <nav className="workspace-mode-switch" aria-label={t("compatibility.workspaceView")}>
+        <button
+          type="button"
+          data-testid="modern-mode-toggle"
+          className={workspaceMode === "modern" ? "selected" : ""}
+          aria-pressed={workspaceMode === "modern"}
+          onClick={() => setWorkspaceMode("modern")}
+        >
+          {t("compatibility.modernStudio")}
+        </button>
+        <button
+          type="button"
+          className={workspaceMode === "casl" ? "selected" : ""}
+          data-testid="casl-mode-toggle"
+          aria-pressed={workspaceMode === "casl"}
+          onClick={() => setWorkspaceMode("casl")}
+        >
+          {t("caslMode.title")}
+        </button>
+      </nav>
+      {workspaceMode === "casl" ? (
+        <CaslCompatibilityMode
+          state={state}
+          sourceText={sourceMode === "cpp" && generatedCaslSource ? generatedCaslSource : sourceText}
+          isSourceDirty={isSourceDirty}
+          onReset={reset}
+          onReload={reload}
+          onSubmitConsoleInput={submitConsoleInput}
+        />
+      ) : circuitFocusEnabled ? (
         <CircuitFocusLayout
           key={sourceUnitId}
           state={state}
@@ -668,6 +705,7 @@ function StudioShell({
         </aside>
       </main>
       )}
+      </div>
 
       <OutputPanel
         lines={state.output}
@@ -681,6 +719,7 @@ function StudioShell({
         initialTab={outputDockActiveTab}
         onActiveTabChange={setOutputDockActiveTab}
         autoOpenGenerated={sourceMode === "cpp" && !isSourceDirty && Boolean(generatedCaslSource)}
+        onConsoleInput={submitConsoleInput}
         onClear={clearOutput}
       />
       <StatusBar state={state} backendInfo={backendInfo} />

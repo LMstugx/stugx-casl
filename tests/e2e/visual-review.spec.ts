@@ -1346,6 +1346,79 @@ async function captureCppDoubleStorageStates(page: Page, viewport: Viewport) {
   await page.setViewportSize({ width: viewport.width, height: viewport.height });
 }
 
+async function captureCaslCompatibilityStates(page: Page, viewport: Viewport) {
+  if (!viewport.primary) return;
+  const standardViewport: Viewport = { name: "1440x900", width: 1440, height: 900, primary: true };
+  const compactViewport: Viewport = { name: "1280x720", width: 1280, height: 720 };
+  const macroIoSource = `MAIN START
+     LAD GR3,#FFFF
+     RPUSH
+     RPOP
+     IN BUF,LEN
+     OUT BUF,LEN
+     RET
+BUF DS 256
+LEN DS 1
+     END`;
+
+  await page.setViewportSize({ width: standardViewport.width, height: standardViewport.height });
+  await openStudio(page, "Mock Core");
+  await setSource(page, macroIoSource);
+  await assemble(page);
+  await page.getByTestId("casl-mode-toggle").click();
+  await page.getByTestId("casl-numeric-hex").click();
+  await capture(page, standardViewport, "casl-mode-hex.png", false);
+  await step(page);
+
+  await page.getByTestId("casl-numeric-signed").click();
+  await capture(page, standardViewport, "casl-mode-signed-decimal.png", false);
+  await page.getByTestId("casl-numeric-unsigned").click();
+  await capture(page, standardViewport, "casl-mode-unsigned-decimal.png", false);
+  await page.getByTestId("casl-numeric-binary").click();
+  await capture(page, standardViewport, "casl-mode-binary.png", false);
+
+  await step(page);
+  await capture(page, standardViewport, "casl-mode-stack.png", false);
+  await capture(page, standardViewport, "casl-mode-rpush-rpop.png", false);
+  await run(page);
+  await expect(page.getByTestId("run-state")).toHaveAttribute("data-run-state", "WaitingInput");
+  await capture(page, standardViewport, "casl-mode-input-waiting.png", false);
+  await page.getByTestId("casl-console-input").fill("CASL");
+  await page.getByTestId("casl-console-submit").click();
+  await run(page);
+  await expect(page.getByTestId("run-state")).toHaveText("Finished");
+  await capture(page, standardViewport, "casl-mode-output.png", false);
+  const assemblerOutput = page.getByTestId("casl-assembler-output");
+  await assemblerOutput.scrollIntoViewIfNeeded();
+  await assemblerOutput.evaluate((element) => {
+    element.scrollTop = element.scrollHeight;
+  });
+  await capture(page, standardViewport, "assembler-output-symbol-table.png", false);
+
+  await page.getByTestId("modern-mode-toggle").click();
+  await setSource(page, `MAIN START
+     LAD GR2,1
+     LD GR1,DATA,GR2
+     RET
+DATA DC 10,20
+     END`);
+  await assemble(page);
+  await page.getByTestId("casl-mode-toggle").click();
+  await step(page);
+  await step(page);
+  await capture(page, standardViewport, "casl-mode-index-addressing.png", false);
+
+  await page.setViewportSize({ width: compactViewport.width, height: compactViewport.height });
+  await page.getByTestId("locale-ja").click();
+  await capture(page, compactViewport, "casl-mode-ja-1280.png", false);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+  await page.getByTestId("locale-zh-CN").click();
+  await capture(page, compactViewport, "casl-mode-zh-cn-1280.png", false);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+  await page.getByTestId("locale-en").click();
+  await page.setViewportSize({ width: viewport.width, height: viewport.height });
+}
+
 test.describe("visual review screenshot gallery", () => {
   for (const viewport of viewports) {
     test(`captures visual review gallery at ${viewport.name}`, async ({ page }) => {
@@ -1410,6 +1483,7 @@ test.describe("visual review screenshot gallery", () => {
       await capturePhase18A1DesktopPolish(page, viewport);
       await captureChangelogStates(page, viewport);
       await captureCppDoubleStorageStates(page, viewport);
+      await captureCaslCompatibilityStates(page, viewport);
     });
   }
 });

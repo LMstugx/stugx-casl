@@ -102,6 +102,13 @@ describe("visual review screenshot gallery setup", () => {
     expect(visualReviewSpec).toContain("diagnostics-context-selected.png");
     expect(visualReviewSpec).toContain("diagnostics-details-expanded.png");
     expect(visualReviewSpec).toContain("tauri-maximized-layout.png");
+    expect(visualReviewSpec).toContain("casl-mode-hex.png");
+    expect(visualReviewSpec).toContain("casl-mode-binary.png");
+    expect(visualReviewSpec).toContain("casl-mode-input-waiting.png");
+    expect(visualReviewSpec).toContain("casl-mode-output.png");
+    expect(visualReviewSpec).toContain("casl-mode-ja-1280.png");
+    expect(visualReviewSpec).toContain("casl-mode-zh-cn-1280.png");
+    expect(visualReviewSpec).toContain("assembler-output-symbol-table.png");
     expect(visualReviewSpec).toContain("page.screenshot");
   });
 
@@ -184,6 +191,8 @@ describe("visual review screenshot gallery setup", () => {
     expect(visualReviewDoc).toContain("cpp-double-storage-memory-word-copy.png");
     expect(visualReviewDoc).toContain("cpp-double-inspector-ja.png");
     expect(visualReviewDoc).toContain("cpp-double-unsupported-diagnostic.png");
+    expect(visualReviewDoc).toContain("casl-mode-hex");
+    expect(visualReviewDoc).toContain("assembler-output symbol-table");
   });
 
   it("package_json_has_visual_review_scripts", () => {

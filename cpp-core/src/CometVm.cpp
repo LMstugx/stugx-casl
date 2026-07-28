@@ -173,6 +173,7 @@ void CometVm::load(const AssembleOutput& program) {
     sourceMap_ = program.sourceMap;
     instructions_.clear();
     trace_.clear();
+    inputQueue_.clear();
 
     for (const auto& instruction : program.instructions) {
         instructions_.emplace(instruction.address, instruction);
@@ -206,8 +207,11 @@ StepResult CometVm::step() {
     result.executedInstruction = instruction->source;
     result.instructionKind = instruction->opcode;
     state_.ir = state_.memory[instruction->address];
+    state_.mar = instruction->address;
     const auto effective = effectiveAddressFor(state_, *instruction);
-    state_.mar = effective.effectiveAddress;
+    if (instruction->operandAddress.has_value()) {
+        state_.mar = effective.effectiveAddress;
+    }
     state_.lastInstructionKind = instruction->opcode;
     state_.lastMemoryReadAddress.reset();
     state_.lastMemoryWriteAddress.reset();
@@ -233,16 +237,25 @@ StepResult CometVm::step() {
             break;
         case Opcode::LD: {
             const auto gr = instruction->gr;
-            if (gr >= kGeneralRegisterCount || !instruction->operandAddress.has_value()) {
+            if (gr >= kGeneralRegisterCount ||
+                (!instruction->operandAddress.has_value() && !instruction->sourceRegister.has_value())) {
                 fail(result, "Invalid LD operands");
                 return result;
             }
-            state_.lastMemoryReadAddress = effective.effectiveAddress;
-            state_.mdr = state_.memory[effective.effectiveAddress];
-            state_.gr[gr] = state_.mdr;
+            const auto value = instruction->sourceRegister.has_value()
+                ? state_.gr[*instruction->sourceRegister]
+                : state_.memory[effective.effectiveAddress];
+            if (!instruction->sourceRegister.has_value()) {
+                state_.lastMemoryReadAddress = effective.effectiveAddress;
+                state_.mdr = value;
+            }
+            state_.gr[gr] = value;
+            state_.fr = flagsForLogicalResult(value);
             state_.lastRegisterWriteIndex = gr;
-            state_.pr = static_cast<std::uint16_t>(state_.pr + 2);
-            state_.visualPath = VisualPathKind::LD_MemoryToMdrToGr;
+            state_.pr = static_cast<std::uint16_t>(state_.pr + instruction->size);
+            state_.visualPath = instruction->sourceRegister.has_value()
+                ? VisualPathKind::None
+                : VisualPathKind::LD_MemoryToMdrToGr;
             result.visualPath = state_.visualPath;
             result.ok = true;
             pushTrace("LD");
@@ -265,19 +278,27 @@ StepResult CometVm::step() {
         }
         case Opcode::ADDA: {
             const auto gr = instruction->gr;
-            if (gr >= kGeneralRegisterCount || !instruction->operandAddress.has_value()) {
+            if (gr >= kGeneralRegisterCount ||
+                (!instruction->operandAddress.has_value() && !instruction->sourceRegister.has_value())) {
                 fail(result, "Invalid ADDA operands");
                 return result;
             }
             const auto lhs = state_.gr[gr];
-            state_.lastMemoryReadAddress = effective.effectiveAddress;
-            state_.mdr = state_.memory[effective.effectiveAddress];
-            const auto sum = static_cast<std::uint32_t>(lhs) + state_.mdr;
+            const auto rhs = instruction->sourceRegister.has_value()
+                ? state_.gr[*instruction->sourceRegister]
+                : state_.memory[effective.effectiveAddress];
+            if (!instruction->sourceRegister.has_value()) {
+                state_.lastMemoryReadAddress = effective.effectiveAddress;
+                state_.mdr = rhs;
+            }
+            const auto sum = static_cast<std::uint32_t>(lhs) + rhs;
             state_.gr[gr] = static_cast<std::uint16_t>(sum & 0xffff);
             state_.lastRegisterWriteIndex = gr;
-            state_.fr = flagsForArithmetic(static_cast<std::int32_t>(sum), signedAddOverflow(lhs, state_.mdr, sum));
-            state_.pr = static_cast<std::uint16_t>(state_.pr + 2);
-            state_.visualPath = VisualPathKind::ADDA_GrMdrToAluToGr;
+            state_.fr = flagsForArithmetic(static_cast<std::int32_t>(sum), signedAddOverflow(lhs, rhs, sum));
+            state_.pr = static_cast<std::uint16_t>(state_.pr + instruction->size);
+            state_.visualPath = instruction->sourceRegister.has_value()
+                ? VisualPathKind::None
+                : VisualPathKind::ADDA_GrMdrToAluToGr;
             result.visualPath = state_.visualPath;
             result.ok = true;
             pushTrace("ADDA");
@@ -285,19 +306,27 @@ StepResult CometVm::step() {
         }
         case Opcode::SUBA: {
             const auto gr = instruction->gr;
-            if (gr >= kGeneralRegisterCount || !instruction->operandAddress.has_value()) {
+            if (gr >= kGeneralRegisterCount ||
+                (!instruction->operandAddress.has_value() && !instruction->sourceRegister.has_value())) {
                 fail(result, "Invalid SUBA operands");
                 return result;
             }
             const auto lhs = state_.gr[gr];
-            state_.lastMemoryReadAddress = effective.effectiveAddress;
-            state_.mdr = state_.memory[effective.effectiveAddress];
-            const auto diff = static_cast<std::int32_t>(lhs) - static_cast<std::int32_t>(state_.mdr);
+            const auto rhs = instruction->sourceRegister.has_value()
+                ? state_.gr[*instruction->sourceRegister]
+                : state_.memory[effective.effectiveAddress];
+            if (!instruction->sourceRegister.has_value()) {
+                state_.lastMemoryReadAddress = effective.effectiveAddress;
+                state_.mdr = rhs;
+            }
+            const auto diff = static_cast<std::int32_t>(lhs) - static_cast<std::int32_t>(rhs);
             state_.gr[gr] = static_cast<std::uint16_t>(diff & 0xffff);
             state_.lastRegisterWriteIndex = gr;
-            state_.fr = flagsForArithmetic(diff, signedSubOverflow(lhs, state_.mdr, diff));
-            state_.pr = static_cast<std::uint16_t>(state_.pr + 2);
-            state_.visualPath = VisualPathKind::SUBA_GrMdrToAluToGr;
+            state_.fr = flagsForArithmetic(diff, signedSubOverflow(lhs, rhs, diff));
+            state_.pr = static_cast<std::uint16_t>(state_.pr + instruction->size);
+            state_.visualPath = instruction->sourceRegister.has_value()
+                ? VisualPathKind::None
+                : VisualPathKind::SUBA_GrMdrToAluToGr;
             result.visualPath = state_.visualPath;
             result.ok = true;
             pushTrace("SUBA");
@@ -305,19 +334,27 @@ StepResult CometVm::step() {
         }
         case Opcode::ADDL: {
             const auto gr = instruction->gr;
-            if (gr >= kGeneralRegisterCount || !instruction->operandAddress.has_value()) {
+            if (gr >= kGeneralRegisterCount ||
+                (!instruction->operandAddress.has_value() && !instruction->sourceRegister.has_value())) {
                 fail(result, "Invalid ADDL operands");
                 return result;
             }
             const auto lhs = state_.gr[gr];
-            state_.lastMemoryReadAddress = effective.effectiveAddress;
-            state_.mdr = state_.memory[effective.effectiveAddress];
-            const auto sum = static_cast<std::uint32_t>(lhs) + state_.mdr;
+            const auto rhs = instruction->sourceRegister.has_value()
+                ? state_.gr[*instruction->sourceRegister]
+                : state_.memory[effective.effectiveAddress];
+            if (!instruction->sourceRegister.has_value()) {
+                state_.lastMemoryReadAddress = effective.effectiveAddress;
+                state_.mdr = rhs;
+            }
+            const auto sum = static_cast<std::uint32_t>(lhs) + rhs;
             state_.gr[gr] = static_cast<std::uint16_t>(sum & 0xffff);
             state_.lastRegisterWriteIndex = gr;
-            state_.fr = flagsForLogicalAdd(lhs, state_.mdr);
-            state_.pr = static_cast<std::uint16_t>(state_.pr + 2);
-            state_.visualPath = VisualPathKind::ADDA_GrMdrToAluToGr;
+            state_.fr = flagsForLogicalAdd(lhs, rhs);
+            state_.pr = static_cast<std::uint16_t>(state_.pr + instruction->size);
+            state_.visualPath = instruction->sourceRegister.has_value()
+                ? VisualPathKind::None
+                : VisualPathKind::ADDA_GrMdrToAluToGr;
             result.visualPath = state_.visualPath;
             result.ok = true;
             pushTrace("ADDL");
@@ -325,18 +362,26 @@ StepResult CometVm::step() {
         }
         case Opcode::SUBL: {
             const auto gr = instruction->gr;
-            if (gr >= kGeneralRegisterCount || !instruction->operandAddress.has_value()) {
+            if (gr >= kGeneralRegisterCount ||
+                (!instruction->operandAddress.has_value() && !instruction->sourceRegister.has_value())) {
                 fail(result, "Invalid SUBL operands");
                 return result;
             }
             const auto lhs = state_.gr[gr];
-            state_.lastMemoryReadAddress = effective.effectiveAddress;
-            state_.mdr = state_.memory[effective.effectiveAddress];
-            state_.gr[gr] = static_cast<std::uint16_t>((static_cast<std::uint32_t>(lhs) - state_.mdr) & 0xffff);
+            const auto rhs = instruction->sourceRegister.has_value()
+                ? state_.gr[*instruction->sourceRegister]
+                : state_.memory[effective.effectiveAddress];
+            if (!instruction->sourceRegister.has_value()) {
+                state_.lastMemoryReadAddress = effective.effectiveAddress;
+                state_.mdr = rhs;
+            }
+            state_.gr[gr] = static_cast<std::uint16_t>((static_cast<std::uint32_t>(lhs) - rhs) & 0xffff);
             state_.lastRegisterWriteIndex = gr;
-            state_.fr = flagsForLogicalSub(lhs, state_.mdr);
-            state_.pr = static_cast<std::uint16_t>(state_.pr + 2);
-            state_.visualPath = VisualPathKind::SUBA_GrMdrToAluToGr;
+            state_.fr = flagsForLogicalSub(lhs, rhs);
+            state_.pr = static_cast<std::uint16_t>(state_.pr + instruction->size);
+            state_.visualPath = instruction->sourceRegister.has_value()
+                ? VisualPathKind::None
+                : VisualPathKind::SUBA_GrMdrToAluToGr;
             result.visualPath = state_.visualPath;
             result.ok = true;
             pushTrace("SUBL");
@@ -346,22 +391,30 @@ StepResult CometVm::step() {
         case Opcode::OR:
         case Opcode::XOR: {
             const auto gr = instruction->gr;
-            if (gr >= kGeneralRegisterCount || !instruction->operandAddress.has_value()) {
+            if (gr >= kGeneralRegisterCount ||
+                (!instruction->operandAddress.has_value() && !instruction->sourceRegister.has_value())) {
                 fail(result, "Invalid logical operands");
                 return result;
             }
             const auto lhs = state_.gr[gr];
-            state_.lastMemoryReadAddress = effective.effectiveAddress;
-            state_.mdr = state_.memory[effective.effectiveAddress];
+            const auto rhs = instruction->sourceRegister.has_value()
+                ? state_.gr[*instruction->sourceRegister]
+                : state_.memory[effective.effectiveAddress];
+            if (!instruction->sourceRegister.has_value()) {
+                state_.lastMemoryReadAddress = effective.effectiveAddress;
+                state_.mdr = rhs;
+            }
             std::uint16_t value = 0;
-            if (instruction->opcode == Opcode::AND) value = static_cast<std::uint16_t>(lhs & state_.mdr);
-            if (instruction->opcode == Opcode::OR) value = static_cast<std::uint16_t>(lhs | state_.mdr);
-            if (instruction->opcode == Opcode::XOR) value = static_cast<std::uint16_t>(lhs ^ state_.mdr);
+            if (instruction->opcode == Opcode::AND) value = static_cast<std::uint16_t>(lhs & rhs);
+            if (instruction->opcode == Opcode::OR) value = static_cast<std::uint16_t>(lhs | rhs);
+            if (instruction->opcode == Opcode::XOR) value = static_cast<std::uint16_t>(lhs ^ rhs);
             state_.gr[gr] = value;
             state_.lastRegisterWriteIndex = gr;
             state_.fr = flagsForLogicalResult(value);
-            state_.pr = static_cast<std::uint16_t>(state_.pr + 2);
-            state_.visualPath = VisualPathKind::ADDA_GrMdrToAluToGr;
+            state_.pr = static_cast<std::uint16_t>(state_.pr + instruction->size);
+            state_.visualPath = instruction->sourceRegister.has_value()
+                ? VisualPathKind::None
+                : VisualPathKind::ADDA_GrMdrToAluToGr;
             result.visualPath = state_.visualPath;
             result.ok = true;
             pushTrace(opcodeName(instruction->opcode));
@@ -369,15 +422,23 @@ StepResult CometVm::step() {
         }
         case Opcode::CPA: {
             const auto gr = instruction->gr;
-            if (gr >= kGeneralRegisterCount || !instruction->operandAddress.has_value()) {
+            if (gr >= kGeneralRegisterCount ||
+                (!instruction->operandAddress.has_value() && !instruction->sourceRegister.has_value())) {
                 fail(result, "Invalid CPA operands");
                 return result;
             }
-            state_.lastMemoryReadAddress = effective.effectiveAddress;
-            state_.mdr = state_.memory[effective.effectiveAddress];
-            state_.fr = flagsForCompare(state_.gr[gr], state_.mdr);
-            state_.pr = static_cast<std::uint16_t>(state_.pr + 2);
-            state_.visualPath = VisualPathKind::CPA_GrMdrToAluToFr;
+            const auto rhs = instruction->sourceRegister.has_value()
+                ? state_.gr[*instruction->sourceRegister]
+                : state_.memory[effective.effectiveAddress];
+            if (!instruction->sourceRegister.has_value()) {
+                state_.lastMemoryReadAddress = effective.effectiveAddress;
+                state_.mdr = rhs;
+            }
+            state_.fr = flagsForCompare(state_.gr[gr], rhs);
+            state_.pr = static_cast<std::uint16_t>(state_.pr + instruction->size);
+            state_.visualPath = instruction->sourceRegister.has_value()
+                ? VisualPathKind::None
+                : VisualPathKind::CPA_GrMdrToAluToFr;
             result.visualPath = state_.visualPath;
             result.ok = true;
             pushTrace("CPA");
@@ -385,15 +446,23 @@ StepResult CometVm::step() {
         }
         case Opcode::CPL: {
             const auto gr = instruction->gr;
-            if (gr >= kGeneralRegisterCount || !instruction->operandAddress.has_value()) {
+            if (gr >= kGeneralRegisterCount ||
+                (!instruction->operandAddress.has_value() && !instruction->sourceRegister.has_value())) {
                 fail(result, "Invalid CPL operands");
                 return result;
             }
-            state_.lastMemoryReadAddress = effective.effectiveAddress;
-            state_.mdr = state_.memory[effective.effectiveAddress];
-            state_.fr = flagsForLogicalCompare(state_.gr[gr], state_.mdr);
-            state_.pr = static_cast<std::uint16_t>(state_.pr + 2);
-            state_.visualPath = VisualPathKind::CPA_GrMdrToAluToFr;
+            const auto rhs = instruction->sourceRegister.has_value()
+                ? state_.gr[*instruction->sourceRegister]
+                : state_.memory[effective.effectiveAddress];
+            if (!instruction->sourceRegister.has_value()) {
+                state_.lastMemoryReadAddress = effective.effectiveAddress;
+                state_.mdr = rhs;
+            }
+            state_.fr = flagsForLogicalCompare(state_.gr[gr], rhs);
+            state_.pr = static_cast<std::uint16_t>(state_.pr + instruction->size);
+            state_.visualPath = instruction->sourceRegister.has_value()
+                ? VisualPathKind::None
+                : VisualPathKind::CPA_GrMdrToAluToFr;
             result.visualPath = state_.visualPath;
             result.ok = true;
             pushTrace("CPL");
@@ -537,6 +606,72 @@ StepResult CometVm::step() {
                 pushTrace("RET");
             }
             break;
+        case Opcode::SVC: {
+            if (!instruction->operandAddress.has_value()) {
+                fail(result, "Invalid SVC operand");
+                return result;
+            }
+            const auto service = effective.effectiveAddress;
+            if (service == 1) {
+                if (inputQueue_.empty()) {
+                    state_.runState = RunState::WaitingInput;
+                    state_.visualPath = VisualPathKind::None;
+                    result.visualPath = state_.visualPath;
+                    result.ok = true;
+                    pushTrace("SVC_INPUT_WAIT");
+                    updateCurrentInstruction();
+                    return result;
+                }
+                auto record = std::move(inputQueue_.front());
+                inputQueue_.pop_front();
+                const auto area = state_.gr[1];
+                const auto lengthArea = state_.gr[2];
+                if (record.endOfFile) {
+                    state_.memory[lengthArea] = 0xffff;
+                    state_.lastMemoryWriteAddress = lengthArea;
+                    state_.mdr = 0xffff;
+                } else {
+                    const auto count = std::min<std::size_t>(256, record.characters.size());
+                    for (std::size_t index = 0; index < count; ++index) {
+                        state_.memory[static_cast<std::uint16_t>(area + index)] =
+                            static_cast<std::uint16_t>(record.characters[index] & 0x00ff);
+                    }
+                    state_.memory[lengthArea] = static_cast<std::uint16_t>(count);
+                    state_.lastMemoryWriteAddress = lengthArea;
+                    state_.mdr = static_cast<std::uint16_t>(count);
+                }
+                state_.fr = {};
+                state_.runState = RunState::Ready;
+                pushTrace("SVC_INPUT");
+            } else if (service == 2) {
+                const auto area = state_.gr[1];
+                const auto lengthArea = state_.gr[2];
+                const auto count = std::min<std::uint16_t>(256, state_.memory[lengthArea]);
+                std::vector<std::uint16_t> record;
+                record.reserve(count);
+                for (std::uint16_t index = 0; index < count; ++index) {
+                    record.push_back(static_cast<std::uint16_t>(
+                        state_.memory[static_cast<std::uint16_t>(area + index)] & 0x00ff
+                    ));
+                }
+                state_.consoleOutput.push_back(std::move(record));
+                if (state_.consoleOutput.size() > kMaxConsoleOutputRecords) {
+                    state_.consoleOutput.erase(state_.consoleOutput.begin());
+                }
+                state_.lastMemoryReadAddress = lengthArea;
+                state_.mdr = state_.memory[lengthArea];
+                state_.fr = {};
+                pushTrace("SVC_OUTPUT");
+            } else {
+                fail(result, "Unsupported SVC service");
+                return result;
+            }
+            state_.pr = static_cast<std::uint16_t>(state_.pr + 2);
+            state_.visualPath = VisualPathKind::None;
+            result.visualPath = state_.visualPath;
+            result.ok = true;
+            break;
+        }
         default:
             fail(result, "Illegal opcode");
             return result;
@@ -559,7 +694,7 @@ RunResult CometVm::run(int maxSteps) {
     }
 
     for (int stepCount = 0; stepCount < maxSteps; stepCount += 1) {
-        if (state_.runState == RunState::Finished) {
+        if (state_.runState == RunState::Finished || state_.runState == RunState::WaitingInput) {
             result.ok = true;
             result.steps = stepCount;
             return result;
@@ -577,6 +712,10 @@ RunResult CometVm::run(int maxSteps) {
         }
     }
 
+    if (state_.runState == RunState::WaitingInput) {
+        result.ok = true;
+        return result;
+    }
     if (state_.runState != RunState::Finished) {
         state_.runState = RunState::Error;
         result.stoppedAtMaxSteps = true;
@@ -591,7 +730,31 @@ RunResult CometVm::run(int maxSteps) {
 void CometVm::reset() {
     state_ = initialState_;
     trace_.clear();
+    inputQueue_.clear();
     updateCurrentInstruction();
+}
+
+void CometVm::reload(std::optional<std::uint16_t> uninitializedValue) {
+    reset();
+    if (!uninitializedValue.has_value()) return;
+
+    for (const auto& entry : sourceMap_.entries()) {
+        if (entry.instruction != Opcode::DS) continue;
+        for (std::size_t offset = 0; offset < entry.machineWords.size(); ++offset) {
+            const auto address = static_cast<std::uint32_t>(entry.address) + static_cast<std::uint32_t>(offset);
+            if (address >= kMemorySize) break;
+            state_.memory[address] = *uninitializedValue;
+        }
+    }
+    updateCurrentInstruction();
+}
+
+void CometVm::enqueueInput(std::vector<std::uint16_t> characters, bool endOfFile) {
+    if (characters.size() > 256) characters.resize(256);
+    inputQueue_.push_back({std::move(characters), endOfFile});
+    if (state_.runState == RunState::WaitingInput) {
+        state_.runState = RunState::Ready;
+    }
 }
 
 const CometState& CometVm::state() const {

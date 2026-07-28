@@ -1,0 +1,1137 @@
+{
+  "schemaVersion": 1,
+  "profile": "stugx.CASL teaching microarchitecture contract for specified COMET II behavior",
+  "runtimeEnabled": false,
+  "phaseVocabulary": [
+    "fetch",
+    "decode",
+    "effective-address",
+    "operand-read",
+    "execute",
+    "write-back",
+    "flag-update",
+    "complete"
+  ],
+  "instructions": [
+    {
+      "mnemonic": "NOP",
+      "operandProfiles": [
+        "none"
+      ],
+      "cyclePhases": [
+        "fetch",
+        "decode",
+        "execute",
+        "complete"
+      ],
+      "visibleRegisters": [
+        "PR",
+        "IR",
+        "MAR",
+        "MDR"
+      ],
+      "memoryAccess": "instruction-fetch-only",
+      "aluOperation": "none",
+      "frUpdate": "none",
+      "prUpdate": "advance-1",
+      "stackUpdate": "none",
+      "branchTarget": "none",
+      "sourceMapping": "machine instruction maps to one CASL source row",
+      "activeCircuitNodes": [
+        "PR",
+        "MAR",
+        "Memory",
+        "MDR",
+        "IR"
+      ],
+      "forbiddenFakeNodes": [
+        "data-memory-read",
+        "FPU"
+      ]
+    },
+    {
+      "mnemonic": "LD",
+      "operandProfiles": [
+        "register-register",
+        "register-address",
+        "register-address-indexed"
+      ],
+      "cyclePhases": [
+        "fetch",
+        "decode",
+        "effective-address",
+        "operand-read",
+        "execute",
+        "write-back",
+        "flag-update",
+        "complete"
+      ],
+      "visibleRegisters": [
+        "PR",
+        "IR",
+        "MAR",
+        "MDR",
+        "GR",
+        "FR"
+      ],
+      "memoryAccess": "address forms read one data word; register form has no data-memory access",
+      "aluOperation": "value transfer",
+      "frUpdate": "OF=0; SF/ZF from result",
+      "prUpdate": "advance by encoded word length",
+      "stackUpdate": "none",
+      "branchTarget": "none",
+      "sourceMapping": "operand profile remains visible; register form has no effective address",
+      "activeCircuitNodes": [
+        "GR",
+        "FR",
+        "MAR",
+        "MDR",
+        "Memory"
+      ],
+      "forbiddenFakeNodes": [
+        "register-form-effective-address",
+        "register-form-data-memory-read",
+        "FPU"
+      ]
+    },
+    {
+      "mnemonic": "ST",
+      "operandProfiles": [
+        "register-address",
+        "register-address-indexed"
+      ],
+      "cyclePhases": [
+        "fetch",
+        "decode",
+        "effective-address",
+        "execute",
+        "write-back",
+        "complete"
+      ],
+      "visibleRegisters": [
+        "PR",
+        "IR",
+        "MAR",
+        "MDR",
+        "GR"
+      ],
+      "memoryAccess": "write one data word",
+      "aluOperation": "none",
+      "frUpdate": "none",
+      "prUpdate": "advance-2",
+      "stackUpdate": "none",
+      "branchTarget": "none",
+      "sourceMapping": "write target is the real effective address",
+      "activeCircuitNodes": [
+        "GR",
+        "MDR",
+        "MAR",
+        "Memory"
+      ],
+      "forbiddenFakeNodes": [
+        "source-register-clear",
+        "FPU"
+      ]
+    },
+    {
+      "mnemonic": "LAD",
+      "operandProfiles": [
+        "register-address",
+        "register-address-indexed"
+      ],
+      "cyclePhases": [
+        "fetch",
+        "decode",
+        "effective-address",
+        "execute",
+        "write-back",
+        "complete"
+      ],
+      "visibleRegisters": [
+        "PR",
+        "IR",
+        "MAR",
+        "GR"
+      ],
+      "memoryAccess": "instruction-fetch-only",
+      "aluOperation": "effective-address calculation",
+      "frUpdate": "none",
+      "prUpdate": "advance-2",
+      "stackUpdate": "none",
+      "branchTarget": "none",
+      "sourceMapping": "effective address is a value, not a memory read",
+      "activeCircuitNodes": [
+        "GR",
+        "EffectiveAddressUnit"
+      ],
+      "forbiddenFakeNodes": [
+        "data-memory-read",
+        "MDR-value-source",
+        "FPU"
+      ]
+    },
+    {
+      "mnemonic": "ADDA",
+      "operandProfiles": [
+        "register-register",
+        "register-address",
+        "register-address-indexed"
+      ],
+      "cyclePhases": [
+        "fetch",
+        "decode",
+        "effective-address",
+        "operand-read",
+        "execute",
+        "write-back",
+        "flag-update",
+        "complete"
+      ],
+      "visibleRegisters": [
+        "PR",
+        "IR",
+        "MAR",
+        "MDR",
+        "GR",
+        "FR"
+      ],
+      "memoryAccess": "address forms read one data word; register form has no data-memory access",
+      "aluOperation": "signed-add",
+      "frUpdate": "OF/SF/ZF from signed result",
+      "prUpdate": "advance by encoded word length",
+      "stackUpdate": "none",
+      "branchTarget": "none",
+      "sourceMapping": "one arithmetic instruction",
+      "activeCircuitNodes": [
+        "GR",
+        "ALU",
+        "FR",
+        "MDR"
+      ],
+      "forbiddenFakeNodes": [
+        "register-form-data-memory-read",
+        "FPU"
+      ]
+    },
+    {
+      "mnemonic": "SUBA",
+      "operandProfiles": [
+        "register-register",
+        "register-address",
+        "register-address-indexed"
+      ],
+      "cyclePhases": [
+        "fetch",
+        "decode",
+        "effective-address",
+        "operand-read",
+        "execute",
+        "write-back",
+        "flag-update",
+        "complete"
+      ],
+      "visibleRegisters": [
+        "PR",
+        "IR",
+        "MAR",
+        "MDR",
+        "GR",
+        "FR"
+      ],
+      "memoryAccess": "address forms read one data word; register form has no data-memory access",
+      "aluOperation": "signed-subtract",
+      "frUpdate": "OF/SF/ZF from signed result",
+      "prUpdate": "advance by encoded word length",
+      "stackUpdate": "none",
+      "branchTarget": "none",
+      "sourceMapping": "one arithmetic instruction",
+      "activeCircuitNodes": [
+        "GR",
+        "ALU",
+        "FR",
+        "MDR"
+      ],
+      "forbiddenFakeNodes": [
+        "register-form-data-memory-read",
+        "FPU"
+      ]
+    },
+    {
+      "mnemonic": "ADDL",
+      "operandProfiles": [
+        "register-register",
+        "register-address",
+        "register-address-indexed"
+      ],
+      "cyclePhases": [
+        "fetch",
+        "decode",
+        "effective-address",
+        "operand-read",
+        "execute",
+        "write-back",
+        "flag-update",
+        "complete"
+      ],
+      "visibleRegisters": [
+        "PR",
+        "IR",
+        "MAR",
+        "MDR",
+        "GR",
+        "FR"
+      ],
+      "memoryAccess": "address forms read one data word; register form has no data-memory access",
+      "aluOperation": "logical-add",
+      "frUpdate": "OF/SF/ZF from logical result",
+      "prUpdate": "advance by encoded word length",
+      "stackUpdate": "none",
+      "branchTarget": "none",
+      "sourceMapping": "one arithmetic instruction",
+      "activeCircuitNodes": [
+        "GR",
+        "ALU",
+        "FR",
+        "MDR"
+      ],
+      "forbiddenFakeNodes": [
+        "register-form-data-memory-read",
+        "FPU"
+      ]
+    },
+    {
+      "mnemonic": "SUBL",
+      "operandProfiles": [
+        "register-register",
+        "register-address",
+        "register-address-indexed"
+      ],
+      "cyclePhases": [
+        "fetch",
+        "decode",
+        "effective-address",
+        "operand-read",
+        "execute",
+        "write-back",
+        "flag-update",
+        "complete"
+      ],
+      "visibleRegisters": [
+        "PR",
+        "IR",
+        "MAR",
+        "MDR",
+        "GR",
+        "FR"
+      ],
+      "memoryAccess": "address forms read one data word; register form has no data-memory access",
+      "aluOperation": "logical-subtract",
+      "frUpdate": "OF/SF/ZF from logical result",
+      "prUpdate": "advance by encoded word length",
+      "stackUpdate": "none",
+      "branchTarget": "none",
+      "sourceMapping": "one arithmetic instruction",
+      "activeCircuitNodes": [
+        "GR",
+        "ALU",
+        "FR",
+        "MDR"
+      ],
+      "forbiddenFakeNodes": [
+        "register-form-data-memory-read",
+        "FPU"
+      ]
+    },
+    {
+      "mnemonic": "AND",
+      "operandProfiles": [
+        "register-register",
+        "register-address",
+        "register-address-indexed"
+      ],
+      "cyclePhases": [
+        "fetch",
+        "decode",
+        "effective-address",
+        "operand-read",
+        "execute",
+        "write-back",
+        "flag-update",
+        "complete"
+      ],
+      "visibleRegisters": [
+        "PR",
+        "IR",
+        "MAR",
+        "MDR",
+        "GR",
+        "FR"
+      ],
+      "memoryAccess": "address forms read one data word; register form has no data-memory access",
+      "aluOperation": "bitwise-and",
+      "frUpdate": "OF=0; SF/ZF from result",
+      "prUpdate": "advance by encoded word length",
+      "stackUpdate": "none",
+      "branchTarget": "none",
+      "sourceMapping": "one logical instruction",
+      "activeCircuitNodes": [
+        "GR",
+        "ALU",
+        "FR",
+        "MDR"
+      ],
+      "forbiddenFakeNodes": [
+        "register-form-data-memory-read",
+        "FPU"
+      ]
+    },
+    {
+      "mnemonic": "OR",
+      "operandProfiles": [
+        "register-register",
+        "register-address",
+        "register-address-indexed"
+      ],
+      "cyclePhases": [
+        "fetch",
+        "decode",
+        "effective-address",
+        "operand-read",
+        "execute",
+        "write-back",
+        "flag-update",
+        "complete"
+      ],
+      "visibleRegisters": [
+        "PR",
+        "IR",
+        "MAR",
+        "MDR",
+        "GR",
+        "FR"
+      ],
+      "memoryAccess": "address forms read one data word; register form has no data-memory access",
+      "aluOperation": "bitwise-or",
+      "frUpdate": "OF=0; SF/ZF from result",
+      "prUpdate": "advance by encoded word length",
+      "stackUpdate": "none",
+      "branchTarget": "none",
+      "sourceMapping": "one logical instruction",
+      "activeCircuitNodes": [
+        "GR",
+        "ALU",
+        "FR",
+        "MDR"
+      ],
+      "forbiddenFakeNodes": [
+        "register-form-data-memory-read",
+        "FPU"
+      ]
+    },
+    {
+      "mnemonic": "XOR",
+      "operandProfiles": [
+        "register-register",
+        "register-address",
+        "register-address-indexed"
+      ],
+      "cyclePhases": [
+        "fetch",
+        "decode",
+        "effective-address",
+        "operand-read",
+        "execute",
+        "write-back",
+        "flag-update",
+        "complete"
+      ],
+      "visibleRegisters": [
+        "PR",
+        "IR",
+        "MAR",
+        "MDR",
+        "GR",
+        "FR"
+      ],
+      "memoryAccess": "address forms read one data word; register form has no data-memory access",
+      "aluOperation": "bitwise-xor",
+      "frUpdate": "OF=0; SF/ZF from result",
+      "prUpdate": "advance by encoded word length",
+      "stackUpdate": "none",
+      "branchTarget": "none",
+      "sourceMapping": "one logical instruction",
+      "activeCircuitNodes": [
+        "GR",
+        "ALU",
+        "FR",
+        "MDR"
+      ],
+      "forbiddenFakeNodes": [
+        "register-form-data-memory-read",
+        "FPU"
+      ]
+    },
+    {
+      "mnemonic": "CPA",
+      "operandProfiles": [
+        "register-register",
+        "register-address",
+        "register-address-indexed"
+      ],
+      "cyclePhases": [
+        "fetch",
+        "decode",
+        "effective-address",
+        "operand-read",
+        "execute",
+        "flag-update",
+        "complete"
+      ],
+      "visibleRegisters": [
+        "PR",
+        "IR",
+        "MAR",
+        "MDR",
+        "GR",
+        "FR"
+      ],
+      "memoryAccess": "address forms read one data word; register form has no data-memory access",
+      "aluOperation": "signed-compare",
+      "frUpdate": "OF=0; SF/ZF from comparison",
+      "prUpdate": "advance by encoded word length",
+      "stackUpdate": "none",
+      "branchTarget": "none",
+      "sourceMapping": "comparison does not write GR",
+      "activeCircuitNodes": [
+        "GR",
+        "ALU",
+        "FR",
+        "MDR"
+      ],
+      "forbiddenFakeNodes": [
+        "register-write-back",
+        "register-form-data-memory-read",
+        "FPU"
+      ]
+    },
+    {
+      "mnemonic": "CPL",
+      "operandProfiles": [
+        "register-register",
+        "register-address",
+        "register-address-indexed"
+      ],
+      "cyclePhases": [
+        "fetch",
+        "decode",
+        "effective-address",
+        "operand-read",
+        "execute",
+        "flag-update",
+        "complete"
+      ],
+      "visibleRegisters": [
+        "PR",
+        "IR",
+        "MAR",
+        "MDR",
+        "GR",
+        "FR"
+      ],
+      "memoryAccess": "address forms read one data word; register form has no data-memory access",
+      "aluOperation": "logical-compare",
+      "frUpdate": "OF=0; SF/ZF from comparison",
+      "prUpdate": "advance by encoded word length",
+      "stackUpdate": "none",
+      "branchTarget": "none",
+      "sourceMapping": "comparison does not write GR",
+      "activeCircuitNodes": [
+        "GR",
+        "ALU",
+        "FR",
+        "MDR"
+      ],
+      "forbiddenFakeNodes": [
+        "register-write-back",
+        "register-form-data-memory-read",
+        "FPU"
+      ]
+    },
+    {
+      "mnemonic": "SLA",
+      "operandProfiles": [
+        "register-address",
+        "register-address-indexed"
+      ],
+      "cyclePhases": [
+        "fetch",
+        "decode",
+        "effective-address",
+        "execute",
+        "write-back",
+        "flag-update",
+        "complete"
+      ],
+      "visibleRegisters": [
+        "PR",
+        "IR",
+        "GR",
+        "FR"
+      ],
+      "memoryAccess": "instruction-fetch-only",
+      "aluOperation": "arithmetic-left-shift",
+      "frUpdate": "OF from last shifted bit; SF/ZF from result",
+      "prUpdate": "advance-2",
+      "stackUpdate": "none",
+      "branchTarget": "none",
+      "sourceMapping": "effective address supplies shift count",
+      "activeCircuitNodes": [
+        "GR",
+        "Shifter",
+        "FR",
+        "EffectiveAddressUnit"
+      ],
+      "forbiddenFakeNodes": [
+        "shift-count-memory-read",
+        "FPU"
+      ]
+    },
+    {
+      "mnemonic": "SRA",
+      "operandProfiles": [
+        "register-address",
+        "register-address-indexed"
+      ],
+      "cyclePhases": [
+        "fetch",
+        "decode",
+        "effective-address",
+        "execute",
+        "write-back",
+        "flag-update",
+        "complete"
+      ],
+      "visibleRegisters": [
+        "PR",
+        "IR",
+        "GR",
+        "FR"
+      ],
+      "memoryAccess": "instruction-fetch-only",
+      "aluOperation": "arithmetic-right-shift",
+      "frUpdate": "OF from last shifted bit; SF/ZF from result",
+      "prUpdate": "advance-2",
+      "stackUpdate": "none",
+      "branchTarget": "none",
+      "sourceMapping": "effective address supplies shift count",
+      "activeCircuitNodes": [
+        "GR",
+        "Shifter",
+        "FR",
+        "EffectiveAddressUnit"
+      ],
+      "forbiddenFakeNodes": [
+        "shift-count-memory-read",
+        "FPU"
+      ]
+    },
+    {
+      "mnemonic": "SLL",
+      "operandProfiles": [
+        "register-address",
+        "register-address-indexed"
+      ],
+      "cyclePhases": [
+        "fetch",
+        "decode",
+        "effective-address",
+        "execute",
+        "write-back",
+        "flag-update",
+        "complete"
+      ],
+      "visibleRegisters": [
+        "PR",
+        "IR",
+        "GR",
+        "FR"
+      ],
+      "memoryAccess": "instruction-fetch-only",
+      "aluOperation": "logical-left-shift",
+      "frUpdate": "OF from last shifted bit; SF/ZF from result",
+      "prUpdate": "advance-2",
+      "stackUpdate": "none",
+      "branchTarget": "none",
+      "sourceMapping": "effective address supplies shift count",
+      "activeCircuitNodes": [
+        "GR",
+        "Shifter",
+        "FR",
+        "EffectiveAddressUnit"
+      ],
+      "forbiddenFakeNodes": [
+        "shift-count-memory-read",
+        "FPU"
+      ]
+    },
+    {
+      "mnemonic": "SRL",
+      "operandProfiles": [
+        "register-address",
+        "register-address-indexed"
+      ],
+      "cyclePhases": [
+        "fetch",
+        "decode",
+        "effective-address",
+        "execute",
+        "write-back",
+        "flag-update",
+        "complete"
+      ],
+      "visibleRegisters": [
+        "PR",
+        "IR",
+        "GR",
+        "FR"
+      ],
+      "memoryAccess": "instruction-fetch-only",
+      "aluOperation": "logical-right-shift",
+      "frUpdate": "OF from last shifted bit; SF/ZF from result",
+      "prUpdate": "advance-2",
+      "stackUpdate": "none",
+      "branchTarget": "none",
+      "sourceMapping": "effective address supplies shift count",
+      "activeCircuitNodes": [
+        "GR",
+        "Shifter",
+        "FR",
+        "EffectiveAddressUnit"
+      ],
+      "forbiddenFakeNodes": [
+        "shift-count-memory-read",
+        "FPU"
+      ]
+    },
+    {
+      "mnemonic": "JMI",
+      "operandProfiles": [
+        "address",
+        "address-indexed"
+      ],
+      "cyclePhases": [
+        "fetch",
+        "decode",
+        "effective-address",
+        "execute",
+        "complete"
+      ],
+      "visibleRegisters": [
+        "PR",
+        "IR",
+        "FR"
+      ],
+      "memoryAccess": "instruction-fetch-only",
+      "aluOperation": "condition-test",
+      "frUpdate": "none",
+      "prUpdate": "target when SF=1; otherwise advance-2",
+      "stackUpdate": "none",
+      "branchTarget": "effective address",
+      "sourceMapping": "taken and not-taken states remain distinct",
+      "activeCircuitNodes": [
+        "FR",
+        "PR",
+        "EffectiveAddressUnit"
+      ],
+      "forbiddenFakeNodes": [
+        "data-memory-read",
+        "FPU"
+      ]
+    },
+    {
+      "mnemonic": "JNZ",
+      "operandProfiles": [
+        "address",
+        "address-indexed"
+      ],
+      "cyclePhases": [
+        "fetch",
+        "decode",
+        "effective-address",
+        "execute",
+        "complete"
+      ],
+      "visibleRegisters": [
+        "PR",
+        "IR",
+        "FR"
+      ],
+      "memoryAccess": "instruction-fetch-only",
+      "aluOperation": "condition-test",
+      "frUpdate": "none",
+      "prUpdate": "target when ZF=0; otherwise advance-2",
+      "stackUpdate": "none",
+      "branchTarget": "effective address",
+      "sourceMapping": "taken and not-taken states remain distinct",
+      "activeCircuitNodes": [
+        "FR",
+        "PR",
+        "EffectiveAddressUnit"
+      ],
+      "forbiddenFakeNodes": [
+        "data-memory-read",
+        "FPU"
+      ]
+    },
+    {
+      "mnemonic": "JZE",
+      "operandProfiles": [
+        "address",
+        "address-indexed"
+      ],
+      "cyclePhases": [
+        "fetch",
+        "decode",
+        "effective-address",
+        "execute",
+        "complete"
+      ],
+      "visibleRegisters": [
+        "PR",
+        "IR",
+        "FR"
+      ],
+      "memoryAccess": "instruction-fetch-only",
+      "aluOperation": "condition-test",
+      "frUpdate": "none",
+      "prUpdate": "target when ZF=1; otherwise advance-2",
+      "stackUpdate": "none",
+      "branchTarget": "effective address",
+      "sourceMapping": "taken and not-taken states remain distinct",
+      "activeCircuitNodes": [
+        "FR",
+        "PR",
+        "EffectiveAddressUnit"
+      ],
+      "forbiddenFakeNodes": [
+        "data-memory-read",
+        "FPU"
+      ]
+    },
+    {
+      "mnemonic": "JUMP",
+      "operandProfiles": [
+        "address",
+        "address-indexed"
+      ],
+      "cyclePhases": [
+        "fetch",
+        "decode",
+        "effective-address",
+        "execute",
+        "complete"
+      ],
+      "visibleRegisters": [
+        "PR",
+        "IR"
+      ],
+      "memoryAccess": "instruction-fetch-only",
+      "aluOperation": "none",
+      "frUpdate": "none",
+      "prUpdate": "target",
+      "stackUpdate": "none",
+      "branchTarget": "effective address",
+      "sourceMapping": "one unconditional branch",
+      "activeCircuitNodes": [
+        "PR",
+        "EffectiveAddressUnit"
+      ],
+      "forbiddenFakeNodes": [
+        "data-memory-read",
+        "FPU"
+      ]
+    },
+    {
+      "mnemonic": "JPL",
+      "operandProfiles": [
+        "address",
+        "address-indexed"
+      ],
+      "cyclePhases": [
+        "fetch",
+        "decode",
+        "effective-address",
+        "execute",
+        "complete"
+      ],
+      "visibleRegisters": [
+        "PR",
+        "IR",
+        "FR"
+      ],
+      "memoryAccess": "instruction-fetch-only",
+      "aluOperation": "condition-test",
+      "frUpdate": "none",
+      "prUpdate": "target when SF=0 and ZF=0; otherwise advance-2",
+      "stackUpdate": "none",
+      "branchTarget": "effective address",
+      "sourceMapping": "taken and not-taken states remain distinct",
+      "activeCircuitNodes": [
+        "FR",
+        "PR",
+        "EffectiveAddressUnit"
+      ],
+      "forbiddenFakeNodes": [
+        "data-memory-read",
+        "FPU"
+      ]
+    },
+    {
+      "mnemonic": "JOV",
+      "operandProfiles": [
+        "address",
+        "address-indexed"
+      ],
+      "cyclePhases": [
+        "fetch",
+        "decode",
+        "effective-address",
+        "execute",
+        "complete"
+      ],
+      "visibleRegisters": [
+        "PR",
+        "IR",
+        "FR"
+      ],
+      "memoryAccess": "instruction-fetch-only",
+      "aluOperation": "condition-test",
+      "frUpdate": "none",
+      "prUpdate": "target when OF=1; otherwise advance-2",
+      "stackUpdate": "none",
+      "branchTarget": "effective address",
+      "sourceMapping": "taken and not-taken states remain distinct",
+      "activeCircuitNodes": [
+        "FR",
+        "PR",
+        "EffectiveAddressUnit"
+      ],
+      "forbiddenFakeNodes": [
+        "data-memory-read",
+        "FPU"
+      ]
+    },
+    {
+      "mnemonic": "PUSH",
+      "operandProfiles": [
+        "address",
+        "address-indexed"
+      ],
+      "cyclePhases": [
+        "fetch",
+        "decode",
+        "effective-address",
+        "execute",
+        "write-back",
+        "complete"
+      ],
+      "visibleRegisters": [
+        "PR",
+        "IR",
+        "SP",
+        "MAR",
+        "MDR"
+      ],
+      "memoryAccess": "write effective-address value to decremented SP",
+      "aluOperation": "effective-address calculation",
+      "frUpdate": "none",
+      "prUpdate": "advance-2",
+      "stackUpdate": "SP decremented then one word written",
+      "branchTarget": "none",
+      "sourceMapping": "stack write maps to PUSH or expanded macro source",
+      "activeCircuitNodes": [
+        "SP",
+        "MAR",
+        "MDR",
+        "Memory",
+        "EffectiveAddressUnit"
+      ],
+      "forbiddenFakeNodes": [
+        "operand-data-memory-read",
+        "FPU"
+      ]
+    },
+    {
+      "mnemonic": "POP",
+      "operandProfiles": [
+        "register"
+      ],
+      "cyclePhases": [
+        "fetch",
+        "decode",
+        "operand-read",
+        "execute",
+        "write-back",
+        "complete"
+      ],
+      "visibleRegisters": [
+        "PR",
+        "IR",
+        "SP",
+        "MAR",
+        "MDR",
+        "GR"
+      ],
+      "memoryAccess": "read Memory[SP]",
+      "aluOperation": "none",
+      "frUpdate": "none",
+      "prUpdate": "advance-1",
+      "stackUpdate": "one word read then SP incremented",
+      "branchTarget": "none",
+      "sourceMapping": "stack read maps to POP or expanded macro source",
+      "activeCircuitNodes": [
+        "SP",
+        "MAR",
+        "MDR",
+        "Memory",
+        "GR"
+      ],
+      "forbiddenFakeNodes": [
+        "effective-address-operand",
+        "FPU"
+      ]
+    },
+    {
+      "mnemonic": "CALL",
+      "operandProfiles": [
+        "address",
+        "address-indexed"
+      ],
+      "cyclePhases": [
+        "fetch",
+        "decode",
+        "effective-address",
+        "execute",
+        "write-back",
+        "complete"
+      ],
+      "visibleRegisters": [
+        "PR",
+        "IR",
+        "SP",
+        "MAR",
+        "MDR"
+      ],
+      "memoryAccess": "write return address to decremented SP",
+      "aluOperation": "effective-address calculation",
+      "frUpdate": "none",
+      "prUpdate": "target",
+      "stackUpdate": "SP decremented and return address written",
+      "branchTarget": "effective address",
+      "sourceMapping": "call target and return address remain visible",
+      "activeCircuitNodes": [
+        "PR",
+        "SP",
+        "MAR",
+        "MDR",
+        "Memory",
+        "EffectiveAddressUnit"
+      ],
+      "forbiddenFakeNodes": [
+        "data-memory-read-at-target",
+        "FPU"
+      ]
+    },
+    {
+      "mnemonic": "RET",
+      "operandProfiles": [
+        "none"
+      ],
+      "cyclePhases": [
+        "fetch",
+        "decode",
+        "operand-read",
+        "execute",
+        "write-back",
+        "complete"
+      ],
+      "visibleRegisters": [
+        "PR",
+        "IR",
+        "SP",
+        "MAR",
+        "MDR"
+      ],
+      "memoryAccess": "active CALL frame reads Memory[SP]; top-level teaching finish performs no stack read",
+      "aluOperation": "none",
+      "frUpdate": "none",
+      "prUpdate": "stack return address or teaching-runtime finish",
+      "stackUpdate": "active CALL frame increments SP",
+      "branchTarget": "stack return address",
+      "sourceMapping": "stack return and top-level finish are distinct",
+      "activeCircuitNodes": [
+        "PR",
+        "SP",
+        "MAR",
+        "MDR",
+        "Memory"
+      ],
+      "forbiddenFakeNodes": [
+        "unconditional-stack-read-at-top-level",
+        "FPU"
+      ]
+    },
+    {
+      "mnemonic": "SVC",
+      "operandProfiles": [
+        "address",
+        "address-indexed"
+      ],
+      "cyclePhases": [
+        "fetch",
+        "decode",
+        "effective-address",
+        "execute",
+        "complete"
+      ],
+      "visibleRegisters": [
+        "PR",
+        "IR",
+        "GR1",
+        "GR2",
+        "MAR",
+        "MDR",
+        "FR"
+      ],
+      "memoryAccess": "service-defined teaching OS transfer",
+      "aluOperation": "none",
+      "frUpdate": "undefined by specification; deterministic teaching profile clears FR",
+      "prUpdate": "advance-2 after service completion; unchanged while waiting for input",
+      "stackUpdate": "none",
+      "branchTarget": "none",
+      "sourceMapping": "maps to real expanded SVC instruction and originating IN/OUT macro",
+      "activeCircuitNodes": [
+        "PR",
+        "GR1",
+        "GR2",
+        "MAR",
+        "MDR",
+        "Memory"
+      ],
+      "forbiddenFakeNodes": [
+        "blocking-browser-prompt",
+        "network",
+        "FPU"
+      ]
+    }
+  ],
+  "macroPolicy": {
+    "macros": [
+      "IN",
+      "OUT",
+      "RPUSH",
+      "RPOP"
+    ],
+    "cycleContract": "Macros have no machine microcycle. Each macro expands first, then each real machine instruction uses this matrix."
+  }
+}

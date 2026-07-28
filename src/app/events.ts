@@ -17,7 +17,7 @@ export type AppEvents = {
   [AppEvent.CoreAssembleSucceeded]: { instructionCount: number; startAddress: number };
   [AppEvent.CoreAssembleFailed]: { diagnostics: Diagnostic[] };
   [AppEvent.VmStepCompleted]: { stepCount: number; instruction: string };
-  [AppEvent.VmRunStopped]: { reason: "finished" | "error" | "maxSteps" | "manual" };
+  [AppEvent.VmRunStopped]: { reason: "finished" | "error" | "maxSteps" | "manual" | "waitingInput" };
   [AppEvent.VmError]: { message: string };
   [AppEvent.UiThemeChanged]: { theme: "light" | "dark" };
   [AppEvent.UiLanguageChanged]: { language: "zh-CN" | "en-US" | "ja-JP" };

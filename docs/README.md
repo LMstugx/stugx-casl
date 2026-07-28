@@ -14,6 +14,8 @@ This directory separates current product documentation from historical implement
 - [Interface Overview](user/interface-overview.md)
 - [Observation Modes](user/observation-modes.md)
 - [CASL Workflow](user/casl-workflow.md)
+- [CASL Compatibility Mode](user/casl-compatibility-mode.md)
+- [CASL Input and Output](user/casl-input-output.md)
 - [C++ Subset Workflow](user/cpp-subset-workflow.md)
 - [Double Memory Observation](user/double-memory-observation.md)
 - [Generated CASL and Machine Code](user/generated-casl-machine-code.md)
@@ -34,6 +36,7 @@ This directory separates current product documentation from historical implement
 - [C++ to CASL Pipeline](developer/cpp-to-casl-pipeline.md)
 - [Double Lowering](developer/double-lowering.md)
 - [CASL Assembler](developer/casl-assembler.md)
+- [CASL Macro Expansion](developer/casl-macro-expansion.md)
 - [COMET II VM](developer/comet-vm.md)
 - [WASM Bridge](developer/wasm-bridge.md)
 - [Circuit Visualization](developer/circuit-visualization.md)
@@ -50,6 +53,8 @@ This directory separates current product documentation from historical implement
 
 - [Supported CASL Instructions](reference/supported-casl-instructions.md)
 - [CASL Syntax Support](reference/casl-syntax-support.md)
+- [COMET II Instruction Coverage](reference/comet-ii-instruction-coverage.md)
+- [CASL II Directives, Literals, and Macros](reference/casl-ii-directives-macros.md)
 - [C++ Subset Capabilities](reference/cpp-subset-capabilities.md)
 - [C++ Double Support](reference/cpp-double-support.md)
 - [Unsupported C++ Features](reference/unsupported-cpp-features.md)
@@ -117,6 +122,11 @@ Historical Phase reports, manifests, release-candidate evidence, and visual revi
 - [FramePlan Design Summary](phase11-frameplan-design-layer-summary.md)
 
 ### Release and UI History
+
+- [Phase 20A WCASL-II Parity Audit](phase20a-wcasl-parity-audit.md)
+- [WCASL-compatible Workflow Roadmap](wcasl-replacement-roadmap.md)
+- [COMET Microcycle Visual Contract](comet-microcycle-visual-contract.md)
+- [Multi-program Linking Design](multi-program-linking-design.md)
 
 - [Technical Documentation Foundation](phase18a4-technical-documentation-foundation.md)
 - [Double Storage Observation](phase19a-double-storage-observation.md)

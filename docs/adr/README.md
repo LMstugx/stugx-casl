@@ -20,5 +20,6 @@ ADRs record decisions that protect compatibility, security, and teaching behavio
 | [0008](0008-tauri-minimal-capabilities.md) | Tauri packages the frontend with minimal capabilities |
 | [0009](0009-static-cloudflare-deployment.md) | Public hosting remains a static Cloudflare Pages deployment |
 | [0010](0010-double-teaching-abi.md) | Double storage uses four logical high-word-first COMET II words |
+| [0013](0013-wcasl-compatible-workflow.md) | WCASL compatibility targets semantics and workflow without copying its UI |
 
 To supersede an ADR, add a new numbered record, link the old record, state migration and compatibility effects, and update affected baselines and tests explicitly.

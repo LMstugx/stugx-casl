@@ -66,6 +66,7 @@ enum class RunState {
     Dirty,
     Ready,
     Running,
+    WaitingInput,
     Finished,
     Error
 };
@@ -124,6 +125,7 @@ struct CometState {
     std::optional<std::uint8_t> lastIndexRegister;
     std::optional<std::uint16_t> lastIndexValue;
     std::optional<std::uint16_t> lastEffectiveAddress;
+    std::vector<std::vector<std::uint16_t>> consoleOutput;
 };
 
 struct SourceRow {

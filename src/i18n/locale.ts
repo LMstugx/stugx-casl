@@ -26,7 +26,8 @@ const statusKeys: Readonly<Record<string, TranslationKey>> = {
   Running: "status.running",
   Stopped: "status.stopped",
   Finished: "status.finished",
-  Error: "status.error"
+  Error: "status.error",
+  WaitingInput: "status.waitingInput"
 };
 
 export function translateRunState(t: Translate, runState: string): string {

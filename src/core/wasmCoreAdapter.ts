@@ -1,6 +1,7 @@
-import type { CoreAdapter } from "./coreAdapter";
+import type { CoreAdapter, ReloadInitializationMode } from "./coreAdapter";
 import type { AssembleResultDto, CometStateDto, StepResultDto } from "./coreDto";
 import { loadWasmModule, type LoadedWasmCore } from "./wasmLoader";
+import { encodeCaslInputRecord } from "./caslIoEncoding";
 
 export class WasmCoreAdapter implements CoreAdapter {
   private corePromise: Promise<LoadedWasmCore> | null = null;
@@ -17,6 +18,12 @@ export class WasmCoreAdapter implements CoreAdapter {
     return parseWasmJson<CometStateDto>(core.reset(), "reset", core);
   }
 
+  async reload(mode: ReloadInitializationMode): Promise<CometStateDto> {
+    const core = await this.ensureInitialized();
+    const modeValue = mode === "assembled" ? 0 : mode === "zero" ? 1 : 2;
+    return parseWasmJson<CometStateDto>(core.reload(modeValue), "reload", core);
+  }
+
   async step(): Promise<StepResultDto> {
     const core = await this.ensureInitialized();
     return parseWasmJson<StepResultDto>(core.step(), "step", core);
@@ -30,6 +37,16 @@ export class WasmCoreAdapter implements CoreAdapter {
   async getState(): Promise<CometStateDto> {
     const core = await this.ensureInitialized();
     return parseWasmJson<CometStateDto>(core.getState(), "getState", core);
+  }
+
+  async enqueueInput(text: string, endOfFile = false): Promise<CometStateDto> {
+    const core = await this.ensureInitialized();
+    const encodedWords = encodeCaslInputRecord(text).join(",");
+    return parseWasmJson<CometStateDto>(
+      core.enqueueInput(encodedWords, endOfFile ? 1 : 0),
+      "enqueueInput",
+      core
+    );
   }
 
   async dispose(): Promise<void> {

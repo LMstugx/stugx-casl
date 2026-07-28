@@ -3,6 +3,7 @@ import { normalizeDiagnostic } from "../diagnostics/catalog";
 import { MEMORY_VIEW_DEFAULT_ROWS, selectMemoryWindow } from "./selectors";
 import { VisualPathKind, formatWord } from "./types";
 import type { AssembledInstruction, CometState, Diagnostic, FlagsState, MemoryRow, RegisterState, SourceMapEntry, TraceEvent } from "./types";
+import { decodeCaslOutputRecord } from "./caslIoEncoding";
 
 const START_ADDRESS = 0x20;
 const INITIAL_SP = 0xfffe;
@@ -75,7 +76,7 @@ function operandLabelForAddress(sourceRows: SourceRowDto[], operandAddress: numb
 }
 
 function programFromDto(sourceRows: SourceRowDto[]): AssembledInstruction[] {
-  const executable = new Set(["NOP", "LD", "LAD", "ADDA", "SUBA", "ADDL", "SUBL", "AND", "OR", "XOR", "CPA", "CPL", "SLA", "SRA", "SLL", "SRL", "PUSH", "POP", "CALL", "ST", "JUMP", "JZE", "JNZ", "JPL", "JMI", "JOV", "RET"]);
+  const executable = new Set(["NOP", "LD", "LAD", "ADDA", "SUBA", "ADDL", "SUBL", "AND", "OR", "XOR", "CPA", "CPL", "SLA", "SRA", "SLL", "SRL", "PUSH", "POP", "CALL", "ST", "JUMP", "JZE", "JNZ", "JPL", "JMI", "JOV", "RET", "SVC"]);
   return sourceRows
     .filter((row) => row.instruction !== null && executable.has(row.instruction))
     .map((row) => {
@@ -89,6 +90,7 @@ function programFromDto(sourceRows: SourceRowDto[]): AssembledInstruction[] {
         source: row.source,
         size: row.machineWords.length || (op === "RET" ? 1 : 2),
         gr,
+        sourceRegister: row.sourceRegister ?? undefined,
         operandLabel: operandLabelForAddress(sourceRows, row.operandAddress),
         operandAddress: row.operandAddress ?? undefined,
         indexRegister: row.indexRegister ?? undefined
@@ -216,23 +218,28 @@ function findLastInstructionRow(dto: CometStateDto, previous?: CometState): Sour
   });
 }
 
-function traceDetail(dto: CometStateDto): string {
+function traceDetail(dto: CometStateDto, row?: CometStateDto["sourceRows"][number]): string {
   const register = dto.lastRegisterWriteIndex ?? ((dto.ir0 >> 4) & 0x0f);
+  const sourceRegister = row?.sourceRegister ?? undefined;
   const address = dto.effectiveAddress ?? 0;
   const indexDetail = dto.baseAddress !== null && dto.indexRegister !== null && dto.indexValue !== null && dto.effectiveAddress !== null
     ? `base: ${formatWord(dto.baseAddress)} index: GR${dto.indexRegister}=${formatWord(dto.indexValue)} effective: ${formatWord(dto.effectiveAddress)}; `
     : "";
-  if (dto.lastInstructionKind === "LD") return `${indexDetail}Memory[${formatWord(address)}] -> MDR -> GR${register}`;
+  if (dto.lastInstructionKind === "LD") return sourceRegister !== undefined
+    ? `GR${sourceRegister} -> GR${register}; no data-memory operand read`
+    : `${indexDetail}Memory[${formatWord(address)}] -> MDR -> GR${register}`;
   if (dto.lastInstructionKind === "LAD") return `${indexDetail}Effective address ${formatWord(address)} -> GR${register}`;
-  if (dto.lastInstructionKind === "ADDA") return `${indexDetail}GR${register} + MDR -> ALU -> GR${register}`;
-  if (dto.lastInstructionKind === "SUBA") return `${indexDetail}GR${register} - MDR -> ALU -> GR${register}`;
-  if (dto.lastInstructionKind === "ADDL") return `${indexDetail}GR${register} + MDR (unsigned) -> ALU -> GR${register}`;
-  if (dto.lastInstructionKind === "SUBL") return `${indexDetail}GR${register} - MDR (unsigned) -> ALU -> GR${register}`;
+  if (dto.lastInstructionKind === "ADDA") return sourceRegister !== undefined ? `GR${register} + GR${sourceRegister} -> ALU -> GR${register}` : `${indexDetail}GR${register} + MDR -> ALU -> GR${register}`;
+  if (dto.lastInstructionKind === "SUBA") return sourceRegister !== undefined ? `GR${register} - GR${sourceRegister} -> ALU -> GR${register}` : `${indexDetail}GR${register} - MDR -> ALU -> GR${register}`;
+  if (dto.lastInstructionKind === "ADDL") return sourceRegister !== undefined ? `GR${register} + GR${sourceRegister} (unsigned) -> ALU -> GR${register}` : `${indexDetail}GR${register} + MDR (unsigned) -> ALU -> GR${register}`;
+  if (dto.lastInstructionKind === "SUBL") return sourceRegister !== undefined ? `GR${register} - GR${sourceRegister} (unsigned) -> ALU -> GR${register}` : `${indexDetail}GR${register} - MDR (unsigned) -> ALU -> GR${register}`;
   if (dto.lastInstructionKind === "AND" || dto.lastInstructionKind === "OR" || dto.lastInstructionKind === "XOR") {
-    return `${indexDetail}GR${register} ${dto.lastInstructionKind} MDR -> ALU -> GR${register}`;
+    return sourceRegister !== undefined
+      ? `GR${register} ${dto.lastInstructionKind} GR${sourceRegister} -> ALU -> GR${register}`
+      : `${indexDetail}GR${register} ${dto.lastInstructionKind} MDR -> ALU -> GR${register}`;
   }
-  if (dto.lastInstructionKind === "CPA") return `${indexDetail}GR${register} - MDR -> ALU -> FR`;
-  if (dto.lastInstructionKind === "CPL") return `${indexDetail}GR${register} compared with MDR (unsigned) -> FR`;
+  if (dto.lastInstructionKind === "CPA") return sourceRegister !== undefined ? `GR${register} - GR${sourceRegister} -> ALU -> FR` : `${indexDetail}GR${register} - MDR -> ALU -> FR`;
+  if (dto.lastInstructionKind === "CPL") return sourceRegister !== undefined ? `GR${register} compared with GR${sourceRegister} (unsigned) -> FR` : `${indexDetail}GR${register} compared with MDR (unsigned) -> FR`;
   if (dto.lastInstructionKind === "SLA" || dto.lastInstructionKind === "SRA" || dto.lastInstructionKind === "SLL" || dto.lastInstructionKind === "SRL") {
     return `${indexDetail}GR${register} shifted by ${formatWord(address)} -> Shifter -> GR${register} / FR`;
   }
@@ -248,7 +255,24 @@ function traceDetail(dto: CometStateDto): string {
   if (dto.lastInstructionKind === "RET") {
     return dto.lastMemoryReadAddress !== null ? `RET stack return; PR <- MEM[${formatWord(dto.lastMemoryReadAddress)}] = ${formatWord(dto.pr)}; SP ${formatWord(dto.sp)}; callDepth ${dto.callDepth}` : "RET program finish; no active call frame.";
   }
+  if (dto.lastInstructionKind === "SVC") return dto.runState === "WaitingInput" ? "SVC input service is waiting for one record." : "SVC teaching operating-system service completed.";
   return "";
+}
+
+function macroGroupForRow(dto: CometStateDto, row: CometStateDto["sourceRows"][number] | undefined) {
+  if (!row) return undefined;
+  const match = /(?:^|\s)(IN|OUT|RPUSH|RPOP)(?:\s|$)/i.exec(row.source);
+  if (!match) return undefined;
+  const macroGroup = match[1].toUpperCase() as "IN" | "OUT" | "RPUSH" | "RPOP";
+  const relatedRows = dto.sourceRows
+    .filter((candidate) => candidate.line === row.line && candidate.source === row.source && candidate.instruction !== "DC" && candidate.instruction !== "DS")
+    .sort((left, right) => left.address - right.address);
+  const macroStepIndex = relatedRows.findIndex((candidate) => candidate.address === row.address) + 1;
+  return {
+    macroGroup,
+    macroStepIndex: Math.max(1, macroStepIndex),
+    macroStepCount: relatedRows.length
+  };
 }
 
 function traceFromDto(dto: CometStateDto, previous?: CometState): TraceEvent[] {
@@ -258,13 +282,14 @@ function traceFromDto(dto: CometStateDto, previous?: CometState): TraceEvent[] {
   }
 
   const row = findLastInstructionRow(dto, previous);
+  const macro = macroGroupForRow(dto, row);
   const changedRegisterIndex = dto.lastRegisterWriteIndex;
   const changedMemoryAddress = dto.lastMemoryWriteAddress ?? (dto.lastInstructionKind === "RET" || dto.lastInstructionKind === "POP" ? dto.lastMemoryReadAddress ?? undefined : undefined);
   const event: TraceEvent = {
     index: dto.stepCount,
     address: row?.address ?? dto.currentInstructionAddress ?? dto.pr,
     instruction: dto.lastInstructionKind,
-    detail: traceDetail(dto),
+    detail: `${macro ? `[${macro.macroGroup} ${macro.macroStepIndex}/${macro.macroStepCount}] ` : ""}${traceDetail(dto, row)}`,
     source: row?.source ?? undefined,
     pr: dto.pr,
     visualPath: visualPathFromDto(dto),
@@ -284,7 +309,8 @@ function traceFromDto(dto: CometStateDto, previous?: CometState): TraceEvent[] {
     indexRegister: dto.indexRegister ?? undefined,
     indexValue: dto.indexValue ?? undefined,
     effectiveAddress: dto.effectiveAddress ?? undefined,
-    runState: dto.runState
+    runState: dto.runState,
+    ...macro
   };
   return [event, ...previousTrace].slice(0, MAX_TRACE_EVENTS).map((traceEvent) => ({ ...traceEvent }));
 }
@@ -294,7 +320,7 @@ function defaultOutput(dto: CometStateDto): string[] {
     return ["Assemble failed.", ...dto.diagnostics.map((diagnostic) => `Line ${diagnostic.line}: ${diagnostic.message}`)];
   }
   if (dto.runState === "Ready" && dto.stepCount === 0) {
-    return ["Assemble succeeded. (0 errors, 0 warnings)", "Program loaded. Entry point: START (0020)"];
+    return ["Assemble succeeded. (0 errors, 0 warnings)", `Program loaded. Entry point: ${formatWord(dto.pr)}`];
   }
   return [];
 }
@@ -352,6 +378,7 @@ export function createCometStateFromDto(dto: CometStateDto, options: StateFromDt
     symbols: symbolsFromRows(memoryRows, dto.sourceRows),
     diagnostics: diagnosticsFromDto(dto.diagnostics),
     output,
+    consoleOutput: (dto.consoleOutput ?? []).map(decodeCaslOutputRecord),
     trace: traceFromDto(dto, options.previous),
     visualPath: visualPathFromDto(dto),
     stepIndex: dto.stepCount,
@@ -398,6 +425,7 @@ export function createEmptyUiCometState(runState: CometState["runState"] = "Idle
     indexRegister: null,
     indexValue: null,
     effectiveAddress: null,
+    consoleOutput: [],
     memoryWindow: [],
     sourceRows: [],
     diagnostics: []

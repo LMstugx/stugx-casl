@@ -14,4 +14,6 @@ The COMET II Simulator presents the active instruction and circuit state. The In
 
 Circuit Focus reorganizes existing state for teaching. Project Overview contains low-priority project information and the offline Changelog entry. The Changelog is not placed in the crowded Toolbar.
 
+The low-weight view switch also opens CASL Mode. CASL Mode presents source, all machine registers, a navigable memory window, stack, Console, and assembler output without creating a second runtime or crowding the Toolbar.
+
 Panels use natural page scrolling for normal content and bounded internal scrolling for long technical lists such as diagnostics, memory, trace, Generated CASL, and machine code.

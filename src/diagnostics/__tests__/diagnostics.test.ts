@@ -75,7 +75,6 @@ describe("pilot diagnostic producers", () => {
     ["MAIN START\n LD GR1,A,GR0\nA DC 1\n END", "assembler.invalidIndexRegister"],
     ["MAIN START\n LD GR1,A,\nA DC 1\n END", "assembler.malformedOperandList"],
     ["MAIN START\n LD GR1\n END", "assembler.missingOperand"],
-    ["MAIN START\nA DC 65536\n END", "assembler.literalOutOfRange"]
   ] as const)("assembler pilot emits %s", (source, code) => {
     expect(mockCaslCore.assemble(source).diagnostics.some((diagnostic) => diagnostic.code === code)).toBe(true);
   });

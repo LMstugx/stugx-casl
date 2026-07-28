@@ -4,6 +4,8 @@ export const CANONICAL_DOCS = Object.freeze([
   "docs/user/interface-overview.md",
   "docs/user/observation-modes.md",
   "docs/user/casl-workflow.md",
+  "docs/user/casl-compatibility-mode.md",
+  "docs/user/casl-input-output.md",
   "docs/user/cpp-subset-workflow.md",
   "docs/user/double-memory-observation.md",
   "docs/user/generated-casl-machine-code.md",
@@ -21,6 +23,7 @@ export const CANONICAL_DOCS = Object.freeze([
   "docs/developer/cpp-to-casl-pipeline.md",
   "docs/developer/double-lowering.md",
   "docs/developer/casl-assembler.md",
+  "docs/developer/casl-macro-expansion.md",
   "docs/developer/comet-vm.md",
   "docs/developer/wasm-bridge.md",
   "docs/developer/circuit-visualization.md",
@@ -34,6 +37,8 @@ export const CANONICAL_DOCS = Object.freeze([
   "docs/developer/contributing-workflow.md",
   "docs/reference/supported-casl-instructions.md",
   "docs/reference/casl-syntax-support.md",
+  "docs/reference/comet-ii-instruction-coverage.md",
+  "docs/reference/casl-ii-directives-macros.md",
   "docs/reference/cpp-subset-capabilities.md",
   "docs/reference/cpp-double-support.md",
   "docs/reference/unsupported-cpp-features.md",
@@ -54,7 +59,8 @@ export const CANONICAL_DOCS = Object.freeze([
   "docs/adr/0007-browser-file-lifecycle.md",
   "docs/adr/0008-tauri-minimal-capabilities.md",
   "docs/adr/0009-static-cloudflare-deployment.md",
-  "docs/adr/0010-double-teaching-abi.md"
+  "docs/adr/0010-double-teaching-abi.md",
+  "docs/adr/0013-wcasl-compatible-workflow.md"
 ]);
 
 export const REQUIRED_HEADER_FIELDS = Object.freeze([

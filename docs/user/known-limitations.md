@@ -6,7 +6,7 @@
 - Classification: Canonical
 - Related: [Technical Limitations](../reference/known-limitations.md), [Unsupported C++ Features](../reference/unsupported-cpp-features.md)
 
-- CASL support is a documented teaching subset, not every CASL II directive or macro.
+- CASL covers the official machine instructions, four directives, literals, and fixed standard macros. User-defined macros and multi-program linking are unavailable.
 - The C++ path is a bounded teaching subset, not a native or standards-conforming compiler.
 - C++ function calls use up to three register arguments; recursion, overloads, and stack arguments are unavailable.
 - Stack-frame locals remain design metadata and are not runtime lowering.
@@ -16,3 +16,4 @@
 - The public Web version has no custom domain, service worker, PWA offline cache, server backend, or account system.
 - The Windows installer is unsigned and Tauri-native file I/O is deferred.
 - Circuit Focus visualizes current teaching relationships; it is not an electrical or cycle-accurate hardware simulator.
+- COMET microcycle stepping, reverse execution, and manual register/memory editing are not production features.

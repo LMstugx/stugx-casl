@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "profile": "WCASL-II workflow compatibility audit",
+  "workflows": [
+    {
+      "id": "assemble-success",
+      "status": "compatible",
+      "test": "every_official_opcode_is_registered_and_assemblable"
+    },
+    {
+      "id": "assemble-failure",
+      "status": "compatible",
+      "test": "assembler boundary diagnostics"
+    },
+    {
+      "id": "casl-step",
+      "status": "exact",
+      "test": "step_executes_one_machine_instruction"
+    },
+    {
+      "id": "run-stop",
+      "status": "compatible",
+      "test": "run_does_not_block_ui"
+    },
+    {
+      "id": "reset-reload",
+      "status": "compatible",
+      "test": "reload_initialization_changes_only_ds_words"
+    },
+    {
+      "id": "numeric-format-switch",
+      "status": "compatible",
+      "test": "numeric_formats_preserve_the_same_16_bit_word"
+    },
+    {
+      "id": "stack-observation",
+      "status": "superset",
+      "test": "rpush_rpop_expand_in_standard_order_and_restore_sp"
+    },
+    {
+      "id": "macro-expansion",
+      "status": "superset",
+      "test": "macro_source_mapping_groups_real_expanded_instructions"
+    },
+    {
+      "id": "input-wait",
+      "status": "compatible",
+      "test": "in_out_waiting_is_nonblocking_and_uses_plain_text_records"
+    },
+    {
+      "id": "output-console",
+      "status": "compatible",
+      "test": "in_out_waiting_is_nonblocking_and_uses_plain_text_records"
+    },
+    {
+      "id": "source-mapping",
+      "status": "superset",
+      "test": "macro_source_mapping_groups_real_expanded_instructions"
+    },
+    {
+      "id": "program-finish",
+      "status": "exact",
+      "test": "top_level_ret_finishes"
+    }
+  ]
+}

@@ -4,6 +4,7 @@ import { MEMORY_VIEW_DEFAULT_ROWS, selectMemoryWindow } from "./selectors";
 import { VisualPathKind, formatWord } from "./types";
 import type { AssembledInstruction, CometState, Diagnostic, FlagsState, MemoryRow, RegisterState, SourceMapEntry, TraceEvent } from "./types";
 import { decodeCaslOutputRecord } from "./caslIoEncoding";
+import { EMPTY_MICROCYCLE_STATE, type MicrocycleHistoryRecord } from "./microcycle";
 
 const START_ADDRESS = 0x20;
 const INITIAL_SP = 0xfffe;
@@ -98,6 +99,25 @@ function programFromDto(sourceRows: SourceRowDto[]): AssembledInstruction[] {
 }
 
 function visualPathFromDto(dto: CometStateDto): VisualPathKind {
+  if (dto.executionGranularity === "microcycle") {
+    if (dto.microcyclePhase === "fetch") return VisualPathKind.Microcycle_Fetch;
+    if (dto.microcyclePhase === "decode") return VisualPathKind.Microcycle_Decode;
+    if (dto.microcyclePhase === "effective-address") return VisualPathKind.Microcycle_EffectiveAddress;
+    if (dto.microcyclePhase === "operand-read") {
+      const row = dto.sourceRows.find((candidate) => candidate.address === dto.microcycleInstructionAddress);
+      return row?.sourceRegister === undefined
+        ? VisualPathKind.Microcycle_OperandReadMemory
+        : VisualPathKind.Microcycle_OperandReadRegister;
+    }
+    if (dto.microcyclePhase === "execute") return VisualPathKind.Microcycle_Execute;
+    if (dto.microcyclePhase === "write-back") {
+      return dto.lastInstructionKind === "ST" || dto.lastInstructionKind === "PUSH" || dto.lastInstructionKind === "CALL"
+        ? VisualPathKind.Microcycle_WriteBackMemory
+        : VisualPathKind.Microcycle_WriteBackRegister;
+    }
+    if (dto.microcyclePhase === "flag-update") return VisualPathKind.Microcycle_FlagUpdate;
+    if (dto.microcyclePhase === "complete") return VisualPathKind.Microcycle_Complete;
+  }
   if (dto.lastInstructionKind === "NOP") return VisualPathKind.None;
   if (dto.lastInstructionKind === "LD") return VisualPathKind.LD_MemoryToMdrToGr;
   if (dto.lastInstructionKind === "ADDA") return VisualPathKind.ADDA_GrMdrToAluToGr;
@@ -127,6 +147,30 @@ function visualPathFromDto(dto: CometStateDto): VisualPathKind {
 
 function changedRegistersFromDto(dto: CometStateDto): string[] {
   if (!dto.lastInstructionKind) return [];
+  if (dto.executionGranularity === "microcycle") {
+    if (dto.microcyclePhase === "fetch") return ["IR", "MAR", "MDR"];
+    if (dto.microcyclePhase === "decode") return dto.ir1 === null ? [] : ["MAR", "MDR"];
+    if (dto.microcyclePhase === "effective-address") return ["MAR"];
+    if (dto.microcyclePhase === "operand-read") {
+      return dto.lastMemoryReadAddress === null ? [] : ["MAR", "MDR"];
+    }
+    if (dto.microcyclePhase === "execute") {
+      if (dto.lastInstructionKind === "ST") return ["MDR"];
+      if (dto.lastInstructionKind === "PUSH" || dto.lastInstructionKind === "CALL") return ["SP", "MAR", "MDR"];
+      if (dto.lastInstructionKind === "POP") return ["SP"];
+      if (dto.lastInstructionKind === "RET" || /^J/.test(dto.lastInstructionKind)) return ["PR"];
+      return [];
+    }
+    if (dto.microcyclePhase === "write-back") {
+      if (dto.lastInstructionKind === "CALL") return ["PR", "SP", "MAR", "MDR"];
+      if (dto.lastInstructionKind === "RET") return ["PR", "SP"];
+      if (dto.lastInstructionKind === "ST" || dto.lastInstructionKind === "PUSH") return ["MAR", "MDR"];
+      return dto.lastRegisterWriteIndex === null ? [] : [`GR${dto.lastRegisterWriteIndex}`];
+    }
+    if (dto.microcyclePhase === "flag-update") return ["FR"];
+    if (dto.microcyclePhase === "complete") return ["PR"];
+    return [];
+  }
 
   const changed = ["PR", "IR"];
   if (dto.lastInstructionKind === "LD" || dto.lastInstructionKind === "LAD" || dto.lastInstructionKind === "ADDA" || dto.lastInstructionKind === "SUBA" ||
@@ -276,6 +320,30 @@ function macroGroupForRow(dto: CometStateDto, row: CometStateDto["sourceRows"][n
 
 function traceFromDto(dto: CometStateDto, previous?: CometState): TraceEvent[] {
   const previousTrace = previous?.trace ?? [];
+  if (
+    dto.executionGranularity === "microcycle"
+    && dto.microcyclePhase !== "none"
+    && (dto.microcycleHistorySequence ?? 0) > (previous?.microcycle.historySequence ?? 0)
+  ) {
+    const row = dto.sourceRows.find((candidate) => candidate.address === dto.microcycleInstructionAddress);
+    const event: TraceEvent = {
+      kind: "microcycle",
+      eventId: `microcycle:${dto.microcycleHistorySequence ?? 0}`,
+      index: Math.max(1, dto.stepCount + (dto.microcycleInstructionComplete ? 0 : 1)),
+      address: dto.microcycleInstructionAddress ?? dto.pr,
+      instruction: dto.microcycleInstructionKind ?? dto.lastInstructionKind ?? "NOP",
+      detail: dto.microcycleDetail ?? "",
+      source: row?.source ?? undefined,
+      pr: dto.pr,
+      visualPath: visualPathFromDto(dto),
+      runState: dto.runState,
+      microcyclePhase: dto.microcyclePhase,
+      microIndex: dto.microcycleIndex ?? 0,
+      totalMicrosteps: dto.microcycleTotal ?? 0,
+      instructionComplete: dto.microcycleInstructionComplete ?? false
+    };
+    return [event, ...previousTrace].slice(0, MAX_TRACE_EVENTS).map((traceEvent) => ({ ...traceEvent }));
+  }
   if (!dto.lastInstructionKind || dto.stepCount <= (previous?.stepIndex ?? 0)) {
     return previousTrace.map((event) => ({ ...event }));
   }
@@ -357,6 +425,57 @@ export function createCometStateFromDto(dto: CometStateDto, options: StateFromDt
     lastMemoryWriteAddress: dto.lastMemoryWriteAddress ?? undefined
   };
   const memoryRows = memoryRowsForDefaultWindow(partialStateForMemoryRows);
+  const previousMicrocycle = options.previous?.microcycle ?? EMPTY_MICROCYCLE_STATE;
+  const microcyclePhase = dto.microcyclePhase ?? "none";
+  const microcycleHistorySequence = dto.microcycleHistorySequence ?? 0;
+  const microcycle = {
+    phase: microcyclePhase,
+    instructionKind: dto.microcycleInstructionKind ?? undefined,
+    instructionAddress: dto.microcycleInstructionAddress ?? undefined,
+    sourceLine: dto.microcycleSourceLineIndex ?? undefined,
+    microIndex: dto.microcycleIndex ?? 0,
+    totalMicrosteps: dto.microcycleTotal ?? 0,
+    instructionComplete: dto.microcycleInstructionComplete ?? false,
+    historySequence: microcycleHistorySequence,
+    detail: dto.microcycleDetail ?? ""
+  };
+  const newHistoryEntry: MicrocycleHistoryRecord | undefined =
+    microcyclePhase !== "none" && microcycleHistorySequence > previousMicrocycle.historySequence
+      ? {
+          sequence: microcycleHistorySequence,
+          phase: microcyclePhase,
+          instructionAddress: dto.microcycleInstructionAddress ?? dto.pr,
+          instructionKind: dto.microcycleInstructionKind ?? undefined,
+          prBefore: options.previous?.pr ?? dto.pr,
+          prAfter: dto.pr,
+          spBefore: options.previous?.sp ?? dto.sp,
+          spAfter: dto.sp,
+          marBefore: options.previous?.mar ?? dto.mar,
+          marAfter: dto.mar,
+          mdrBefore: options.previous?.mdr ?? dto.mdr,
+          mdrAfter: dto.mdr,
+          irBefore: options.previous?.ir ?? dto.ir0,
+          irAfter: dto.ir0,
+          callDepthBefore: options.previous?.callDepth ?? dto.callDepth,
+          callDepthAfter: dto.callDepth,
+          flagsBefore: options.previous ? { ...options.previous.fr } : flagsFromDto(dto),
+          flagsAfter: flagsFromDto(dto),
+          runStateBefore: options.previous?.runState ?? dto.runState,
+          runStateAfter: dto.runState,
+          generalRegisterChanges: dto.gr.flatMap((after, index) => {
+            const before = options.previous?.gr[index] ?? after;
+            return before === after ? [] : [{ index, before, after }];
+          }),
+          memoryChanges: changedMemoryAddresses.flatMap((address) => {
+            const before = options.previous?.memory[address] ?? memory[address] ?? 0;
+            const after = memory[address] ?? 0;
+            return before === after ? [] : [{ address, before, after }];
+          })
+        }
+      : undefined;
+  const microcycleHistory = newHistoryEntry
+    ? [newHistoryEntry, ...(options.previous?.microcycleHistory ?? [])].slice(0, MAX_TRACE_EVENTS)
+    : (options.previous?.microcycleHistory ?? []).map((entry) => ({ ...entry }));
 
   return {
     assembled,
@@ -380,6 +499,9 @@ export function createCometStateFromDto(dto: CometStateDto, options: StateFromDt
     consoleOutput: (dto.consoleOutput ?? []).map(decodeCaslOutputRecord),
     trace: traceFromDto(dto, options.previous),
     visualPath: visualPathFromDto(dto),
+    executionGranularity: dto.executionGranularity ?? "instruction",
+    microcycle,
+    microcycleHistory,
     stepIndex: dto.stepCount,
     currentLine: dto.currentSourceLineIndex ?? undefined,
     currentAddress: dto.currentInstructionAddress ?? undefined,
@@ -412,6 +534,16 @@ export function createEmptyUiCometState(runState: CometState["runState"] = "Idle
     frOF: false,
     frSF: false,
     frZF: false,
+    executionGranularity: "instruction",
+    microcyclePhase: "none",
+    microcycleInstructionAddress: null,
+    microcycleInstructionKind: null,
+    microcycleSourceLineIndex: null,
+    microcycleIndex: 0,
+    microcycleTotal: 0,
+    microcycleInstructionComplete: false,
+    microcycleHistorySequence: 0,
+    microcycleDetail: "",
     currentInstructionAddress: null,
     currentSourceLineIndex: null,
     currentInstructionText: null,

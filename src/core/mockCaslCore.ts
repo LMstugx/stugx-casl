@@ -12,6 +12,12 @@ import {
   formatWord,
   word
 } from "./types";
+import {
+  EMPTY_MICROCYCLE_STATE,
+  phasesForInstruction,
+  type MicrocycleHistoryRecord,
+  type MicrocyclePhase
+} from "./microcycle";
 import { DEFAULT_CASL_SOURCE } from "./defaultSource";
 import { normalizeAssemblerDiagnostics, normalizeDiagnostics } from "../diagnostics/catalog";
 import { decodeCaslOutputRecord } from "./caslIoEncoding";
@@ -96,6 +102,7 @@ type AssembleArtifacts = {
 export interface CaslCore {
   assemble(source: string): CometState;
   step(state: CometState): CometState;
+  microStep(state: CometState): CometState;
   reset(state: CometState): CometState;
   reload(state: CometState, mode: ReloadInitializationMode): CometState;
   enqueueInput(state: CometState, words: number[], endOfFile?: boolean): CometState;
@@ -123,6 +130,8 @@ function cloneState(state: CometState): CometState {
     consoleOutput: [...state.consoleOutput],
     consoleInputQueue: state.consoleInputQueue?.map((record) => ({ words: [...record.words], endOfFile: record.endOfFile })),
     trace: state.trace.map((event) => ({ ...event })),
+    microcycle: { ...state.microcycle },
+    microcycleHistory: state.microcycleHistory.map((entry) => ({ ...entry })),
     program: state.program?.map((instruction) => ({ ...instruction })),
     changedRegisters: [...state.changedRegisters],
     changedMemoryAddresses: [...state.changedMemoryAddresses],
@@ -1164,6 +1173,9 @@ function createState(artifacts: AssembleArtifacts): CometState {
     consoleInputQueue: [],
     trace: [],
     visualPath: hasErrors ? VisualPathKind.None : VisualPathKind.Ready_PrToMar,
+    executionGranularity: "instruction",
+    microcycle: { ...EMPTY_MICROCYCLE_STATE },
+    microcycleHistory: [],
     stepIndex: 0,
     program: artifacts.program,
     changedRegisters: [],
@@ -1197,6 +1209,9 @@ export function createEmptyCometState(runState: CometState["runState"] = "Idle",
     consoleInputQueue: [],
     trace: [],
     visualPath: VisualPathKind.None,
+    executionGranularity: "instruction",
+    microcycle: { ...EMPTY_MICROCYCLE_STATE },
+    microcycleHistory: [],
     stepIndex: 0,
     program: [],
     changedRegisters: [],
@@ -1253,7 +1268,7 @@ function isJumpTaken(op: AssembledInstruction["op"], flags: FlagsState): boolean
   return false;
 }
 
-export const mockCaslCore: CaslCore = {
+const mockCaslCoreReference: Omit<CaslCore, "microStep"> = {
   assemble(source: string): CometState {
     return createState(assembleArtifacts(source));
   },
@@ -1800,6 +1815,366 @@ export const mockCaslCore: CaslCore = {
     return { state: refreshDerivedState(next), previousWord, applied: true };
   },
 
+  fullClear(): CometState {
+    return createEmptyCometState("Idle", []);
+  }
+};
+
+type ActiveMockMicrocycle = {
+  instruction: AssembledInstruction;
+  phases: readonly Exclude<MicrocyclePhase, "none">[];
+  nextPhaseIndex: number;
+  finalState: CometState;
+  instructionTrace: TraceEvent[];
+};
+
+const activeMockMicrocycles = new WeakMap<CometState, ActiveMockMicrocycle>();
+
+function beginMockMicrocycle(state: CometState): ActiveMockMicrocycle | undefined {
+  if (!state.assembled || state.runState === "Finished" || state.runState === "WaitingInput" || state.runState === "Error") {
+    return undefined;
+  }
+  const instruction = instructionAt(state, state.pr);
+  if (!instruction) return undefined;
+  const finalState = mockCaslCoreReference.step(state);
+  return {
+    instruction,
+    phases: phasesForInstruction(instruction),
+    nextPhaseIndex: 0,
+    finalState,
+    instructionTrace: finalState.trace.slice(0, Math.max(0, finalState.trace.length - state.trace.length))
+  };
+}
+
+function microcycleVisualPath(
+  phase: Exclude<MicrocyclePhase, "none">,
+  instruction: AssembledInstruction
+): VisualPathKind {
+  if (phase === "fetch") return VisualPathKind.Microcycle_Fetch;
+  if (phase === "decode") return VisualPathKind.Microcycle_Decode;
+  if (phase === "effective-address") return VisualPathKind.Microcycle_EffectiveAddress;
+  if (phase === "operand-read") {
+    return instruction.sourceRegister === undefined
+      ? VisualPathKind.Microcycle_OperandReadMemory
+      : VisualPathKind.Microcycle_OperandReadRegister;
+  }
+  if (phase === "execute") return VisualPathKind.Microcycle_Execute;
+  if (phase === "write-back") {
+    return instruction.op === "ST" || instruction.op === "PUSH" || instruction.op === "CALL"
+      ? VisualPathKind.Microcycle_WriteBackMemory
+      : VisualPathKind.Microcycle_WriteBackRegister;
+  }
+  if (phase === "flag-update") return VisualPathKind.Microcycle_FlagUpdate;
+  return VisualPathKind.Microcycle_Complete;
+}
+
+function microcycleDetail(
+  phase: Exclude<MicrocyclePhase, "none">,
+  instruction: AssembledInstruction
+): string {
+  if (phase === "fetch") return "PR -> MAR; Memory[MAR] -> MDR -> IR";
+  if (phase === "decode") return `${instruction.op} decoded from IR`;
+  if (phase === "effective-address") return "Effective address resolved into MAR";
+  if (phase === "operand-read") {
+    if (instruction.sourceRegister !== undefined) return `GR${instruction.sourceRegister} operand read`;
+    if (instruction.op === "POP" || instruction.op === "RET") return "Memory[SP] -> MDR";
+    return "Memory[EA] -> MDR";
+  }
+  if (phase === "execute") {
+    if (instruction.op.startsWith("J")) return "FR condition evaluated; next PR selected";
+    if (instruction.op === "CALL") return "SP decremented; return address -> MDR";
+    if (instruction.op === "RET") return "Return address prepared for PR";
+    if (instruction.op === "PUSH") return "SP decremented; EA -> MDR";
+    if (instruction.op === "POP") return "Stack word prepared; SP incremented";
+    if (instruction.op === "ST") return `GR${instruction.gr} -> MDR`;
+    if (instruction.op === "SVC") return "Teaching operating-system service executed";
+    return "Instruction operation evaluated";
+  }
+  if (phase === "write-back") {
+    if (instruction.op === "ST") return "MDR -> Memory[EA]";
+    if (instruction.op === "PUSH" || instruction.op === "CALL") return "MDR -> Memory[SP]";
+    if (instruction.op === "RET") return "SP incremented; call depth updated";
+    return "Result -> destination register";
+  }
+  if (phase === "flag-update") return "OF/SF/ZF updated";
+  return "Instruction complete";
+}
+
+function copyMemoryChanges(target: CometState, finalState: CometState): void {
+  for (const address of finalState.changedMemoryAddresses) {
+    target.memory[address] = finalState.memory[address] ?? 0;
+  }
+  target.changedMemoryAddresses = [...finalState.changedMemoryAddresses];
+  target.lastMemoryWriteAddress = finalState.lastMemoryWriteAddress;
+}
+
+function copyFinalArchitecture(target: CometState, finalState: CometState): void {
+  target.runState = finalState.runState;
+  target.pr = finalState.pr;
+  target.sp = finalState.sp;
+  target.callDepth = finalState.callDepth;
+  target.ir = finalState.ir;
+  target.mar = finalState.mar;
+  target.mdr = finalState.mdr;
+  target.fr = { ...finalState.fr };
+  target.gr = [...finalState.gr];
+  copyMemoryChanges(target, finalState);
+  target.consoleOutput = [...finalState.consoleOutput];
+  target.consoleInputQueue = finalState.consoleInputQueue?.map((record) => ({
+    words: [...record.words],
+    endOfFile: record.endOfFile
+  }));
+  target.stepIndex = finalState.stepIndex;
+  target.currentLine = finalState.currentLine;
+  target.currentAddress = finalState.currentAddress;
+  target.currentInstruction = finalState.currentInstruction;
+  target.lastStep = finalState.lastStep ? { ...finalState.lastStep } : undefined;
+  target.lastMemoryReadAddress = finalState.lastMemoryReadAddress;
+  target.lastMemoryWriteAddress = finalState.lastMemoryWriteAddress;
+  target.lastBaseAddress = finalState.lastBaseAddress;
+  target.lastIndexRegister = finalState.lastIndexRegister;
+  target.lastIndexValue = finalState.lastIndexValue;
+  target.lastEffectiveAddress = finalState.lastEffectiveAddress;
+  target.changedRegisters = [...finalState.changedRegisters];
+  target.changedMemoryAddresses = [...finalState.changedMemoryAddresses];
+}
+
+function applyMockMicrocyclePhase(
+  next: CometState,
+  current: CometState,
+  context: ActiveMockMicrocycle,
+  phase: Exclude<MicrocyclePhase, "none">
+): void {
+  const instruction = context.instruction;
+  const finalState = context.finalState;
+  const effective = effectiveAddressFor(current, instruction);
+  next.changedRegisters = [];
+  next.changedMemoryAddresses = [];
+
+  if (phase === "fetch") {
+    next.mar = instruction.address;
+    next.mdr = getMemory(next.memory, instruction.address);
+    next.ir = next.mdr;
+    next.changedRegisters = ["MAR", "MDR", "IR"];
+  } else if (phase === "decode") {
+    if (instruction.size > 1) {
+      next.mar = word(instruction.address + 1);
+      next.mdr = getMemory(next.memory, next.mar);
+      next.changedRegisters = ["MAR", "MDR"];
+    }
+  } else if (phase === "effective-address") {
+    next.mar = effective.effectiveAddress;
+    next.lastBaseAddress = effective.baseAddress;
+    next.lastIndexRegister = effective.indexRegister;
+    next.lastIndexValue = effective.indexValue;
+    next.lastEffectiveAddress = effective.effectiveAddress;
+    next.changedRegisters = ["MAR"];
+  } else if (phase === "operand-read") {
+    if (instruction.sourceRegister !== undefined) {
+      next.changedRegisters = [];
+    } else if (finalState.lastMemoryReadAddress !== undefined) {
+      next.mar = finalState.lastMemoryReadAddress;
+      next.mdr = finalState.mdr;
+      next.lastMemoryReadAddress = finalState.lastMemoryReadAddress;
+      next.changedRegisters = ["MAR", "MDR"];
+    }
+  } else if (phase === "execute") {
+    if (instruction.op === "ST") {
+      next.mdr = finalState.mdr;
+      next.changedRegisters = ["MDR"];
+    } else if (instruction.op === "PUSH" || instruction.op === "CALL") {
+      next.sp = finalState.sp;
+      next.mar = finalState.lastMemoryWriteAddress ?? finalState.mar;
+      next.mdr = finalState.mdr;
+      next.changedRegisters = ["SP", "MAR", "MDR"];
+    } else if (instruction.op === "POP") {
+      next.sp = finalState.sp;
+      next.changedRegisters = ["SP"];
+    } else if (instruction.op === "RET") {
+      if (current.callDepth > 0) {
+        next.pr = finalState.pr;
+        next.changedRegisters = ["PR"];
+      }
+    } else if (instruction.op === "JUMP" || instruction.op === "JZE" || instruction.op === "JNZ" ||
+      instruction.op === "JPL" || instruction.op === "JMI" || instruction.op === "JOV") {
+      next.pr = finalState.pr;
+      next.changedRegisters = ["PR"];
+    } else if (instruction.op === "SVC") {
+      copyFinalArchitecture(next, finalState);
+    }
+  } else if (phase === "write-back") {
+    if (instruction.op === "ST" || instruction.op === "PUSH") {
+      copyMemoryChanges(next, finalState);
+    } else if (instruction.op === "CALL") {
+      copyMemoryChanges(next, finalState);
+      next.pr = finalState.pr;
+      next.callDepth = finalState.callDepth;
+      next.changedRegisters = ["PR", "SP"];
+    } else if (instruction.op === "RET") {
+      next.sp = finalState.sp;
+      next.callDepth = finalState.callDepth;
+      next.changedRegisters = ["SP", "PR"];
+    } else if (instruction.gr !== undefined) {
+      next.gr[instruction.gr] = finalState.gr[instruction.gr];
+      next.changedRegisters = [`GR${instruction.gr}`];
+    }
+  } else if (phase === "flag-update") {
+    next.fr = { ...finalState.fr };
+    next.changedRegisters = ["FR"];
+  } else if (phase === "complete") {
+    const existingTrace = next.trace;
+    copyFinalArchitecture(next, finalState);
+    next.trace = [...context.instructionTrace.map((event) => ({ ...event })), ...existingTrace];
+  }
+}
+
+function mockMicroStep(state: CometState): CometState {
+  let context = activeMockMicrocycles.get(state);
+  if (!context) context = beginMockMicrocycle(state);
+  if (!context) return refreshDerivedState({ ...cloneState(state), executionGranularity: "microcycle" });
+
+  const phase = context.phases[context.nextPhaseIndex];
+  const next = cloneState(state);
+  const before = {
+    pr: state.pr,
+    sp: state.sp,
+    mar: state.mar,
+    mdr: state.mdr,
+    ir: state.ir,
+    callDepth: state.callDepth,
+    flags: { ...state.fr },
+    runState: state.runState
+  };
+  applyMockMicrocyclePhase(next, state, context, phase);
+  const sequence = (state.microcycleHistory[0]?.sequence ?? 0) + 1;
+  const instructionComplete = phase === "complete";
+  next.executionGranularity = "microcycle";
+  next.visualPath = microcycleVisualPath(phase, context.instruction);
+  next.microcycle = {
+    phase,
+    instructionKind: context.instruction.op,
+    instructionAddress: context.instruction.address,
+    sourceLine: context.instruction.line,
+    microIndex: context.nextPhaseIndex + 1,
+    totalMicrosteps: context.phases.length,
+    instructionComplete,
+    historySequence: sequence,
+    detail: microcycleDetail(phase, context.instruction)
+  };
+  const history: MicrocycleHistoryRecord = {
+    sequence,
+    phase,
+    instructionAddress: context.instruction.address,
+    instructionKind: context.instruction.op,
+    prBefore: before.pr,
+    prAfter: next.pr,
+    spBefore: before.sp,
+    spAfter: next.sp,
+    marBefore: before.mar,
+    marAfter: next.mar,
+    mdrBefore: before.mdr,
+    mdrAfter: next.mdr,
+    irBefore: before.ir,
+    irAfter: next.ir,
+    callDepthBefore: before.callDepth,
+    callDepthAfter: next.callDepth,
+    flagsBefore: before.flags,
+    flagsAfter: { ...next.fr },
+    runStateBefore: before.runState,
+    runStateAfter: next.runState,
+    generalRegisterChanges: next.gr.flatMap((after, index) => {
+      const previous = state.gr[index];
+      return previous === after ? [] : [{ index, before: previous, after }];
+    }),
+    memoryChanges: [...new Set([
+      ...Object.keys(state.memory).map(Number),
+      ...Object.keys(next.memory).map(Number)
+    ])].flatMap((address) => {
+      const previous = state.memory[address] ?? 0;
+      const after = next.memory[address] ?? 0;
+      return previous === after ? [] : [{ address, before: previous, after }];
+    })
+  };
+  next.microcycleHistory = [history, ...state.microcycleHistory].slice(0, MAX_TRACE_EVENTS);
+  const microTrace: TraceEvent = {
+    kind: "microcycle",
+    eventId: `microcycle:${sequence}`,
+    index: Math.max(1, next.stepIndex + (instructionComplete ? 0 : 1)),
+    address: context.instruction.address,
+    instruction: context.instruction.op,
+    detail: next.microcycle.detail,
+    source: context.instruction.source,
+    pr: next.pr,
+    visualPath: next.visualPath,
+    runState: next.runState,
+    microcyclePhase: phase,
+    microIndex: next.microcycle.microIndex,
+    totalMicrosteps: next.microcycle.totalMicrosteps,
+    instructionComplete
+  };
+  next.trace = [microTrace, ...next.trace].slice(0, MAX_TRACE_EVENTS);
+  context = { ...context, nextPhaseIndex: context.nextPhaseIndex + 1 };
+
+  const refreshed = refreshDerivedState(next);
+  if (!instructionComplete && refreshed.runState !== "WaitingInput") {
+    refreshed.currentAddress = context.instruction.address;
+    refreshed.currentLine = context.instruction.line;
+    refreshed.currentInstruction = currentInstructionText(context.instruction);
+    activeMockMicrocycles.set(refreshed, context);
+  }
+  return refreshed;
+}
+
+export const mockCaslCore: CaslCore = {
+  ...mockCaslCoreReference,
+  step(state: CometState): CometState {
+    const next = mockCaslCoreReference.step(state);
+    return refreshDerivedState({
+      ...next,
+      executionGranularity: "instruction",
+      microcycle: { ...EMPTY_MICROCYCLE_STATE }
+    });
+  },
+  microStep: mockMicroStep,
+  reset(state: CometState): CometState {
+    const reset = mockCaslCoreReference.reset(state);
+    return {
+      ...reset,
+      executionGranularity: "instruction",
+      microcycle: { ...EMPTY_MICROCYCLE_STATE },
+      microcycleHistory: []
+    };
+  },
+  reload(state: CometState, mode: ReloadInitializationMode): CometState {
+    const reloaded = mockCaslCoreReference.reload(state, mode);
+    return {
+      ...reloaded,
+      executionGranularity: "instruction",
+      microcycle: { ...EMPTY_MICROCYCLE_STATE },
+      microcycleHistory: []
+    };
+  },
+  enqueueInput(state: CometState, words: number[], endOfFile = false): CometState {
+    const next = mockCaslCoreReference.enqueueInput(state, words, endOfFile);
+    return {
+      ...next,
+      executionGranularity: "instruction",
+      microcycle: { ...EMPTY_MICROCYCLE_STATE }
+    };
+  },
+  mutate(state: CometState, target: DebuggerMutationTarget, nextWord: number) {
+    const result = mockCaslCoreReference.mutate(state, target, nextWord);
+    if (!result.applied) return result;
+    return {
+      ...result,
+      state: {
+        ...result.state,
+        executionGranularity: "instruction" as const,
+        microcycle: { ...EMPTY_MICROCYCLE_STATE },
+        microcycleHistory: []
+      }
+    };
+  },
   fullClear(): CometState {
     return createEmptyCometState("Idle", []);
   }

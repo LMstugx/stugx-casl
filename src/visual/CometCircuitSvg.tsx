@@ -437,6 +437,62 @@ type SourceMapFocus = {
   instruction?: string;
 };
 
+function microcycleWireIds(state: CometState, visualPath: VisualPathKind): Set<string> {
+  const active = resolveActiveWireIds(visualPath);
+  const instruction = state.microcycle.instructionKind;
+  const row = state.program?.find((candidate) => candidate.address === state.microcycle.instructionAddress);
+  const registerForm = row?.sourceRegister !== undefined;
+
+  if (visualPath === VisualPathKind.Microcycle_EffectiveAddress) {
+    if (row?.indexRegister === undefined) active.delete("index-to-eau");
+    return active;
+  }
+
+  if (visualPath === VisualPathKind.Microcycle_Execute) {
+    if (instruction === "ST") return new Set(["gr-to-mdr"]);
+    if (instruction === "PUSH") return new Set(["eau-to-mdr", "sp-to-mar-preview"]);
+    if (instruction === "CALL") return new Set(["pr-to-plus2", "return-address-to-mdr", "sp-to-mar-preview"]);
+    if (instruction === "POP") return new Set(["sp-to-mar-preview"]);
+    if (instruction === "RET") return new Set(["mdr-to-pr"]);
+    if (instruction === "SLA" || instruction === "SRA" || instruction === "SLL" || instruction === "SRL") {
+      return new Set(["gr-to-alu", "shift-count-to-alu"]);
+    }
+    if (instruction === "JUMP") return new Set(["eau-to-pr"]);
+    if (instruction && /^J/.test(instruction)) {
+      return state.lastEffectiveAddress !== undefined && state.pr === state.lastEffectiveAddress
+        ? new Set(["eau-to-pr"])
+        : new Set();
+    }
+    if (
+      instruction === "ADDA" || instruction === "SUBA" || instruction === "ADDL" || instruction === "SUBL"
+      || instruction === "AND" || instruction === "OR" || instruction === "XOR"
+      || instruction === "CPA" || instruction === "CPL"
+    ) {
+      return registerForm ? new Set(["gr-to-alu"]) : new Set(["gr-to-alu", "mdr-to-alu"]);
+    }
+    return new Set();
+  }
+
+  if (visualPath === VisualPathKind.Microcycle_WriteBackRegister) {
+    if (instruction === "LAD") return new Set(["eau-to-gr"]);
+    if (instruction === "LD") return registerForm
+      ? new Set(["gr-to-alu", "alu-to-gr"])
+      : new Set(["mdr-to-gr"]);
+    if (instruction === "POP") return new Set(["mdr-to-gr"]);
+    if (instruction === "RET") return new Set(["sp-to-mar-preview"]);
+    if (
+      instruction === "ADDA" || instruction === "SUBA" || instruction === "ADDL" || instruction === "SUBL"
+      || instruction === "AND" || instruction === "OR" || instruction === "XOR"
+      || instruction === "SLA" || instruction === "SRA" || instruction === "SLL" || instruction === "SRL"
+    ) {
+      return new Set(["alu-to-gr"]);
+    }
+    return new Set();
+  }
+
+  return active;
+}
+
 function CometCircuitSvg({ state, sourceMapFocus }: { state: CometState; sourceMapFocus?: SourceMapFocus }) {
   const { t } = useI18n();
   const registerIndex = activeRegisterIndex(state);
@@ -445,10 +501,22 @@ function CometCircuitSvg({ state, sourceMapFocus }: { state: CometState; sourceM
   const hasIndexAddressing = state.lastIndexRegister !== undefined && state.lastEffectiveAddress !== undefined;
   const wirePaths = buildWirePaths({ grIndex: registerIndex, indexRegister: state.lastIndexRegister, memoryAddress, memoryWindowStart });
   const visualPath = resolveVisualPath(state);
-  const activeWireIds = resolveActiveWireIds(visualPath);
+  const activeWireIds = state.executionGranularity === "microcycle"
+    ? microcycleWireIds(state, visualPath)
+    : resolveActiveWireIds(visualPath);
   const effectiveActiveWireIds = new Set(activeWireIds);
-  const usesEffectiveAddressUnit = hasIndexAddressing || visualPath === VisualPathKind.PUSH_EffectiveAddressToStack || visualPath === VisualPathKind.CALL_ReturnAddressToStackAndPr;
-  if (usesEffectiveAddressUnit) addEffectiveAddressUnitWires(effectiveActiveWireIds, visualPath, hasIndexAddressing);
+  const usesEffectiveAddressUnit = state.executionGranularity === "microcycle"
+    ? visualPath === VisualPathKind.Microcycle_EffectiveAddress
+      || (visualPath === VisualPathKind.Microcycle_Execute && (
+        state.microcycle.instructionKind === "PUSH"
+        || state.microcycle.instructionKind === "JUMP"
+        || Boolean(state.microcycle.instructionKind && /^J/.test(state.microcycle.instructionKind))
+      ))
+      || (visualPath === VisualPathKind.Microcycle_WriteBackRegister && state.microcycle.instructionKind === "LAD")
+    : hasIndexAddressing || visualPath === VisualPathKind.PUSH_EffectiveAddressToStack || visualPath === VisualPathKind.CALL_ReturnAddressToStackAndPr;
+  if (state.executionGranularity !== "microcycle" && usesEffectiveAddressUnit) {
+    addEffectiveAddressUnitWires(effectiveActiveWireIds, visualPath, hasIndexAddressing);
+  }
   const mdrLeft = circuitAnchors.mdr.left();
   const mdrRight = circuitAnchors.mdr.right();
   const mdrBottom = circuitAnchors.mdr.bottom();

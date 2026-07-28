@@ -108,7 +108,10 @@ if (new Set(matrixOpcodes).size !== matrixOpcodes.length) fail("cycle matrix con
 if (JSON.stringify([...runtimeOpcodes].sort()) !== JSON.stringify([...matrixOpcodes].sort())) {
   fail("cycle matrix must cover exactly the runtime machine opcode registry");
 }
-if (matrix.runtimeEnabled !== false) fail("microcycle contract must not be runtime-enabled in Phase 20A");
+if (matrix.runtimeEnabled !== true) fail("Phase 20C microcycle runtime contract must be enabled");
+if (matrix.profile !== "stugx.CASL Teaching Microarchitecture v1") {
+  fail("microcycle runtime must identify the frozen teaching microarchitecture");
+}
 
 for (const path of [...walkTextFiles(resolve(root, "src")), ...walkTextFiles(resolve(root, "cpp-core"))]) {
   if (/[\\/](?:tests|__tests__)[\\/]/.test(path) || /\.test\.[^.]+$/.test(path)) continue;

@@ -190,6 +190,24 @@ std::string runStateName(casl::RunState state) {
     return "Error";
 }
 
+std::string executionGranularityName(casl::ExecutionGranularity granularity) {
+    return granularity == casl::ExecutionGranularity::Microcycle ? "microcycle" : "instruction";
+}
+
+std::string microcyclePhaseName(casl::MicrocyclePhase phase) {
+    switch (phase) {
+        case casl::MicrocyclePhase::Fetch: return "fetch";
+        case casl::MicrocyclePhase::Decode: return "decode";
+        case casl::MicrocyclePhase::EffectiveAddress: return "effective-address";
+        case casl::MicrocyclePhase::OperandRead: return "operand-read";
+        case casl::MicrocyclePhase::Execute: return "execute";
+        case casl::MicrocyclePhase::WriteBack: return "write-back";
+        case casl::MicrocyclePhase::FlagUpdate: return "flag-update";
+        case casl::MicrocyclePhase::Complete: return "complete";
+        default: return "none";
+    }
+}
+
 std::string severityName(casl::Severity severity) {
     return severity == casl::Severity::Error ? "error" : "warning";
 }
@@ -353,7 +371,11 @@ void writeSourceRows(std::ostream& output, const casl::AssembleOutput& assembled
 }
 
 std::string dumpStateJson(const casl::AssembleOutput& assembled, const casl::CometState& state, const std::optional<casl::StepResult>& lastStep) {
-    const auto currentInstruction = findInstruction(assembled, state.pr);
+    const auto activeAddress = state.executionGranularity == casl::ExecutionGranularity::Microcycle &&
+        state.microcycle.phase != casl::MicrocyclePhase::None
+        ? state.microcycle.instructionAddress
+        : state.pr;
+    const auto currentInstruction = findInstruction(assembled, activeAddress);
     const auto lastInstruction = lastStep.has_value() ? findInstruction(assembled, lastStep->executedAddress) : std::nullopt;
     const auto instructionForIr1 = lastInstruction.has_value() ? lastInstruction : currentInstruction;
     const auto ir1Address = secondWordAddress(instructionForIr1);
@@ -389,6 +411,23 @@ std::string dumpStateJson(const casl::AssembleOutput& assembled, const casl::Com
     output << "  \"frOF\": " << boolText(state.fr.o) << ",\n";
     output << "  \"frSF\": " << boolText(state.fr.n) << ",\n";
     output << "  \"frZF\": " << boolText(state.fr.z) << ",\n";
+    if (state.executionGranularity == casl::ExecutionGranularity::Microcycle) {
+        output << "  \"executionGranularity\": \"" << executionGranularityName(state.executionGranularity) << "\",\n";
+        output << "  \"microcyclePhase\": \"" << microcyclePhaseName(state.microcycle.phase) << "\",\n";
+        output << "  \"microcycleInstructionAddress\": "
+               << (state.microcycle.phase == casl::MicrocyclePhase::None ? "null" : std::to_string(state.microcycle.instructionAddress)) << ",\n";
+        output << "  \"microcycleInstructionKind\": "
+               << (state.microcycle.instructionKind.has_value()
+                   ? "\"" + casl::opcodeName(*state.microcycle.instructionKind) + "\""
+                   : "null") << ",\n";
+        output << "  \"microcycleSourceLineIndex\": "
+               << (state.microcycle.sourceLine < 0 ? "null" : std::to_string(state.microcycle.sourceLine)) << ",\n";
+        output << "  \"microcycleIndex\": " << state.microcycle.microIndex << ",\n";
+        output << "  \"microcycleTotal\": " << state.microcycle.totalMicrosteps << ",\n";
+        output << "  \"microcycleInstructionComplete\": " << boolText(state.microcycle.instructionComplete) << ",\n";
+        output << "  \"microcycleHistorySequence\": " << state.microcycle.historySequence << ",\n";
+        output << "  \"microcycleDetail\": \"" << jsonEscape(state.microcycle.detail) << "\",\n";
+    }
     output << "  \"currentInstructionAddress\": " << nullableNumber(currentAddress ? std::optional<std::uint32_t>(*currentAddress) : std::nullopt) << ",\n";
     output << "  \"currentSourceLineIndex\": " << nullableNumber(currentLine) << ",\n";
     output << "  \"currentInstructionText\": " << nullableString(currentText) << ",\n";

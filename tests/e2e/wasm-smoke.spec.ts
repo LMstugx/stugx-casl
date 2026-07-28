@@ -11,11 +11,16 @@ import {
   setSource,
   sourceWithA100,
   step,
-  verifyCaslCompatibilityMode
+  verifyCaslCompatibilityMode,
+  verifyCometMicrocycleRuntime
 } from "./caslSmokeHelpers";
 
 test("WASM backend completes the CASL compatibility mode workflow", async ({ page }) => {
   await verifyCaslCompatibilityMode(page, "WASM Core");
+});
+
+test("WASM backend executes the COMET instruction-cycle runtime", async ({ page }) => {
+  await verifyCometMicrocycleRuntime(page, "WASM Core");
 });
 
 test.beforeAll(() => {

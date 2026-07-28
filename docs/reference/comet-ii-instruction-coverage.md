@@ -55,6 +55,6 @@ instructions clear `OF` and update `SF`/`ZF`; compare instructions update the
 three official fields according to their signed or logical comparison rules.
 `JOV` reads `OF`.
 
-The canonical machine-cycle design input is [the Phase 20B matrix](../comet-instruction-cycle-matrix-v1.json). It is not imported by the runtime and does not claim a unique physical COMET II implementation.
+The canonical machine-cycle contract is [the Phase 20C matrix](../comet-instruction-cycle-matrix-v1.json). The runtime implements its phases, but does not import the JSON at runtime. The model is named **stugx.CASL Teaching Microarchitecture v1** and does not claim a unique physical COMET II implementation.
 
 `IN`, `OUT`, `RPUSH`, and `RPOP` are macros, not extra machine instructions. Their real expanded words are covered separately.

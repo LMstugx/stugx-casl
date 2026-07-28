@@ -8,6 +8,7 @@ import LearningFlowPanel from "./components/LearningFlowPanel";
 import DemoGuidePanel from "./components/DemoGuidePanel";
 import CircuitFocusLayout from "./components/CircuitFocusLayout";
 import CaslCompatibilityMode from "./components/CaslCompatibilityMode";
+import CometMicrocyclePanel from "./components/CometMicrocyclePanel";
 import CometCircuitSvg from "./visual/CometCircuitSvg";
 import { formatWord } from "./core/types";
 import { summarizeCurrentInstruction } from "./visual/visualState";
@@ -157,6 +158,7 @@ function StudioShell({
     cppStorageObjects,
     selectedDemoProgramId,
     lessonProgress,
+    executionGranularity,
     observationMode,
     circuitFocusEnabled,
     inspectorActiveTab,
@@ -188,6 +190,7 @@ function StudioShell({
     clearOutput,
     toggleLessonStep,
     resetLessonProgress,
+    setExecutionGranularity,
     setObservationMode,
     setCircuitFocusEnabled,
     setInspectorActiveTab,
@@ -203,13 +206,17 @@ function StudioShell({
   const [showNewDocumentDialog, setShowNewDocumentDialog] = useState(false);
   const [pendingReplacementIntent, setPendingReplacementIntent] = useState<SourceReplacementIntent | null>(null);
   const [fileNotice, setFileNotice] = useState<FileOperationNoticeModel | null>(null);
-  const [workspaceMode, setWorkspaceMode] = useState<"modern" | "casl">("modern");
+  const [workspaceMode, setWorkspaceMode] = useState<"modern" | "casl" | "comet">("modern");
   const openIdsRef = useRef(createSequentialDocumentIdFactory("browser-open"));
   const currentDocumentRef = useRef(currentDocument);
   const writeBindingRef = useRef(currentWriteBinding);
   const mountedRef = useRef(true);
   const documentController = useMemo(() => new DocumentSessionController(fileAdapter, openIdsRef.current), [fileAdapter]);
   currentDocumentRef.current = currentDocument;
+  const selectWorkspaceMode = useCallback((mode: "modern" | "casl" | "comet") => {
+    setWorkspaceMode(mode);
+    setExecutionGranularity(mode === "comet" ? "microcycle" : "instruction");
+  }, [setExecutionGranularity]);
 
   useEffect(() => {
     const previous = writeBindingRef.current;
@@ -410,7 +417,7 @@ function StudioShell({
   }
 
   return (
-    <div className={workspaceMode === "modern" && circuitFocusEnabled ? "app-shell circuit-focus-active" : "app-shell"}>
+    <div className={(workspaceMode === "modern" && circuitFocusEnabled) || workspaceMode === "comet" ? "app-shell circuit-focus-active" : "app-shell"}>
       <Toolbar
         assembleStatus={assembleStatus}
         canRun={canRun}
@@ -419,7 +426,7 @@ function StudioShell({
         isRunning={isRunning}
         isCircuitFocusMode={circuitFocusEnabled}
         onToggleCircuitFocusMode={() => {
-          setWorkspaceMode("modern");
+          selectWorkspaceMode("modern");
           setCircuitFocusEnabled(!circuitFocusEnabled);
         }}
         isReplacingSource={replacementBusy}
@@ -478,7 +485,7 @@ function StudioShell({
           data-testid="modern-mode-toggle"
           className={workspaceMode === "modern" ? "selected" : ""}
           aria-pressed={workspaceMode === "modern"}
-          onClick={() => setWorkspaceMode("modern")}
+          onClick={() => selectWorkspaceMode("modern")}
         >
           {t("compatibility.modernStudio")}
         </button>
@@ -487,9 +494,18 @@ function StudioShell({
           className={workspaceMode === "casl" ? "selected" : ""}
           data-testid="casl-mode-toggle"
           aria-pressed={workspaceMode === "casl"}
-          onClick={() => setWorkspaceMode("casl")}
+          onClick={() => selectWorkspaceMode("casl")}
         >
           {t("caslMode.title")}
+        </button>
+        <button
+          type="button"
+          className={workspaceMode === "comet" ? "selected" : ""}
+          data-testid="comet-mode-toggle"
+          aria-pressed={workspaceMode === "comet"}
+          onClick={() => selectWorkspaceMode("comet")}
+        >
+          {t("cometMode.title")}
         </button>
       </nav>
       {workspaceMode === "casl" ? (
@@ -511,6 +527,29 @@ function StudioShell({
           onMutate={mutateDebuggerState}
           onFullClear={fullClear}
         />
+      ) : workspaceMode === "comet" ? (
+        <div
+          className="comet-mode-workspace"
+          data-testid="comet-mode-workspace"
+          data-execution-granularity={executionGranularity}
+        >
+          <CometMicrocyclePanel state={state} />
+          <CircuitFocusLayout
+            key={sourceUnitId}
+            state={state}
+            sourceMode={sourceMode}
+            sourceText={sourceText}
+            generatedCaslSource={generatedCaslSource}
+            cppToCaslMapping={cppToCaslMapping}
+            cppStorageObjects={cppStorageObjects}
+            isSourceDirty={isSourceDirty}
+            timelineItems={timelineItems}
+            observationMode={observationMode}
+            onObservationModeChange={setObservationMode}
+            initialSelectedFrameSlotId={editorSelectedFrameSlotId}
+            initialSelectionSource="source-editor"
+          />
+        </div>
       ) : circuitFocusEnabled ? (
         <CircuitFocusLayout
           key={sourceUnitId}

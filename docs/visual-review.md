@@ -48,6 +48,8 @@ Phase 14C adds English, Japanese, and Simplified Chinese Circuit Focus captures 
 
 Phase 20A adds `casl-mode-hex`, signed/unsigned/binary, stack, `RPUSH`/`RPOP`, input-waiting, output, indexed-addressing, JA/zh-CN 1280, and assembler-output symbol-table scenes. Review that CASL Mode remains a responsive modern view, keeps the Console and long technical tables bounded, exposes all 16-bit formats without changing machine state, and does not copy a legacy simulator interface.
 
+Phase 20C adds COMET Mode scenes for Fetch, Decode, Effective Address, Operand Read, Execute, Write Back, Flag Update, Instruction Complete, branch, shift, stack, `CALL`, and `RET` at 1280 and 1440 widths in EN/JA/zh-CN. Review that the current phase and machine word remain legible, the trace is bounded, Machine Code follows the machine address, and Circuit Focus lights only the active path for the current real microcycle. No arrows, circular markers, inactive ghost wires, fake FPU, or fake 64-bit bus may appear.
+
 ## Open Gallery Locally
 
 After capture, open:
@@ -256,6 +258,8 @@ Phase 18A.1 adds focused 1180x700 Toolbar captures for EN/JA/zh-CN, 1280x720 Sou
 Phase 18A.3 adds `changelog-current-en.png`, `changelog-current-ja.png`, `changelog-current-zh-cn.png`, `changelog-multiple-releases.png`, `changelog-known-issues.png`, `changelog-1280.png`, `changelog-long-technical-text.png`, and `changelog-keyboard-focus.png`. Review the Project Overview entry, Current badge, section hierarchy, known-issue distinction, safe wrapping, focus visibility, large bounded modal scroll, and 1280x720 containment. The dialog must not pressure the Toolbar, create a tiny scroll trap, or alter natural page scroll and clean-wire behavior.
 
 Phase 19A adds `cpp-double-storage-source.png`, `cpp-double-storage-generated-casl.png`, `cpp-double-storage-memory-before.png`, `cpp-double-storage-memory-word-copy.png`, `cpp-double-storage-memory-after.png`, `cpp-double-inspector-en.png`, `cpp-double-inspector-ja.png`, `cpp-double-inspector-zh-cn.png`, `cpp-double-storage-inspector-details.png`, `cpp-double-trace.png`, `cpp-double-code-machine.png`, `cpp-double-1280.png`, and `cpp-double-unsupported-diagnostic.png`. Review four related word rows, one active word at a time, bounded Trace and Memory scrolling, safe binary wrapping, locale-independent technical values, and 1280x720 containment. Circuit presentation must not invent an FPU, a 64-bit bus, arrows, circular markers, or inactive ghost wires.
+
+Phase 20C adds `comet-fetch.png`, `comet-decode.png`, `comet-effective-address.png`, `comet-memory-read.png`, `comet-write-back.png`, `comet-instruction-complete.png`, `comet-call.png`, `comet-ret.png`, `comet-shift.png`, `comet-memory.png`, `comet-branch.png`, `comet-1280-en.png`, `comet-1280-ja.png`, `comet-1280-zh-cn.png`, and `comet-1440.png`. Review the instruction-specific phase strip, real machine-word/source relation, bounded microcycle Trace, current Machine address, and one active real data path per phase. The gallery must describe **stugx.CASL Teaching Microarchitecture v1**, not a unique physical COMET II implementation, and must not introduce pipeline, cache, FPU, arrows, marker circles, or inactive ghost wires.
 
 - This is a review gallery, not a pixel-diff visual regression suite.
 - Screenshots are generated artifacts and are not committed to git.

@@ -1,6 +1,7 @@
 #include "CometVm.hpp"
 #include "DiagnosticCatalog.hpp"
 
+#include <algorithm>
 #include <utility>
 
 namespace casl {
@@ -219,6 +220,40 @@ bool isAddressOnlyByte(std::uint8_t value) {
            value == 0x66 || value == 0x70 || value == 0x80 || value == 0xf0;
 }
 
+std::string microcyclePhaseName(MicrocyclePhase phase) {
+    switch (phase) {
+        case MicrocyclePhase::Fetch: return "fetch";
+        case MicrocyclePhase::Decode: return "decode";
+        case MicrocyclePhase::EffectiveAddress: return "effective-address";
+        case MicrocyclePhase::OperandRead: return "operand-read";
+        case MicrocyclePhase::Execute: return "execute";
+        case MicrocyclePhase::WriteBack: return "write-back";
+        case MicrocyclePhase::FlagUpdate: return "flag-update";
+        case MicrocyclePhase::Complete: return "complete";
+        default: return "none";
+    }
+}
+
+bool isArithmeticOrLogical(Opcode opcode) {
+    return opcode == Opcode::ADDA || opcode == Opcode::SUBA || opcode == Opcode::ADDL ||
+           opcode == Opcode::SUBL || opcode == Opcode::AND || opcode == Opcode::OR ||
+           opcode == Opcode::XOR;
+}
+
+bool isCompare(Opcode opcode) {
+    return opcode == Opcode::CPA || opcode == Opcode::CPL;
+}
+
+bool isShift(Opcode opcode) {
+    return opcode == Opcode::SLA || opcode == Opcode::SRA ||
+           opcode == Opcode::SLL || opcode == Opcode::SRL;
+}
+
+bool isBranch(Opcode opcode) {
+    return opcode == Opcode::JUMP || opcode == Opcode::JZE || opcode == Opcode::JNZ ||
+           opcode == Opcode::JPL || opcode == Opcode::JMI || opcode == Opcode::JOV;
+}
+
 }  // namespace
 
 void CometVm::load(const AssembleOutput& program) {
@@ -234,10 +269,614 @@ void CometVm::load(const AssembleOutput& program) {
     }
 
     hasProgram_ = true;
+    clearMicrocycleRuntime();
     updateCurrentInstruction();
 }
 
 StepResult CometVm::step() {
+    if (!microcycleContext_.has_value()) {
+        auto result = stepReference();
+        state_.executionGranularity = ExecutionGranularity::Instruction;
+        state_.microcycle = {};
+        return result;
+    }
+
+    StepResult result;
+    state_.executionGranularity = ExecutionGranularity::Instruction;
+    do {
+        auto microResult = stepMicrocycle();
+        state_.executionGranularity = ExecutionGranularity::Instruction;
+        result.ok = microResult.ok;
+        result.finished = microResult.finished;
+        result.executedAddress = microResult.executedAddress;
+        result.executedLine = microResult.executedLine;
+        result.executedInstruction = microResult.executedInstruction;
+        result.instructionKind = microResult.instructionKind;
+        result.visualPath = microResult.visualPath;
+        result.diagnostics = std::move(microResult.diagnostics);
+        if (!result.ok || result.finished || microResult.instructionComplete || state_.runState == RunState::WaitingInput) break;
+    } while (true);
+
+    if (result.ok && result.instructionKind.has_value()) {
+        if (state_.executionGranularity == ExecutionGranularity::Instruction) {
+            if (result.instructionKind == Opcode::NOP || result.instructionKind == Opcode::SVC) {
+                state_.visualPath = VisualPathKind::None;
+            } else if (result.instructionKind == Opcode::LD) {
+                state_.visualPath = state_.lastMemoryReadAddress.has_value()
+                    ? VisualPathKind::LD_MemoryToMdrToGr
+                    : VisualPathKind::None;
+            } else if (result.instructionKind == Opcode::ST) {
+                state_.visualPath = VisualPathKind::ST_GrToMdrToMemory;
+            } else if (result.instructionKind == Opcode::LAD) {
+                state_.visualPath = VisualPathKind::LAD_AddressToGr;
+            } else if (result.instructionKind == Opcode::ADDA || result.instructionKind == Opcode::ADDL ||
+                       result.instructionKind == Opcode::AND || result.instructionKind == Opcode::OR ||
+                       result.instructionKind == Opcode::XOR) {
+                state_.visualPath = state_.lastMemoryReadAddress.has_value()
+                    ? VisualPathKind::ADDA_GrMdrToAluToGr
+                    : VisualPathKind::None;
+            } else if (result.instructionKind == Opcode::SUBA || result.instructionKind == Opcode::SUBL) {
+                state_.visualPath = state_.lastMemoryReadAddress.has_value()
+                    ? VisualPathKind::SUBA_GrMdrToAluToGr
+                    : VisualPathKind::None;
+            } else if (result.instructionKind == Opcode::CPA || result.instructionKind == Opcode::CPL) {
+                state_.visualPath = state_.lastMemoryReadAddress.has_value()
+                    ? VisualPathKind::CPA_GrMdrToAluToFr
+                    : VisualPathKind::None;
+            } else if (isShift(*result.instructionKind)) {
+                state_.visualPath = VisualPathKind::Shift_AddressToAluToGr;
+            } else if (result.instructionKind == Opcode::PUSH) {
+                state_.visualPath = VisualPathKind::PUSH_EffectiveAddressToStack;
+            } else if (result.instructionKind == Opcode::POP) {
+                state_.visualPath = VisualPathKind::POP_StackToGr;
+            } else if (result.instructionKind == Opcode::CALL) {
+                state_.visualPath = VisualPathKind::CALL_ReturnAddressToStackAndPr;
+            } else if (result.instructionKind == Opcode::RET) {
+                state_.visualPath = state_.lastMemoryReadAddress.has_value()
+                    ? VisualPathKind::RET_StackToPr
+                    : VisualPathKind::Finished_None;
+            } else if (result.instructionKind == Opcode::JUMP) {
+                state_.visualPath = VisualPathKind::Jump_AddressToPr;
+            } else if (isBranch(*result.instructionKind)) {
+                state_.visualPath = state_.pr == state_.lastEffectiveAddress
+                    ? VisualPathKind::ConditionalJump_AddressToPr
+                    : VisualPathKind::ConditionalJump_NotTaken;
+            }
+            result.visualPath = state_.visualPath;
+        }
+    }
+    state_.microcycle = {};
+    return result;
+}
+
+std::vector<MicrocyclePhase> CometVm::phasesFor(const Instruction& instruction) const {
+    if (instruction.opcode == Opcode::NOP) {
+        return {MicrocyclePhase::Fetch, MicrocyclePhase::Decode, MicrocyclePhase::Execute, MicrocyclePhase::Complete};
+    }
+    if (instruction.opcode == Opcode::POP || instruction.opcode == Opcode::RET) {
+        return {
+            MicrocyclePhase::Fetch,
+            MicrocyclePhase::Decode,
+            MicrocyclePhase::OperandRead,
+            MicrocyclePhase::Execute,
+            MicrocyclePhase::WriteBack,
+            MicrocyclePhase::Complete
+        };
+    }
+    if (isBranch(instruction.opcode) || instruction.opcode == Opcode::SVC) {
+        return {
+            MicrocyclePhase::Fetch,
+            MicrocyclePhase::Decode,
+            MicrocyclePhase::EffectiveAddress,
+            MicrocyclePhase::Execute,
+            MicrocyclePhase::Complete
+        };
+    }
+    if (isShift(instruction.opcode)) {
+        return {
+            MicrocyclePhase::Fetch,
+            MicrocyclePhase::Decode,
+            MicrocyclePhase::EffectiveAddress,
+            MicrocyclePhase::Execute,
+            MicrocyclePhase::WriteBack,
+            MicrocyclePhase::FlagUpdate,
+            MicrocyclePhase::Complete
+        };
+    }
+    if (instruction.opcode == Opcode::ST || instruction.opcode == Opcode::LAD ||
+        instruction.opcode == Opcode::PUSH || instruction.opcode == Opcode::CALL) {
+        return {
+            MicrocyclePhase::Fetch,
+            MicrocyclePhase::Decode,
+            MicrocyclePhase::EffectiveAddress,
+            MicrocyclePhase::Execute,
+            MicrocyclePhase::WriteBack,
+            MicrocyclePhase::Complete
+        };
+    }
+
+    std::vector<MicrocyclePhase> phases{
+        MicrocyclePhase::Fetch,
+        MicrocyclePhase::Decode,
+        MicrocyclePhase::EffectiveAddress,
+        MicrocyclePhase::OperandRead,
+        MicrocyclePhase::Execute
+    };
+    if (!isCompare(instruction.opcode)) phases.push_back(MicrocyclePhase::WriteBack);
+    phases.push_back(MicrocyclePhase::FlagUpdate);
+    phases.push_back(MicrocyclePhase::Complete);
+    if (instruction.sourceRegister.has_value()) {
+        phases.erase(std::remove(phases.begin(), phases.end(), MicrocyclePhase::EffectiveAddress), phases.end());
+    }
+    return phases;
+}
+
+bool CometVm::beginMicrocycle(MicrocycleStepResult& result) {
+    if (!hasProgram_) {
+        result.ok = false;
+        result.diagnostics.push_back({0, Severity::Error, "No program loaded"});
+        structureDiagnostic(result.diagnostics.back());
+        return false;
+    }
+    if (state_.runState == RunState::Finished || state_.runState == RunState::WaitingInput || state_.runState == RunState::Error) {
+        result.ok = state_.runState == RunState::Finished;
+        result.finished = state_.runState == RunState::Finished;
+        return false;
+    }
+    const auto instruction = instructionAt(state_.pr);
+    if (!instruction.has_value()) {
+        state_.runState = RunState::Error;
+        result.ok = false;
+        result.diagnostics.push_back({0, Severity::Error, "No instruction at PR"});
+        structureDiagnostic(result.diagnostics.back());
+        return false;
+    }
+
+    MicrocycleContext context;
+    context.instruction = *instruction;
+    context.phases = phasesFor(*instruction);
+    context.instructionAddress = instruction->address;
+    context.sequentialPr = static_cast<std::uint16_t>(instruction->address + instruction->size);
+    context.instructionStartMdr = state_.mdr;
+    microcycleContext_ = std::move(context);
+    state_.lastInstructionKind = instruction->opcode;
+    state_.lastMemoryReadAddress.reset();
+    state_.lastMemoryWriteAddress.reset();
+    state_.lastRegisterWriteIndex.reset();
+    state_.lastBaseAddress.reset();
+    state_.lastIndexRegister.reset();
+    state_.lastIndexValue.reset();
+    state_.lastEffectiveAddress.reset();
+    return true;
+}
+
+void CometVm::executeMicrocyclePhase(
+    MicrocycleContext& context,
+    MicrocyclePhase phase,
+    MicrocycleStepResult& result
+) {
+    const auto& instruction = context.instruction;
+    const auto effective = effectiveAddressFor(state_, instruction);
+    const auto gr = instruction.gr;
+
+    state_.visualPath = VisualPathKind::None;
+    switch (phase) {
+        case MicrocyclePhase::Fetch:
+            state_.mar = instruction.address;
+            state_.mdr = state_.memory[instruction.address];
+            state_.ir = state_.mdr;
+            state_.visualPath = VisualPathKind::Microcycle_Fetch;
+            state_.microcycle.detail = "PR -> MAR; Memory[MAR] -> MDR -> IR";
+            break;
+        case MicrocyclePhase::Decode:
+            if (instruction.size > 1) {
+                state_.mar = static_cast<std::uint16_t>(instruction.address + 1);
+                state_.mdr = state_.memory[state_.mar];
+            }
+            state_.visualPath = VisualPathKind::Microcycle_Decode;
+            state_.microcycle.detail = opcodeName(instruction.opcode) + " decoded from IR";
+            break;
+        case MicrocyclePhase::EffectiveAddress:
+            context.effectiveAddress = effective.effectiveAddress;
+            state_.mar = effective.effectiveAddress;
+            state_.lastBaseAddress = effective.baseAddress;
+            state_.lastIndexRegister = effective.indexRegister;
+            state_.lastIndexValue = effective.indexValue;
+            state_.lastEffectiveAddress = effective.effectiveAddress;
+            state_.visualPath = VisualPathKind::Microcycle_EffectiveAddress;
+            state_.microcycle.detail = "Effective address resolved into MAR";
+            break;
+        case MicrocyclePhase::OperandRead:
+            if (instruction.opcode == Opcode::POP || instruction.opcode == Opcode::RET) {
+                if (instruction.opcode == Opcode::RET && state_.callDepth == 0) {
+                    state_.microcycle.detail = "Top-level RET has no stack operand";
+                    state_.visualPath = VisualPathKind::Microcycle_OperandReadRegister;
+                    break;
+                }
+                context.stackAddress = state_.sp;
+                context.stackReturn = instruction.opcode == Opcode::RET;
+                state_.mar = context.stackAddress;
+                state_.mdr = state_.memory[context.stackAddress];
+                context.operand = state_.mdr;
+                context.hasOperand = true;
+                state_.lastMemoryReadAddress = context.stackAddress;
+                state_.visualPath = VisualPathKind::Microcycle_OperandReadMemory;
+                state_.microcycle.detail = "Memory[SP] -> MDR";
+                break;
+            }
+            if (instruction.sourceRegister.has_value()) {
+                context.operand = state_.gr[*instruction.sourceRegister];
+                context.hasOperand = true;
+                state_.visualPath = VisualPathKind::Microcycle_OperandReadRegister;
+                state_.microcycle.detail = "Source GR operand read";
+                break;
+            }
+            context.operand = state_.memory[context.effectiveAddress];
+            context.hasOperand = true;
+            state_.mar = context.effectiveAddress;
+            state_.mdr = context.operand;
+            state_.lastMemoryReadAddress = context.effectiveAddress;
+            state_.visualPath = VisualPathKind::Microcycle_OperandReadMemory;
+            state_.microcycle.detail = "Memory[EA] -> MDR";
+            break;
+        case MicrocyclePhase::Execute:
+            state_.visualPath = VisualPathKind::Microcycle_Execute;
+            if (instruction.opcode == Opcode::NOP) {
+                state_.microcycle.detail = "No operation";
+            } else if (instruction.opcode == Opcode::LD) {
+                context.result = context.operand;
+                context.hasResult = true;
+                context.pendingFlags = flagsForLogicalResult(context.result);
+                context.hasPendingFlags = true;
+                state_.microcycle.detail = "Transfer operand prepared";
+            } else if (instruction.opcode == Opcode::LAD) {
+                context.result = context.effectiveAddress;
+                context.hasResult = true;
+                state_.microcycle.detail = "Effective address prepared as value";
+            } else if (isArithmeticOrLogical(instruction.opcode)) {
+                const auto lhs = state_.gr[gr];
+                const auto rhs = context.operand;
+                if (instruction.opcode == Opcode::ADDA) {
+                    const auto sum = static_cast<std::uint32_t>(lhs) + rhs;
+                    context.result = static_cast<std::uint16_t>(sum & 0xffff);
+                    context.pendingFlags = flagsForArithmetic(
+                        static_cast<std::int32_t>(sum),
+                        signedAddOverflow(lhs, rhs, sum)
+                    );
+                } else if (instruction.opcode == Opcode::SUBA) {
+                    const auto diff = static_cast<std::int32_t>(lhs) - static_cast<std::int32_t>(rhs);
+                    context.result = static_cast<std::uint16_t>(diff & 0xffff);
+                    context.pendingFlags = flagsForArithmetic(diff, signedSubOverflow(lhs, rhs, diff));
+                } else if (instruction.opcode == Opcode::ADDL) {
+                    context.result = static_cast<std::uint16_t>(
+                        (static_cast<std::uint32_t>(lhs) + rhs) & 0xffff
+                    );
+                    context.pendingFlags = flagsForLogicalAdd(lhs, rhs);
+                } else if (instruction.opcode == Opcode::SUBL) {
+                    context.result = static_cast<std::uint16_t>(
+                        (static_cast<std::uint32_t>(lhs) - rhs) & 0xffff
+                    );
+                    context.pendingFlags = flagsForLogicalSub(lhs, rhs);
+                } else {
+                    if (instruction.opcode == Opcode::AND) context.result = static_cast<std::uint16_t>(lhs & rhs);
+                    if (instruction.opcode == Opcode::OR) context.result = static_cast<std::uint16_t>(lhs | rhs);
+                    if (instruction.opcode == Opcode::XOR) context.result = static_cast<std::uint16_t>(lhs ^ rhs);
+                    context.pendingFlags = flagsForLogicalResult(context.result);
+                }
+                context.hasResult = true;
+                context.hasPendingFlags = true;
+                state_.microcycle.detail = "ALU result prepared";
+            } else if (isCompare(instruction.opcode)) {
+                context.pendingFlags = instruction.opcode == Opcode::CPA
+                    ? flagsForCompare(state_.gr[gr], context.operand)
+                    : flagsForLogicalCompare(state_.gr[gr], context.operand);
+                context.hasPendingFlags = true;
+                state_.microcycle.detail = "Comparison result prepared for FR";
+            } else if (isShift(instruction.opcode)) {
+                const auto shifted = shiftValue(instruction.opcode, state_.gr[gr], context.effectiveAddress);
+                context.result = shifted.value;
+                context.hasResult = true;
+                context.pendingFlags = flagsForShift(shifted.value, shifted.shiftedOut);
+                context.hasPendingFlags = true;
+                state_.microcycle.detail = "Shift result and shifted-out bit prepared";
+            } else if (instruction.opcode == Opcode::ST) {
+                state_.mdr = state_.gr[gr];
+                context.result = state_.mdr;
+                context.hasResult = true;
+                state_.microcycle.detail = "GR -> MDR";
+            } else if (instruction.opcode == Opcode::PUSH) {
+                state_.sp = static_cast<std::uint16_t>(state_.sp - 1);
+                context.stackAddress = state_.sp;
+                state_.mar = context.stackAddress;
+                state_.mdr = context.effectiveAddress;
+                state_.microcycle.detail = "SP decremented; EA -> MDR";
+            } else if (instruction.opcode == Opcode::POP) {
+                context.result = context.operand;
+                context.hasResult = true;
+                state_.sp = static_cast<std::uint16_t>(state_.sp + 1);
+                state_.microcycle.detail = "Stack word prepared; SP incremented";
+            } else if (instruction.opcode == Opcode::CALL) {
+                state_.sp = static_cast<std::uint16_t>(state_.sp - 1);
+                context.stackAddress = state_.sp;
+                state_.mar = context.stackAddress;
+                state_.mdr = context.sequentialPr;
+                state_.microcycle.detail = "SP decremented; return address -> MDR";
+            } else if (instruction.opcode == Opcode::RET) {
+                if (state_.callDepth > 0) {
+                    state_.pr = context.operand;
+                    context.stackReturn = true;
+                    state_.microcycle.detail = "MDR -> PR";
+                } else {
+                    state_.microcycle.detail = "Top-level return prepared";
+                }
+            } else if (isBranch(instruction.opcode)) {
+                context.branchTaken = isJumpTaken(instruction.opcode, state_.fr);
+                state_.pr = context.branchTaken ? context.effectiveAddress : context.sequentialPr;
+                state_.microcycle.detail = context.branchTaken ? "Condition true; EA -> PR" : "Condition false; sequential PR selected";
+            } else if (instruction.opcode == Opcode::SVC) {
+                const auto service = context.effectiveAddress;
+                if (service == 1) {
+                    if (inputQueue_.empty()) {
+                        state_.runState = RunState::WaitingInput;
+                        state_.mdr = context.instructionStartMdr;
+                        state_.microcycle.detail = "SVC input waiting for a record";
+                        result.ok = true;
+                        return;
+                    }
+                    auto record = std::move(inputQueue_.front());
+                    inputQueue_.pop_front();
+                    const auto area = state_.gr[1];
+                    const auto lengthArea = state_.gr[2];
+                    if (record.endOfFile) {
+                        state_.memory[lengthArea] = 0xffff;
+                        state_.lastMemoryWriteAddress = lengthArea;
+                        state_.mdr = 0xffff;
+                    } else {
+                        const auto count = std::min<std::size_t>(256, record.characters.size());
+                        for (std::size_t index = 0; index < count; ++index) {
+                            state_.memory[static_cast<std::uint16_t>(area + index)] =
+                                static_cast<std::uint16_t>(record.characters[index] & 0x00ff);
+                        }
+                        state_.memory[lengthArea] = static_cast<std::uint16_t>(count);
+                        state_.lastMemoryWriteAddress = lengthArea;
+                        state_.mdr = static_cast<std::uint16_t>(count);
+                    }
+                    state_.fr = {};
+                    state_.runState = RunState::Ready;
+                    state_.microcycle.detail = "SVC input record transferred";
+                } else if (service == 2) {
+                    const auto area = state_.gr[1];
+                    const auto lengthArea = state_.gr[2];
+                    const auto count = std::min<std::uint16_t>(256, state_.memory[lengthArea]);
+                    std::vector<std::uint16_t> record;
+                    record.reserve(count);
+                    for (std::uint16_t index = 0; index < count; ++index) {
+                        record.push_back(static_cast<std::uint16_t>(
+                            state_.memory[static_cast<std::uint16_t>(area + index)] & 0x00ff
+                        ));
+                    }
+                    state_.consoleOutput.push_back(std::move(record));
+                    if (state_.consoleOutput.size() > kMaxConsoleOutputRecords) {
+                        state_.consoleOutput.erase(state_.consoleOutput.begin());
+                    }
+                    state_.lastMemoryReadAddress = lengthArea;
+                    state_.mdr = state_.memory[lengthArea];
+                    state_.fr = {};
+                    state_.microcycle.detail = "SVC output record transferred";
+                } else {
+                    state_.runState = RunState::Error;
+                    state_.mdr = context.instructionStartMdr;
+                    result.ok = false;
+                    result.diagnostics.push_back({0, Severity::Error, "Unsupported SVC service"});
+                    structureDiagnostic(result.diagnostics.back());
+                    return;
+                }
+            }
+            break;
+        case MicrocyclePhase::WriteBack:
+            if (instruction.opcode == Opcode::LD || instruction.opcode == Opcode::LAD ||
+                isArithmeticOrLogical(instruction.opcode) || isShift(instruction.opcode) ||
+                instruction.opcode == Opcode::POP) {
+                state_.gr[gr] = context.result;
+                state_.lastRegisterWriteIndex = gr;
+                state_.visualPath = VisualPathKind::Microcycle_WriteBackRegister;
+                state_.microcycle.detail = "Result -> destination GR";
+            } else if (instruction.opcode == Opcode::ST) {
+                state_.memory[context.effectiveAddress] = state_.mdr;
+                state_.lastMemoryWriteAddress = context.effectiveAddress;
+                state_.visualPath = VisualPathKind::Microcycle_WriteBackMemory;
+                state_.microcycle.detail = "MDR -> Memory[EA]";
+            } else if (instruction.opcode == Opcode::PUSH) {
+                state_.memory[context.stackAddress] = state_.mdr;
+                state_.lastMemoryWriteAddress = context.stackAddress;
+                state_.visualPath = VisualPathKind::Microcycle_WriteBackMemory;
+                state_.microcycle.detail = "MDR -> Memory[SP]";
+            } else if (instruction.opcode == Opcode::CALL) {
+                state_.memory[context.stackAddress] = state_.mdr;
+                state_.lastMemoryWriteAddress = context.stackAddress;
+                state_.pr = context.effectiveAddress;
+                state_.callDepth += 1;
+                state_.visualPath = VisualPathKind::Microcycle_WriteBackMemory;
+                state_.microcycle.detail = "Return address stored; EA -> PR";
+            } else if (instruction.opcode == Opcode::RET && context.stackReturn) {
+                state_.sp = static_cast<std::uint16_t>(state_.sp + 1);
+                state_.callDepth -= 1;
+                state_.visualPath = VisualPathKind::Microcycle_WriteBackRegister;
+                state_.microcycle.detail = "SP incremented; call depth decremented";
+            } else {
+                state_.visualPath = VisualPathKind::Microcycle_WriteBackRegister;
+                state_.microcycle.detail = "No architectural write-back";
+            }
+            break;
+        case MicrocyclePhase::FlagUpdate:
+            if (context.hasPendingFlags) state_.fr = context.pendingFlags;
+            state_.visualPath = VisualPathKind::Microcycle_FlagUpdate;
+            state_.microcycle.detail = "OF/SF/ZF updated";
+            break;
+        case MicrocyclePhase::Complete:
+            completeMicrocycleInstruction(context, result);
+            break;
+        default:
+            break;
+    }
+}
+
+void CometVm::completeMicrocycleInstruction(MicrocycleContext& context, MicrocycleStepResult& result) {
+    const auto opcode = context.instruction.opcode;
+    const auto updatesMdr =
+        opcode == Opcode::ST || opcode == Opcode::PUSH || opcode == Opcode::POP ||
+        opcode == Opcode::CALL || opcode == Opcode::SVC ||
+        (opcode == Opcode::RET && context.stackReturn) ||
+        ((opcode == Opcode::LD || isArithmeticOrLogical(opcode) || isCompare(opcode)) &&
+         !context.instruction.sourceRegister.has_value());
+    if (!updatesMdr) {
+        state_.mdr = context.instructionStartMdr;
+    }
+    if (opcode == Opcode::RET && !context.stackReturn) {
+        state_.runState = RunState::Finished;
+    }
+    if (!isBranch(opcode) && opcode != Opcode::CALL && opcode != Opcode::RET) {
+        state_.pr = context.sequentialPr;
+    }
+    state_.stepCount += 1;
+    state_.visualPath = VisualPathKind::Microcycle_Complete;
+    state_.microcycle.detail = "Instruction complete";
+    result.instructionComplete = true;
+    result.finished = state_.runState == RunState::Finished;
+    pushTrace(opcodeName(opcode));
+    updateCurrentInstruction();
+}
+
+MicrocycleStepResult CometVm::stepMicrocycle() {
+    MicrocycleStepResult result;
+    state_.executionGranularity = ExecutionGranularity::Microcycle;
+    if (!microcycleContext_.has_value() && !beginMicrocycle(result)) return result;
+
+    auto& context = *microcycleContext_;
+    if (context.nextPhaseIndex >= context.phases.size()) {
+        microcycleContext_.reset();
+        if (!beginMicrocycle(result)) return result;
+    }
+    auto& active = *microcycleContext_;
+    const auto phase = active.phases[active.nextPhaseIndex];
+    const auto prBefore = state_.pr;
+    const auto spBefore = state_.sp;
+    const auto marBefore = state_.mar;
+    const auto mdrBefore = state_.mdr;
+    const auto irBefore = state_.ir;
+    const auto callDepthBefore = state_.callDepth;
+    const auto flagsBefore = state_.fr;
+    const auto runStateBefore = state_.runState;
+    const auto grBefore = state_.gr;
+    const auto memoryBefore = state_.memory;
+
+    state_.microcycle = {
+        phase,
+        active.instruction.opcode,
+        active.instruction.address,
+        active.instruction.line,
+        static_cast<int>(active.nextPhaseIndex + 1),
+        static_cast<int>(active.phases.size()),
+        false,
+        microcycleSequence_ + 1,
+        ""
+    };
+    result.phase = phase;
+    result.executedAddress = active.instruction.address;
+    result.executedLine = active.instruction.line;
+    result.executedInstruction = active.instruction.source;
+    result.instructionKind = active.instruction.opcode;
+    result.ok = true;
+
+    executeMicrocyclePhase(active, phase, result);
+    if (!result.ok) {
+        microcycleContext_.reset();
+        return result;
+    }
+
+    microcycleSequence_ += 1;
+    state_.microcycle.historySequence = microcycleSequence_;
+    state_.microcycle.instructionComplete = result.instructionComplete;
+    MicrocycleHistoryEntry history;
+    history.sequence = microcycleSequence_;
+    history.phase = phase;
+    history.instructionAddress = active.instruction.address;
+    history.prBefore = prBefore;
+    history.prAfter = state_.pr;
+    history.spBefore = spBefore;
+    history.spAfter = state_.sp;
+    history.marBefore = marBefore;
+    history.marAfter = state_.mar;
+    history.mdrBefore = mdrBefore;
+    history.mdrAfter = state_.mdr;
+    history.irBefore = irBefore;
+    history.irAfter = state_.ir;
+    history.callDepthBefore = callDepthBefore;
+    history.callDepthAfter = state_.callDepth;
+    history.flagsBefore = flagsBefore;
+    history.flagsAfter = state_.fr;
+    history.runStateBefore = runStateBefore;
+    history.runStateAfter = state_.runState;
+    history.grBefore = grBefore;
+    history.grAfter = state_.gr;
+    for (std::uint32_t address = 0; address < kMemorySize; ++address) {
+        if (memoryBefore[address] == state_.memory[address]) continue;
+        history.memoryChanges.push_back({
+            static_cast<std::uint16_t>(address),
+            memoryBefore[address],
+            state_.memory[address]
+        });
+    }
+    microcycleHistory_.push_back(std::move(history));
+    if (microcycleHistory_.size() > kMaxTraceEvents) {
+        microcycleHistory_.erase(microcycleHistory_.begin());
+    }
+    pushTrace("MICRO:" + microcyclePhaseName(phase));
+    result.visualPath = state_.visualPath;
+    active.nextPhaseIndex += 1;
+
+    if (state_.runState == RunState::WaitingInput) {
+        microcycleContext_.reset();
+        return result;
+    }
+    if (result.instructionComplete) {
+        microcycleContext_.reset();
+    }
+    return result;
+}
+
+RunResult CometVm::runMicrocycles(int maxMicrosteps) {
+    RunResult result;
+    if (maxMicrosteps <= 0) {
+        result.stoppedAtMaxSteps = true;
+        result.diagnostics.push_back({0, Severity::Error, "Max microsteps reached before execution"});
+        structureDiagnostic(result.diagnostics.back());
+        result.diagnostics.back().params["stepLimit"] = maxMicrosteps;
+        return result;
+    }
+    for (int index = 0; index < maxMicrosteps; ++index) {
+        if (state_.runState == RunState::Finished || state_.runState == RunState::WaitingInput || state_.runState == RunState::Error) {
+            result.ok = state_.runState != RunState::Error;
+            result.steps = index;
+            return result;
+        }
+        const auto micro = stepMicrocycle();
+        result.steps = index + 1;
+        if (!micro.ok) {
+            result.diagnostics = micro.diagnostics;
+            return result;
+        }
+        if (micro.finished) {
+            result.ok = true;
+            return result;
+        }
+    }
+    result.ok = true;
+    result.stoppedAtMaxSteps = true;
+    return result;
+}
+
+StepResult CometVm::stepReference() {
     StepResult result;
     if (!hasProgram_) {
         fail(result, "No program loaded");
@@ -785,6 +1424,7 @@ void CometVm::reset() {
     state_ = initialState_;
     trace_.clear();
     inputQueue_.clear();
+    clearMicrocycleRuntime();
     updateCurrentInstruction();
 }
 
@@ -808,6 +1448,7 @@ void CometVm::enqueueInput(std::vector<std::uint16_t> characters, bool endOfFile
     inputQueue_.push_back({std::move(characters), endOfFile});
     if (state_.runState == RunState::WaitingInput) {
         state_.runState = RunState::Ready;
+        clearMicrocycleRuntime();
     }
 }
 
@@ -874,6 +1515,7 @@ void CometVm::fullClear() {
     trace_.clear();
     inputQueue_.clear();
     hasProgram_ = false;
+    clearMicrocycleRuntime();
 }
 
 std::optional<Instruction> CometVm::instructionAt(std::uint16_t address) const {
@@ -930,6 +1572,7 @@ std::optional<Instruction> CometVm::instructionAt(std::uint16_t address) const {
 }
 
 void CometVm::prepareAfterManualMutation() {
+    clearMicrocycleRuntime();
     state_.runState = RunState::Ready;
     state_.visualPath = VisualPathKind::None;
     state_.lastInstructionKind.reset();
@@ -941,6 +1584,14 @@ void CometVm::prepareAfterManualMutation() {
     state_.lastIndexValue.reset();
     state_.lastEffectiveAddress.reset();
     updateCurrentInstruction();
+}
+
+void CometVm::clearMicrocycleRuntime() {
+    microcycleContext_.reset();
+    microcycleHistory_.clear();
+    microcycleSequence_ = 0;
+    state_.executionGranularity = ExecutionGranularity::Instruction;
+    state_.microcycle = {};
 }
 
 void CometVm::updateCurrentInstruction() {

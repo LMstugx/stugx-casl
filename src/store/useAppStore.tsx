@@ -6,6 +6,7 @@ import { AppEvent, AppEvents } from "../app/events";
 import { coreBridge, getCoreBackendInfo, type CoreBackendInfo } from "../core/coreBridge";
 import type { ReloadInitializationMode } from "../core/coreAdapter";
 import { createCometStateFromDto, createEmptyUiCometState } from "../core/coreStateAdapter";
+import type { ExecutionGranularity } from "../core/microcycle";
 import { CometState, Diagnostic, VisualPathKind, formatWord } from "../core/types";
 import { getDefaultDemoProgram, type DemoProgram } from "../examples/demoPrograms";
 import { learningLessons } from "../examples/learningLessons";
@@ -82,6 +83,7 @@ type AppStoreState = {
   cppStorageObjects: CppStorageObject[];
   selectedDemoProgramId: string;
   lessonProgress: LessonProgress;
+  executionGranularity: ExecutionGranularity;
   observationMode: ObservationMode;
   circuitFocusEnabled: boolean;
   inspectorActiveTab: InspectorActiveTab;
@@ -113,6 +115,7 @@ type AppStoreActions = {
   toggleLessonStep: (exampleId: string, stepId: string) => void;
   resetLessonProgress: (exampleId: string) => void;
   clearAllLessonProgress: () => void;
+  setExecutionGranularity: (granularity: ExecutionGranularity) => void;
   setObservationMode: (mode: ObservationMode) => void;
   setCircuitFocusEnabled: (enabled: boolean) => void;
   setInspectorActiveTab: (tab: InspectorActiveTab) => void;
@@ -150,6 +153,7 @@ export type AppStoreAction =
   | { type: "lessonStepToggled"; exampleId: string; stepId: string }
   | { type: "lessonProgressReset"; exampleId: string }
   | { type: "lessonProgressCleared" }
+  | { type: "executionGranularitySet"; granularity: ExecutionGranularity }
   | { type: "observationModeSet"; mode: ObservationMode }
   | { type: "circuitFocusEnabledSet"; enabled: boolean }
   | { type: "inspectorActiveTabSet"; tab: InspectorActiveTab }
@@ -203,6 +207,7 @@ export function createInitialAppState(
     cppStorageObjects: [],
     selectedDemoProgramId: initialDemo?.id ?? "",
     lessonProgress: cloneLessonProgress(initialLessonProgress),
+    executionGranularity: "instruction",
     observationMode: preferences.observationMode,
     circuitFocusEnabled: preferences.circuitFocusEnabled,
     inspectorActiveTab: preferences.inspectorActiveTab,
@@ -630,6 +635,12 @@ export function appStoreReducer(state: AppStoreState, action: AppStoreAction): A
     return Object.keys(state.lessonProgress).length === 0 ? state : { ...state, lessonProgress: {} };
   }
 
+  if (action.type === "executionGranularitySet") {
+    return state.executionGranularity === action.granularity
+      ? state
+      : { ...state, executionGranularity: action.granularity };
+  }
+
   if (action.type === "observationModeSet") {
     if (state.observationMode === action.mode) return state;
     return {
@@ -759,13 +770,20 @@ export function AppStoreProvider({
           const sourceUnitId = state.currentDocument.sourceUnitId;
           const owner = executionOwnerOf(state);
           try {
-            const result = await coreBridge.step();
+            const result = state.executionGranularity === "microcycle"
+              ? await coreBridge.microStep()
+              : await coreBridge.step();
             const output = [...state.cometState.output];
-            if (result.state.lastInstructionKind) output.push(`Step ${result.state.stepCount}: ${result.state.lastInstructionKind} executed.`);
+            if (state.executionGranularity === "instruction" && result.state.lastInstructionKind) {
+              output.push(`Step ${result.state.stepCount}: ${result.state.lastInstructionKind} executed.`);
+            }
             if (result.state.runState === "Finished" && state.cometState.runState !== "Finished") output.push("Execution finished.");
             if (result.state.runState === "Error" && state.cometState.runState !== "Error") output.push("Runtime error.");
             const cometState = createCometStateFromDto(result.state, { previous: state.cometState, output });
-            if (cometState.lastStep) {
+            if (
+              cometState.lastStep
+              && (state.executionGranularity === "instruction" || cometState.microcycle.instructionComplete)
+            ) {
               eventBus.emit(AppEvent.VmStepCompleted, {
                 stepCount: cometState.stepIndex,
                 instruction: cometState.lastStep.executedInstruction
@@ -793,13 +811,17 @@ export function AppStoreProvider({
         const runId = runControlRef.current.runId + 1;
         const sourceUnitId = state.currentDocument.sourceUnitId;
         const owner = executionOwnerOf(state);
+        const runUnit = state.executionGranularity === "microcycle" ? "microsteps" : "steps";
         runControlRef.current = { runId, stopRequested: false };
         void (async () => {
           let executedSteps = 0;
           let workingState: CometState = {
             ...state.cometState,
             runState: "Running",
-            output: appendOutputLine(state.cometState.output, `Run started. Max steps: ${boundedMaxSteps}.`)
+            output: appendOutputLine(
+              state.cometState.output,
+              `Run started. Max ${runUnit}: ${boundedMaxSteps}.`
+            )
           };
           dispatch({ type: "runStarted", cometState: workingState, owner });
 
@@ -807,7 +829,9 @@ export function AppStoreProvider({
             while (executedSteps < boundedMaxSteps && !isRunTerminal(workingState.runState)) {
               for (let batchIndex = 0; batchIndex < RUN_BATCH_SIZE && executedSteps < boundedMaxSteps; batchIndex += 1) {
                 if (runControlRef.current.runId !== runId || runControlRef.current.stopRequested) break;
-                const result = await coreBridge.step();
+                const result = state.executionGranularity === "microcycle"
+                  ? await coreBridge.microStep()
+                  : await coreBridge.step();
                 executedSteps += 1;
                 const nextState = createCometStateFromDto(result.state, { previous: workingState, output: workingState.output });
                 workingState = nextState.runState === "Ready" ? { ...nextState, runState: "Running" } : nextState;
@@ -826,13 +850,13 @@ export function AppStoreProvider({
               finalState = {
                 ...workingState,
                 runState: "Stopped",
-                output: appendOutputLine(workingState.output, `Run stopped after ${executedSteps} steps.`)
+                output: appendOutputLine(workingState.output, `Run stopped after ${executedSteps} ${runUnit}.`)
               };
               eventBus.emit(AppEvent.VmRunStopped, { reason: "manual" });
             } else if (workingState.runState === "Finished") {
               finalState = {
                 ...workingState,
-                output: appendOutputLine(workingState.output, `Run finished after ${executedSteps} steps.`)
+                output: appendOutputLine(workingState.output, `Run finished after ${executedSteps} ${runUnit}.`)
               };
               eventBus.emit(AppEvent.VmRunStopped, { reason: "finished" });
             } else if (workingState.runState === "Error") {
@@ -852,7 +876,7 @@ export function AppStoreProvider({
               finalState = {
                 ...workingState,
                 runState: "Stopped",
-                output: appendOutputLine(workingState.output, `Max steps reached. Possible infinite loop. (${boundedMaxSteps} steps)`)
+                output: appendOutputLine(workingState.output, `Max ${runUnit} reached. Possible infinite loop. (${boundedMaxSteps} ${runUnit})`)
               };
               eventBus.emit(AppEvent.VmRunStopped, { reason: "maxSteps" });
             }
@@ -1063,6 +1087,7 @@ export function AppStoreProvider({
         onAllLessonProgressClear?.();
         dispatch({ type: "lessonProgressCleared" });
       },
+      setExecutionGranularity: (granularity) => dispatch({ type: "executionGranularitySet", granularity }),
       setObservationMode: (mode) => dispatch({ type: "observationModeSet", mode }),
       setCircuitFocusEnabled: (enabled) => dispatch({ type: "circuitFocusEnabledSet", enabled }),
       setInspectorActiveTab: (tab) => dispatch({ type: "inspectorActiveTabSet", tab }),
@@ -1074,7 +1099,7 @@ export function AppStoreProvider({
       commitSavedDocument: (document, writeBinding) => dispatch({ type: "currentDocumentSaved", document, writeBinding }),
       setFileLifecycle: (lifecycle) => dispatch({ type: "fileLifecycleSet", lifecycle })
     }),
-    [eventBus, onAllLessonProgressClear, state.assembleResult, state.cometState, state.isSourceDirty, state.runStopReason, state.runtimeOverrides, state.sourceMode, state.sourceText]
+    [eventBus, onAllLessonProgressClear, state.assembleResult, state.cometState, state.executionGranularity, state.isSourceDirty, state.runStopReason, state.runtimeOverrides, state.sourceMode, state.sourceText]
   );
 
   const value = useMemo<AppStore>(() => ({

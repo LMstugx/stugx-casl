@@ -74,6 +74,16 @@ enum class RunState {
 enum class VisualPathKind {
     None,
     Ready_PrToMar,
+    Microcycle_Fetch,
+    Microcycle_Decode,
+    Microcycle_EffectiveAddress,
+    Microcycle_OperandReadMemory,
+    Microcycle_OperandReadRegister,
+    Microcycle_Execute,
+    Microcycle_WriteBackRegister,
+    Microcycle_WriteBackMemory,
+    Microcycle_FlagUpdate,
+    Microcycle_Complete,
     LD_MemoryToMdrToGr,
     ST_GrToMdrToMemory,
     ADDA_GrMdrToAluToGr,
@@ -89,6 +99,35 @@ enum class VisualPathKind {
     ConditionalJump_AddressToPr,
     ConditionalJump_NotTaken,
     Finished_None
+};
+
+enum class ExecutionGranularity {
+    Instruction,
+    Microcycle
+};
+
+enum class MicrocyclePhase {
+    None,
+    Fetch,
+    Decode,
+    EffectiveAddress,
+    OperandRead,
+    Execute,
+    WriteBack,
+    FlagUpdate,
+    Complete
+};
+
+struct MicrocycleState {
+    MicrocyclePhase phase = MicrocyclePhase::None;
+    std::optional<InstructionKind> instructionKind;
+    std::uint16_t instructionAddress = 0;
+    int sourceLine = -1;
+    int microIndex = 0;
+    int totalMicrosteps = 0;
+    bool instructionComplete = false;
+    std::uint64_t historySequence = 0;
+    std::string detail;
 };
 
 struct Flags {
@@ -115,6 +154,8 @@ struct CometState {
     Flags fr{};
     RunState runState = RunState::Idle;
     VisualPathKind visualPath = VisualPathKind::None;
+    ExecutionGranularity executionGranularity = ExecutionGranularity::Instruction;
+    MicrocycleState microcycle{};
     int stepCount = 0;
     int currentLine = -1;
     std::string currentInstruction;
@@ -149,6 +190,19 @@ struct MemoryRow {
 struct StepResult {
     bool ok = false;
     bool finished = false;
+    std::uint16_t executedAddress = 0;
+    int executedLine = -1;
+    std::string executedInstruction;
+    std::optional<InstructionKind> instructionKind;
+    VisualPathKind visualPath = VisualPathKind::None;
+    std::vector<Diagnostic> diagnostics;
+};
+
+struct MicrocycleStepResult {
+    bool ok = false;
+    bool finished = false;
+    bool instructionComplete = false;
+    MicrocyclePhase phase = MicrocyclePhase::None;
     std::uint16_t executedAddress = 0;
     int executedLine = -1;
     std::string executedInstruction;

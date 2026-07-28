@@ -91,6 +91,24 @@ std::string runStateName(casl::RunState state) {
     return "Error";
 }
 
+std::string executionGranularityName(casl::ExecutionGranularity granularity) {
+    return granularity == casl::ExecutionGranularity::Microcycle ? "microcycle" : "instruction";
+}
+
+std::string microcyclePhaseName(casl::MicrocyclePhase phase) {
+    switch (phase) {
+        case casl::MicrocyclePhase::Fetch: return "fetch";
+        case casl::MicrocyclePhase::Decode: return "decode";
+        case casl::MicrocyclePhase::EffectiveAddress: return "effective-address";
+        case casl::MicrocyclePhase::OperandRead: return "operand-read";
+        case casl::MicrocyclePhase::Execute: return "execute";
+        case casl::MicrocyclePhase::WriteBack: return "write-back";
+        case casl::MicrocyclePhase::FlagUpdate: return "flag-update";
+        case casl::MicrocyclePhase::Complete: return "complete";
+        default: return "none";
+    }
+}
+
 std::string severityName(casl::Severity severity) {
     return severity == casl::Severity::Error ? "error" : "warning";
 }
@@ -313,7 +331,11 @@ std::string dumpStateJson(
     const std::optional<casl::StepResult>& lastStep,
     const std::vector<casl::Diagnostic>& diagnostics
 ) {
-    const auto currentInstruction = findInstruction(assembled, state.pr);
+    const auto activeAddress = state.executionGranularity == casl::ExecutionGranularity::Microcycle &&
+        state.microcycle.phase != casl::MicrocyclePhase::None
+        ? state.microcycle.instructionAddress
+        : state.pr;
+    const auto currentInstruction = findInstruction(assembled, activeAddress);
     const auto lastInstruction = findLastInstruction(assembled, state, lastStep);
     const auto instructionForIr1 = lastInstruction.has_value() ? lastInstruction : currentInstruction;
     const auto ir1Address = secondWordAddress(instructionForIr1);
@@ -355,6 +377,23 @@ std::string dumpStateJson(
     output << "  \"frOF\": " << boolText(state.fr.o) << ",\n";
     output << "  \"frSF\": " << boolText(state.fr.n) << ",\n";
     output << "  \"frZF\": " << boolText(state.fr.z) << ",\n";
+    if (state.executionGranularity == casl::ExecutionGranularity::Microcycle) {
+        output << "  \"executionGranularity\": \"" << executionGranularityName(state.executionGranularity) << "\",\n";
+        output << "  \"microcyclePhase\": \"" << microcyclePhaseName(state.microcycle.phase) << "\",\n";
+        output << "  \"microcycleInstructionAddress\": "
+               << (state.microcycle.phase == casl::MicrocyclePhase::None ? "null" : std::to_string(state.microcycle.instructionAddress)) << ",\n";
+        output << "  \"microcycleInstructionKind\": "
+               << (state.microcycle.instructionKind.has_value()
+                   ? "\"" + casl::opcodeName(*state.microcycle.instructionKind) + "\""
+                   : "null") << ",\n";
+        output << "  \"microcycleSourceLineIndex\": "
+               << (state.microcycle.sourceLine < 0 ? "null" : std::to_string(state.microcycle.sourceLine)) << ",\n";
+        output << "  \"microcycleIndex\": " << state.microcycle.microIndex << ",\n";
+        output << "  \"microcycleTotal\": " << state.microcycle.totalMicrosteps << ",\n";
+        output << "  \"microcycleInstructionComplete\": " << boolText(state.microcycle.instructionComplete) << ",\n";
+        output << "  \"microcycleHistorySequence\": " << state.microcycle.historySequence << ",\n";
+        output << "  \"microcycleDetail\": \"" << jsonEscape(state.microcycle.detail) << "\",\n";
+    }
     output << "  \"currentInstructionAddress\": " << nullableNumber(currentAddress ? std::optional<std::uint32_t>(*currentAddress) : std::nullopt) << ",\n";
     output << "  \"currentSourceLineIndex\": " << nullableNumber(currentLine) << ",\n";
     output << "  \"currentInstructionText\": " << nullableString(currentText) << ",\n";
@@ -548,6 +587,63 @@ EMSCRIPTEN_KEEPALIVE const char* stugx_casl_step() {
         g_lastError = error.what();
         const std::vector<casl::Diagnostic> diagnostics{{0, casl::Severity::Error, g_lastError}};
         return setJson(resultJson("step", false, stateErrorJson(g_lastError), diagnostics));
+    }
+}
+
+EMSCRIPTEN_KEEPALIVE const char* stugx_casl_micro_step() {
+    try {
+        auto& rt = runtime();
+        if (!rt.loaded || !rt.assembled.has_value()) {
+            rt.lastDiagnostics = {{0, casl::Severity::Error, "No program loaded"}};
+            g_lastError = "No program loaded";
+            return setJson(resultJson("microStep", false, stateErrorJson(g_lastError), rt.lastDiagnostics));
+        }
+
+        const auto micro = rt.vm.stepMicrocycle();
+        casl::StepResult step;
+        step.ok = micro.ok;
+        step.finished = micro.finished;
+        step.executedAddress = micro.executedAddress;
+        step.executedLine = micro.executedLine;
+        step.executedInstruction = micro.executedInstruction;
+        step.instructionKind = micro.instructionKind;
+        step.visualPath = micro.visualPath;
+        step.diagnostics = micro.diagnostics;
+        rt.lastStep = std::move(step);
+        rt.lastDiagnostics = micro.diagnostics;
+        if (!micro.ok && !rt.lastDiagnostics.empty()) {
+            g_lastError = rt.lastDiagnostics.front().message;
+        } else {
+            g_lastError.clear();
+        }
+        const auto stateJson = dumpStateJson(*rt.assembled, rt.vm.state(), rt.lastStep, rt.lastDiagnostics);
+        return setJson(resultJson("microStep", micro.ok, stateJson, rt.lastDiagnostics));
+    } catch (const std::exception& error) {
+        g_lastError = error.what();
+        const std::vector<casl::Diagnostic> diagnostics{{0, casl::Severity::Error, g_lastError}};
+        return setJson(resultJson("microStep", false, stateErrorJson(g_lastError), diagnostics));
+    }
+}
+
+EMSCRIPTEN_KEEPALIVE const char* stugx_casl_run_microcycles(int maxMicrosteps) {
+    try {
+        auto& rt = runtime();
+        if (!rt.loaded || !rt.assembled.has_value()) {
+            rt.lastDiagnostics = {{0, casl::Severity::Error, "No program loaded"}};
+            g_lastError = "No program loaded";
+            return setJson(stateErrorJson(g_lastError));
+        }
+        const auto result = rt.vm.runMicrocycles(maxMicrosteps);
+        rt.lastStep.reset();
+        rt.lastDiagnostics = result.diagnostics;
+        if (!result.ok && !rt.lastDiagnostics.empty()) {
+            g_lastError = rt.lastDiagnostics.front().message;
+        } else {
+            g_lastError.clear();
+        }
+        return setJson(dumpStateJson(*rt.assembled, rt.vm.state(), rt.lastStep, rt.lastDiagnostics));
+    } catch (const std::exception& error) {
+        return setError(error.what());
     }
 }
 

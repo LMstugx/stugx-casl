@@ -19,6 +19,9 @@ function traceChanges(event: CometState["trace"][number]): string {
 }
 
 function traceMainEvent(event: CometState["trace"][number]): string {
+  if (event.kind === "microcycle") {
+    return `Microstep ${event.microIndex ?? 0}/${event.totalMicrosteps ?? 0} ${event.microcyclePhase ?? "none"}: ${event.instruction}`;
+  }
   if (event.kind === "debugger-register-edit" || event.kind === "debugger-memory-edit") {
     return event.instruction;
   }
@@ -28,6 +31,7 @@ function traceMainEvent(event: CometState["trace"][number]): string {
 }
 
 function tracePrimaryEffect(event: CometState["trace"][number]): string {
+  if (event.kind === "microcycle") return event.detail;
   if (event.instruction === "CALL") {
     const target = event.effectiveAddress !== undefined ? formatWord(event.effectiveAddress) : "----";
     const returnAddress = event.returnAddress !== undefined ? formatWord(event.returnAddress) : "----";
@@ -43,6 +47,11 @@ function tracePrimaryEffect(event: CometState["trace"][number]): string {
 }
 
 function traceSecondaryNote(event: CometState["trace"][number], state: CometState): string {
+  if (event.kind === "microcycle") {
+    return event.instructionComplete
+      ? "Instruction complete"
+      : `Machine instruction @${formatWord(event.address)}`;
+  }
   const notes: string[] = [];
   const flow = traceControlFlow(event, state);
   if (flow) notes.push(flow);
@@ -123,8 +132,14 @@ export default function TracePanel({
               ? `${t("doubleTrace.wordOf", { word: wordIndex + 1 })} | ${formatObjectWord(doubleOperation.currentObject?.symbolName, wordIndex, currentWord?.address)}`
               : undefined;
           return (
-          <article key={`${event.index}-${event.address}`} className="trace-item" data-testid="trace-item" data-latest={index === 0 ? "true" : "false"} data-double-operation={doubleOperation?.operationId}>
-            <strong>{event.kind?.startsWith("debugger-") ? t("caslMode.manualEdit") : `Step ${event.index}`}</strong>
+          <article key={event.eventId ?? `${event.index}-${event.address}-${event.microIndex ?? 0}`} className="trace-item" data-testid="trace-item" data-latest={index === 0 ? "true" : "false"} data-double-operation={doubleOperation?.operationId}>
+            <strong>
+              {event.kind?.startsWith("debugger-")
+                ? t("caslMode.manualEdit")
+                : event.kind === "microcycle"
+                  ? `Microstep ${event.microIndex ?? 0}/${event.totalMicrosteps ?? 0}`
+                  : `Step ${event.index}`}
+            </strong>
             <div className="trace-item-body">
               {operationTitle ? <p className="trace-double-operation" data-testid="trace-double-operation" title={operationTitle}>{operationTitle}</p> : null}
               <div className="trace-row" data-testid="trace-row-main">

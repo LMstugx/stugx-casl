@@ -145,3 +145,65 @@ LEN DS 1
     expect(await binaryValue.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
   }
 }
+
+export async function verifyCometMicrocycleRuntime(page: Page, backendLabel: "Mock Core" | "WASM Core") {
+  const source = `MAIN START
+     LD GR1,DATA
+     RET
+DATA DC #8000
+     END`;
+
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await openStudio(page, backendLabel);
+  await setSource(page, source);
+  await assemble(page);
+  await page.getByTestId("comet-mode-toggle").click();
+  await expect(page.getByTestId("comet-mode-workspace")).toHaveAttribute("data-execution-granularity", "microcycle");
+
+  const expectedPhases = [
+    "Fetch",
+    "Decode",
+    "Effective Address",
+    "Operand Read",
+    "Execute",
+    "Write Back",
+    "Flag Update",
+    "Instruction Complete"
+  ];
+
+  for (let index = 0; index < expectedPhases.length; index += 1) {
+    await step(page);
+    await expect(page.getByTestId("comet-current-phase")).toHaveText(expectedPhases[index]);
+    await expect(page.getByTestId("comet-current-microstep")).toHaveText(`${index + 1}/8`);
+    await expect(page.getByTestId("comet-current-instruction")).toContainText("LD");
+
+    if (index === 0) {
+      await expect(page.getByTestId("wire-pr-to-mar")).toHaveAttribute("data-active", "true");
+      await expect(page.getByTestId("wire-memory-to-mdr")).toHaveAttribute("data-active", "true");
+    }
+    if (index === 1) {
+      await expect(page.getByTestId("wire-ir-to-decoder")).toHaveAttribute("data-active", "true");
+      await expect(page.getByTestId("wire-decoder-to-controller")).toHaveAttribute("data-active", "true");
+      await expect(page.getByTestId("wire-pr-to-mar")).toHaveCount(0);
+    }
+    if (index === 5) {
+      await expect(page.getByTestId("wire-mdr-to-gr")).toHaveAttribute("data-active", "true");
+    }
+  }
+
+  await page.getByTestId("modern-mode-toggle").click();
+  await expectRegister(page, "register-gr1", "8000");
+  await page.getByTestId("reset-button").click();
+  await page.getByTestId("comet-mode-toggle").click();
+  await run(page);
+  await expect(page.getByTestId("run-state")).toHaveAttribute("data-run-state", "Finished");
+  await expect(page.getByTestId("comet-current-phase")).toHaveText("Instruction Complete");
+  await expect(page.locator(".comet-microcycle-trace li")).toHaveCount(8);
+
+  for (const locale of ["ja", "zh-CN", "en"] as const) {
+    await page.getByTestId(`locale-${locale}`).click();
+    await expect(page.getByTestId("comet-mode-workspace")).toBeVisible();
+    await expect(page.getByTestId("comet-current-instruction")).toContainText("RET");
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+  }
+}

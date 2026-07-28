@@ -1316,6 +1316,160 @@ void FullClearUnloadsVm() {
     require(!vm.step().ok, "full-cleared VM cannot execute");
 }
 
+std::vector<casl::MicrocyclePhase> completeOneMicroInstruction(casl::CometVm& vm) {
+    std::vector<casl::MicrocyclePhase> phases;
+    for (int guard = 0; guard < 16; ++guard) {
+        const auto micro = vm.stepMicrocycle();
+        require(micro.ok, "microcycle should execute");
+        phases.push_back(micro.phase);
+        if (micro.instructionComplete) return phases;
+    }
+    require(false, "microcycle instruction should complete within the phase bound");
+    return phases;
+}
+
+void MicrocycleAllOfficialInstructions() {
+    const std::vector<std::pair<std::string, std::string>> instructions{
+        {"NOP", "NOP"}, {"LD", "LD GR1,DATA"}, {"ST", "ST GR1,DATA"}, {"LAD", "LAD GR1,DATA"},
+        {"ADDA", "ADDA GR1,DATA"}, {"SUBA", "SUBA GR1,DATA"}, {"ADDL", "ADDL GR1,DATA"},
+        {"SUBL", "SUBL GR1,DATA"}, {"AND", "AND GR1,DATA"}, {"OR", "OR GR1,DATA"},
+        {"XOR", "XOR GR1,DATA"}, {"CPA", "CPA GR1,DATA"}, {"CPL", "CPL GR1,DATA"},
+        {"SLA", "SLA GR1,1"}, {"SRA", "SRA GR1,1"}, {"SLL", "SLL GR1,1"}, {"SRL", "SRL GR1,1"},
+        {"JMI", "JMI TARGET"}, {"JNZ", "JNZ TARGET"}, {"JZE", "JZE TARGET"}, {"JUMP", "JUMP TARGET"},
+        {"JPL", "JPL TARGET"}, {"JOV", "JOV TARGET"}, {"PUSH", "PUSH 0,GR1"}, {"POP", "POP GR1"},
+        {"CALL", "CALL TARGET"}, {"RET", "RET"}, {"SVC", "SVC 2"}
+    };
+
+    for (const auto& [name, sourceLine] : instructions) {
+        const auto output = assembleOrExit(
+            "MAIN START\n     " + sourceLine + "\nTARGET RET\nDATA DC 1\n     END"
+        );
+        casl::CometVm vm;
+        vm.load(output);
+        const auto phases = completeOneMicroInstruction(vm);
+        require(!phases.empty(), "official instruction should have microcycle phases");
+        require(phases.front() == casl::MicrocyclePhase::Fetch, "official instruction starts with fetch");
+        require(phases.back() == casl::MicrocyclePhase::Complete, "official instruction ends with complete");
+        require(vm.state().stepCount == 1, "one completed microcycle instruction increments instruction count once");
+        require(vm.state().microcycle.instructionComplete, "complete phase marks instruction complete");
+        require(vm.state().lastInstructionKind.has_value(), "microcycle keeps decoded instruction kind");
+        (void)name;
+    }
+}
+
+void MicrocycleLdPhaseBoundaries() {
+    const auto output = assembleOrExit(R"(MAIN START
+     LD GR1,DATA
+     RET
+DATA DC #8000
+     END)");
+    casl::CometVm vm;
+    vm.load(output);
+    const auto data = symbolAddress(output, "DATA");
+    const auto initialPr = vm.state().pr;
+
+    require(vm.stepMicrocycle().phase == casl::MicrocyclePhase::Fetch, "LD fetch phase");
+    require(vm.state().ir == vm.state().memory[initialPr], "fetch loads IR from instruction memory");
+    require(vm.state().gr[1] == 0, "fetch does not write destination GR");
+
+    require(vm.stepMicrocycle().phase == casl::MicrocyclePhase::Decode, "LD decode phase");
+    require(vm.state().gr[1] == 0, "decode does not write destination GR");
+
+    require(vm.stepMicrocycle().phase == casl::MicrocyclePhase::EffectiveAddress, "LD EA phase");
+    require(vm.state().mar == data, "EA commits data address to MAR");
+
+    require(vm.stepMicrocycle().phase == casl::MicrocyclePhase::OperandRead, "LD operand-read phase");
+    require(vm.state().mdr == 0x8000, "operand read commits data to MDR");
+    require(vm.state().gr[1] == 0, "operand read does not write destination GR");
+
+    require(vm.stepMicrocycle().phase == casl::MicrocyclePhase::Execute, "LD execute phase");
+    require(vm.state().gr[1] == 0, "execute stages result without architectural GR write");
+
+    require(vm.stepMicrocycle().phase == casl::MicrocyclePhase::WriteBack, "LD write-back phase");
+    require(vm.state().gr[1] == 0x8000, "write-back updates destination GR");
+    require(vm.state().fr.packed() == 0, "write-back does not update FR");
+
+    require(vm.stepMicrocycle().phase == casl::MicrocyclePhase::FlagUpdate, "LD flag phase");
+    require(vm.state().fr.n && !vm.state().fr.o && !vm.state().fr.z, "flag phase updates official OF/SF/ZF");
+
+    const auto complete = vm.stepMicrocycle();
+    require(complete.phase == casl::MicrocyclePhase::Complete, "LD complete phase");
+    require(complete.instructionComplete, "LD complete marks instruction boundary");
+    require(vm.state().pr == static_cast<std::uint16_t>(initialPr + 2), "complete advances PR");
+}
+
+void MicrocycleCallRetAndBranch() {
+    const auto output = assembleOrExit(R"(MAIN START
+     CALL SUB
+     RET
+SUB  JUMP DONE
+DONE RET
+     END)");
+    casl::CometVm vm;
+    vm.load(output);
+    const auto initialSp = vm.state().sp;
+
+    const auto callPhases = completeOneMicroInstruction(vm);
+    require(callPhases == std::vector<casl::MicrocyclePhase>({
+        casl::MicrocyclePhase::Fetch,
+        casl::MicrocyclePhase::Decode,
+        casl::MicrocyclePhase::EffectiveAddress,
+        casl::MicrocyclePhase::Execute,
+        casl::MicrocyclePhase::WriteBack,
+        casl::MicrocyclePhase::Complete
+    }), "CALL phase order");
+    require(vm.state().sp == static_cast<std::uint16_t>(initialSp - 1), "CALL decrements SP");
+    require(vm.state().callDepth == 1, "CALL increments depth");
+
+    const auto branchTarget = symbolAddress(output, "DONE");
+    for (int index = 0; index < 3; ++index) {
+        require(vm.stepMicrocycle().ok, "JUMP pre-execute phase");
+    }
+    require(vm.state().pr != branchTarget, "branch target is not committed before execute");
+    const auto branchExecute = vm.stepMicrocycle();
+    require(branchExecute.phase == casl::MicrocyclePhase::Execute, "JUMP execute phase");
+    require(vm.state().pr == branchTarget, "JUMP commits PR during execute");
+    while (!vm.state().microcycle.instructionComplete) {
+        require(vm.stepMicrocycle().ok, "JUMP completion");
+    }
+
+    const auto retPhases = completeOneMicroInstruction(vm);
+    require(retPhases == std::vector<casl::MicrocyclePhase>({
+        casl::MicrocyclePhase::Fetch,
+        casl::MicrocyclePhase::Decode,
+        casl::MicrocyclePhase::OperandRead,
+        casl::MicrocyclePhase::Execute,
+        casl::MicrocyclePhase::WriteBack,
+        casl::MicrocyclePhase::Complete
+    }), "RET phase order");
+    require(vm.state().sp == initialSp, "RET restores SP");
+    require(vm.state().callDepth == 0, "RET decrements depth");
+}
+
+void InstructionAndMicrocycleParity() {
+    const auto output = assembleSample();
+    casl::CometVm instructionVm;
+    casl::CometVm microcycleVm;
+    instructionVm.load(output);
+    microcycleVm.load(output);
+
+    for (int instruction = 0; instruction < 4; ++instruction) {
+        require(instructionVm.step().ok, "instruction mode step");
+        completeOneMicroInstruction(microcycleVm);
+        const auto& expected = instructionVm.state();
+        const auto& actual = microcycleVm.state();
+        require(actual.pr == expected.pr, "microcycle PR parity");
+        require(actual.sp == expected.sp, "microcycle SP parity");
+        require(actual.callDepth == expected.callDepth, "microcycle call-depth parity");
+        require(actual.ir == expected.ir && actual.mar == expected.mar && actual.mdr == expected.mdr, "microcycle register parity");
+        require(actual.gr == expected.gr, "microcycle GR parity");
+        require(actual.fr.packed() == expected.fr.packed(), "microcycle FR parity");
+        require(actual.memory == expected.memory, "microcycle memory parity");
+        require(actual.stepCount == expected.stepCount, "microcycle instruction-count parity");
+        require(actual.runState == expected.runState, "microcycle run-state parity");
+    }
+}
+
 using TestFunction = void (*)();
 
 const std::vector<std::pair<std::string_view, TestFunction>>& tests() {
@@ -1391,6 +1545,10 @@ const std::vector<std::pair<std::string_view, TestFunction>>& tests() {
         {"DebuggerMutationChangesOnlyTarget", DebuggerMutationChangesOnlyTarget},
         {"RuntimeProgramOverrideExecutesAndInvalidFails", RuntimeProgramOverrideExecutesAndInvalidFails},
         {"FullClearUnloadsVm", FullClearUnloadsVm},
+        {"MicrocycleAllOfficialInstructions", MicrocycleAllOfficialInstructions},
+        {"MicrocycleLdPhaseBoundaries", MicrocycleLdPhaseBoundaries},
+        {"MicrocycleCallRetAndBranch", MicrocycleCallRetAndBranch},
+        {"InstructionAndMicrocycleParity", InstructionAndMicrocycleParity},
     };
     return cases;
 }

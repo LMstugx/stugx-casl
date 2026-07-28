@@ -40,6 +40,7 @@ The C++ path is not a complete C++ compiler and does not execute native code or 
 ## Core Features
 
 - complete official CASL II machine-instruction set, directives, standard macros, and COMET II execution
+- instruction and microcycle stepping through stugx.CASL Teaching Microarchitecture v1
 - WCASL-compatible CASL observation workflow with nonblocking `IN` / `OUT`
 - atomic register and single-word Memory editing with explicit runtime overrides
 - Full Clear that unloads machine state without modifying source
@@ -95,9 +96,9 @@ Canonical guides describe current behavior. Existing `docs/phase*.md` files and 
 - Browser direct Save depends on File System Access support; fallback creates a download copy.
 - Source, paths, handles, diagnostics, and VM state are not restored between sessions.
 - The Windows installer is unsigned and Tauri-native file I/O is deferred.
-- Circuit Focus is pedagogical, not cycle-accurate hardware simulation.
+- COMET Mode is a deterministic teaching microarchitecture, not a claim about physical COMET II timing or implementation.
 - Register/Memory editing is single-target only; bulk mutation and reversible history are not included.
-- Reverse execution, COMET microcycle stepping, and multi-program linking remain future work.
+- Reverse execution and multi-program linking remain future work.
 
 ## Security and Privacy
 

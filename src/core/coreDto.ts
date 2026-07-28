@@ -3,6 +3,7 @@ import { CometState, Diagnostic, InstructionKind } from "./types";
 import type { DiagnosticParamValue, DiagnosticProducer, DiagnosticRelatedLocation, DiagnosticSeverity, SourceRange } from "../diagnostics/types";
 import { encodeCaslInputRecord } from "./caslIoEncoding";
 import { decodeRuntimeInstruction } from "./instructionEncoding";
+import type { ExecutionGranularity, MicrocyclePhase } from "./microcycle";
 
 export interface DiagnosticDto {
   line: number;
@@ -53,6 +54,16 @@ export interface CometStateDto {
   frOF: boolean;
   frSF: boolean;
   frZF: boolean;
+  executionGranularity?: ExecutionGranularity;
+  microcyclePhase?: MicrocyclePhase;
+  microcycleInstructionAddress?: number | null;
+  microcycleInstructionKind?: InstructionKind | null;
+  microcycleSourceLineIndex?: number | null;
+  microcycleIndex?: number;
+  microcycleTotal?: number;
+  microcycleInstructionComplete?: boolean;
+  microcycleHistorySequence?: number;
+  microcycleDetail?: string;
   currentInstructionAddress: number | null;
   currentSourceLineIndex: number | null;
   currentInstructionText: string | null;
@@ -205,6 +216,20 @@ export function toCometStateDto(state: CometState, memoryStart = 0x20, memoryEnd
     frOF: state.fr.o,
     frSF: state.fr.n,
     frZF: state.fr.z,
+    ...(state.executionGranularity === "microcycle"
+      ? {
+          executionGranularity: state.executionGranularity,
+          microcyclePhase: state.microcycle.phase,
+          microcycleInstructionAddress: state.microcycle.instructionAddress ?? null,
+          microcycleInstructionKind: state.microcycle.instructionKind ?? null,
+          microcycleSourceLineIndex: state.microcycle.sourceLine ?? null,
+          microcycleIndex: state.microcycle.microIndex,
+          microcycleTotal: state.microcycle.totalMicrosteps,
+          microcycleInstructionComplete: state.microcycle.instructionComplete,
+          microcycleHistorySequence: state.microcycle.historySequence,
+          microcycleDetail: state.microcycle.detail
+        }
+      : {}),
     currentInstructionAddress: state.currentAddress ?? null,
     currentSourceLineIndex: state.currentLine ?? null,
     currentInstructionText: state.currentInstruction ?? null,

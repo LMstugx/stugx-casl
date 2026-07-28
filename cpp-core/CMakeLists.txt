@@ -36,7 +36,7 @@ if(STUGX_CASL_BUILD_WASM)
     "-sENVIRONMENT=web,worker"
     "-sALLOW_MEMORY_GROWTH=1"
     "-sSTACK_SIZE=2097152"
-    "-sEXPORTED_FUNCTIONS=['_stugx_casl_create','_stugx_casl_destroy','_stugx_casl_assemble','_stugx_casl_step','_stugx_casl_reset','_stugx_casl_reload','_stugx_casl_run','_stugx_casl_get_state','_stugx_casl_enqueue_input','_stugx_casl_mutate','_stugx_casl_full_clear','_stugx_casl_get_last_error']"
+    "-sEXPORTED_FUNCTIONS=['_stugx_casl_create','_stugx_casl_destroy','_stugx_casl_assemble','_stugx_casl_step','_stugx_casl_micro_step','_stugx_casl_run_microcycles','_stugx_casl_reset','_stugx_casl_reload','_stugx_casl_run','_stugx_casl_get_state','_stugx_casl_enqueue_input','_stugx_casl_mutate','_stugx_casl_full_clear','_stugx_casl_get_last_error']"
     "-sEXPORTED_RUNTIME_METHODS=['ccall','cwrap','UTF8ToString','HEAPU8']"
   )
   set_target_properties(stugx_casl_core PROPERTIES
@@ -125,6 +125,10 @@ else()
     DebuggerMutationChangesOnlyTarget
     RuntimeProgramOverrideExecutesAndInvalidFails
     FullClearUnloadsVm
+    MicrocycleAllOfficialInstructions
+    MicrocycleLdPhaseBoundaries
+    MicrocycleCallRetAndBranch
+    InstructionAndMicrocycleParity
   )
 
   foreach(test_name IN LISTS CORE_TESTS)

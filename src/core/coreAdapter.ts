@@ -8,7 +8,9 @@ export interface CoreAdapter {
   reset(): Promise<CometStateDto>;
   reload?(mode: ReloadInitializationMode): Promise<CometStateDto>;
   step(): Promise<StepResultDto>;
+  microStep?(): Promise<StepResultDto>;
   run(maxSteps: number): Promise<CometStateDto>;
+  runMicrocycles?(maxMicrosteps: number): Promise<CometStateDto>;
   getState(): Promise<CometStateDto>;
   enqueueInput?(text: string, endOfFile?: boolean): Promise<CometStateDto>;
   mutateDebuggerState?(request: DebuggerMutationRequest): Promise<CoreDebuggerMutationResult>;

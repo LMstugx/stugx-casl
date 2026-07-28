@@ -35,9 +35,19 @@ export class WasmCoreAdapter implements CoreAdapter {
     return parseWasmJson<StepResultDto>(core.step(), "step", core);
   }
 
+  async microStep(): Promise<StepResultDto> {
+    const core = await this.ensureInitialized();
+    return parseWasmJson<StepResultDto>(core.microStep(), "microStep", core);
+  }
+
   async run(maxSteps: number): Promise<CometStateDto> {
     const core = await this.ensureInitialized();
     return parseWasmJson<CometStateDto>(core.run(maxSteps), "run", core);
+  }
+
+  async runMicrocycles(maxMicrosteps: number): Promise<CometStateDto> {
+    const core = await this.ensureInitialized();
+    return parseWasmJson<CometStateDto>(core.runMicrocycles(maxMicrosteps), "runMicrocycles", core);
   }
 
   async getState(): Promise<CometStateDto> {

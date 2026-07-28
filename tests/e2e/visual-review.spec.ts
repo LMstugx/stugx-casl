@@ -1531,10 +1531,94 @@ DATA DS 1
   await page.setViewportSize({ width: viewport.width, height: viewport.height });
 }
 
+async function captureCometMicrocycleStates(page: Page, viewport: Viewport) {
+  if (!viewport.primary) return;
+  const standardViewport: Viewport = { name: "1440x900", width: 1440, height: 900, primary: true };
+  const compactViewport: Viewport = { name: "1280x720", width: 1280, height: 720 };
+
+  async function prepare(source: string, targetViewport = standardViewport) {
+    await page.setViewportSize({ width: targetViewport.width, height: targetViewport.height });
+    await openStudio(page, "Mock Core");
+    await page.getByTestId("locale-en").click();
+    await setSource(page, source);
+    await assemble(page);
+    await page.getByTestId("comet-mode-toggle").click();
+    await expect(page.getByTestId("comet-mode-workspace")).toHaveAttribute("data-execution-granularity", "microcycle");
+  }
+
+  await prepare(`MAIN START
+     LD GR1,DATA
+     RET
+DATA DC #8000
+     END`);
+  await step(page);
+  await capture(page, standardViewport, "comet-fetch.png");
+  await step(page);
+  await capture(page, standardViewport, "comet-decode.png");
+  await step(page);
+  await capture(page, standardViewport, "comet-effective-address.png");
+  await step(page);
+  await capture(page, standardViewport, "comet-memory-read.png");
+  await capture(page, standardViewport, "comet-memory.png");
+  await step(page);
+  await step(page);
+  await capture(page, standardViewport, "comet-write-back.png");
+  await step(page);
+  await step(page);
+  await capture(page, standardViewport, "comet-instruction-complete.png");
+
+  await prepare(`MAIN START
+     CALL SUB
+     RET
+SUB  RET
+     END`);
+  for (let index = 0; index < 5; index += 1) await step(page);
+  await capture(page, standardViewport, "comet-call.png");
+  await step(page);
+  for (let index = 0; index < 5; index += 1) await step(page);
+  await capture(page, standardViewport, "comet-ret.png");
+
+  await prepare(`MAIN START
+     LAD GR1,#8001
+     SLL GR1,1
+     RET
+     END`);
+  await page.getByTestId("modern-mode-toggle").click();
+  await step(page);
+  await page.getByTestId("comet-mode-toggle").click();
+  for (let index = 0; index < 6; index += 1) await step(page);
+  await capture(page, standardViewport, "comet-shift.png");
+
+  await prepare(`MAIN START
+     JUMP TARGET
+     NOP
+TARGET RET
+     END`);
+  for (let index = 0; index < 4; index += 1) await step(page);
+  await capture(page, standardViewport, "comet-branch.png");
+
+  await prepare(`MAIN START
+     LD GR1,DATA
+     RET
+DATA DC 1
+     END`, compactViewport);
+  await step(page);
+  await capture(page, compactViewport, "comet-1280-en.png");
+  await page.getByTestId("locale-ja").click();
+  await capture(page, compactViewport, "comet-1280-ja.png");
+  await page.getByTestId("locale-zh-CN").click();
+  await capture(page, compactViewport, "comet-1280-zh-cn.png");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+
+  await page.setViewportSize({ width: standardViewport.width, height: standardViewport.height });
+  await capture(page, standardViewport, "comet-1440.png");
+  await page.setViewportSize({ width: viewport.width, height: viewport.height });
+}
+
 test.describe("visual review screenshot gallery", () => {
   for (const viewport of viewports) {
     test(`captures visual review gallery at ${viewport.name}`, async ({ page }) => {
-      test.setTimeout(180_000);
+      test.setTimeout(360_000);
       await page.setViewportSize({ width: viewport.width, height: viewport.height });
       await page.addInitScript(() => {
         const startupSeed = sessionStorage.getItem("visual-startup-seed-active") === "true";
@@ -1597,6 +1681,7 @@ test.describe("visual review screenshot gallery", () => {
       await captureCppDoubleStorageStates(page, viewport);
       await captureCaslCompatibilityStates(page, viewport);
       await captureDebuggerEditingStates(page, viewport);
+      await captureCometMicrocycleStates(page, viewport);
     });
   }
 });

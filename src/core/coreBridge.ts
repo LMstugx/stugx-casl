@@ -114,8 +114,20 @@ export const coreBridge = {
   step() {
     return callCoreTransaction(() => activeSelection.adapter.step());
   },
+  microStep() {
+    return callCoreTransaction(() => {
+      if (!activeSelection.adapter.microStep) throw new Error("Core backend does not support microcycle stepping.");
+      return activeSelection.adapter.microStep();
+    });
+  },
   run(maxSteps: number) {
     return callCoreTransaction(() => activeSelection.adapter.run(maxSteps));
+  },
+  runMicrocycles(maxMicrosteps: number) {
+    return callCoreTransaction(() => {
+      if (!activeSelection.adapter.runMicrocycles) throw new Error("Core backend does not support microcycle run.");
+      return activeSelection.adapter.runMicrocycles(maxMicrosteps);
+    });
   },
   getState() {
     return callCore(() => activeSelection.adapter.getState());

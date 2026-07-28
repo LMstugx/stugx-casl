@@ -24,7 +24,7 @@ Input without a record returns a successful step result in `WaitingInput` withou
 - generated instructions keep the macro's source line and raw source text
 - Machine Code contains only real encoded instructions
 - Trace carries macro name, current expanded-step index, and total step count
-- a future microcycle view operates on expanded machine instructions
+- COMET Mode microcycles operate on expanded machine instructions
 - Mock, C++ Core, and WASM must expose the same DTO shape
 
 Macro expansion must not alter existing `PUSH`, `POP`, `CALL`, or `RET` semantics. A malformed macro uses the existing structured assembler diagnostic path and emits no partial program.

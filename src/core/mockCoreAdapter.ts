@@ -32,11 +32,25 @@ export class MockCoreAdapter implements CoreAdapter {
     return toStepResultDto(this.state);
   }
 
+  async microStep() {
+    this.state = mockCaslCore.microStep(this.state);
+    return toStepResultDto(this.state);
+  }
+
   async run(maxSteps: number) {
     const boundedSteps = Math.max(0, Math.floor(maxSteps));
     for (let index = 0; index < boundedSteps; index += 1) {
       if (this.state.runState === "Finished" || this.state.runState === "WaitingInput" || this.state.runState === "Error") break;
       this.state = mockCaslCore.step(this.state);
+    }
+    return toCometStateDto(this.state);
+  }
+
+  async runMicrocycles(maxMicrosteps: number) {
+    const boundedSteps = Math.max(0, Math.floor(maxMicrosteps));
+    for (let index = 0; index < boundedSteps; index += 1) {
+      if (this.state.runState === "Finished" || this.state.runState === "WaitingInput" || this.state.runState === "Error") break;
+      this.state = mockCaslCore.microStep(this.state);
     }
     return toCometStateDto(this.state);
   }

@@ -1,5 +1,6 @@
 import { formatHex16 } from "../utils/format";
 import type { DiagnosticCode, DiagnosticParams, DiagnosticProducer, DiagnosticRelatedLocation, DiagnosticSeverity, SourceRange } from "../diagnostics/types";
+import type { ExecutionGranularity, MicrocycleHistoryRecord, MicrocycleRuntimeState } from "./microcycle";
 
 export type { DiagnosticCode, DiagnosticParamValue, DiagnosticParams, DiagnosticProducer, DiagnosticRelatedLocation, DiagnosticSeverity, SourceRange } from "../diagnostics/types";
 
@@ -8,6 +9,16 @@ export const WORD_MASK = 0xffff;
 export enum VisualPathKind {
   None = "None",
   Ready_PrToMar = "Ready_PrToMar",
+  Microcycle_Fetch = "Microcycle_Fetch",
+  Microcycle_Decode = "Microcycle_Decode",
+  Microcycle_EffectiveAddress = "Microcycle_EffectiveAddress",
+  Microcycle_OperandReadMemory = "Microcycle_OperandReadMemory",
+  Microcycle_OperandReadRegister = "Microcycle_OperandReadRegister",
+  Microcycle_Execute = "Microcycle_Execute",
+  Microcycle_WriteBackRegister = "Microcycle_WriteBackRegister",
+  Microcycle_WriteBackMemory = "Microcycle_WriteBackMemory",
+  Microcycle_FlagUpdate = "Microcycle_FlagUpdate",
+  Microcycle_Complete = "Microcycle_Complete",
   LD_MemoryToMdrToGr = "LD_MemoryToMdrToGr",
   ST_GrToMdrToMemory = "ST_GrToMdrToMemory",
   ADDA_GrMdrToAluToGr = "ADDA_GrMdrToAluToGr",
@@ -95,7 +106,7 @@ export interface SourceMapEntry {
 }
 
 export interface TraceEvent {
-  kind?: "instruction" | "debugger-register-edit" | "debugger-memory-edit" | "debugger-full-clear";
+  kind?: "instruction" | "microcycle" | "debugger-register-edit" | "debugger-memory-edit" | "debugger-full-clear";
   eventId?: string;
   index: number;
   address: number;
@@ -130,6 +141,10 @@ export interface TraceEvent {
   runtimeImageRevision?: number;
   mutationTarget?: string;
   sourceMappingConfidence?: "exact" | "runtime-word-modified" | "unmapped";
+  microcyclePhase?: MicrocycleRuntimeState["phase"];
+  microIndex?: number;
+  totalMicrosteps?: number;
+  instructionComplete?: boolean;
 }
 
 export interface Diagnostic<C extends DiagnosticCode = DiagnosticCode> {
@@ -190,6 +205,9 @@ export interface CometState {
   consoleInputQueue?: Array<{ words: number[]; endOfFile: boolean }>;
   trace: TraceEvent[];
   visualPath: VisualPathKind;
+  executionGranularity: ExecutionGranularity;
+  microcycle: MicrocycleRuntimeState;
+  microcycleHistory: MicrocycleHistoryRecord[];
   stepIndex: number;
   currentLine?: number;
   currentAddress?: number;

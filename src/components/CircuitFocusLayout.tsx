@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { selectGeneratedCaslRows } from "../core/generatedCaslRows";
 import { selectMachineCodeRows } from "../core/machineCodeRows";
+import { phasesForInstruction, type MicrocyclePhase } from "../core/microcycle";
 import type { CometState } from "../core/types";
 import { VisualPathKind, formatFlags, formatWord } from "../core/types";
+import { microcyclePhaseKey } from "../i18n/microcycle";
 import type { ObservationMode, SourceMode } from "../store/useAppStore";
 import type { CppStorageObject, CppToCaslMap } from "../transpiler/cppAst";
 import { cppLineForCaslLine } from "../transpiler/cppMapping";
@@ -60,7 +62,6 @@ type FocusInstructionContext = {
   instructionText?: string;
   nextInstructionText?: string;
   sourceText: string;
-  pipelineStage: string;
 };
 
 type FocusPanelDensity = "normal" | "compact";
@@ -170,10 +171,6 @@ function timelineStageIndex(state: CometState): number {
   return 1;
 }
 
-function pipelineStageLabel(state: CometState): string {
-  return ["Fetch", "Decode", "Operand Read", "Execute", "Write Back", "Next"][timelineStageIndex(state)] ?? "Fetch";
-}
-
 const pipelineStageKeys: TranslationKey[] = [
   "timeline.fetch",
   "timeline.decode",
@@ -184,7 +181,16 @@ const pipelineStageKeys: TranslationKey[] = [
 ];
 
 function translatedPipelineStage(t: Translate, state: CometState): string {
+  if (state.executionGranularity === "microcycle") {
+    return t(microcyclePhaseKey(state.microcycle.phase));
+  }
   return t(pipelineStageKeys[timelineStageIndex(state)] ?? "timeline.fetch");
+}
+
+function currentMicrocyclePhases(state: CometState): readonly Exclude<MicrocyclePhase, "none">[] {
+  const address = state.microcycle.instructionAddress ?? state.currentAddress ?? state.pr;
+  const instruction = state.program?.find((candidate) => candidate.address === address);
+  return instruction ? phasesForInstruction(instruction) : [];
 }
 
 function activeVisualPath(state: CometState): VisualPathKind {
@@ -255,6 +261,9 @@ function traceChangeText(event: CometState["trace"][number]): string {
 }
 
 function traceMainEvent(event: CometState["trace"][number]): string {
+  if (event.kind === "microcycle") {
+    return `Microstep ${event.microIndex ?? 0}/${event.totalMicrosteps ?? 0} ${event.microcyclePhase ?? "none"}: ${event.instruction}`;
+  }
   if (event.kind === "debugger-register-edit" || event.kind === "debugger-memory-edit") return event.instruction;
   const source = compactInstructionText(event.source);
   if (event.instruction === "RET" && event.visualPath === VisualPathKind.RET_StackToPr) return `#${event.index} RET stack return`;
@@ -264,6 +273,7 @@ function traceMainEvent(event: CometState["trace"][number]): string {
 }
 
 function tracePrimaryEffect(event: CometState["trace"][number]): string {
+  if (event.kind === "microcycle") return event.detail;
   if (event.instruction === "CALL") {
     const target = event.effectiveAddress !== undefined ? formatWord(event.effectiveAddress) : "----";
     const returnAddress = event.returnAddress !== undefined ? formatWord(event.returnAddress) : "----";
@@ -289,6 +299,11 @@ function tracePrimaryEffect(event: CometState["trace"][number]): string {
 }
 
 function traceSecondaryNote(event: CometState["trace"][number]): string {
+  if (event.kind === "microcycle") {
+    return event.instructionComplete
+      ? "Instruction complete"
+      : `Machine instruction @${formatWord(event.address)}`;
+  }
   const notes: string[] = [];
   if (event.stackPointerValueBefore !== undefined && event.stackPointerValueAfter !== undefined) {
     notes.push(`SP: ${formatWord(event.stackPointerValueBefore)} -> ${formatWord(event.stackPointerValueAfter)}`);
@@ -317,8 +332,7 @@ function focusInstructionContext(state: CometState, sourceMode: SourceMode, sour
     address,
     instructionText,
     nextInstructionText,
-    sourceText: sourceLine(sourceText, activeSourceLine),
-    pipelineStage: pipelineStageLabel(state)
+    sourceText: sourceLine(sourceText, activeSourceLine)
   };
 }
 
@@ -435,8 +449,14 @@ function FocusCurrentInstructionPanel({ state, isSourceDirty, focus }: { state: 
 
 function FocusTimeline({ state, timelineItems }: { state: CometState; timelineItems: TimelineItem[] }) {
   const { t } = useI18n();
-  const stages = pipelineStageKeys.map((key) => ({ key, label: t(key) }));
-  const activeIndex = timelineStageIndex(state);
+  const isMicrocycle = state.executionGranularity === "microcycle";
+  const microcyclePhases = currentMicrocyclePhases(state);
+  const stages = isMicrocycle && microcyclePhases.length > 0
+    ? microcyclePhases.map((phase) => ({ key: phase, label: t(microcyclePhaseKey(phase)) }))
+    : pipelineStageKeys.map((key) => ({ key, label: t(key) }));
+  const activeIndex = isMicrocycle
+    ? Math.max(0, microcyclePhases.indexOf(state.microcycle.phase as Exclude<MicrocyclePhase, "none">))
+    : timelineStageIndex(state);
   const stageLabel = translatedPipelineStage(t, state);
 
   return (
@@ -444,9 +464,9 @@ function FocusTimeline({ state, timelineItems }: { state: CometState; timelineIt
       <header className="panel-header">
         <div>
           <h2>{t("timeline.title")}</h2>
-          <span>{t("timeline.pipelineView")}</span>
+          <span>{t(isMicrocycle ? "timeline.instructionCycleView" : "timeline.pipelineView")}</span>
         </div>
-        <span>{t("timeline.pipeline")}: {stageLabel}</span>
+        <span>{t(isMicrocycle ? "timeline.currentPhase" : "timeline.pipeline")}: {stageLabel}</span>
       </header>
       <div className="focus-stage-timeline">
         {stages.map((stage, index) => (
@@ -475,7 +495,7 @@ function FocusTracePanel({ state }: { state: CometState }) {
         {state.trace.length === 0 ? <p className="muted">{t("empty.noTraceEntries")}</p> : null}
         {state.trace.slice(0, 6).map((event, index) => (
           <article
-            key={`${event.index}-${event.address}`}
+            key={event.eventId ?? `${event.index}-${event.address}-${event.microIndex ?? 0}`}
             className={`focus-trace-item ${index === 0 ? "latest" : ""}`}
             data-testid={index === 0 ? "focus-trace-latest" : "focus-trace-item"}
             data-instruction={event.instruction}

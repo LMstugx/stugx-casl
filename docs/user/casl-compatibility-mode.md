@@ -54,4 +54,4 @@ Full Clear unloads machine state and preserves the source document and its Dirty
 
 ## Scope
 
-Step executes one real machine instruction. Expanded macros remain visible as grouped source relations, but the VM does not skip their instructions. COMET microcycle stepping, reverse execution, bulk Memory editing, and multi-program linking are not available.
+Step executes one real machine instruction. Expanded macros remain visible as grouped source relations, but the VM does not skip their instructions. Use [COMET Microcycle Mode](comet-microcycle-mode.md) to advance one real teaching-microarchitecture phase at a time. Reverse execution, bulk Memory editing, and multi-program linking are not available.

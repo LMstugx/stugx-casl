@@ -23,5 +23,6 @@ ADRs record decisions that protect compatibility, security, and teaching behavio
 | [0013](0013-wcasl-compatible-workflow.md) | WCASL compatibility targets semantics and workflow without copying its UI |
 | [0014](0014-debugger-runtime-mutation.md) | Debugger edits are owned runtime transactions with history barriers |
 | [0015](0015-comet-flag-register-three-bit-contract.md) | Public COMET II FR state contains exactly OF, SF, and ZF |
+| [0016](0016-comet-teaching-microarchitecture.md) | COMET microcycles use a deterministic teaching microarchitecture |
 
 To supersede an ADR, add a new numbered record, link the old record, state migration and compatibility effects, and update affected baselines and tests explicitly.

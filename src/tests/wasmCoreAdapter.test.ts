@@ -221,10 +221,23 @@ describe("WASM adapter boundary handling", () => {
 });
 
 function legacyGoldenWindow(state: CometStateDto): CometStateDto {
+  const {
+    executionGranularity: _executionGranularity,
+    microcyclePhase: _microcyclePhase,
+    microcycleInstructionKind: _microcycleInstructionKind,
+    microcycleInstructionAddress: _microcycleInstructionAddress,
+    microcycleSourceLineIndex: _microcycleSourceLineIndex,
+    microcycleIndex: _microcycleIndex,
+    microcycleTotal: _microcycleTotal,
+    microcycleInstructionComplete: _microcycleInstructionComplete,
+    microcycleHistorySequence: _microcycleHistorySequence,
+    microcycleDetail: _microcycleDetail,
+    ...legacy
+  } = state;
   return {
-    ...state,
+    ...legacy,
     memoryWindow: state.memoryWindow.filter((row) => row.address <= 0x002a)
-  };
+  } as CometStateDto;
 }
 
 describeWasm("WasmCoreAdapter golden parity", () => {
@@ -293,6 +306,42 @@ describeWasm("WasmCoreAdapter golden parity", () => {
     const result = await adapter.assemble(DEFAULT_CASL_SOURCE);
 
     expect(legacyGoldenWindow(result.state)).toEqual(simpleReady as CometStateDto);
+    await adapter.dispose();
+  });
+
+  it("wasm_microcycle_runtime_exposes_real_ld_phase_boundaries", async () => {
+    const adapter = new WasmCoreAdapter();
+    await adapter.assemble(`MAIN START
+     LD GR1,DATA
+     RET
+DATA DC #8000
+     END`);
+
+    const phases: string[] = [];
+    for (let index = 0; index < 8; index += 1) {
+      const result = await adapter.microStep();
+      expect(result.ok).toBe(true);
+      phases.push(result.state.microcyclePhase ?? "");
+      expect(result.state.microcycleIndex).toBe(index + 1);
+      expect(result.state.microcycleTotal).toBe(8);
+      if (index < 5) expect(result.state.gr[1]).toBe(0);
+      if (index === 5) expect(result.state.gr[1]).toBe(0x8000);
+    }
+
+    expect(phases).toEqual([
+      "fetch",
+      "decode",
+      "effective-address",
+      "operand-read",
+      "execute",
+      "write-back",
+      "flag-update",
+      "complete"
+    ]);
+    const state = await adapter.getState();
+    expect(state.executionGranularity).toBe("microcycle");
+    expect(state.frSF).toBe(true);
+    expect(state.stepCount).toBe(1);
     await adapter.dispose();
   });
 

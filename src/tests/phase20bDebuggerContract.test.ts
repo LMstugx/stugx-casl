@@ -71,9 +71,9 @@ describe("Phase 20B compatibility baseline", () => {
     expect(baseline.features.filter((feature) => feature.priority === "P2" && feature.currentStatus === "missing")).toEqual([]);
   });
 
-  it("reverse_microcycle_linker_and_project_format_remain_out_of_scope", () => {
+  it("reverse_linker_and_project_format_remain_out_of_scope_while_microcycles_are_compatible", () => {
     expect(byId.get("modern.reverse-step")?.currentStatus).toBe("partial");
-    expect(byId.get("comet.microcycle")?.currentStatus).toBe("partial");
+    expect(byId.get("comet.microcycle")?.currentStatus).toBe("compatible");
     expect(byId.get("project.multi-source-link")?.currentStatus).toBe("partial");
     expect(byId.get("project.wcasl-format")?.currentStatus).toBe("blocked-needs-spec-evidence");
   });
@@ -151,7 +151,6 @@ describe("Phase 20B transaction and security boundaries", () => {
     expect(sources).not.toMatch(/\b(?:fetch|XMLHttpRequest|localStorage|sessionStorage)\b/);
     expect(sources).not.toContain("dangerouslySetInnerHTML");
     expect(sources).not.toContain("Reverse Step");
-    expect(sources).not.toContain("comet-microcycle");
   });
 
   it("debugger_changes_do_not_add_a_persistence_key", () => {

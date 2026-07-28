@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "profile": "stugx.CASL teaching microarchitecture contract for specified COMET II behavior",
-  "runtimeEnabled": false,
+  "profile": "stugx.CASL Teaching Microarchitecture v1",
+  "runtimeEnabled": true,
   "phaseVocabulary": [
     "fetch",
     "decode",

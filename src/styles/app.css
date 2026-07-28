@@ -171,6 +171,156 @@ button {
   gap: var(--space-8);
 }
 
+.comet-mode-workspace {
+  min-width: 0;
+  display: grid;
+  align-content: start;
+  gap: var(--space-8);
+}
+
+.comet-microcycle-panel {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.comet-microcycle-header {
+  align-items: flex-start;
+  gap: var(--space-12);
+}
+
+.comet-microcycle-header h2,
+.comet-microcycle-header p,
+.comet-microcycle-trace h3,
+.comet-microcycle-trace p {
+  margin: 0;
+}
+
+.comet-microcycle-header p,
+.comet-microarchitecture-name,
+.comet-microcycle-status span,
+.comet-microcycle-source > span,
+.comet-microcycle-trace small {
+  color: var(--color-muted);
+  font-size: var(--font-size-caption);
+}
+
+.comet-microarchitecture-name {
+  flex: 0 0 auto;
+  max-width: 340px;
+  text-align: right;
+}
+
+.comet-microcycle-status {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1px;
+  background: var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.comet-microcycle-status > div {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+  padding: var(--space-8) var(--space-12);
+  background: var(--color-surface);
+}
+
+.comet-microcycle-status strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.comet-microcycle-source {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: baseline;
+  gap: var(--space-8);
+  padding: var(--space-8) var(--space-12);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.comet-microcycle-source code {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.comet-phase-track {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 4px;
+  margin: 0;
+  padding: var(--space-8) var(--space-12);
+  list-style: none;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.comet-phase-track li {
+  min-width: 0;
+  min-height: 36px;
+  display: grid;
+  place-items: center;
+  padding: 4px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-muted);
+  font-size: var(--font-size-caption);
+  line-height: 1.2;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.comet-phase-track li.completed {
+  color: var(--color-text);
+  background: var(--color-surface-subtle);
+}
+
+.comet-phase-track li.current {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+  box-shadow: inset 0 0 0 1px var(--color-primary);
+}
+
+.comet-microcycle-trace {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 140px minmax(0, 1fr);
+  gap: var(--space-8);
+  align-items: start;
+  padding: var(--space-8) var(--space-12);
+}
+
+.comet-microcycle-trace ol {
+  min-width: 0;
+  max-height: 150px;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.comet-microcycle-trace li {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 150px 160px minmax(0, 1fr);
+  gap: var(--space-8);
+  align-items: baseline;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.comet-microcycle-trace small {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 .casl-mode-heading,
 .casl-mode-controls {
   min-width: 0;
@@ -5244,6 +5394,22 @@ button {
   .right-column {
     grid-column: 1 / -1;
     min-height: 420px;
+  }
+
+  .comet-microcycle-status {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .comet-phase-track {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .comet-microcycle-trace {
+    grid-template-columns: 1fr;
+  }
+
+  .comet-microcycle-trace li {
+    grid-template-columns: 130px 145px minmax(0, 1fr);
   }
 }
 

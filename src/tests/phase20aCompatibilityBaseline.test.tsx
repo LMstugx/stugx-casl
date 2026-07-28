@@ -111,9 +111,9 @@ describe("Phase 20A compatibility baseline", () => {
     expect(cycle.instructions.some((entry) => cycle.macroPolicy.macros.includes(entry.mnemonic))).toBe(false);
   });
 
-  it("microcycle_contract_is_not_enabled_in_runtime_yet", () => {
-    expect(cycle.runtimeEnabled).toBe(false);
-    expect(readFileSync(resolve(root, "src/App.tsx"), "utf8")).not.toContain("comet-microcycle");
+  it("microcycle_contract_is_enabled_by_the_phase20c_runtime", () => {
+    expect(cycle.runtimeEnabled).toBe(true);
+    expect(readFileSync(resolve(root, "src/App.tsx"), "utf8")).toContain("CometMicrocyclePanel");
   });
 });
 

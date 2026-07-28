@@ -248,6 +248,45 @@ button {
   white-space: nowrap;
 }
 
+.comet-reverse-controls {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  padding: var(--space-8) var(--space-12) 0;
+}
+
+.comet-reverse-button {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+}
+
+.comet-reverse-reason,
+.comet-history-floor-notice,
+.comet-reverse-live {
+  color: var(--color-muted);
+  font-size: var(--font-size-caption);
+}
+
+.comet-reverse-reason {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.comet-history-floor-notice {
+  margin-left: auto;
+  text-align: right;
+}
+
+.comet-reverse-live {
+  min-height: 18px;
+  margin: 0;
+  padding: 2px var(--space-12) var(--space-8);
+}
+
 .comet-phase-track {
   min-width: 0;
   display: grid;
@@ -5410,6 +5449,17 @@ button {
 
   .comet-microcycle-trace li {
     grid-template-columns: 130px 145px minmax(0, 1fr);
+  }
+
+  .comet-reverse-controls {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .comet-history-floor-notice {
+    width: 100%;
+    margin-left: 0;
+    text-align: left;
   }
 }
 

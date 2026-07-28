@@ -207,3 +207,47 @@ DATA DC #8000
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
   }
 }
+
+export async function verifyReverseMicrostep(page: Page, backendLabel: "Mock Core" | "WASM Core") {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await openStudio(page, backendLabel);
+  await setSource(page, `MAIN START
+     LD GR1,DATA
+     RET
+DATA DC #8000
+     END`);
+  await assemble(page);
+  await page.getByTestId("comet-mode-toggle").click();
+
+  const reverse = page.getByTestId("reverse-microstep-button");
+  await expect(reverse).toBeDisabled();
+  await step(page);
+  await expect(page.getByTestId("comet-current-phase")).toHaveText("Fetch");
+  await expect(reverse).toBeEnabled();
+
+  await reverse.click();
+  await expect(page.getByTestId("comet-current-microstep")).toHaveText("0/0");
+  await expect(page.getByTestId("reverse-microstep-notice")).not.toBeEmpty();
+
+  for (let index = 0; index < 6; index += 1) await step(page);
+  await expect(page.getByTestId("comet-current-phase")).toHaveText("Write Back");
+  await page.getByTestId("observation-mode-register-stack").click();
+  await expect(page.getByTestId("focus-register-bank").getByTestId("register-gr1")).toContainText("8000");
+  const traceCountBefore = await page.locator(".comet-microcycle-trace li").count();
+
+  await reverse.click();
+  await expect(page.getByTestId("comet-current-phase")).toHaveText("Execute");
+  await expect(page.getByTestId("focus-register-bank").getByTestId("register-gr1")).toContainText("0000");
+  await expect(page.locator(".comet-microcycle-trace li")).toHaveCount(traceCountBefore - 1);
+  await expect(reverse).toBeFocused();
+
+  await page.getByTestId("reset-button").click();
+  await expect(reverse).toBeDisabled();
+  await expect(page.locator("#comet-reverse-reason")).toContainText(/Reset|リセット|重置/);
+
+  for (const locale of ["ja", "zh-CN", "en"] as const) {
+    await page.getByTestId(`locale-${locale}`).click();
+    await expect(reverse).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+  }
+}

@@ -22,6 +22,7 @@ export type LoadedWasmCore = {
   assemble: (sourceText: string) => string;
   step: () => string;
   microStep: () => string;
+  reverseMicrostep: (historyEpoch: number, timelineRevision: number) => string;
   runMicrocycles: (maxMicrosteps: number) => string;
   reset: () => string;
   reload: (mode: number) => string;
@@ -171,6 +172,10 @@ export async function loadWasmModule(options: WasmModuleLoadOptions = {}): Promi
     assemble: wrapJsonFunction(module, "stugx_casl_assemble", ["string"]) as (sourceText: string) => string,
     step: wrapJsonFunction(module, "stugx_casl_step", []) as () => string,
     microStep: wrapJsonFunction(module, "stugx_casl_micro_step", []) as () => string,
+    reverseMicrostep: wrapJsonFunction(module, "stugx_casl_reverse_microstep", ["number", "number"]) as (
+      historyEpoch: number,
+      timelineRevision: number
+    ) => string,
     runMicrocycles: wrapJsonFunction(module, "stugx_casl_run_microcycles", ["number"]) as (maxMicrosteps: number) => string,
     reset: wrapJsonFunction(module, "stugx_casl_reset", []) as () => string,
     reload: wrapJsonFunction(module, "stugx_casl_reload", ["number"]) as (mode: number) => string,

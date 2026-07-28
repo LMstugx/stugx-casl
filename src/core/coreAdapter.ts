@@ -1,5 +1,6 @@
 import type { AssembleResultDto, CometStateDto, StepResultDto } from "./coreDto";
 import type { CoreDebuggerMutationResult, DebuggerMutationRequest } from "../debugger/debuggerMutation";
+import type { ReverseMicrostepResultDto } from "./reverseMicrocycle";
 
 export type ReloadInitializationMode = "assembled" | "zero" | "ffff";
 
@@ -9,6 +10,7 @@ export interface CoreAdapter {
   reload?(mode: ReloadInitializationMode): Promise<CometStateDto>;
   step(): Promise<StepResultDto>;
   microStep?(): Promise<StepResultDto>;
+  reverseMicrostep?(historyEpoch: number, timelineRevision: number): Promise<ReverseMicrostepResultDto>;
   run(maxSteps: number): Promise<CometStateDto>;
   runMicrocycles?(maxMicrosteps: number): Promise<CometStateDto>;
   getState(): Promise<CometStateDto>;

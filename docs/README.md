@@ -15,7 +15,9 @@ This directory separates current product documentation from historical implement
 - [Observation Modes](user/observation-modes.md)
 - [CASL Workflow](user/casl-workflow.md)
 - [CASL Compatibility Mode](user/casl-compatibility-mode.md)
+- [COMET Mode](user/comet-mode.md)
 - [COMET Microcycle Mode](user/comet-microcycle-mode.md)
+- [Reverse Microstep](user/reverse-microstep.md)
 - [CASL State Editing](user/casl-state-editing.md)
 - [Full Clear](user/full-clear.md)
 - [CASL Input and Output](user/casl-input-output.md)
@@ -42,6 +44,7 @@ This directory separates current product documentation from historical implement
 - [CASL Macro Expansion](developer/casl-macro-expansion.md)
 - [COMET II VM](developer/comet-vm.md)
 - [COMET Microcycle Runtime](developer/comet-microcycle-runtime.md)
+- [Microcycle History](developer/microcycle-history.md)
 - [WASM Bridge](developer/wasm-bridge.md)
 - [Circuit Visualization](developer/circuit-visualization.md)
 - [Diagnostics and i18n](developer/diagnostics-and-i18n.md)
@@ -54,6 +57,8 @@ This directory separates current product documentation from historical implement
 - [Contributing Workflow](developer/contributing-workflow.md)
 - [Debugger Mutation Contract](debugger-mutation-contract.md)
 - [Debugger History Barrier](debugger-history-barrier-contract.md)
+- [Reverse Microstep Runtime Contract](reverse-microstep-runtime-contract.md)
+- [Reverse History Integrity](reverse-history-integrity.md)
 
 ## Technical Reference
 
@@ -133,10 +138,12 @@ Historical Phase reports, manifests, release-candidate evidence, and visual revi
 - [Phase 20B Debugger Editing](phase20b-debugger-state-editing.md)
 - [Phase 20B.1 FR Specification Alignment](phase20b1-fr-spec-alignment.md)
 - [Phase 20C COMET Instruction-Cycle Runtime](phase20c-comet-instruction-cycle-runtime.md)
+- [Phase 20D Reverse Microstep](phase20d-reverse-microstep.md)
 - [WCASL Debugger Editing Audit](wcasl-debugger-editing-audit.md)
 - [WCASL-compatible Workflow Roadmap](wcasl-replacement-roadmap.md)
 - [COMET Microcycle Visual Contract](comet-microcycle-visual-contract.md)
 - [COMET Microcycle Runtime Contract](comet-microcycle-runtime-contract.md)
+- [Reverse Microstep Runtime Contract](reverse-microstep-runtime-contract.md)
 - [Multi-program Linking Design](multi-program-linking-design.md)
 
 - [Technical Documentation Foundation](phase18a4-technical-documentation-foundation.md)

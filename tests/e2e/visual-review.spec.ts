@@ -1293,6 +1293,7 @@ async function captureCppDoubleStorageStates(page: Page, viewport: Viewport) {
   if (!viewport.primary) return;
   const standardViewport: Viewport = { name: "1440x900", width: 1440, height: 900, primary: true };
   const compactViewport: Viewport = { name: "1280x720", width: 1280, height: 720 };
+  const minimumViewport: Viewport = { name: "1180x700", width: 1180, height: 700 };
 
   await page.setViewportSize({ width: standardViewport.width, height: standardViewport.height });
   await openStudio(page, "Mock Core");
@@ -1535,6 +1536,7 @@ async function captureCometMicrocycleStates(page: Page, viewport: Viewport) {
   if (!viewport.primary) return;
   const standardViewport: Viewport = { name: "1440x900", width: 1440, height: 900, primary: true };
   const compactViewport: Viewport = { name: "1280x720", width: 1280, height: 720 };
+  const minimumViewport: Viewport = { name: "1180x700", width: 1180, height: 700 };
 
   async function prepare(source: string, targetViewport = standardViewport) {
     await page.setViewportSize({ width: targetViewport.width, height: targetViewport.height });
@@ -1553,8 +1555,14 @@ DATA DC #8000
      END`);
   await step(page);
   await capture(page, standardViewport, "comet-fetch.png");
+  await page.getByTestId("reverse-microstep-button").click();
+  await capture(page, standardViewport, "comet-reverse-fetch.png");
+  await step(page);
   await step(page);
   await capture(page, standardViewport, "comet-decode.png");
+  await page.getByTestId("reverse-microstep-button").click();
+  await capture(page, standardViewport, "comet-reverse-decode.png");
+  await step(page);
   await step(page);
   await capture(page, standardViewport, "comet-effective-address.png");
   await step(page);
@@ -1563,6 +1571,10 @@ DATA DC #8000
   await step(page);
   await step(page);
   await capture(page, standardViewport, "comet-write-back.png");
+  await page.getByTestId("reverse-microstep-button").click();
+  await capture(page, standardViewport, "comet-reverse-writeback.png");
+  await capture(page, standardViewport, "comet-reverse-restored-circuit.png");
+  await step(page);
   await step(page);
   await step(page);
   await capture(page, standardViewport, "comet-instruction-complete.png");
@@ -1574,6 +1586,9 @@ SUB  RET
      END`);
   for (let index = 0; index < 5; index += 1) await step(page);
   await capture(page, standardViewport, "comet-call.png");
+  await page.getByTestId("reverse-microstep-button").click();
+  await capture(page, standardViewport, "comet-reverse-call-stack.png");
+  await step(page);
   await step(page);
   for (let index = 0; index < 5; index += 1) await step(page);
   await capture(page, standardViewport, "comet-ret.png");
@@ -1588,6 +1603,9 @@ SUB  RET
   await page.getByTestId("comet-mode-toggle").click();
   for (let index = 0; index < 6; index += 1) await step(page);
   await capture(page, standardViewport, "comet-shift.png");
+  await step(page);
+  await page.getByTestId("reverse-microstep-button").click();
+  await capture(page, standardViewport, "comet-reverse-shift-flags.png");
 
   await prepare(`MAIN START
      JUMP TARGET
@@ -1596,6 +1614,21 @@ TARGET RET
      END`);
   for (let index = 0; index < 4; index += 1) await step(page);
   await capture(page, standardViewport, "comet-branch.png");
+  await page.getByTestId("reverse-microstep-button").click();
+  await capture(page, standardViewport, "comet-reverse-branch.png");
+
+  await prepare(`MAIN START
+     LAD GR1,#0042
+     ST GR1,DATA
+     RET
+DATA DS 1
+     END`);
+  for (let index = 0; index < 6; index += 1) await step(page);
+  for (let index = 0; index < 5; index += 1) await step(page);
+  await page.getByTestId("reverse-microstep-button").click();
+  await capture(page, standardViewport, "comet-reverse-memory-write.png");
+  await page.getByTestId("reset-button").click();
+  await capture(page, standardViewport, "comet-reverse-barrier.png");
 
   await prepare(`MAIN START
      LD GR1,DATA
@@ -1608,6 +1641,14 @@ DATA DC 1
   await capture(page, compactViewport, "comet-1280-ja.png");
   await page.getByTestId("locale-zh-CN").click();
   await capture(page, compactViewport, "comet-1280-zh-cn.png");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+  await capture(page, compactViewport, "comet-reverse-1280.png");
+
+  await page.setViewportSize({ width: minimumViewport.width, height: minimumViewport.height });
+  await page.getByTestId("locale-ja").click();
+  await capture(page, minimumViewport, "comet-reverse-ja-1180.png");
+  await page.getByTestId("locale-zh-CN").click();
+  await capture(page, minimumViewport, "comet-reverse-zh-cn-1180.png");
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
 
   await page.setViewportSize({ width: standardViewport.width, height: standardViewport.height });

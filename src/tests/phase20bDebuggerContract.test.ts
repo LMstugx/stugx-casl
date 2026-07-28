@@ -73,6 +73,7 @@ describe("Phase 20B compatibility baseline", () => {
 
   it("reverse_linker_and_project_format_remain_out_of_scope_while_microcycles_are_compatible", () => {
     expect(byId.get("modern.reverse-step")?.currentStatus).toBe("partial");
+    expect(byId.get("modern.reverse-microstep")?.currentStatus).toBe("superset");
     expect(byId.get("comet.microcycle")?.currentStatus).toBe("compatible");
     expect(byId.get("project.multi-source-link")?.currentStatus).toBe("partial");
     expect(byId.get("project.wcasl-format")?.currentStatus).toBe("blocked-needs-spec-evidence");

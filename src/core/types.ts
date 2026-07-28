@@ -1,6 +1,7 @@
 import { formatHex16 } from "../utils/format";
 import type { DiagnosticCode, DiagnosticParams, DiagnosticProducer, DiagnosticRelatedLocation, DiagnosticSeverity, SourceRange } from "../diagnostics/types";
 import type { ExecutionGranularity, MicrocycleHistoryRecord, MicrocycleRuntimeState } from "./microcycle";
+import type { MicrocycleHistorySummary, ReverseAvailability } from "./reverseMicrocycle";
 
 export type { DiagnosticCode, DiagnosticParamValue, DiagnosticParams, DiagnosticProducer, DiagnosticRelatedLocation, DiagnosticSeverity, SourceRange } from "../diagnostics/types";
 
@@ -208,6 +209,10 @@ export interface CometState {
   executionGranularity: ExecutionGranularity;
   microcycle: MicrocycleRuntimeState;
   microcycleHistory: MicrocycleHistoryRecord[];
+  historyEpoch: number;
+  timelineRevision: number;
+  reverseAvailability: ReverseAvailability;
+  microcycleHistorySummary: MicrocycleHistorySummary;
   stepIndex: number;
   currentLine?: number;
   currentAddress?: number;

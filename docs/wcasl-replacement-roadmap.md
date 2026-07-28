@@ -22,7 +22,9 @@ stugx.CASL is an independent, unofficial CASL II / COMET II learning studio. It 
 
 ## Candidate Next Work
 
-Phase 20C implements the documented COMET teaching microarchitecture after proving instruction-specific phases and the absence of fake memory accesses. A later phase may admit Reverse Step using the frozen history barrier and Phase 20C transition records. Structured multi-program linking remains behind the admission gate in [multi-program-linking-design.md](multi-program-linking-design.md).
+Phase 20C implements the documented COMET teaching microarchitecture after proving instruction-specific phases and the absence of fake memory accesses. Phase 20D adds deterministic Reverse Microstep inside one history epoch, with atomic inverse deltas and strict SVC/I/O, mutation, lifecycle, ownership, and capacity barriers.
+
+Traditional Reverse Instruction, Redo, reverse run, and persistent timelines remain separate admission work. Structured multi-program linking remains behind the gate in [multi-program-linking-design.md](multi-program-linking-design.md).
 
 ## Prohibited Shortcuts
 

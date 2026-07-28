@@ -130,7 +130,9 @@ describe("Phase 20C microcycle contract", () => {
       expect(result.state.executionGranularity, instruction).toBe("microcycle");
       expect(result.state.microcycle.instructionComplete, instruction).toBe(true);
       expect(result.state.stepIndex, instruction).toBe(1);
-      expect(result.state.microcycleHistory, instruction).toHaveLength(result.phases.length);
+      expect(result.state.microcycleHistory, instruction).toHaveLength(
+        instruction === "SVC" ? 1 : result.phases.length
+      );
     }
   });
 

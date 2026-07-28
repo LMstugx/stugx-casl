@@ -1,8 +1,15 @@
+import { Undo2 } from "lucide-react";
+import { useRef } from "react";
 import type { CometState } from "../core/types";
 import type { MicrocyclePhase } from "../core/microcycle";
+import type {
+  ReverseMicrostepStatus,
+  ReverseUnavailableReason
+} from "../core/reverseMicrocycle";
 import { phasesForInstruction, TEACHING_MICROARCHITECTURE_NAME } from "../core/microcycle";
 import { formatWord } from "../core/types";
 import { microcyclePhaseKey } from "../i18n/microcycle";
+import type { TranslationKey } from "../i18n/types";
 import { useI18n } from "../i18n/useI18n";
 
 const ALL_PHASES: readonly Exclude<MicrocyclePhase, "none">[] = [
@@ -16,8 +23,44 @@ const ALL_PHASES: readonly Exclude<MicrocyclePhase, "none">[] = [
   "complete"
 ];
 
-export default function CometMicrocyclePanel({ state }: { state: CometState }) {
+const REVERSE_REASON_KEYS: Readonly<Record<ReverseUnavailableReason, TranslationKey>> = {
+  available: "cometMode.reverse.description",
+  "no-history": "cometMode.reverse.noHistory",
+  running: "cometMode.reverse.running",
+  "waiting-input": "cometMode.reverse.io",
+  "svc-boundary": "cometMode.reverse.svc",
+  "io-boundary": "cometMode.reverse.io",
+  "mutation-boundary": "cometMode.reverse.mutation",
+  "reset-boundary": "cometMode.reverse.reset",
+  "reload-boundary": "cometMode.reverse.reload",
+  "full-clear-boundary": "cometMode.reverse.fullClear",
+  "assembly-boundary": "cometMode.reverse.noHistory",
+  "source-replacement-boundary": "cometMode.reverse.noHistory",
+  "history-capacity-boundary": "cometMode.reverse.capacity",
+  "history-epoch-mismatch": "cometMode.reverse.otherExecution",
+  "execution-epoch-mismatch": "cometMode.reverse.otherExecution",
+  "runtime-not-loaded": "cometMode.reverse.noHistory",
+  "history-corrupt": "cometMode.reverse.corrupt"
+};
+
+type CometMicrocyclePanelProps = {
+  state: CometState;
+  reverseInFlight?: boolean;
+  reverseNotice?: {
+    restoredPhase: MicrocyclePhase;
+    reversedEntryId?: number;
+  } | null;
+  onReverse?: () => Promise<ReverseMicrostepStatus>;
+};
+
+export default function CometMicrocyclePanel({
+  state,
+  reverseInFlight = false,
+  reverseNotice = null,
+  onReverse
+}: CometMicrocyclePanelProps) {
   const { t } = useI18n();
+  const reverseButtonRef = useRef<HTMLButtonElement>(null);
   const microcycle = state.microcycle;
   const instructionAddress = microcycle.instructionAddress ?? state.currentAddress ?? state.pr;
   const sourceRow = state.sourceMap.find((row) => row.address === instructionAddress);
@@ -27,6 +70,21 @@ export default function CometMicrocyclePanel({ state }: { state: CometState }) {
   const source = sourceRow?.source ?? t("cometMode.noSource");
   const machineWords = sourceRow?.machineWords ?? [state.memory[instructionAddress] ?? 0];
   const recentMicrocycles = state.trace.filter((event) => event.kind === "microcycle").slice(0, 8);
+  const reverseAvailability = state.reverseAvailability;
+  const reverseDisabled = reverseInFlight
+    || state.runState === "Running"
+    || !reverseAvailability.available
+    || !onReverse;
+  const reverseReason = reverseInFlight
+    ? t("cometMode.reverse.running")
+    : t(REVERSE_REASON_KEYS[reverseAvailability.reason]);
+  const handleReverse = async () => {
+    const status = await onReverse?.();
+    if (status !== "reversed") return;
+    requestAnimationFrame(() => {
+      if (!reverseButtonRef.current?.disabled) reverseButtonRef.current?.focus();
+    });
+  };
 
   return (
     <section className="panel comet-microcycle-panel" data-testid="comet-microcycle-panel">
@@ -65,6 +123,42 @@ export default function CometMicrocyclePanel({ state }: { state: CometState }) {
         <span>{t("cometMode.currentSource")}</span>
         <code title={source}>{source}</code>
       </div>
+
+      <div className="comet-reverse-controls">
+        <button
+          ref={reverseButtonRef}
+          type="button"
+          className="secondary-button comet-reverse-button"
+          data-testid="reverse-microstep-button"
+          disabled={reverseDisabled}
+          aria-describedby="comet-reverse-reason"
+          onClick={() => void handleReverse()}
+        >
+          <Undo2 size={17} aria-hidden="true" />
+          <span>{t("cometMode.reverse.label")}</span>
+        </button>
+        <span id="comet-reverse-reason" className="comet-reverse-reason">
+          {reverseReason}
+        </span>
+        {state.microcycleHistorySummary.droppedEntryCount > 0 ? (
+          <span className="comet-history-floor-notice">
+            {t("cometMode.reverse.capacity")}
+          </span>
+        ) : null}
+      </div>
+      <p
+        className="comet-reverse-live"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        data-testid="reverse-microstep-notice"
+      >
+        {reverseNotice
+          ? t("cometMode.reverse.restored", {
+              phase: t(microcyclePhaseKey(reverseNotice.restoredPhase))
+            })
+          : ""}
+      </p>
 
       <ol className="comet-phase-track" aria-label={t("cometMode.phaseSequence")}>
         {phases.map((phase) => {

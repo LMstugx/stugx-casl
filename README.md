@@ -97,8 +97,8 @@ Canonical guides describe current behavior. Existing `docs/phase*.md` files and 
 - Source, paths, handles, diagnostics, and VM state are not restored between sessions.
 - The Windows installer is unsigned and Tauri-native file I/O is deferred.
 - COMET Mode is a deterministic teaching microarchitecture, not a claim about physical COMET II timing or implementation.
-- Register/Memory editing is single-target only; bulk mutation and reversible history are not included.
-- Reverse execution and multi-program linking remain future work.
+- Register/Memory editing is single-target only; bulk mutation is not included.
+- COMET Mode can reverse one retained safe microcycle. Reverse Instruction, Redo, reverse run, persistent history, and multi-program linking remain future work.
 
 ## Security and Privacy
 

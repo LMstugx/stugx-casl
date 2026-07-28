@@ -33,4 +33,6 @@ Run in COMET Mode continuously executes microcycles using the existing bounded R
 
 ## Limits
 
-Reverse Step is not available. Phase 20C records bounded transition history, including architectural state and memory-write deltas, as an implementation foundation for a later reversible debugger. The history is runtime-only and is cleared by Reset, Reload, manual debugger mutation, source replacement, and Full Clear.
+Reverse Microstep restores one completed phase when retained history is safe. It is available only in COMET Mode and may leave the machine inside an instruction. Reset, Reload, manual debugger mutation, source replacement, Full Clear, SVC, and input/output prevent crossing their boundary. See [Reverse Microstep](reverse-microstep.md).
+
+The history is runtime-only, bounded to 1000 entries, and has no Redo, Reverse Run, Reverse Instruction, or persistence.

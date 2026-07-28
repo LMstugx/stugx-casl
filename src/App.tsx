@@ -171,6 +171,8 @@ function StudioShell({
     programModified,
     dataModified,
     mutationInFlight,
+    reverseInFlight,
+    reverseNotice,
     currentDocument,
     currentWriteBinding,
     documentDirty,
@@ -185,6 +187,7 @@ function StudioShell({
     reload,
     mutateDebuggerState,
     fullClear,
+    reverseMicrostep,
     stop,
     submitConsoleInput,
     clearOutput,
@@ -533,7 +536,12 @@ function StudioShell({
           data-testid="comet-mode-workspace"
           data-execution-granularity={executionGranularity}
         >
-          <CometMicrocyclePanel state={state} />
+          <CometMicrocyclePanel
+            state={state}
+            reverseInFlight={reverseInFlight}
+            reverseNotice={reverseNotice}
+            onReverse={reverseMicrostep}
+          />
           <CircuitFocusLayout
             key={sourceUnitId}
             state={state}

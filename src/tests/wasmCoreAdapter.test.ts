@@ -345,6 +345,33 @@ DATA DC #8000
     await adapter.dispose();
   });
 
+  it("wasm_reverse_microstep_uses_core_history_and_restores_write_back", async () => {
+    const adapter = new WasmCoreAdapter();
+    await adapter.assemble(`MAIN START
+     LD GR1,DATA
+     RET
+DATA DC #8000
+     END`);
+
+    let writeBack = await adapter.microStep();
+    while (writeBack.state.microcyclePhase !== "write-back") {
+      writeBack = await adapter.microStep();
+    }
+    expect(writeBack.state.gr[1]).toBe(0x8000);
+    expect(writeBack.state.reverseAvailability?.available).toBe(true);
+
+    const reversed = await adapter.reverseMicrostep(
+      writeBack.state.historyEpoch ?? 0,
+      writeBack.state.timelineRevision ?? 0
+    );
+    expect(reversed.status).toBe("reversed");
+    expect(reversed.restoredPhase).toBe("execute");
+    expect(reversed.state.gr[1]).toBe(0);
+    expect(reversed.state.microcyclePhase).toBe("execute");
+    expect(reversed.state.reverseAvailability?.available).toBe(true);
+    await adapter.dispose();
+  });
+
   it("wasm step1 matches golden", async () => {
     const adapter = new WasmCoreAdapter();
     await adapter.assemble(DEFAULT_CASL_SOURCE);

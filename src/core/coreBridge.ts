@@ -120,6 +120,12 @@ export const coreBridge = {
       return activeSelection.adapter.microStep();
     });
   },
+  reverseMicrostep(historyEpoch: number, timelineRevision: number) {
+    return callCoreTransaction(() => {
+      if (!activeSelection.adapter.reverseMicrostep) throw new Error("Core backend does not support reverse microcycle.");
+      return activeSelection.adapter.reverseMicrostep(historyEpoch, timelineRevision);
+    });
+  },
   run(maxSteps: number) {
     return callCoreTransaction(() => activeSelection.adapter.run(maxSteps));
   },

@@ -23,6 +23,11 @@ import { normalizeAssemblerDiagnostics, normalizeDiagnostics } from "../diagnost
 import { decodeCaslOutputRecord } from "./caslIoEncoding";
 import type { ReloadInitializationMode } from "./coreAdapter";
 import type { DebuggerMutationTarget } from "../debugger/debuggerMutation";
+import {
+  EMPTY_MICROCYCLE_HISTORY_SUMMARY,
+  EMPTY_REVERSE_AVAILABILITY,
+  type ReverseMicrostepResultDto
+} from "./reverseMicrocycle";
 import { isDebuggerWord, isValidDebuggerMutationTarget } from "../debugger/debuggerMutation";
 import { decodeRuntimeInstruction } from "./instructionEncoding";
 
@@ -132,6 +137,8 @@ function cloneState(state: CometState): CometState {
     trace: state.trace.map((event) => ({ ...event })),
     microcycle: { ...state.microcycle },
     microcycleHistory: state.microcycleHistory.map((entry) => ({ ...entry })),
+    reverseAvailability: { ...state.reverseAvailability },
+    microcycleHistorySummary: { ...state.microcycleHistorySummary },
     program: state.program?.map((instruction) => ({ ...instruction })),
     changedRegisters: [...state.changedRegisters],
     changedMemoryAddresses: [...state.changedMemoryAddresses],
@@ -1176,6 +1183,10 @@ function createState(artifacts: AssembleArtifacts): CometState {
     executionGranularity: "instruction",
     microcycle: { ...EMPTY_MICROCYCLE_STATE },
     microcycleHistory: [],
+    historyEpoch: 1,
+    timelineRevision: 1,
+    reverseAvailability: { available: false, reason: "assembly-boundary" },
+    microcycleHistorySummary: { ...EMPTY_MICROCYCLE_HISTORY_SUMMARY },
     stepIndex: 0,
     program: artifacts.program,
     changedRegisters: [],
@@ -1212,6 +1223,10 @@ export function createEmptyCometState(runState: CometState["runState"] = "Idle",
     executionGranularity: "instruction",
     microcycle: { ...EMPTY_MICROCYCLE_STATE },
     microcycleHistory: [],
+    historyEpoch: 0,
+    timelineRevision: 0,
+    reverseAvailability: { ...EMPTY_REVERSE_AVAILABILITY },
+    microcycleHistorySummary: { ...EMPTY_MICROCYCLE_HISTORY_SUMMARY },
     stepIndex: 0,
     program: [],
     changedRegisters: [],
@@ -1830,6 +1845,68 @@ type ActiveMockMicrocycle = {
 
 const activeMockMicrocycles = new WeakMap<CometState, ActiveMockMicrocycle>();
 
+type MockReversibleSnapshot = Omit<
+  CometState,
+  | "memory"
+  | "initialMemory"
+  | "microcycleHistory"
+  | "historyEpoch"
+  | "timelineRevision"
+  | "reverseAvailability"
+  | "microcycleHistorySummary"
+>;
+
+type MockReversibleEntry = {
+  entryId: number;
+  historyEpoch: number;
+  before: MockReversibleSnapshot;
+  after: MockReversibleSnapshot;
+  availabilityBefore: CometState["reverseAvailability"];
+  contextBefore?: ActiveMockMicrocycle;
+  contextAfter?: ActiveMockMicrocycle;
+  memoryChanges: MicrocycleHistoryRecord["memoryChanges"];
+};
+
+const mockReversibleHistory = new WeakMap<CometState, readonly MockReversibleEntry[]>();
+const mockMicrocycleSequence = new WeakMap<CometState, number>();
+
+function captureMockReversibleSnapshot(state: CometState): MockReversibleSnapshot {
+  const cloned = cloneState(state);
+  const {
+    memory: _memory,
+    initialMemory: _initialMemory,
+    microcycleHistory: _microcycleHistory,
+    historyEpoch: _historyEpoch,
+    timelineRevision: _timelineRevision,
+    reverseAvailability: _reverseAvailability,
+    microcycleHistorySummary: _microcycleHistorySummary,
+    ...snapshot
+  } = cloned;
+  return snapshot;
+}
+
+function mockSnapshotMatches(state: CometState, snapshot: MockReversibleSnapshot): boolean {
+  return JSON.stringify(captureMockReversibleSnapshot(state)) === JSON.stringify(snapshot);
+}
+
+function restoreMockSnapshot(
+  current: CometState,
+  snapshot: MockReversibleSnapshot,
+  memory: Record<number, number>,
+  microcycleHistory: MicrocycleHistoryRecord[]
+): CometState {
+  return {
+    ...snapshot,
+    memory,
+    initialMemory: current.initialMemory ? { ...current.initialMemory } : undefined,
+    microcycleHistory,
+    historyEpoch: current.historyEpoch,
+    timelineRevision: current.timelineRevision,
+    reverseAvailability: { ...current.reverseAvailability },
+    microcycleHistorySummary: { ...current.microcycleHistorySummary }
+  };
+}
+
 function beginMockMicrocycle(state: CometState): ActiveMockMicrocycle | undefined {
   if (!state.assembled || state.runState === "Finished" || state.runState === "WaitingInput" || state.runState === "Error") {
     return undefined;
@@ -2032,6 +2109,8 @@ function mockMicroStep(state: CometState): CometState {
   let context = activeMockMicrocycles.get(state);
   if (!context) context = beginMockMicrocycle(state);
   if (!context) return refreshDerivedState({ ...cloneState(state), executionGranularity: "microcycle" });
+  const contextBefore = context;
+  const reversibleBefore = captureMockReversibleSnapshot(state);
 
   const phase = context.phases[context.nextPhaseIndex];
   const next = cloneState(state);
@@ -2046,7 +2125,7 @@ function mockMicroStep(state: CometState): CometState {
     runState: state.runState
   };
   applyMockMicrocyclePhase(next, state, context, phase);
-  const sequence = (state.microcycleHistory[0]?.sequence ?? 0) + 1;
+  const sequence = (mockMicrocycleSequence.get(state) ?? state.microcycle.historySequence) + 1;
   const instructionComplete = phase === "complete";
   next.executionGranularity = "microcycle";
   next.visualPath = microcycleVisualPath(phase, context.instruction);
@@ -2114,6 +2193,7 @@ function mockMicroStep(state: CometState): CometState {
   };
   next.trace = [microTrace, ...next.trace].slice(0, MAX_TRACE_EVENTS);
   context = { ...context, nextPhaseIndex: context.nextPhaseIndex + 1 };
+  next.timelineRevision = state.timelineRevision + 1;
 
   const refreshed = refreshDerivedState(next);
   if (!instructionComplete && refreshed.runState !== "WaitingInput") {
@@ -2122,7 +2202,144 @@ function mockMicroStep(state: CometState): CometState {
     refreshed.currentInstruction = currentInstructionText(context.instruction);
     activeMockMicrocycles.set(refreshed, context);
   }
+
+  if (contextBefore.instruction.op === "SVC" && phase === "execute") {
+    refreshed.historyEpoch = state.historyEpoch + 1;
+    refreshed.microcycleHistory = [];
+    refreshed.reverseAvailability = {
+      available: false,
+      reason: refreshed.runState === "WaitingInput" ? "io-boundary" : "svc-boundary"
+    };
+    refreshed.microcycleHistorySummary = { ...EMPTY_MICROCYCLE_HISTORY_SUMMARY };
+    mockReversibleHistory.set(refreshed, []);
+    mockMicrocycleSequence.set(refreshed, 0);
+    return refreshed;
+  }
+
+  const priorHistory = [...(mockReversibleHistory.get(state) ?? [])];
+  const droppedEntryCount = state.microcycleHistorySummary.droppedEntryCount
+    + (priorHistory.length >= MAX_TRACE_EVENTS ? 1 : 0);
+  if (priorHistory.length >= MAX_TRACE_EVENTS) priorHistory.shift();
+  const reversibleEntry: MockReversibleEntry = {
+    entryId: sequence,
+    historyEpoch: refreshed.historyEpoch,
+    before: reversibleBefore,
+    after: captureMockReversibleSnapshot(refreshed),
+    availabilityBefore: { ...state.reverseAvailability },
+    contextBefore,
+    contextAfter: instructionComplete || refreshed.runState === "WaitingInput" ? undefined : context,
+    memoryChanges: history.memoryChanges
+  };
+  const reversibleHistory = [...priorHistory, reversibleEntry];
+  refreshed.reverseAvailability = {
+    available: true,
+    reason: "available",
+    targetPhase: reversibleBefore.microcycle.phase
+  };
+  refreshed.microcycleHistorySummary = {
+    retainedEntries: reversibleHistory.length,
+    capacity: MAX_TRACE_EVENTS,
+    floorEntryId: droppedEntryCount > 0
+      ? state.microcycleHistorySummary.floorEntryId ?? priorHistory[0]?.entryId
+      : undefined,
+    droppedEntryCount
+  };
+  reversibleEntry.after = captureMockReversibleSnapshot(refreshed);
+  mockReversibleHistory.set(refreshed, reversibleHistory);
+  mockMicrocycleSequence.set(refreshed, sequence);
   return refreshed;
+}
+
+export function reverseMockMicrocycle(
+  state: CometState,
+  expectedHistoryEpoch: number,
+  expectedTimelineRevision: number
+): { state: CometState; result: Omit<ReverseMicrostepResultDto, "state"> } {
+  if (expectedHistoryEpoch !== state.historyEpoch || expectedTimelineRevision !== state.timelineRevision) {
+    return {
+      state,
+      result: {
+        status: "stale",
+        historyEpoch: state.historyEpoch,
+        timelineRevision: state.timelineRevision,
+        availability: {
+          available: false,
+          reason: expectedHistoryEpoch !== state.historyEpoch
+            ? "history-epoch-mismatch"
+            : "execution-epoch-mismatch"
+        }
+      }
+    };
+  }
+  if (!state.reverseAvailability.available) {
+    return {
+      state,
+      result: {
+        status: state.reverseAvailability.reason === "no-history" ? "unavailable" : "blocked",
+        historyEpoch: state.historyEpoch,
+        timelineRevision: state.timelineRevision,
+        availability: { ...state.reverseAvailability }
+      }
+    };
+  }
+  const history = [...(mockReversibleHistory.get(state) ?? [])];
+  const entry = history.at(-1);
+  if (!entry || entry.historyEpoch !== state.historyEpoch || !mockSnapshotMatches(state, entry.after)) {
+    return {
+      state,
+      result: {
+        status: "corrupt-history",
+        historyEpoch: state.historyEpoch,
+        timelineRevision: state.timelineRevision,
+        availability: { available: false, reason: "history-corrupt" }
+      }
+    };
+  }
+  for (const change of entry.memoryChanges) {
+    if ((state.memory[change.address] ?? 0) !== change.after) {
+      return {
+        state,
+        result: {
+          status: "corrupt-history",
+          historyEpoch: state.historyEpoch,
+          timelineRevision: state.timelineRevision,
+          availability: { available: false, reason: "history-corrupt" }
+        }
+      };
+    }
+  }
+
+  const memory = { ...state.memory };
+  for (const change of entry.memoryChanges) memory[change.address] = change.before;
+  history.pop();
+  const previousHistory = state.microcycleHistory.filter((record) => record.sequence !== entry.entryId);
+  const restored = refreshDerivedState(restoreMockSnapshot(state, entry.before, memory, previousHistory));
+  restored.timelineRevision = state.timelineRevision + 1;
+  restored.historyEpoch = state.historyEpoch;
+  restored.microcycleHistorySummary = {
+    ...state.microcycleHistorySummary,
+    retainedEntries: history.length
+  };
+  restored.reverseAvailability = history.length > 0
+    ? { available: true, reason: "available", targetPhase: history.at(-1)?.before.microcycle.phase }
+    : state.microcycleHistorySummary.droppedEntryCount > 0
+      ? { available: false, reason: "history-capacity-boundary" }
+      : { available: false, reason: entry.availabilityBefore.reason };
+  if (entry.contextBefore) activeMockMicrocycles.set(restored, entry.contextBefore);
+  mockReversibleHistory.set(restored, history);
+  mockMicrocycleSequence.set(restored, mockMicrocycleSequence.get(state) ?? entry.entryId);
+  return {
+    state: restored,
+    result: {
+      status: "reversed",
+      reversedEntryId: entry.entryId,
+      previousPhase: entry.after.microcycle.phase,
+      restoredPhase: entry.before.microcycle.phase,
+      historyEpoch: restored.historyEpoch,
+      timelineRevision: restored.timelineRevision,
+      availability: { ...restored.reverseAvailability }
+    }
+  };
 }
 
 export const mockCaslCore: CaslCore = {
@@ -2142,7 +2359,11 @@ export const mockCaslCore: CaslCore = {
       ...reset,
       executionGranularity: "instruction",
       microcycle: { ...EMPTY_MICROCYCLE_STATE },
-      microcycleHistory: []
+      microcycleHistory: [],
+      historyEpoch: state.historyEpoch + 1,
+      timelineRevision: state.timelineRevision + 1,
+      reverseAvailability: { available: false, reason: "reset-boundary" },
+      microcycleHistorySummary: { ...EMPTY_MICROCYCLE_HISTORY_SUMMARY }
     };
   },
   reload(state: CometState, mode: ReloadInitializationMode): CometState {
@@ -2151,7 +2372,11 @@ export const mockCaslCore: CaslCore = {
       ...reloaded,
       executionGranularity: "instruction",
       microcycle: { ...EMPTY_MICROCYCLE_STATE },
-      microcycleHistory: []
+      microcycleHistory: [],
+      historyEpoch: state.historyEpoch + 1,
+      timelineRevision: state.timelineRevision + 1,
+      reverseAvailability: { available: false, reason: "reload-boundary" },
+      microcycleHistorySummary: { ...EMPTY_MICROCYCLE_HISTORY_SUMMARY }
     };
   },
   enqueueInput(state: CometState, words: number[], endOfFile = false): CometState {
@@ -2159,7 +2384,12 @@ export const mockCaslCore: CaslCore = {
     return {
       ...next,
       executionGranularity: "instruction",
-      microcycle: { ...EMPTY_MICROCYCLE_STATE }
+      microcycle: { ...EMPTY_MICROCYCLE_STATE },
+      microcycleHistory: [],
+      historyEpoch: state.historyEpoch + 1,
+      timelineRevision: state.timelineRevision + 1,
+      reverseAvailability: { available: false, reason: "io-boundary" },
+      microcycleHistorySummary: { ...EMPTY_MICROCYCLE_HISTORY_SUMMARY }
     };
   },
   mutate(state: CometState, target: DebuggerMutationTarget, nextWord: number) {
@@ -2171,7 +2401,11 @@ export const mockCaslCore: CaslCore = {
         ...result.state,
         executionGranularity: "instruction" as const,
         microcycle: { ...EMPTY_MICROCYCLE_STATE },
-        microcycleHistory: []
+        microcycleHistory: [],
+        historyEpoch: state.historyEpoch + 1,
+        timelineRevision: state.timelineRevision + 1,
+        reverseAvailability: { available: false, reason: "mutation-boundary" },
+        microcycleHistorySummary: { ...EMPTY_MICROCYCLE_HISTORY_SUMMARY }
       }
     };
   },

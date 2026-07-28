@@ -118,6 +118,66 @@ enum class MicrocyclePhase {
     Complete
 };
 
+enum class HistoryBarrierReason {
+    None,
+    DebuggerMutation,
+    ProgramWordOverride,
+    Reload,
+    Reset,
+    FullClear,
+    AssemblyCommit,
+    SourceReplacement,
+    ProgramReplacement,
+    InputSubmission,
+    IoSideEffect,
+    ConsoleClear,
+    Svc,
+    BackendReplacement,
+    HistoryCapacity
+};
+
+enum class ReverseUnavailableReason {
+    Available,
+    NoHistory,
+    Running,
+    WaitingInput,
+    SvcBoundary,
+    IoBoundary,
+    MutationBoundary,
+    ResetBoundary,
+    ReloadBoundary,
+    FullClearBoundary,
+    AssemblyBoundary,
+    SourceReplacementBoundary,
+    HistoryCapacityBoundary,
+    HistoryEpochMismatch,
+    ExecutionEpochMismatch,
+    RuntimeNotLoaded,
+    HistoryCorrupt
+};
+
+enum class ReverseMicrostepStatus {
+    Reversed,
+    Unavailable,
+    Blocked,
+    Stale,
+    CorruptHistory,
+    Cancelled
+};
+
+struct ReverseAvailability {
+    bool available = false;
+    ReverseUnavailableReason reason = ReverseUnavailableReason::RuntimeNotLoaded;
+    std::optional<MicrocyclePhase> targetPhase;
+};
+
+struct MicrocycleHistorySummary {
+    std::size_t retainedEntries = 0;
+    std::size_t capacity = 1000;
+    std::optional<std::uint64_t> floorEntryId;
+    std::uint64_t droppedEntryCount = 0;
+};
+
 struct MicrocycleState {
     MicrocyclePhase phase = MicrocyclePhase::None;
     std::optional<InstructionKind> instructionKind;
@@ -168,6 +228,10 @@ struct CometState {
     std::optional<std::uint16_t> lastIndexValue;
     std::optional<std::uint16_t> lastEffectiveAddress;
     std::vector<std::vector<std::uint16_t>> consoleOutput;
+    std::uint64_t historyEpoch = 0;
+    std::uint64_t timelineRevision = 0;
+    ReverseAvailability reverseAvailability{};
+    MicrocycleHistorySummary microcycleHistorySummary{};
 };
 
 struct SourceRow {
@@ -209,6 +273,16 @@ struct MicrocycleStepResult {
     std::optional<InstructionKind> instructionKind;
     VisualPathKind visualPath = VisualPathKind::None;
     std::vector<Diagnostic> diagnostics;
+};
+
+struct ReverseMicrostepResult {
+    ReverseMicrostepStatus status = ReverseMicrostepStatus::Unavailable;
+    std::optional<std::uint64_t> reversedEntryId;
+    std::optional<MicrocyclePhase> previousPhase;
+    std::optional<MicrocyclePhase> restoredPhase;
+    std::uint64_t historyEpoch = 0;
+    std::uint64_t timelineRevision = 0;
+    ReverseAvailability availability{};
 };
 
 struct RunResult {

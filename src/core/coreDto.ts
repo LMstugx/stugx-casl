@@ -4,6 +4,7 @@ import type { DiagnosticParamValue, DiagnosticProducer, DiagnosticRelatedLocatio
 import { encodeCaslInputRecord } from "./caslIoEncoding";
 import { decodeRuntimeInstruction } from "./instructionEncoding";
 import type { ExecutionGranularity, MicrocyclePhase } from "./microcycle";
+import type { ReverseAvailabilityDto } from "./reverseMicrocycle";
 
 export interface DiagnosticDto {
   line: number;
@@ -54,6 +55,15 @@ export interface CometStateDto {
   frOF: boolean;
   frSF: boolean;
   frZF: boolean;
+  historyEpoch?: number;
+  timelineRevision?: number;
+  reverseAvailability?: ReverseAvailabilityDto;
+  microcycleHistorySummary?: {
+    retainedEntries: number;
+    capacity: number;
+    floorEntryId?: number | null;
+    droppedEntryCount: number;
+  };
   executionGranularity?: ExecutionGranularity;
   microcyclePhase?: MicrocyclePhase;
   microcycleInstructionAddress?: number | null;
@@ -216,6 +226,22 @@ export function toCometStateDto(state: CometState, memoryStart = 0x20, memoryEnd
     frOF: state.fr.o,
     frSF: state.fr.n,
     frZF: state.fr.z,
+    ...(state.executionGranularity === "microcycle"
+      || (state.reverseAvailability.reason !== "assembly-boundary"
+        && state.reverseAvailability.reason !== "runtime-not-loaded")
+      ? {
+          historyEpoch: state.historyEpoch,
+          timelineRevision: state.timelineRevision,
+          reverseAvailability: {
+            ...state.reverseAvailability,
+            targetPhase: state.reverseAvailability.targetPhase ?? null
+          },
+          microcycleHistorySummary: {
+            ...state.microcycleHistorySummary,
+            floorEntryId: state.microcycleHistorySummary.floorEntryId ?? null
+          }
+        }
+      : {}),
     ...(state.executionGranularity === "microcycle"
       ? {
           executionGranularity: state.executionGranularity,

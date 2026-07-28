@@ -772,15 +772,33 @@
     },
     {
       "featureId": "modern.reverse-step",
-      "featureName": "Reverse execution",
+      "featureName": "Traditional reverse instruction execution",
       "sourceCategory": "WCASL debugger workflow",
-      "evidenceReference": "docs/wcasl-replacement-roadmap.md",
+      "evidenceReference": "docs/user/reverse-microstep.md",
       "currentStatus": "partial",
       "priority": "P2",
       "implementationOwner": "debugger",
-      "tests": [],
-      "limitations": "No production reverse-step action; snapshot design requires a separate safety contract.",
-      "targetPhase": "20C"
+      "tests": [
+        "reverse_button_only_available_when_safe"
+      ],
+      "limitations": "Reverse Microstep is available, but one-action Reverse Instruction, Redo, reverse run, cross-SVC/I/O rollback, and persistent timelines are not.",
+      "targetPhase": "future"
+    },
+    {
+      "featureId": "modern.reverse-microstep",
+      "featureName": "Deterministic reverse microstep",
+      "sourceCategory": "modern-superset",
+      "evidenceReference": "docs/reverse-microstep-runtime-contract.md",
+      "currentStatus": "superset",
+      "priority": "P2",
+      "implementationOwner": "debugger",
+      "tests": [
+        "reverse_fetch_restores_pre_fetch_state",
+        "reverse_write_back_and_flag_update_restore_register_and_fr",
+        "cannot_reverse_across_svc"
+      ],
+      "limitations": "Limited to retained transactions in the current history epoch; no Redo, Reverse Run, Reverse Instruction, persistence, or I/O reversal.",
+      "targetPhase": "20D"
     },
     {
       "featureId": "modern.independent-ui",

@@ -5,6 +5,9 @@ export const CANONICAL_DOCS = Object.freeze([
   "docs/user/observation-modes.md",
   "docs/user/casl-workflow.md",
   "docs/user/casl-compatibility-mode.md",
+  "docs/user/comet-mode.md",
+  "docs/user/comet-microcycle-mode.md",
+  "docs/user/reverse-microstep.md",
   "docs/user/casl-state-editing.md",
   "docs/user/full-clear.md",
   "docs/user/casl-input-output.md",
@@ -27,6 +30,8 @@ export const CANONICAL_DOCS = Object.freeze([
   "docs/developer/casl-assembler.md",
   "docs/developer/casl-macro-expansion.md",
   "docs/developer/comet-vm.md",
+  "docs/developer/comet-microcycle-runtime.md",
+  "docs/developer/microcycle-history.md",
   "docs/developer/wasm-bridge.md",
   "docs/developer/circuit-visualization.md",
   "docs/developer/diagnostics-and-i18n.md",
@@ -39,6 +44,9 @@ export const CANONICAL_DOCS = Object.freeze([
   "docs/developer/contributing-workflow.md",
   "docs/debugger-mutation-contract.md",
   "docs/debugger-history-barrier-contract.md",
+  "docs/comet-microcycle-runtime-contract.md",
+  "docs/reverse-microstep-runtime-contract.md",
+  "docs/reverse-history-integrity.md",
   "docs/reference/supported-casl-instructions.md",
   "docs/reference/casl-syntax-support.md",
   "docs/reference/comet-ii-instruction-coverage.md",
@@ -66,7 +74,9 @@ export const CANONICAL_DOCS = Object.freeze([
   "docs/adr/0010-double-teaching-abi.md",
   "docs/adr/0013-wcasl-compatible-workflow.md",
   "docs/adr/0014-debugger-runtime-mutation.md",
-  "docs/adr/0015-comet-flag-register-three-bit-contract.md"
+  "docs/adr/0015-comet-flag-register-three-bit-contract.md",
+  "docs/adr/0016-comet-teaching-microarchitecture.md",
+  "docs/adr/0017-reverse-microstep-and-history-barriers.md"
 ]);
 
 export const REQUIRED_HEADER_FIELDS = Object.freeze([

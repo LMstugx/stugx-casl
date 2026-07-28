@@ -3,6 +3,7 @@ import type { AssembleResultDto, CometStateDto, StepResultDto } from "./coreDto"
 import { loadWasmModule, type LoadedWasmCore } from "./wasmLoader";
 import { encodeCaslInputRecord } from "./caslIoEncoding";
 import type { CoreDebuggerMutationResult, DebuggerMutationRequest } from "../debugger/debuggerMutation";
+import type { ReverseMicrostepResultDto } from "./reverseMicrocycle";
 import {
   debuggerMutationWord,
   isValidDebuggerMutationInput,
@@ -38,6 +39,15 @@ export class WasmCoreAdapter implements CoreAdapter {
   async microStep(): Promise<StepResultDto> {
     const core = await this.ensureInitialized();
     return parseWasmJson<StepResultDto>(core.microStep(), "microStep", core);
+  }
+
+  async reverseMicrostep(historyEpoch: number, timelineRevision: number): Promise<ReverseMicrostepResultDto> {
+    const core = await this.ensureInitialized();
+    return parseWasmJson<ReverseMicrostepResultDto>(
+      core.reverseMicrostep(historyEpoch, timelineRevision),
+      "reverseMicrostep",
+      core
+    );
   }
 
   async run(maxSteps: number): Promise<CometStateDto> {

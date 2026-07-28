@@ -1,6 +1,6 @@
 import type { CoreAdapter, ReloadInitializationMode } from "./coreAdapter";
 import { toAssembleResultDto, toCometStateDto, toStepResultDto } from "./coreDto";
-import { mockCaslCore, createEmptyCometState } from "./mockCaslCore";
+import { mockCaslCore, createEmptyCometState, reverseMockMicrocycle } from "./mockCaslCore";
 import type { CometState } from "./types";
 import { encodeCaslInputRecord } from "./caslIoEncoding";
 import {
@@ -13,7 +13,12 @@ export class MockCoreAdapter implements CoreAdapter {
   private state: CometState = createEmptyCometState("Idle", ["Editor ready. Assemble to load the current source."]);
 
   async assemble(sourceText: string) {
-    this.state = mockCaslCore.assemble(sourceText);
+    const previous = this.state;
+    this.state = {
+      ...mockCaslCore.assemble(sourceText),
+      historyEpoch: previous.historyEpoch + 1,
+      timelineRevision: previous.timelineRevision + 1
+    };
     return toAssembleResultDto(this.state);
   }
 
@@ -35,6 +40,28 @@ export class MockCoreAdapter implements CoreAdapter {
   async microStep() {
     this.state = mockCaslCore.microStep(this.state);
     return toStepResultDto(this.state);
+  }
+
+  async reverseMicrostep(historyEpoch: number, timelineRevision: number) {
+    const reverse = reverseMockMicrocycle(this.state, historyEpoch, timelineRevision);
+    this.state = reverse.state;
+    const state = toCometStateDto(this.state);
+    return {
+      ...reverse.result,
+      state: {
+        ...state,
+        historyEpoch: this.state.historyEpoch,
+        timelineRevision: this.state.timelineRevision,
+        reverseAvailability: {
+          ...this.state.reverseAvailability,
+          targetPhase: this.state.reverseAvailability.targetPhase ?? null
+        },
+        microcycleHistorySummary: {
+          ...this.state.microcycleHistorySummary,
+          floorEntryId: this.state.microcycleHistorySummary.floorEntryId ?? null
+        }
+      }
+    };
   }
 
   async run(maxSteps: number) {
@@ -85,7 +112,13 @@ export class MockCoreAdapter implements CoreAdapter {
   }
 
   async fullClear() {
-    this.state = mockCaslCore.fullClear();
+    const previous = this.state;
+    this.state = {
+      ...mockCaslCore.fullClear(),
+      historyEpoch: previous.historyEpoch + 1,
+      timelineRevision: previous.timelineRevision + 1,
+      reverseAvailability: { available: false, reason: "runtime-not-loaded" }
+    };
     return toCometStateDto(this.state);
   }
 }

@@ -58,3 +58,5 @@ Reset restores normal execution state and reapplies runtime memory overrides in 
 No debugger mutation or Full Clear writes a persistence key, file, source, Generated CASL, or network endpoint.
 
 Finished and WaitingInput are explicit stopped states for this contract. A manual mutation transitions either state to Ready, clears transient instruction presentation, and does not execute or resume the program. Queued input remains owned by the loaded VM until Reload or Full Clear.
+
+Every successful mutation establishes a new history epoch. Reverse Microstep cannot cross it, including a confirmed runtime program-word override. A deterministic invalid-word execution after that override may itself be reversed to Ready, but the edited word remains and the mutation boundary is still the history floor.

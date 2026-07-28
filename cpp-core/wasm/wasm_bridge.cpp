@@ -109,6 +109,41 @@ std::string microcyclePhaseName(casl::MicrocyclePhase phase) {
     }
 }
 
+std::string reverseUnavailableReasonName(casl::ReverseUnavailableReason reason) {
+    switch (reason) {
+        case casl::ReverseUnavailableReason::Available: return "available";
+        case casl::ReverseUnavailableReason::NoHistory: return "no-history";
+        case casl::ReverseUnavailableReason::Running: return "running";
+        case casl::ReverseUnavailableReason::WaitingInput: return "waiting-input";
+        case casl::ReverseUnavailableReason::SvcBoundary: return "svc-boundary";
+        case casl::ReverseUnavailableReason::IoBoundary: return "io-boundary";
+        case casl::ReverseUnavailableReason::MutationBoundary: return "mutation-boundary";
+        case casl::ReverseUnavailableReason::ResetBoundary: return "reset-boundary";
+        case casl::ReverseUnavailableReason::ReloadBoundary: return "reload-boundary";
+        case casl::ReverseUnavailableReason::FullClearBoundary: return "full-clear-boundary";
+        case casl::ReverseUnavailableReason::AssemblyBoundary: return "assembly-boundary";
+        case casl::ReverseUnavailableReason::SourceReplacementBoundary: return "source-replacement-boundary";
+        case casl::ReverseUnavailableReason::HistoryCapacityBoundary: return "history-capacity-boundary";
+        case casl::ReverseUnavailableReason::HistoryEpochMismatch: return "history-epoch-mismatch";
+        case casl::ReverseUnavailableReason::ExecutionEpochMismatch: return "execution-epoch-mismatch";
+        case casl::ReverseUnavailableReason::RuntimeNotLoaded: return "runtime-not-loaded";
+        case casl::ReverseUnavailableReason::HistoryCorrupt: return "history-corrupt";
+    }
+    return "history-corrupt";
+}
+
+std::string reverseStatusName(casl::ReverseMicrostepStatus status) {
+    switch (status) {
+        case casl::ReverseMicrostepStatus::Reversed: return "reversed";
+        case casl::ReverseMicrostepStatus::Unavailable: return "unavailable";
+        case casl::ReverseMicrostepStatus::Blocked: return "blocked";
+        case casl::ReverseMicrostepStatus::Stale: return "stale";
+        case casl::ReverseMicrostepStatus::CorruptHistory: return "corrupt-history";
+        case casl::ReverseMicrostepStatus::Cancelled: return "cancelled";
+    }
+    return "corrupt-history";
+}
+
 std::string severityName(casl::Severity severity) {
     return severity == casl::Severity::Error ? "error" : "warning";
 }
@@ -329,7 +364,8 @@ std::string dumpStateJson(
     const casl::AssembleOutput& assembled,
     const casl::CometState& state,
     const std::optional<casl::StepResult>& lastStep,
-    const std::vector<casl::Diagnostic>& diagnostics
+    const std::vector<casl::Diagnostic>& diagnostics,
+    bool forceReverseRuntimeState = false
 ) {
     const auto activeAddress = state.executionGranularity == casl::ExecutionGranularity::Microcycle &&
         state.microcycle.phase != casl::MicrocyclePhase::None
@@ -377,6 +413,32 @@ std::string dumpStateJson(
     output << "  \"frOF\": " << boolText(state.fr.o) << ",\n";
     output << "  \"frSF\": " << boolText(state.fr.n) << ",\n";
     output << "  \"frZF\": " << boolText(state.fr.z) << ",\n";
+    const auto emitsReverseRuntimeState =
+        forceReverseRuntimeState
+        || state.executionGranularity == casl::ExecutionGranularity::Microcycle
+        || (state.reverseAvailability.reason != casl::ReverseUnavailableReason::AssemblyBoundary
+            && state.reverseAvailability.reason != casl::ReverseUnavailableReason::RuntimeNotLoaded);
+    if (emitsReverseRuntimeState) {
+        output << "  \"historyEpoch\": " << state.historyEpoch << ",\n";
+        output << "  \"timelineRevision\": " << state.timelineRevision << ",\n";
+        output << "  \"reverseAvailability\": {"
+               << "\"available\": " << boolText(state.reverseAvailability.available)
+               << ", \"reason\": \"" << reverseUnavailableReasonName(state.reverseAvailability.reason) << "\""
+               << ", \"targetPhase\": "
+               << (state.reverseAvailability.targetPhase.has_value()
+                   ? "\"" + microcyclePhaseName(*state.reverseAvailability.targetPhase) + "\""
+                   : "null")
+               << "},\n";
+        output << "  \"microcycleHistorySummary\": {"
+               << "\"retainedEntries\": " << state.microcycleHistorySummary.retainedEntries
+               << ", \"capacity\": " << state.microcycleHistorySummary.capacity
+               << ", \"floorEntryId\": "
+               << (state.microcycleHistorySummary.floorEntryId.has_value()
+                   ? std::to_string(*state.microcycleHistorySummary.floorEntryId)
+                   : "null")
+               << ", \"droppedEntryCount\": " << state.microcycleHistorySummary.droppedEntryCount
+               << "},\n";
+    }
     if (state.executionGranularity == casl::ExecutionGranularity::Microcycle) {
         output << "  \"executionGranularity\": \"" << executionGranularityName(state.executionGranularity) << "\",\n";
         output << "  \"microcyclePhase\": \"" << microcyclePhaseName(state.microcycle.phase) << "\",\n";
@@ -622,6 +684,56 @@ EMSCRIPTEN_KEEPALIVE const char* stugx_casl_micro_step() {
         g_lastError = error.what();
         const std::vector<casl::Diagnostic> diagnostics{{0, casl::Severity::Error, g_lastError}};
         return setJson(resultJson("microStep", false, stateErrorJson(g_lastError), diagnostics));
+    }
+}
+
+EMSCRIPTEN_KEEPALIVE const char* stugx_casl_reverse_microstep(int historyEpoch, int timelineRevision) {
+    try {
+        auto& rt = runtime();
+        if (!rt.loaded || !rt.assembled.has_value()) {
+            rt.lastDiagnostics = {{0, casl::Severity::Error, "No program loaded"}};
+            g_lastError = "No program loaded";
+            return setJson(stateErrorJson(g_lastError));
+        }
+
+        const auto reverse = rt.vm.reverseMicrocycle(
+            static_cast<std::uint64_t>(historyEpoch),
+            static_cast<std::uint64_t>(timelineRevision)
+        );
+        rt.lastStep.reset();
+        rt.lastDiagnostics.clear();
+        g_lastError.clear();
+        const auto stateJson = dumpStateJson(
+            *rt.assembled,
+            rt.vm.state(),
+            rt.lastStep,
+            rt.lastDiagnostics,
+            true
+        );
+        std::ostringstream output;
+        output << "{\n";
+        output << "  \"status\": \"" << reverseStatusName(reverse.status) << "\",\n";
+        output << "  \"reversedEntryId\": "
+               << (reverse.reversedEntryId.has_value() ? std::to_string(*reverse.reversedEntryId) : "null") << ",\n";
+        output << "  \"previousPhase\": "
+               << (reverse.previousPhase.has_value() ? "\"" + microcyclePhaseName(*reverse.previousPhase) + "\"" : "null") << ",\n";
+        output << "  \"restoredPhase\": "
+               << (reverse.restoredPhase.has_value() ? "\"" + microcyclePhaseName(*reverse.restoredPhase) + "\"" : "null") << ",\n";
+        output << "  \"historyEpoch\": " << reverse.historyEpoch << ",\n";
+        output << "  \"timelineRevision\": " << reverse.timelineRevision << ",\n";
+        output << "  \"availability\": {"
+               << "\"available\": " << boolText(reverse.availability.available)
+               << ", \"reason\": \"" << reverseUnavailableReasonName(reverse.availability.reason) << "\""
+               << ", \"targetPhase\": "
+               << (reverse.availability.targetPhase.has_value()
+                   ? "\"" + microcyclePhaseName(*reverse.availability.targetPhase) + "\""
+                   : "null")
+               << "},\n";
+        output << "  \"state\": " << stateJson << "\n";
+        output << "}";
+        return setJson(output.str());
+    } catch (const std::exception& error) {
+        return setError(error.what());
     }
 }
 

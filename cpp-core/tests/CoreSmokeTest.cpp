@@ -1,6 +1,7 @@
 #include <cassert>
 #include <cstdlib>
 #include <iostream>
+#include <memory>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -1470,6 +1471,237 @@ void InstructionAndMicrocycleParity() {
     }
 }
 
+casl::ReverseMicrostepResult reverseLatest(casl::CometVm& vm) {
+    return vm.reverseMicrocycle(vm.state().historyEpoch, vm.state().timelineRevision);
+}
+
+void ReverseMicrocycleRestoresFetchAndWriteBack() {
+    const auto output = assembleOrExit(R"(MAIN START
+     LD GR1,DATA
+     RET
+DATA DC #8000
+     END)");
+    casl::CometVm vm;
+    vm.load(output);
+    const auto initial = vm.state();
+
+    require(vm.stepMicrocycle().phase == casl::MicrocyclePhase::Fetch, "forward fetch");
+    const auto reversedFetch = reverseLatest(vm);
+    require(reversedFetch.status == casl::ReverseMicrostepStatus::Reversed, "fetch reverses");
+    require(vm.state().pr == initial.pr && vm.state().ir == initial.ir, "fetch restores PR and IR");
+    require(vm.state().mar == initial.mar && vm.state().mdr == initial.mdr, "fetch restores MAR and MDR");
+    require(vm.state().microcycle.phase == casl::MicrocyclePhase::None, "fetch restores pre-fetch phase");
+
+    for (int index = 0; index < 6; ++index) require(vm.stepMicrocycle().ok, "advance through LD write-back");
+    require(vm.state().gr[1] == 0x8000, "LD write-back applied");
+    const auto reversedWriteBack = reverseLatest(vm);
+    require(reversedWriteBack.status == casl::ReverseMicrostepStatus::Reversed, "write-back reverses");
+    require(vm.state().gr[1] == 0, "write-back restores destination register");
+    require(vm.state().microcycle.phase == casl::MicrocyclePhase::Execute, "write-back restores execute phase");
+}
+
+void ReverseMicrocycleRestoresMemoryAndStack() {
+    const auto output = assembleOrExit(R"(MAIN START
+     LAD GR1,#0042
+     ST GR1,DATA
+     PUSH 0,GR1
+     RET
+DATA DS 1
+     END)");
+    casl::CometVm vm;
+    vm.load(output);
+    completeOneMicroInstruction(vm);
+    const auto data = symbolAddress(output, "DATA");
+    const auto dataBefore = vm.state().memory[data];
+    while (vm.state().lastInstructionKind != casl::Opcode::ST || vm.state().microcycle.phase != casl::MicrocyclePhase::WriteBack) {
+        require(vm.stepMicrocycle().ok, "advance to ST write-back");
+    }
+    require(vm.state().memory[data] == 0x0042, "ST committed memory");
+    require(reverseLatest(vm).status == casl::ReverseMicrostepStatus::Reversed, "ST memory write reverses");
+    require(vm.state().memory[data] == dataBefore, "ST reverse restores memory word");
+
+    completeOneMicroInstruction(vm);
+    const auto spBeforePush = vm.state().sp;
+    while (vm.state().lastInstructionKind != casl::Opcode::PUSH || vm.state().microcycle.phase != casl::MicrocyclePhase::WriteBack) {
+        require(vm.stepMicrocycle().ok, "advance to PUSH write-back");
+    }
+    const auto stackAddress = vm.state().sp;
+    require(vm.state().memory[stackAddress] == 0x0042, "PUSH committed stack word");
+    require(reverseLatest(vm).status == casl::ReverseMicrostepStatus::Reversed, "PUSH write reverses");
+    require(vm.state().memory[stackAddress] == 0, "PUSH reverse restores stack memory");
+    require(vm.state().sp == static_cast<std::uint16_t>(spBeforePush - 1), "PUSH write-back reverse keeps execute-phase SP");
+    require(reverseLatest(vm).status == casl::ReverseMicrostepStatus::Reversed, "PUSH execute reverses");
+    require(vm.state().sp == spBeforePush, "PUSH execute reverse restores SP");
+}
+
+void ReverseMicrocycleRejectsStaleAndMutationBoundary() {
+    const auto output = assembleSample();
+    casl::CometVm vm;
+    vm.load(output);
+    require(vm.stepMicrocycle().ok, "history exists");
+    const auto stale = vm.reverseMicrocycle(vm.state().historyEpoch, vm.state().timelineRevision + 1);
+    require(stale.status == casl::ReverseMicrostepStatus::Stale, "timeline mismatch is stale");
+    require(vm.state().microcycleHistorySummary.retainedEntries == 1, "stale reverse preserves history");
+
+    require(vm.writeGeneralRegister(1, 0x1234), "mutation applies");
+    require(!vm.state().reverseAvailability.available, "mutation clears availability");
+    require(
+        vm.state().reverseAvailability.reason == casl::ReverseUnavailableReason::MutationBoundary,
+        "mutation exposes stable boundary reason"
+    );
+    const auto blocked = reverseLatest(vm);
+    require(blocked.status == casl::ReverseMicrostepStatus::Blocked, "mutation boundary blocks reverse");
+}
+
+void ReverseMicrocycleSvcAndCapacityBoundaries() {
+    const auto svcOutput = assembleOrExit(R"(MAIN START
+     SVC 2
+     RET
+     END)");
+    auto svcVm = std::make_unique<casl::CometVm>();
+    svcVm->load(svcOutput);
+    for (int index = 0; index < 4; ++index) require(svcVm->stepMicrocycle().ok, "advance through SVC execute");
+    require(!svcVm->state().reverseAvailability.available, "SVC commit blocks reverse");
+    require(
+        svcVm->state().reverseAvailability.reason == casl::ReverseUnavailableReason::SvcBoundary,
+        "SVC boundary reason"
+    );
+
+    const auto loopOutput = assembleOrExit(R"(MAIN START
+LOOP JUMP LOOP
+     END)");
+    auto loopVm = std::make_unique<casl::CometVm>();
+    loopVm->load(loopOutput);
+    for (int index = 0; index < 1001; ++index) require(loopVm->stepMicrocycle().ok, "fill bounded history");
+    require(loopVm->state().microcycleHistorySummary.retainedEntries == 1000, "history remains bounded");
+    require(loopVm->state().microcycleHistorySummary.droppedEntryCount == 1, "capacity drop counted");
+    for (int index = 0; index < 1000; ++index) {
+        const auto reversed = reverseLatest(*loopVm);
+        require(reversed.status == casl::ReverseMicrostepStatus::Reversed, "retained history reverses");
+    }
+    require(
+        loopVm->state().reverseAvailability.reason == casl::ReverseUnavailableReason::HistoryCapacityBoundary,
+        "capacity floor blocks earlier reverse"
+    );
+}
+
+void ReverseMicrocycleRestoresControlFlowAndFlags() {
+    const auto branchOutput = assembleOrExit(R"(MAIN START
+     JUMP TARGET
+     NOP
+TARGET RET
+     END)");
+    auto branchVm = std::make_unique<casl::CometVm>();
+    branchVm->load(branchOutput);
+    const auto initialPr = branchVm->state().pr;
+    for (int index = 0; index < 4; ++index) require(branchVm->stepMicrocycle().ok, "advance through JUMP execute");
+    require(branchVm->state().pr == symbolAddress(branchOutput, "TARGET"), "JUMP commits branch target");
+    require(reverseLatest(*branchVm).status == casl::ReverseMicrostepStatus::Reversed, "JUMP execute reverses");
+    require(branchVm->state().pr == initialPr, "JUMP reverse restores PR");
+
+    const auto shiftOutput = assembleOrExit(R"(MAIN START
+     LAD GR1,#8000
+     SLL GR1,1
+     RET
+     END)");
+    auto shiftVm = std::make_unique<casl::CometVm>();
+    shiftVm->load(shiftOutput);
+    completeOneMicroInstruction(*shiftVm);
+    const auto beforeShift = shiftVm->state().gr[1];
+    while (shiftVm->state().lastInstructionKind != casl::Opcode::SLL ||
+           shiftVm->state().microcycle.phase != casl::MicrocyclePhase::FlagUpdate) {
+        require(shiftVm->stepMicrocycle().ok, "advance through SLL flag update");
+    }
+    require(shiftVm->state().gr[1] == 0, "SLL write-back committed");
+    require(shiftVm->state().fr.o && shiftVm->state().fr.z, "SLL flag update committed OF/ZF");
+    require(reverseLatest(*shiftVm).status == casl::ReverseMicrostepStatus::Reversed, "SLL flag update reverses");
+    require(!shiftVm->state().fr.o && !shiftVm->state().fr.z, "SLL reverse restores OF/SF/ZF");
+    require(reverseLatest(*shiftVm).status == casl::ReverseMicrostepStatus::Reversed, "SLL write-back reverses");
+    require(shiftVm->state().gr[1] == beforeShift, "SLL reverse restores register");
+}
+
+void ReverseMicrocycleRestoresCallRetAndPop() {
+    const auto callOutput = assembleOrExit(R"(MAIN START
+     CALL SUB
+     RET
+SUB  RET
+     END)");
+    auto callVm = std::make_unique<casl::CometVm>();
+    callVm->load(callOutput);
+    const auto initialPr = callVm->state().pr;
+    const auto initialSp = callVm->state().sp;
+    while (callVm->state().lastInstructionKind != casl::Opcode::CALL ||
+           callVm->state().microcycle.phase != casl::MicrocyclePhase::WriteBack) {
+        require(callVm->stepMicrocycle().ok, "advance through CALL write-back");
+    }
+    const auto returnSlot = callVm->state().sp;
+    require(callVm->state().memory[returnSlot] == static_cast<std::uint16_t>(initialPr + 2), "CALL stores return address");
+    require(reverseLatest(*callVm).status == casl::ReverseMicrostepStatus::Reversed, "CALL write-back reverses");
+    require(callVm->state().memory[returnSlot] == 0, "CALL reverse restores stack memory");
+    require(callVm->state().pr == initialPr && callVm->state().callDepth == 0, "CALL reverse restores PR/depth");
+    require(reverseLatest(*callVm).status == casl::ReverseMicrostepStatus::Reversed, "CALL execute reverses");
+    require(callVm->state().sp == initialSp, "CALL execute reverse restores SP");
+
+    completeOneMicroInstruction(*callVm);
+    const auto spBeforeRet = callVm->state().sp;
+    const auto prBeforeRet = callVm->state().pr;
+    while (callVm->state().lastInstructionKind != casl::Opcode::RET ||
+           callVm->state().microcycle.phase != casl::MicrocyclePhase::WriteBack) {
+        require(callVm->stepMicrocycle().ok, "advance through RET write-back");
+    }
+    require(callVm->state().sp == static_cast<std::uint16_t>(spBeforeRet + 1), "RET increments SP");
+    require(reverseLatest(*callVm).status == casl::ReverseMicrostepStatus::Reversed, "RET write-back reverses");
+    require(callVm->state().sp == spBeforeRet && callVm->state().callDepth == 1, "RET reverse restores SP/depth");
+    require(reverseLatest(*callVm).status == casl::ReverseMicrostepStatus::Reversed, "RET execute reverses");
+    require(callVm->state().pr == prBeforeRet, "RET execute reverse restores PR");
+
+    const auto popOutput = assembleOrExit(R"(MAIN START
+     LAD GR1,#0042
+     PUSH 0,GR1
+     POP GR2
+     RET
+     END)");
+    auto popVm = std::make_unique<casl::CometVm>();
+    popVm->load(popOutput);
+    completeOneMicroInstruction(*popVm);
+    completeOneMicroInstruction(*popVm);
+    const auto spBeforePop = popVm->state().sp;
+    while (popVm->state().lastInstructionKind != casl::Opcode::POP ||
+           popVm->state().microcycle.phase != casl::MicrocyclePhase::WriteBack) {
+        require(popVm->stepMicrocycle().ok, "advance through POP write-back");
+    }
+    require(popVm->state().gr[2] == 0x0042, "POP writes destination register");
+    require(reverseLatest(*popVm).status == casl::ReverseMicrostepStatus::Reversed, "POP write-back reverses");
+    require(popVm->state().gr[2] == 0, "POP reverse restores register");
+    require(reverseLatest(*popVm).status == casl::ReverseMicrostepStatus::Reversed, "POP execute reverses");
+    require(popVm->state().sp == spBeforePop, "POP execute reverse restores SP");
+}
+
+void ReverseMicrocycleClearsDeterministicRuntimeError() {
+    const auto output = assembleOrExit(R"(MAIN START
+     NOP
+     RET
+     END)");
+    casl::CometVm vm;
+    vm.load(output);
+    const auto start = output.entryPoint;
+    require(vm.writeMemory(start, 0xffff), "invalid runtime word override applies");
+
+    const auto failed = vm.stepMicrocycle();
+    require(!failed.ok, "invalid runtime word fails");
+    require(vm.state().runState == casl::RunState::Error, "deterministic failure enters Error");
+    require(vm.state().reverseAvailability.available, "deterministic failure is reversible");
+
+    const auto reversed = reverseLatest(vm);
+    require(reversed.status == casl::ReverseMicrostepStatus::Reversed, "deterministic failure reverses");
+    require(vm.state().runState == casl::RunState::Ready, "reverse clears reversible Error");
+    require(vm.state().memory[start] == 0xffff, "reverse does not cross program override barrier");
+    require(
+        vm.state().reverseAvailability.reason == casl::ReverseUnavailableReason::MutationBoundary,
+        "program override remains the history floor"
+    );
+}
+
 using TestFunction = void (*)();
 
 const std::vector<std::pair<std::string_view, TestFunction>>& tests() {
@@ -1549,6 +1781,13 @@ const std::vector<std::pair<std::string_view, TestFunction>>& tests() {
         {"MicrocycleLdPhaseBoundaries", MicrocycleLdPhaseBoundaries},
         {"MicrocycleCallRetAndBranch", MicrocycleCallRetAndBranch},
         {"InstructionAndMicrocycleParity", InstructionAndMicrocycleParity},
+        {"ReverseMicrocycleRestoresFetchAndWriteBack", ReverseMicrocycleRestoresFetchAndWriteBack},
+        {"ReverseMicrocycleRestoresMemoryAndStack", ReverseMicrocycleRestoresMemoryAndStack},
+        {"ReverseMicrocycleRejectsStaleAndMutationBoundary", ReverseMicrocycleRejectsStaleAndMutationBoundary},
+        {"ReverseMicrocycleSvcAndCapacityBoundaries", ReverseMicrocycleSvcAndCapacityBoundaries},
+        {"ReverseMicrocycleRestoresControlFlowAndFlags", ReverseMicrocycleRestoresControlFlowAndFlags},
+        {"ReverseMicrocycleRestoresCallRetAndPop", ReverseMicrocycleRestoresCallRetAndPop},
+        {"ReverseMicrocycleClearsDeterministicRuntimeError", ReverseMicrocycleClearsDeterministicRuntimeError},
     };
     return cases;
 }

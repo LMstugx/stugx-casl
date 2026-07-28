@@ -269,8 +269,9 @@ void CometVm::load(const AssembleOutput& program) {
     }
 
     hasProgram_ = true;
-    clearMicrocycleRuntime();
+    clearMicrocycleRuntime(HistoryBarrierReason::AssemblyCommit, true);
     updateCurrentInstruction();
+    syncHistoryState();
 }
 
 StepResult CometVm::step() {
@@ -749,8 +750,51 @@ void CometVm::completeMicrocycleInstruction(MicrocycleContext& context, Microcyc
 
 MicrocycleStepResult CometVm::stepMicrocycle() {
     MicrocycleStepResult result;
+    const auto before = captureStateSnapshot();
+    const auto contextBefore = microcycleContext_;
+    const auto traceSizeBefore = trace_.size();
+    const auto traceBefore = trace_;
     state_.executionGranularity = ExecutionGranularity::Microcycle;
-    if (!microcycleContext_.has_value() && !beginMicrocycle(result)) return result;
+    if (!microcycleContext_.has_value() && !beginMicrocycle(result)) {
+        if (hasProgram_ && before.runState != RunState::Error && state_.runState == RunState::Error) {
+            microcycleSequence_ += 1;
+            timelineRevision_ += 1;
+            state_.microcycle = {
+                MicrocyclePhase::None,
+                std::nullopt,
+                before.pr,
+                before.currentLine,
+                0,
+                0,
+                false,
+                microcycleSequence_,
+                "Deterministic runtime error"
+            };
+
+            MicrocycleHistoryEntry history;
+            history.sequence = microcycleSequence_;
+            history.historyEpoch = historyEpoch_;
+            history.timelineRevisionBefore = timelineRevision_ - 1;
+            history.timelineRevisionAfter = timelineRevision_;
+            history.phase = MicrocyclePhase::None;
+            history.instructionAddress = before.pr;
+            history.before = before;
+            history.after = captureStateSnapshot();
+            history.contextBefore = contextBefore;
+            history.contextAfter = microcycleContext_;
+            history.traceSizeBefore = traceSizeBefore;
+            history.traceSizeAfter = trace_.size();
+            microcycleHistory_.push_back(std::move(history));
+            if (microcycleHistory_.size() > kMaxTraceEvents) {
+                historyFloorEntryId_ = microcycleHistory_.front().sequence;
+                droppedHistoryEntries_ += 1;
+                lastHistoryBarrier_ = HistoryBarrierReason::HistoryCapacity;
+                microcycleHistory_.erase(microcycleHistory_.begin());
+            }
+        }
+        syncHistoryState();
+        return result;
+    }
 
     auto& context = *microcycleContext_;
     if (context.nextPhaseIndex >= context.phases.size()) {
@@ -759,15 +803,7 @@ MicrocycleStepResult CometVm::stepMicrocycle() {
     }
     auto& active = *microcycleContext_;
     const auto phase = active.phases[active.nextPhaseIndex];
-    const auto prBefore = state_.pr;
-    const auto spBefore = state_.sp;
-    const auto marBefore = state_.mar;
-    const auto mdrBefore = state_.mdr;
-    const auto irBefore = state_.ir;
-    const auto callDepthBefore = state_.callDepth;
-    const auto flagsBefore = state_.fr;
-    const auto runStateBefore = state_.runState;
-    const auto grBefore = state_.gr;
+    const auto instructionAddress = active.instruction.address;
     const auto memoryBefore = state_.memory;
 
     state_.microcycle = {
@@ -791,34 +827,68 @@ MicrocycleStepResult CometVm::stepMicrocycle() {
     executeMicrocyclePhase(active, phase, result);
     if (!result.ok) {
         microcycleContext_.reset();
+        syncHistoryState();
+        return result;
+    }
+
+    if (active.instruction.opcode == Opcode::SVC && phase == MicrocyclePhase::Execute) {
+        microcycleHistory_.clear();
+        microcycleSequence_ = 0;
+        droppedHistoryEntries_ = 0;
+        historyFloorEntryId_.reset();
+        historyEpoch_ += 1;
+        timelineRevision_ += 1;
+        lastHistoryBarrier_ = state_.runState == RunState::WaitingInput
+            ? HistoryBarrierReason::IoSideEffect
+            : HistoryBarrierReason::Svc;
+        state_.executionGranularity = ExecutionGranularity::Microcycle;
+        state_.microcycle.historySequence = 0;
+        state_.microcycle.instructionComplete = false;
+        if (state_.runState == RunState::WaitingInput) {
+            microcycleContext_.reset();
+        } else {
+            active.nextPhaseIndex += 1;
+        }
+        syncHistoryState();
         return result;
     }
 
     microcycleSequence_ += 1;
+    timelineRevision_ += 1;
     state_.microcycle.historySequence = microcycleSequence_;
     state_.microcycle.instructionComplete = result.instructionComplete;
+    active.nextPhaseIndex += 1;
+    pushTrace("MICRO:" + microcyclePhaseName(phase));
+
+    if (state_.runState == RunState::WaitingInput || result.instructionComplete) {
+        microcycleContext_.reset();
+    }
+
     MicrocycleHistoryEntry history;
     history.sequence = microcycleSequence_;
+    history.historyEpoch = historyEpoch_;
+    history.timelineRevisionBefore = timelineRevision_ - 1;
+    history.timelineRevisionAfter = timelineRevision_;
     history.phase = phase;
-    history.instructionAddress = active.instruction.address;
-    history.prBefore = prBefore;
-    history.prAfter = state_.pr;
-    history.spBefore = spBefore;
-    history.spAfter = state_.sp;
-    history.marBefore = marBefore;
-    history.marAfter = state_.mar;
-    history.mdrBefore = mdrBefore;
-    history.mdrAfter = state_.mdr;
-    history.irBefore = irBefore;
-    history.irAfter = state_.ir;
-    history.callDepthBefore = callDepthBefore;
-    history.callDepthAfter = state_.callDepth;
-    history.flagsBefore = flagsBefore;
-    history.flagsAfter = state_.fr;
-    history.runStateBefore = runStateBefore;
-    history.runStateAfter = state_.runState;
-    history.grBefore = grBefore;
-    history.grAfter = state_.gr;
+    history.instructionAddress = instructionAddress;
+    history.before = before;
+    history.after = captureStateSnapshot();
+    history.contextBefore = contextBefore;
+    history.contextAfter = microcycleContext_;
+    history.traceSizeBefore = traceSizeBefore;
+    history.traceSizeAfter = trace_.size();
+    const auto appendedCount = result.instructionComplete ? std::size_t{2} : std::size_t{1};
+    const auto droppedTraceCount = traceBefore.size() + appendedCount > kMaxTraceEvents
+        ? traceBefore.size() + appendedCount - kMaxTraceEvents
+        : 0;
+    history.traceRemovedFromFront.assign(
+        traceBefore.begin(),
+        traceBefore.begin() + static_cast<std::ptrdiff_t>(droppedTraceCount)
+    );
+    history.traceAppended.assign(
+        trace_.end() - static_cast<std::ptrdiff_t>(appendedCount),
+        trace_.end()
+    );
     for (std::uint32_t address = 0; address < kMemorySize; ++address) {
         if (memoryBefore[address] == state_.memory[address]) continue;
         history.memoryChanges.push_back({
@@ -829,19 +899,98 @@ MicrocycleStepResult CometVm::stepMicrocycle() {
     }
     microcycleHistory_.push_back(std::move(history));
     if (microcycleHistory_.size() > kMaxTraceEvents) {
+        historyFloorEntryId_ = microcycleHistory_.front().sequence;
+        droppedHistoryEntries_ += 1;
+        lastHistoryBarrier_ = HistoryBarrierReason::HistoryCapacity;
         microcycleHistory_.erase(microcycleHistory_.begin());
     }
-    pushTrace("MICRO:" + microcyclePhaseName(phase));
     result.visualPath = state_.visualPath;
-    active.nextPhaseIndex += 1;
+    syncHistoryState();
+    return result;
+}
 
-    if (state_.runState == RunState::WaitingInput) {
-        microcycleContext_.reset();
+ReverseMicrostepResult CometVm::reverseMicrocycle(
+    std::uint64_t expectedHistoryEpoch,
+    std::uint64_t expectedTimelineRevision
+) {
+    ReverseMicrostepResult result;
+    result.historyEpoch = historyEpoch_;
+    result.timelineRevision = timelineRevision_;
+    result.availability = reverseAvailability();
+
+    if (expectedHistoryEpoch != historyEpoch_ || expectedTimelineRevision != timelineRevision_) {
+        result.status = ReverseMicrostepStatus::Stale;
+        result.availability = {
+            false,
+            expectedHistoryEpoch != historyEpoch_
+                ? ReverseUnavailableReason::HistoryEpochMismatch
+                : ReverseUnavailableReason::ExecutionEpochMismatch,
+            std::nullopt
+        };
         return result;
     }
-    if (result.instructionComplete) {
-        microcycleContext_.reset();
+    if (!result.availability.available || microcycleHistory_.empty()) {
+        result.status = result.availability.reason == ReverseUnavailableReason::NoHistory
+            ? ReverseMicrostepStatus::Unavailable
+            : ReverseMicrostepStatus::Blocked;
+        return result;
     }
+
+    const auto& entry = microcycleHistory_.back();
+    if (
+        entry.historyEpoch != historyEpoch_
+        || entry.timelineRevisionAfter > timelineRevision_
+        || !stateMatchesSnapshot(entry.after)
+        || !contextMatches(entry.contextAfter)
+        || trace_.size() != entry.traceSizeAfter
+    ) {
+        result.status = ReverseMicrostepStatus::CorruptHistory;
+        result.availability = {false, ReverseUnavailableReason::HistoryCorrupt, std::nullopt};
+        syncHistoryState();
+        return result;
+    }
+    for (const auto& change : entry.memoryChanges) {
+        if (state_.memory[change.address] != change.after) {
+            result.status = ReverseMicrostepStatus::CorruptHistory;
+            result.availability = {false, ReverseUnavailableReason::HistoryCorrupt, std::nullopt};
+            syncHistoryState();
+            return result;
+        }
+    }
+    if (
+        entry.traceAppended.size() > trace_.size()
+        || !std::equal(entry.traceAppended.rbegin(), entry.traceAppended.rend(), trace_.rbegin())
+    ) {
+        result.status = ReverseMicrostepStatus::CorruptHistory;
+        result.availability = {false, ReverseUnavailableReason::HistoryCorrupt, std::nullopt};
+        syncHistoryState();
+        return result;
+    }
+
+    const auto reversedSequence = entry.sequence;
+    const auto previousPhase = entry.after.microcycle.phase;
+    const auto restoredPhase = entry.before.microcycle.phase;
+    for (const auto& change : entry.memoryChanges) {
+        state_.memory[change.address] = change.before;
+    }
+    restoreStateSnapshot(entry.before);
+    microcycleContext_ = entry.contextBefore;
+    trace_.erase(
+        trace_.end() - static_cast<std::ptrdiff_t>(entry.traceAppended.size()),
+        trace_.end()
+    );
+    trace_.insert(trace_.begin(), entry.traceRemovedFromFront.begin(), entry.traceRemovedFromFront.end());
+    microcycleHistory_.pop_back();
+    timelineRevision_ += 1;
+    syncHistoryState();
+
+    result.status = ReverseMicrostepStatus::Reversed;
+    result.reversedEntryId = reversedSequence;
+    result.previousPhase = previousPhase;
+    result.restoredPhase = restoredPhase;
+    result.historyEpoch = historyEpoch_;
+    result.timelineRevision = timelineRevision_;
+    result.availability = reverseAvailability();
     return result;
 }
 
@@ -1424,32 +1573,39 @@ void CometVm::reset() {
     state_ = initialState_;
     trace_.clear();
     inputQueue_.clear();
-    clearMicrocycleRuntime();
+    clearMicrocycleRuntime(HistoryBarrierReason::Reset, true);
     updateCurrentInstruction();
+    syncHistoryState();
 }
 
 void CometVm::reload(std::optional<std::uint16_t> uninitializedValue) {
-    reset();
-    if (!uninitializedValue.has_value()) return;
+    state_ = initialState_;
+    trace_.clear();
+    inputQueue_.clear();
+    clearMicrocycleRuntime(HistoryBarrierReason::Reload, true);
 
-    for (const auto& entry : sourceMap_.entries()) {
-        if (entry.instruction != Opcode::DS) continue;
-        for (std::size_t offset = 0; offset < entry.machineWords.size(); ++offset) {
-            const auto address = static_cast<std::uint32_t>(entry.address) + static_cast<std::uint32_t>(offset);
-            if (address >= kMemorySize) break;
-            state_.memory[address] = *uninitializedValue;
+    if (uninitializedValue.has_value()) {
+        for (const auto& entry : sourceMap_.entries()) {
+            if (entry.instruction != Opcode::DS) continue;
+            for (std::size_t offset = 0; offset < entry.machineWords.size(); ++offset) {
+                const auto address = static_cast<std::uint32_t>(entry.address) + static_cast<std::uint32_t>(offset);
+                if (address >= kMemorySize) break;
+                state_.memory[address] = *uninitializedValue;
+            }
         }
     }
     updateCurrentInstruction();
+    syncHistoryState();
 }
 
 void CometVm::enqueueInput(std::vector<std::uint16_t> characters, bool endOfFile) {
     if (characters.size() > 256) characters.resize(256);
+    establishHistoryBarrier(HistoryBarrierReason::InputSubmission);
     inputQueue_.push_back({std::move(characters), endOfFile});
     if (state_.runState == RunState::WaitingInput) {
         state_.runState = RunState::Ready;
-        clearMicrocycleRuntime();
     }
+    syncHistoryState();
 }
 
 const CometState& CometVm::state() const {
@@ -1468,6 +1624,12 @@ bool CometVm::writeMemory(std::uint32_t address, std::uint16_t value) {
     }
     if (!hasProgram_) return false;
     state_.memory[address] = value;
+    clearMicrocycleRuntime(
+        instructions_.contains(static_cast<std::uint16_t>(address))
+            ? HistoryBarrierReason::ProgramWordOverride
+            : HistoryBarrierReason::DebuggerMutation,
+        true
+    );
     prepareAfterManualMutation();
     return true;
 }
@@ -1475,6 +1637,7 @@ bool CometVm::writeMemory(std::uint32_t address, std::uint16_t value) {
 bool CometVm::writeGeneralRegister(std::uint32_t index, std::uint16_t value) {
     if (index >= kGeneralRegisterCount || !hasProgram_) return false;
     state_.gr[index] = value;
+    clearMicrocycleRuntime(HistoryBarrierReason::DebuggerMutation, true);
     prepareAfterManualMutation();
     return true;
 }
@@ -1486,6 +1649,7 @@ bool CometVm::setProgramCounter(std::uint32_t address) {
     }
     if (!hasProgram_) return false;
     state_.pr = static_cast<std::uint16_t>(address);
+    clearMicrocycleRuntime(HistoryBarrierReason::DebuggerMutation, true);
     prepareAfterManualMutation();
     return true;
 }
@@ -1493,6 +1657,7 @@ bool CometVm::setProgramCounter(std::uint32_t address) {
 bool CometVm::setStackPointer(std::uint32_t address) {
     if (address >= kMemorySize || !hasProgram_) return false;
     state_.sp = static_cast<std::uint16_t>(address);
+    clearMicrocycleRuntime(HistoryBarrierReason::DebuggerMutation, true);
     prepareAfterManualMutation();
     return true;
 }
@@ -1504,6 +1669,7 @@ void CometVm::setFlagsPacked(std::uint16_t value) {
         (value & 0b0010) != 0,
         (value & 0b0100) != 0
     };
+    clearMicrocycleRuntime(HistoryBarrierReason::DebuggerMutation, true);
     prepareAfterManualMutation();
 }
 
@@ -1515,7 +1681,8 @@ void CometVm::fullClear() {
     trace_.clear();
     inputQueue_.clear();
     hasProgram_ = false;
-    clearMicrocycleRuntime();
+    clearMicrocycleRuntime(HistoryBarrierReason::FullClear, true);
+    syncHistoryState();
 }
 
 std::optional<Instruction> CometVm::instructionAt(std::uint16_t address) const {
@@ -1572,7 +1739,6 @@ std::optional<Instruction> CometVm::instructionAt(std::uint16_t address) const {
 }
 
 void CometVm::prepareAfterManualMutation() {
-    clearMicrocycleRuntime();
     state_.runState = RunState::Ready;
     state_.visualPath = VisualPathKind::None;
     state_.lastInstructionKind.reset();
@@ -1584,14 +1750,211 @@ void CometVm::prepareAfterManualMutation() {
     state_.lastIndexValue.reset();
     state_.lastEffectiveAddress.reset();
     updateCurrentInstruction();
+    syncHistoryState();
 }
 
-void CometVm::clearMicrocycleRuntime() {
+void CometVm::clearMicrocycleRuntime(HistoryBarrierReason reason, bool advanceEpoch) {
     microcycleContext_.reset();
     microcycleHistory_.clear();
     microcycleSequence_ = 0;
+    droppedHistoryEntries_ = 0;
+    historyFloorEntryId_.reset();
+    if (advanceEpoch) {
+        historyEpoch_ += 1;
+        timelineRevision_ += 1;
+        lastHistoryBarrier_ = reason;
+    } else if (reason != HistoryBarrierReason::None) {
+        lastHistoryBarrier_ = reason;
+    }
     state_.executionGranularity = ExecutionGranularity::Instruction;
     state_.microcycle = {};
+    syncHistoryState();
+}
+
+void CometVm::establishHistoryBarrier(HistoryBarrierReason reason) {
+    clearMicrocycleRuntime(reason, true);
+}
+
+CometVm::MicrocycleHistoryEntry::StateSnapshot CometVm::captureStateSnapshot() const {
+    MicrocycleHistoryEntry::StateSnapshot snapshot;
+    snapshot.gr = state_.gr;
+    snapshot.pr = state_.pr;
+    snapshot.sp = state_.sp;
+    snapshot.callDepth = state_.callDepth;
+    snapshot.ir = state_.ir;
+    snapshot.mar = state_.mar;
+    snapshot.mdr = state_.mdr;
+    snapshot.fr = state_.fr;
+    snapshot.runState = state_.runState;
+    snapshot.visualPath = state_.visualPath;
+    snapshot.executionGranularity = state_.executionGranularity;
+    snapshot.microcycle = state_.microcycle;
+    snapshot.stepCount = state_.stepCount;
+    snapshot.currentLine = state_.currentLine;
+    snapshot.currentInstruction = state_.currentInstruction;
+    snapshot.lastInstructionKind = state_.lastInstructionKind;
+    snapshot.lastMemoryReadAddress = state_.lastMemoryReadAddress;
+    snapshot.lastMemoryWriteAddress = state_.lastMemoryWriteAddress;
+    snapshot.lastRegisterWriteIndex = state_.lastRegisterWriteIndex;
+    snapshot.lastBaseAddress = state_.lastBaseAddress;
+    snapshot.lastIndexRegister = state_.lastIndexRegister;
+    snapshot.lastIndexValue = state_.lastIndexValue;
+    snapshot.lastEffectiveAddress = state_.lastEffectiveAddress;
+    return snapshot;
+}
+
+void CometVm::restoreStateSnapshot(const CometVm::MicrocycleHistoryEntry::StateSnapshot& snapshot) {
+    state_.gr = snapshot.gr;
+    state_.pr = snapshot.pr;
+    state_.sp = snapshot.sp;
+    state_.callDepth = snapshot.callDepth;
+    state_.ir = snapshot.ir;
+    state_.mar = snapshot.mar;
+    state_.mdr = snapshot.mdr;
+    state_.fr = snapshot.fr;
+    state_.runState = snapshot.runState;
+    state_.visualPath = snapshot.visualPath;
+    state_.executionGranularity = snapshot.executionGranularity;
+    state_.microcycle = snapshot.microcycle;
+    state_.stepCount = snapshot.stepCount;
+    state_.currentLine = snapshot.currentLine;
+    state_.currentInstruction = snapshot.currentInstruction;
+    state_.lastInstructionKind = snapshot.lastInstructionKind;
+    state_.lastMemoryReadAddress = snapshot.lastMemoryReadAddress;
+    state_.lastMemoryWriteAddress = snapshot.lastMemoryWriteAddress;
+    state_.lastRegisterWriteIndex = snapshot.lastRegisterWriteIndex;
+    state_.lastBaseAddress = snapshot.lastBaseAddress;
+    state_.lastIndexRegister = snapshot.lastIndexRegister;
+    state_.lastIndexValue = snapshot.lastIndexValue;
+    state_.lastEffectiveAddress = snapshot.lastEffectiveAddress;
+}
+
+bool CometVm::stateMatchesSnapshot(const CometVm::MicrocycleHistoryEntry::StateSnapshot& snapshot) const {
+    const auto& micro = state_.microcycle;
+    const auto& expectedMicro = snapshot.microcycle;
+    return state_.gr == snapshot.gr
+        && state_.pr == snapshot.pr
+        && state_.sp == snapshot.sp
+        && state_.callDepth == snapshot.callDepth
+        && state_.ir == snapshot.ir
+        && state_.mar == snapshot.mar
+        && state_.mdr == snapshot.mdr
+        && state_.fr.z == snapshot.fr.z
+        && state_.fr.n == snapshot.fr.n
+        && state_.fr.o == snapshot.fr.o
+        && state_.runState == snapshot.runState
+        && state_.visualPath == snapshot.visualPath
+        && state_.executionGranularity == snapshot.executionGranularity
+        && micro.phase == expectedMicro.phase
+        && micro.instructionKind == expectedMicro.instructionKind
+        && micro.instructionAddress == expectedMicro.instructionAddress
+        && micro.sourceLine == expectedMicro.sourceLine
+        && micro.microIndex == expectedMicro.microIndex
+        && micro.totalMicrosteps == expectedMicro.totalMicrosteps
+        && micro.instructionComplete == expectedMicro.instructionComplete
+        && micro.historySequence == expectedMicro.historySequence
+        && micro.detail == expectedMicro.detail
+        && state_.stepCount == snapshot.stepCount
+        && state_.currentLine == snapshot.currentLine
+        && state_.currentInstruction == snapshot.currentInstruction
+        && state_.lastInstructionKind == snapshot.lastInstructionKind
+        && state_.lastMemoryReadAddress == snapshot.lastMemoryReadAddress
+        && state_.lastMemoryWriteAddress == snapshot.lastMemoryWriteAddress
+        && state_.lastRegisterWriteIndex == snapshot.lastRegisterWriteIndex
+        && state_.lastBaseAddress == snapshot.lastBaseAddress
+        && state_.lastIndexRegister == snapshot.lastIndexRegister
+        && state_.lastIndexValue == snapshot.lastIndexValue
+        && state_.lastEffectiveAddress == snapshot.lastEffectiveAddress;
+}
+
+bool CometVm::contextMatches(const std::optional<MicrocycleContext>& expected) const {
+    if (microcycleContext_.has_value() != expected.has_value()) return false;
+    if (!expected.has_value()) return true;
+    const auto& actual = *microcycleContext_;
+    const auto& wanted = *expected;
+    return actual.instruction.address == wanted.instruction.address
+        && actual.instruction.opcode == wanted.instruction.opcode
+        && actual.instruction.gr == wanted.instruction.gr
+        && actual.instruction.sourceRegister == wanted.instruction.sourceRegister
+        && actual.instruction.indexRegister == wanted.instruction.indexRegister
+        && actual.instruction.operandAddress == wanted.instruction.operandAddress
+        && actual.instruction.size == wanted.instruction.size
+        && actual.phases == wanted.phases
+        && actual.nextPhaseIndex == wanted.nextPhaseIndex
+        && actual.operand == wanted.operand
+        && actual.result == wanted.result
+        && actual.pendingFlags.z == wanted.pendingFlags.z
+        && actual.pendingFlags.n == wanted.pendingFlags.n
+        && actual.pendingFlags.o == wanted.pendingFlags.o
+        && actual.hasOperand == wanted.hasOperand
+        && actual.hasResult == wanted.hasResult
+        && actual.hasPendingFlags == wanted.hasPendingFlags
+        && actual.branchTaken == wanted.branchTaken
+        && actual.stackReturn == wanted.stackReturn
+        && actual.instructionVisualPath == wanted.instructionVisualPath
+        && actual.instructionAddress == wanted.instructionAddress
+        && actual.sequentialPr == wanted.sequentialPr
+        && actual.effectiveAddress == wanted.effectiveAddress
+        && actual.stackAddress == wanted.stackAddress
+        && actual.instructionStartMdr == wanted.instructionStartMdr;
+}
+
+MicrocycleHistorySummary CometVm::historySummary() const {
+    return {
+        microcycleHistory_.size(),
+        kMaxTraceEvents,
+        historyFloorEntryId_,
+        droppedHistoryEntries_
+    };
+}
+
+ReverseAvailability CometVm::reverseAvailability() const {
+    if (!hasProgram_) return {false, ReverseUnavailableReason::RuntimeNotLoaded, std::nullopt};
+    if (state_.runState == RunState::Running) return {false, ReverseUnavailableReason::Running, std::nullopt};
+    if (state_.runState == RunState::WaitingInput) return {false, ReverseUnavailableReason::WaitingInput, std::nullopt};
+    if (!microcycleHistory_.empty()) {
+        const auto& entry = microcycleHistory_.back();
+        if (entry.historyEpoch != historyEpoch_) {
+            return {false, ReverseUnavailableReason::HistoryEpochMismatch, std::nullopt};
+        }
+        return {true, ReverseUnavailableReason::Available, entry.before.microcycle.phase};
+    }
+
+    switch (lastHistoryBarrier_) {
+        case HistoryBarrierReason::DebuggerMutation:
+        case HistoryBarrierReason::ProgramWordOverride:
+            return {false, ReverseUnavailableReason::MutationBoundary, std::nullopt};
+        case HistoryBarrierReason::Reset:
+            return {false, ReverseUnavailableReason::ResetBoundary, std::nullopt};
+        case HistoryBarrierReason::Reload:
+            return {false, ReverseUnavailableReason::ReloadBoundary, std::nullopt};
+        case HistoryBarrierReason::FullClear:
+            return {false, ReverseUnavailableReason::FullClearBoundary, std::nullopt};
+        case HistoryBarrierReason::AssemblyCommit:
+        case HistoryBarrierReason::ProgramReplacement:
+            return {false, ReverseUnavailableReason::AssemblyBoundary, std::nullopt};
+        case HistoryBarrierReason::SourceReplacement:
+            return {false, ReverseUnavailableReason::SourceReplacementBoundary, std::nullopt};
+        case HistoryBarrierReason::InputSubmission:
+        case HistoryBarrierReason::IoSideEffect:
+            return {false, ReverseUnavailableReason::IoBoundary, std::nullopt};
+        case HistoryBarrierReason::Svc:
+            return {false, ReverseUnavailableReason::SvcBoundary, std::nullopt};
+        case HistoryBarrierReason::HistoryCapacity:
+            return {false, ReverseUnavailableReason::HistoryCapacityBoundary, std::nullopt};
+        case HistoryBarrierReason::BackendReplacement:
+        case HistoryBarrierReason::ConsoleClear:
+        case HistoryBarrierReason::None:
+            return {false, ReverseUnavailableReason::NoHistory, std::nullopt};
+    }
+    return {false, ReverseUnavailableReason::NoHistory, std::nullopt};
+}
+
+void CometVm::syncHistoryState() {
+    state_.historyEpoch = historyEpoch_;
+    state_.timelineRevision = timelineRevision_;
+    state_.reverseAvailability = reverseAvailability();
+    state_.microcycleHistorySummary = historySummary();
 }
 
 void CometVm::updateCurrentInstruction() {

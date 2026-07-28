@@ -6,7 +6,11 @@ import { AppEvent, AppEvents } from "../app/events";
 import { coreBridge, getCoreBackendInfo, type CoreBackendInfo } from "../core/coreBridge";
 import type { ReloadInitializationMode } from "../core/coreAdapter";
 import { createCometStateFromDto, createEmptyUiCometState } from "../core/coreStateAdapter";
-import type { ExecutionGranularity } from "../core/microcycle";
+import type { ExecutionGranularity, MicrocyclePhase } from "../core/microcycle";
+import type {
+  ReverseMicrostepRequest,
+  ReverseMicrostepStatus
+} from "../core/reverseMicrocycle";
 import { CometState, Diagnostic, VisualPathKind, formatWord } from "../core/types";
 import { getDefaultDemoProgram, type DemoProgram } from "../examples/demoPrograms";
 import { learningLessons } from "../examples/learningLessons";
@@ -97,6 +101,11 @@ type AppStoreState = {
   programModified: boolean;
   dataModified: boolean;
   mutationInFlight: boolean;
+  reverseInFlight: boolean;
+  reverseNotice: {
+    restoredPhase: MicrocyclePhase;
+    reversedEntryId?: number;
+  } | null;
 };
 
 type AppStoreActions = {
@@ -109,6 +118,7 @@ type AppStoreActions = {
   reload: (mode: ReloadInitializationMode) => void;
   mutateDebuggerState: (input: DebuggerMutationInput) => Promise<DebuggerMutationResult>;
   fullClear: () => Promise<boolean>;
+  reverseMicrostep: () => Promise<ReverseMicrostepStatus>;
   stop: () => void;
   submitConsoleInput: (text: string, endOfFile?: boolean) => void;
   clearOutput: () => void;
@@ -149,6 +159,9 @@ export type AppStoreAction =
   | { type: "mutationFinished"; mutationId: string }
   | { type: "fullClearStarted"; owner: ExecutionOwner; nextEpoch: number }
   | { type: "fullClearCommitted"; owner: ExecutionOwner; nextEpoch: number; cometState: CometState }
+  | { type: "reverseStarted"; request: ReverseMicrostepRequest; nextEpoch: number }
+  | { type: "reverseCommitted"; request: ReverseMicrostepRequest; nextEpoch: number; cometState: CometState; restoredPhase: MicrocyclePhase; reversedEntryId?: number }
+  | { type: "reverseFinished"; request: ReverseMicrostepRequest; nextEpoch: number; cometState?: CometState }
   | { type: "clearOutput" }
   | { type: "lessonStepToggled"; exampleId: string; stepId: string }
   | { type: "lessonProgressReset"; exampleId: string }
@@ -220,7 +233,9 @@ export function createInitialAppState(
     runtimeOverrides: {},
     programModified: false,
     dataModified: false,
-    mutationInFlight: false
+    mutationInFlight: false,
+    reverseInFlight: false,
+    reverseNotice: null
   };
 }
 
@@ -284,7 +299,9 @@ export function appStoreReducer(state: AppStoreState, action: AppStoreAction): A
       runtimeOverrides: {},
       programModified: false,
       dataModified: false,
-      mutationInFlight: false
+      mutationInFlight: false,
+      reverseInFlight: false,
+      reverseNotice: null
     };
   }
 
@@ -317,7 +334,9 @@ export function appStoreReducer(state: AppStoreState, action: AppStoreAction): A
       runtimeOverrides: {},
       programModified: false,
       dataModified: false,
-      mutationInFlight: false
+      mutationInFlight: false,
+      reverseInFlight: false,
+      reverseNotice: null
     };
   }
 
@@ -348,7 +367,9 @@ export function appStoreReducer(state: AppStoreState, action: AppStoreAction): A
       runtimeOverrides: {},
       programModified: false,
       dataModified: false,
-      mutationInFlight: false
+      mutationInFlight: false,
+      reverseInFlight: false,
+      reverseNotice: null
     };
   }
 
@@ -389,7 +410,9 @@ export function appStoreReducer(state: AppStoreState, action: AppStoreAction): A
       runtimeOverrides: {},
       programModified: false,
       dataModified: false,
-      mutationInFlight: false
+      mutationInFlight: false,
+      reverseInFlight: false,
+      reverseNotice: null
     };
   }
 
@@ -413,7 +436,9 @@ export function appStoreReducer(state: AppStoreState, action: AppStoreAction): A
       runtimeOverrides: {},
       programModified: false,
       dataModified: false,
-      mutationInFlight: false
+      mutationInFlight: false,
+      reverseInFlight: false,
+      reverseNotice: null
     };
   }
 
@@ -423,7 +448,8 @@ export function appStoreReducer(state: AppStoreState, action: AppStoreAction): A
       ...state,
       cometState: action.cometState,
       runStopReason: null,
-      backendInfo: getCoreBackendInfo()
+      backendInfo: getCoreBackendInfo(),
+      reverseNotice: null
     };
   }
 
@@ -433,7 +459,8 @@ export function appStoreReducer(state: AppStoreState, action: AppStoreAction): A
       ...state,
       cometState: action.cometState,
       runStopReason: action.reason,
-      backendInfo: getCoreBackendInfo()
+      backendInfo: getCoreBackendInfo(),
+      reverseNotice: null
     };
   }
 
@@ -443,7 +470,58 @@ export function appStoreReducer(state: AppStoreState, action: AppStoreAction): A
       ...state,
       cometState: action.cometState,
       runStopReason: null,
-      backendInfo: getCoreBackendInfo()
+      backendInfo: getCoreBackendInfo(),
+      reverseNotice: null
+    };
+  }
+
+  if (action.type === "reverseStarted") {
+    if (
+      state.currentDocument.sourceUnitId !== action.request.sourceUnitId
+      || state.assemblyId !== action.request.assemblyId
+      || state.executionEpoch !== action.request.executionEpoch
+      || state.cometState.historyEpoch !== action.request.historyEpoch
+      || state.cometState.timelineRevision !== action.request.timelineRevision
+      || state.reverseInFlight
+    ) return state;
+    return {
+      ...state,
+      executionEpoch: action.nextEpoch,
+      reverseInFlight: true,
+      reverseNotice: null
+    };
+  }
+
+  if (action.type === "reverseCommitted") {
+    if (
+      state.currentDocument.sourceUnitId !== action.request.sourceUnitId
+      || state.assemblyId !== action.request.assemblyId
+      || state.executionEpoch !== action.nextEpoch
+      || state.cometState.historyEpoch !== action.request.historyEpoch
+    ) return state;
+    return {
+      ...state,
+      cometState: action.cometState,
+      runStopReason: null,
+      backendInfo: getCoreBackendInfo(),
+      reverseInFlight: false,
+      reverseNotice: {
+        restoredPhase: action.restoredPhase,
+        reversedEntryId: action.reversedEntryId
+      }
+    };
+  }
+
+  if (action.type === "reverseFinished") {
+    if (
+      state.currentDocument.sourceUnitId !== action.request.sourceUnitId
+      || state.assemblyId !== action.request.assemblyId
+      || state.executionEpoch !== action.nextEpoch
+    ) return state;
+    return {
+      ...state,
+      ...(action.cometState ? { cometState: action.cometState } : {}),
+      reverseInFlight: false
     };
   }
 
@@ -462,7 +540,9 @@ export function appStoreReducer(state: AppStoreState, action: AppStoreAction): A
       runtimeOverrides: action.clearOverrides ? {} : state.runtimeOverrides,
       programModified: action.clearOverrides ? false : state.programModified,
       dataModified: action.clearOverrides ? false : state.dataModified,
-      mutationInFlight: false
+      mutationInFlight: false,
+      reverseInFlight: false,
+      reverseNotice: null
     };
   }
 
@@ -476,7 +556,9 @@ export function appStoreReducer(state: AppStoreState, action: AppStoreAction): A
       runStopReason: "error",
       backendInfo: getCoreBackendInfo(),
       applicationFailure: "core-unavailable",
-      mutationInFlight: false
+      mutationInFlight: false,
+      reverseInFlight: false,
+      reverseNotice: null
     };
   }
 
@@ -486,7 +568,9 @@ export function appStoreReducer(state: AppStoreState, action: AppStoreAction): A
       ...state,
       executionEpoch: action.nextEpoch,
       historyEpoch: state.historyEpoch + 1,
-      mutationInFlight: true
+      mutationInFlight: true,
+      reverseInFlight: false,
+      reverseNotice: null
     };
   }
 
@@ -565,7 +649,9 @@ export function appStoreReducer(state: AppStoreState, action: AppStoreAction): A
       ...state,
       executionEpoch: action.nextEpoch,
       historyEpoch: state.historyEpoch + 1,
-      mutationInFlight: true
+      mutationInFlight: true,
+      reverseInFlight: false,
+      reverseNotice: null
     };
   }
 
@@ -591,6 +677,8 @@ export function appStoreReducer(state: AppStoreState, action: AppStoreAction): A
       programModified: false,
       dataModified: false,
       mutationInFlight: false,
+      reverseInFlight: false,
+      reverseNotice: null,
       backendInfo: getCoreBackendInfo()
     };
   }
@@ -1078,6 +1166,81 @@ export function AppStoreProvider({
           return false;
         } finally {
           mutationActiveRef.current = false;
+        }
+      },
+      reverseMicrostep: async () => {
+        const snapshot = stateRef.current;
+        if (
+          snapshot.reverseInFlight
+          || snapshot.mutationInFlight
+          || snapshot.executionGranularity !== "microcycle"
+          || snapshot.cometState.runState === "Running"
+          || !snapshot.cometState.reverseAvailability.available
+          || !snapshot.assemblyId
+          || snapshot.isSourceDirty
+        ) return "unavailable";
+
+        const request: ReverseMicrostepRequest = {
+          sourceUnitId: snapshot.currentDocument.sourceUnitId,
+          assemblyId: snapshot.assemblyId,
+          executionEpoch: snapshot.executionEpoch,
+          historyEpoch: snapshot.cometState.historyEpoch,
+          timelineRevision: snapshot.cometState.timelineRevision
+        };
+        const nextEpoch = snapshot.executionEpoch + 1;
+        runControlRef.current = {
+          runId: runControlRef.current.runId + 1,
+          stopRequested: true
+        };
+        dispatch({ type: "reverseStarted", request, nextEpoch });
+        stateRef.current = {
+          ...snapshot,
+          executionEpoch: nextEpoch,
+          reverseInFlight: true,
+          reverseNotice: null
+        };
+
+        try {
+          const result = await coreBridge.reverseMicrostep(
+            request.historyEpoch,
+            request.timelineRevision
+          );
+          const current = stateRef.current;
+          if (
+            current.currentDocument.sourceUnitId !== request.sourceUnitId
+            || current.assemblyId !== request.assemblyId
+            || current.executionEpoch !== nextEpoch
+            || current.cometState.historyEpoch !== request.historyEpoch
+          ) {
+            dispatch({ type: "reverseFinished", request, nextEpoch });
+            return "stale";
+          }
+          const cometState = createCometStateFromDto(result.state, {
+            previous: snapshot.cometState,
+            output: snapshot.cometState.output
+          });
+          if (result.status !== "reversed") {
+            dispatch({
+              type: "reverseFinished",
+              request,
+              nextEpoch,
+              cometState
+            });
+            return result.status;
+          }
+          dispatch({
+            type: "reverseCommitted",
+            request,
+            nextEpoch,
+            cometState,
+            restoredPhase: result.restoredPhase ?? "none",
+            reversedEntryId: result.reversedEntryId ?? undefined
+          });
+          return "reversed";
+        } catch (error) {
+          eventBus.emit(AppEvent.VmError, { message: coreErrorMessage(error) });
+          dispatch({ type: "reverseFinished", request, nextEpoch });
+          return "cancelled";
         }
       },
       clearOutput: () => dispatch({ type: "clearOutput" }),

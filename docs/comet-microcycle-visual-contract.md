@@ -19,3 +19,5 @@ The runtime UI states:
 It does not claim to be the only physical COMET II implementation. Instruction mode completes the same real phases internally; COMET Mode exposes one phase per Step.
 
 The clean-wire contract remains active-flow-only, with no arrows, circular markers, inactive ghost wires, invented 64-bit bus, or FPU.
+
+Reverse Microstep restores the previously committed phase's real `IR`, `MAR`, `MDR`, mapping, selection, and active path. It does not reverse-play an animation or infer a path from source. At an instruction boundary, the Circuit returns to the corresponding idle or complete presentation.

@@ -5,6 +5,10 @@ import { VisualPathKind, formatWord } from "./types";
 import type { AssembledInstruction, CometState, Diagnostic, FlagsState, MemoryRow, RegisterState, SourceMapEntry, TraceEvent } from "./types";
 import { decodeCaslOutputRecord } from "./caslIoEncoding";
 import { EMPTY_MICROCYCLE_STATE, type MicrocycleHistoryRecord } from "./microcycle";
+import {
+  EMPTY_MICROCYCLE_HISTORY_SUMMARY,
+  EMPTY_REVERSE_AVAILABILITY
+} from "./reverseMicrocycle";
 
 const START_ADDRESS = 0x20;
 const INITIAL_SP = 0xfffe;
@@ -321,6 +325,21 @@ function macroGroupForRow(dto: CometStateDto, row: CometStateDto["sourceRows"][n
 function traceFromDto(dto: CometStateDto, previous?: CometState): TraceEvent[] {
   const previousTrace = previous?.trace ?? [];
   if (
+    previous
+    && (dto.microcycleHistorySequence ?? 0) < previous.microcycle.historySequence
+  ) {
+    const maximumSequence = dto.microcycleHistorySequence ?? 0;
+    return previousTrace
+      .filter((event) => {
+        if (event.kind === "microcycle") {
+          const sequence = Number(event.eventId?.split(":").at(-1) ?? Number.NaN);
+          return Number.isFinite(sequence) && sequence <= maximumSequence;
+        }
+        return event.index <= dto.stepCount;
+      })
+      .map((event) => ({ ...event }));
+  }
+  if (
     dto.executionGranularity === "microcycle"
     && dto.microcyclePhase !== "none"
     && (dto.microcycleHistorySequence ?? 0) > (previous?.microcycle.historySequence ?? 0)
@@ -475,7 +494,10 @@ export function createCometStateFromDto(dto: CometStateDto, options: StateFromDt
       : undefined;
   const microcycleHistory = newHistoryEntry
     ? [newHistoryEntry, ...(options.previous?.microcycleHistory ?? [])].slice(0, MAX_TRACE_EVENTS)
-    : (options.previous?.microcycleHistory ?? []).map((entry) => ({ ...entry }));
+    : (options.previous?.microcycleHistory ?? [])
+        .filter((entry) => entry.sequence <= microcycleHistorySequence)
+        .slice(0, dto.microcycleHistorySummary?.retainedEntries ?? MAX_TRACE_EVENTS)
+        .map((entry) => ({ ...entry }));
 
   return {
     assembled,
@@ -502,6 +524,23 @@ export function createCometStateFromDto(dto: CometStateDto, options: StateFromDt
     executionGranularity: dto.executionGranularity ?? "instruction",
     microcycle,
     microcycleHistory,
+    historyEpoch: dto.historyEpoch ?? options.previous?.historyEpoch ?? 0,
+    timelineRevision: dto.timelineRevision ?? options.previous?.timelineRevision ?? 0,
+    reverseAvailability: dto.reverseAvailability
+      ? {
+          available: dto.reverseAvailability.available,
+          reason: dto.reverseAvailability.reason,
+          targetPhase: dto.reverseAvailability.targetPhase ?? undefined
+        }
+      : { ...(options.previous?.reverseAvailability ?? EMPTY_REVERSE_AVAILABILITY) },
+    microcycleHistorySummary: dto.microcycleHistorySummary
+      ? {
+          retainedEntries: dto.microcycleHistorySummary.retainedEntries,
+          capacity: dto.microcycleHistorySummary.capacity,
+          floorEntryId: dto.microcycleHistorySummary.floorEntryId ?? undefined,
+          droppedEntryCount: dto.microcycleHistorySummary.droppedEntryCount
+        }
+      : { ...(options.previous?.microcycleHistorySummary ?? EMPTY_MICROCYCLE_HISTORY_SUMMARY) },
     stepIndex: dto.stepCount,
     currentLine: dto.currentSourceLineIndex ?? undefined,
     currentAddress: dto.currentInstructionAddress ?? undefined,

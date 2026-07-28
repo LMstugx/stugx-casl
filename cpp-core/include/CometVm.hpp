@@ -18,6 +18,12 @@ public:
     void load(const AssembleOutput& program);
     [[nodiscard]] StepResult step();
     [[nodiscard]] MicrocycleStepResult stepMicrocycle();
+    [[nodiscard]] ReverseMicrostepResult reverseMicrocycle(
+        std::uint64_t expectedHistoryEpoch,
+        std::uint64_t expectedTimelineRevision
+    );
+    [[nodiscard]] ReverseAvailability reverseAvailability() const;
+    [[nodiscard]] MicrocycleHistorySummary historySummary() const;
     [[nodiscard]] RunResult run(int maxSteps);
     [[nodiscard]] RunResult runMicrocycles(int maxMicrosteps);
     void reset();
@@ -76,40 +82,73 @@ private:
             std::uint16_t after = 0;
         };
 
+        struct StateSnapshot {
+            std::array<std::uint16_t, kGeneralRegisterCount> gr{};
+            std::uint16_t pr = 0;
+            std::uint16_t sp = 0;
+            int callDepth = 0;
+            std::uint16_t ir = 0;
+            std::uint16_t mar = 0;
+            std::uint16_t mdr = 0;
+            Flags fr{};
+            RunState runState = RunState::Idle;
+            VisualPathKind visualPath = VisualPathKind::None;
+            ExecutionGranularity executionGranularity = ExecutionGranularity::Instruction;
+            MicrocycleState microcycle{};
+            int stepCount = 0;
+            int currentLine = -1;
+            std::string currentInstruction;
+            std::optional<InstructionKind> lastInstructionKind;
+            std::optional<std::uint16_t> lastMemoryReadAddress;
+            std::optional<std::uint16_t> lastMemoryWriteAddress;
+            std::optional<std::uint8_t> lastRegisterWriteIndex;
+            std::optional<std::uint16_t> lastBaseAddress;
+            std::optional<std::uint8_t> lastIndexRegister;
+            std::optional<std::uint16_t> lastIndexValue;
+            std::optional<std::uint16_t> lastEffectiveAddress;
+        };
+
         std::uint64_t sequence = 0;
+        std::uint64_t historyEpoch = 0;
+        std::uint64_t timelineRevisionBefore = 0;
+        std::uint64_t timelineRevisionAfter = 0;
         MicrocyclePhase phase = MicrocyclePhase::None;
         std::uint16_t instructionAddress = 0;
-        std::uint16_t prBefore = 0;
-        std::uint16_t prAfter = 0;
-        std::uint16_t spBefore = 0;
-        std::uint16_t spAfter = 0;
-        std::uint16_t marBefore = 0;
-        std::uint16_t marAfter = 0;
-        std::uint16_t mdrBefore = 0;
-        std::uint16_t mdrAfter = 0;
-        std::uint16_t irBefore = 0;
-        std::uint16_t irAfter = 0;
-        int callDepthBefore = 0;
-        int callDepthAfter = 0;
-        Flags flagsBefore{};
-        Flags flagsAfter{};
-        RunState runStateBefore = RunState::Idle;
-        RunState runStateAfter = RunState::Idle;
-        std::array<std::uint16_t, kGeneralRegisterCount> grBefore{};
-        std::array<std::uint16_t, kGeneralRegisterCount> grAfter{};
+        StateSnapshot before{};
+        StateSnapshot after{};
+        std::optional<MicrocycleContext> contextBefore;
+        std::optional<MicrocycleContext> contextAfter;
+        std::size_t traceSizeBefore = 0;
+        std::size_t traceSizeAfter = 0;
+        std::vector<std::string> traceRemovedFromFront;
+        std::vector<std::string> traceAppended;
         std::vector<MemoryChange> memoryChanges;
     };
 
     std::optional<MicrocycleContext> microcycleContext_;
     std::vector<MicrocycleHistoryEntry> microcycleHistory_;
     std::uint64_t microcycleSequence_ = 0;
+    std::uint64_t historyEpoch_ = 0;
+    std::uint64_t timelineRevision_ = 0;
+    std::uint64_t droppedHistoryEntries_ = 0;
+    std::optional<std::uint64_t> historyFloorEntryId_;
+    HistoryBarrierReason lastHistoryBarrier_ = HistoryBarrierReason::None;
 
     [[nodiscard]] std::optional<Instruction> instructionAt(std::uint16_t address) const;
     [[nodiscard]] std::vector<MicrocyclePhase> phasesFor(const Instruction& instruction) const;
     [[nodiscard]] bool beginMicrocycle(MicrocycleStepResult& result);
     void executeMicrocyclePhase(MicrocycleContext& context, MicrocyclePhase phase, MicrocycleStepResult& result);
     void completeMicrocycleInstruction(MicrocycleContext& context, MicrocycleStepResult& result);
-    void clearMicrocycleRuntime();
+    void clearMicrocycleRuntime(
+        HistoryBarrierReason reason = HistoryBarrierReason::None,
+        bool advanceEpoch = false
+    );
+    void establishHistoryBarrier(HistoryBarrierReason reason);
+    void syncHistoryState();
+    [[nodiscard]] MicrocycleHistoryEntry::StateSnapshot captureStateSnapshot() const;
+    void restoreStateSnapshot(const MicrocycleHistoryEntry::StateSnapshot& snapshot);
+    [[nodiscard]] bool stateMatchesSnapshot(const MicrocycleHistoryEntry::StateSnapshot& snapshot) const;
+    [[nodiscard]] bool contextMatches(const std::optional<MicrocycleContext>& expected) const;
     [[nodiscard]] StepResult stepReference();
     void prepareAfterManualMutation();
     void updateCurrentInstruction();

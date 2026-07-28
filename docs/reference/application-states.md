@@ -28,3 +28,5 @@ Document Dirty state is revision-derived and separate from transient file operat
 Source replacement returns runtime-derived views to their unloaded defaults. Persistence hydration must not create a loaded VM, diagnostics, Generated CASL, or Dirty state.
 
 Manual mutation returns a loaded `Stopped`, `Finished`, or `WaitingInput` machine to safe `Ready` state without executing. Full Clear returns the VM to `Idle` while preserving the document and its separate Dirty state.
+
+Reverse Microstep is available only for a retained transaction in the current history epoch while the runtime is not Running or WaitingInput. It may restore `Ready`, `Finished`, or a deterministic reversible `Error` predecessor. SVC, I/O, lifecycle, source, assembly, backend, and debugger mutation boundaries are never crossed.

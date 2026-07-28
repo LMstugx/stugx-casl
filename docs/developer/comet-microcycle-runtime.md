@@ -24,7 +24,7 @@ Fetch commits `MAR`, `MDR`, and `IR`. Decode exposes the decoded opcode and seco
 
 Branches commit `PR` during Execute. `CALL`, `RET`, `PUSH`, and `POP` expose their stack effects in separate phases. A top-level `RET` becomes `Finished` at Instruction Complete, so the final phase remains observable. `SVC IN` may pause in Execute; submitting input safely restarts that machine instruction from Fetch.
 
-## History
+## History And Reverse
 
 Each completed microcycle records a bounded sequence entry with:
 
@@ -33,7 +33,9 @@ Each completed microcycle records a bounded sequence entry with:
 - GR before/after or changed-register deltas
 - every memory word changed during that phase
 
-C++ records complete memory deltas, including multi-word `SVC` input. The frontend keeps the bounded DTO-visible delta summary used by Trace. No reverse API is exposed in Phase 20C.
+C++ records normal reversible Memory deltas and keeps SVC/input/output commits behind hard barriers. The frontend keeps the bounded DTO-visible delta summary used by Trace.
+
+Phase 20D exposes `reverseMicrocycle()` through the C++/WASM boundary. It verifies the latest entry against current state before restoring and never asks React to calculate an inverse. The operation removes the exact Trace delta and restores mapping and Circuit state. See [Microcycle History](microcycle-history.md).
 
 ## Compatibility
 

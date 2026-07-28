@@ -28,6 +28,6 @@ Circuit Focus is active-flow-only. It cannot light mutually exclusive memory/reg
 
 ## History And Barriers
 
-Microcycle history is bounded to 1000 entries and records before/after architectural state plus memory-write deltas. It is not persisted. Reset, Reload, input restart, debugger mutation, source replacement, and Full Clear invalidate history according to the existing execution/history epoch barrier.
+Microcycle history is bounded to 1000 entries and records verified before/after architectural and teaching state, sparse memory-write deltas, and exact Trace deltas. It is not persisted. Reset, Reload, debugger mutation, source replacement, Full Clear, SVC, and input/output establish hard barriers.
 
-Reverse Step remains prohibited until a later phase proves restoration, input/output barriers, ownership checks, and bounded checkpoint behavior.
+Reverse Microstep atomically restores one retained phase in the current history epoch. It validates current after-state before applying any inverse and advances the timeline revision. Reverse Instruction, Redo, Reverse Run, cross-SVC/I/O rollback, and persistent history are not included. See the [Reverse Runtime Contract](reverse-microstep-runtime-contract.md).

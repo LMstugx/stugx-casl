@@ -23,4 +23,4 @@ Select or enter CASL source, then choose `Assemble`. Successful assembly replace
 
 Use source mapping and Machine Code to connect source rows to emitted words. Use Trace and Circuit Focus to inspect effects after execution. [CASL Compatibility Mode](casl-compatibility-mode.md) keeps registers, memory, stack, Console, and source together for a traditional instruction-level workflow.
 
-The assembler supports the official machine instructions, `START` / `END` / `DS` / `DC`, CASL literals, and the fixed standard `IN` / `OUT` / `RPUSH` / `RPOP` macros. It does not provide a user-defined macro language or multi-program linker.
+The assembler supports the official machine instructions, `START` / `END` / `DS` / `DC`, CASL literals, and the fixed standard `IN` / `OUT` / `RPUSH` / `RPOP` macros. Project Modules can link independently assembled standard `.cas` modules through exported `START` program labels. The application does not provide a user-defined macro language, dynamic linker, or proprietary WCASL project parser.

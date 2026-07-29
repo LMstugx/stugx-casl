@@ -13,6 +13,7 @@ import {
   step,
   verifyCaslCompatibilityMode,
   verifyCometMicrocycleRuntime,
+  verifyMultiProgramLinker,
   verifyReverseInstruction,
   verifyReverseMicrostep
 } from "./caslSmokeHelpers";
@@ -31,6 +32,10 @@ test("WASM backend reverses one committed COMET microcycle", async ({ page }) =>
 
 test("WASM backend reverses one machine instruction atomically", async ({ page }) => {
   await verifyReverseInstruction(page, "WASM Core");
+});
+
+test("WASM backend links and executes independent CASL modules", async ({ page }) => {
+  await verifyMultiProgramLinker(page, "WASM Core");
 });
 
 test.beforeAll(() => {

@@ -193,7 +193,7 @@ describe("Phase 14 regression boundary for file lifecycle scaffold", () => {
   it("diagnostic_baseline_manifest_unchanged", () => {
     const baseline = JSON.parse(baselineRaw) as { baselineVersion: string; structuredDiagnostics: unknown[] };
     expect(baseline.baselineVersion).toBe("diagnostic-localization-v1");
-    expect(baseline.structuredDiagnostics).toHaveLength(64);
+    expect(baseline.structuredDiagnostics).toHaveLength(76);
   });
 
   it("locale_persistence_contract_unchanged", () => {

@@ -45,3 +45,5 @@ Follow Execution and workspace layout are temporary presentation state. They do 
 Register writes, Memory reads and writes, stack activity, machine-word selection, and flag updates come from the same runtime DTO used by the Circuit. A Reverse Microstep or Reverse Instruction restores both views together. Manual debugger edits remain visually distinct from instruction writes.
 
 The clean-wire contract remains unchanged: no arrows, no circular markers, no inactive ghost wires, and active-flow-only emphasis.
+
+Linked projects add module context to Code / Machine, Source Mapping, and Trace while the same persistent Circuit continues to show the single real VM path. A cross-module `CALL`, `RET`, or Reverse operation changes both panes from the same runtime mapping; selecting another editor module does not create a second Circuit or VM.

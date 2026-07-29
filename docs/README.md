@@ -14,6 +14,8 @@ This directory separates current product documentation from historical implement
 - [Interface Overview](user/interface-overview.md)
 - [Observation Modes](user/observation-modes.md)
 - [Unified Observation Workspace](user/unified-observation-workspace.md)
+- [Multi-program Projects](user/multi-program-projects.md)
+- [Linker Output](user/linker-output.md)
 - [CASL Workflow](user/casl-workflow.md)
 - [CASL Compatibility Mode](user/casl-compatibility-mode.md)
 - [COMET Mode](user/comet-mode.md)
@@ -43,6 +45,7 @@ This directory separates current product documentation from historical implement
 - [C++ to CASL Pipeline](developer/cpp-to-casl-pipeline.md)
 - [Double Lowering](developer/double-lowering.md)
 - [CASL Assembler](developer/casl-assembler.md)
+- [CASL Linker](developer/casl-linker.md)
 - [CASL Macro Expansion](developer/casl-macro-expansion.md)
 - [COMET II VM](developer/comet-vm.md)
 - [COMET Microcycle Runtime](developer/comet-microcycle-runtime.md)
@@ -65,6 +68,11 @@ This directory separates current product documentation from historical implement
 - [Reverse History Integrity](reverse-history-integrity.md)
 - [Instruction History Grouping](instruction-history-grouping.md)
 - [Observation Data Linking Contract](observation-data-linking-contract.md)
+- [CASL Multi-program Linker Profile](casl-multi-program-linker-profile.md)
+- [Linker Runtime Contract](linker-runtime-contract.md)
+- [Module Source Ownership](module-source-ownership.md)
+- [Link Relocation Model](link-relocation-model.md)
+- [Cross-module Source Mapping](cross-module-source-mapping.md)
 
 ## Technical Reference
 
@@ -147,6 +155,7 @@ Historical Phase reports, manifests, release-candidate evidence, and visual revi
 - [Phase 20D Reverse Microstep](phase20d-reverse-microstep.md)
 - [Phase 20E Reverse Instruction](phase20e-reverse-instruction.md)
 - [Phase 20E.1 Unified Observation Workspace](phase20e1-unified-observation-workspace.md)
+- [Phase 20F Multi-program Linker](phase20f-multi-program-linker.md)
 - [WCASL Debugger Editing Audit](wcasl-debugger-editing-audit.md)
 - [WCASL-compatible Workflow Roadmap](wcasl-replacement-roadmap.md)
 - [COMET Microcycle Visual Contract](comet-microcycle-visual-contract.md)

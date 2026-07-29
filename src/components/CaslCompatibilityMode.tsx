@@ -31,6 +31,7 @@ import type { ReverseInstructionStatus } from "../core/reverseInstruction";
 type CaslCompatibilityModeProps = {
   state: CometState;
   sourceText: string;
+  sourceDisplayName?: string;
   isSourceDirty: boolean;
   onReset: () => void;
   onReload: (mode: ReloadInitializationMode) => void;
@@ -136,6 +137,7 @@ function assemblerOutput(state: CometState): string {
 export default function CaslCompatibilityMode({
   state,
   sourceText,
+  sourceDisplayName,
   isSourceDirty,
   onReset,
   onReload,
@@ -351,7 +353,12 @@ export default function CaslCompatibilityMode({
           <div className="casl-mode-grid" hidden={workspaceLayout === "circuit-focus"}>
         <section className="panel casl-source-observer" hidden={auxiliaryObservation !== "source-mapping"}>
           <header className="panel-header">
-            <h3>{t("panel.source")}</h3>
+            <div>
+              <h3>{t("panel.source")}</h3>
+              {sourceDisplayName ? (
+                <small className="module-context-badge" data-testid="casl-source-module">{sourceDisplayName}</small>
+              ) : null}
+            </div>
             <span>{t("instruction.currentPr")} {formatWord(state.pr)}</span>
           </header>
           <div className="casl-source-lines scroll-safe" role="list" aria-label={t("panel.source")}>
@@ -590,6 +597,11 @@ export default function CaslCompatibilityMode({
               <article key={event.eventId ?? `${event.index}-${event.address}-${event.microIndex ?? 0}`}>
                 <strong>#{event.index}</strong>
                 <code>{event.instruction}</code>
+                {event.moduleId ? (
+                  <small className="module-context-badge">
+                    {state.sourceMap.find((mapping) => mapping.moduleId === event.moduleId)?.moduleName ?? event.moduleId}
+                  </small>
+                ) : null}
                 <span>{event.detail}</span>
               </article>
             ))}

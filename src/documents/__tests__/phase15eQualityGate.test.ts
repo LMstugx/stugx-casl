@@ -120,7 +120,7 @@ describe("Phase 15E baseline freeze", () => {
     expect(phase15e).toContain("**PASS.**");
     expect(readme).toContain("docs/file-lifecycle-baseline-v1.json");
     expect(readme).toContain("docs/phase15e-file-lifecycle-final-quality-gate.md");
-    expect(diagnosticBaseline.structuredDiagnostics).toHaveLength(64);
+    expect(diagnosticBaseline.structuredDiagnostics).toHaveLength(76);
     expect(baseline.phase14DiagnosticBaseline).toBe("diagnostic-localization-baseline-v1.json");
     expect(baseline.operationMatrix).toBe("file-lifecycle-operation-matrix-v1.json");
   });

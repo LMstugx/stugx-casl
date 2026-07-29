@@ -37,3 +37,5 @@ executes honestly. Invalid runtime opcodes use the existing VM failure path.
 Reset reapplies controller-owned Memory overrides. Reload removes them. Full Clear unloads the VM, clears runtime data and ownership, and requires a new Assemble. See the [Debugger Mutation Contract](../debugger-mutation-contract.md).
 
 Changes to opcode semantics, flags, stack behavior, Trace ordering, or machine-state DTOs require dedicated compatibility work and are outside documentation-only changes.
+
+For multi-program execution, the VM still loads one machine image and uses the unchanged instruction set. The image carries `ProjectId`, `LinkId`, and `LinkRevision`; mappings identify the owning module. Cross-module `CALL`/`RET` uses the existing SP and Memory path. Relink is a hard history boundary.

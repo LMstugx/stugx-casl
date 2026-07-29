@@ -58,7 +58,7 @@ describe("Phase 16A inventory and baseline", () => {
   });
 
   it("phase14_and_phase15_frozen_baselines_remain_intact", () => {
-    expect(diagnosticBaseline.structuredDiagnostics).toHaveLength(64);
+    expect(diagnosticBaseline.structuredDiagnostics).toHaveLength(76);
     expect(fileLifecycleBaseline.baselineVersion).toBe(1);
     expect(fileLifecycleMatrix.coverage.totalCombinations).toBe(112);
   });

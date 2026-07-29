@@ -1,5 +1,20 @@
 import { test, expect, type Page } from "@playwright/test";
-import { assemble, expectCurrentSourceInstruction, expectRegister, expectSourceContains, openStudio, run, selectDemoProgram, setSource, step, verifyCaslCompatibilityMode, verifyCometMicrocycleRuntime, verifyReverseInstruction, verifyReverseMicrostep } from "./caslSmokeHelpers";
+import {
+  assemble,
+  expectCurrentSourceInstruction,
+  expectRegister,
+  expectSourceContains,
+  openStudio,
+  run,
+  selectDemoProgram,
+  setSource,
+  step,
+  verifyCaslCompatibilityMode,
+  verifyCometMicrocycleRuntime,
+  verifyMultiProgramLinker,
+  verifyReverseInstruction,
+  verifyReverseMicrostep
+} from "./caslSmokeHelpers";
 
 async function chooseTextFile(page: Page, fileName: string, text: string) {
   const chooserPromise = page.waitForEvent("filechooser");
@@ -55,6 +70,10 @@ test("Mock backend reverses one committed COMET microcycle", async ({ page }) =>
 
 test("Mock backend reverses one machine instruction atomically", async ({ page }) => {
   await verifyReverseInstruction(page, "Mock Core");
+});
+
+test("Mock backend links and executes independent CASL modules", async ({ page }) => {
+  await verifyMultiProgramLinker(page, "Mock Core");
 });
 
 test("Safe application preferences restore independently from source and locale", async ({ page }) => {

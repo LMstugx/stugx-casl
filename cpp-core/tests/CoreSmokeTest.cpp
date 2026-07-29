@@ -1,4 +1,5 @@
 #include <cassert>
+#include <algorithm>
 #include <cstdlib>
 #include <iostream>
 #include <memory>
@@ -9,6 +10,7 @@
 
 #include "Assembler.hpp"
 #include "CometVm.hpp"
+#include "Linker.hpp"
 
 namespace {
 
@@ -1850,6 +1852,144 @@ void ReverseInstructionRejectsStaleAndPreservesMicrostepReverse() {
     require(reverseLatest(vm).status == casl::ReverseMicrostepStatus::Reversed, "microstep reverse remains available");
 }
 
+casl::ProjectLinkInput twoModuleProject() {
+    return {
+        "project:core-test",
+        "link:core-test:1",
+        1,
+        "module:main",
+        {
+            {
+                "module:main",
+                "source:main",
+                "assembly:main:1",
+                "main.cas",
+                R"(MAIN START
+     CALL SUB
+     RET
+     END)"
+            },
+            {
+                "module:sub",
+                "source:sub",
+                "assembly:sub:1",
+                "sub.cas",
+                R"(SUB START
+     LAD GR1,#0042
+     RET
+     END)"
+            }
+        }
+    };
+}
+
+void ModuleAssemblyProducesRelocations() {
+    casl::Assembler assembler;
+    const auto module = assembler.assembleModule(R"(MAIN START
+     LD GR1,DATA
+     CALL SUB
+     RET
+DATA DC MAIN
+     END)");
+    require(module.ok, "module assembly permits unresolved external CALL");
+    require(module.value.programName == "MAIN", "START label is the program name");
+    require(module.value.entryOffset == 0, "module entry is relative");
+    require(module.value.relocations.size() == 3, "local address, external CALL, and DC relocations are emitted");
+    require(module.value.relocations[0].kind == casl::RelocationKind::AbsoluteAddressWord, "LD uses address relocation");
+    require(module.value.relocations[1].kind == casl::RelocationKind::CallTarget, "CALL uses call relocation");
+    require(module.value.relocations[1].external, "unresolved CALL is external");
+    require(module.value.relocations[2].kind == casl::RelocationKind::DataAddressConstant, "DC symbol uses data relocation");
+}
+
+void LinkerResolvesCrossModuleCall() {
+    casl::Linker linker;
+    const auto linked = linker.link(twoModuleProject());
+    require(linked.ok, "two-module project links");
+    require(linked.value.placements.size() == 2, "two placements");
+    require(linked.value.placements[0].baseAddress == 0x20, "main begins at standard address");
+    require(linked.value.placements[1].baseAddress == 0x23, "subprogram follows main");
+    require(linked.value.program.state.memory[0x21] == 0x23, "CALL target relocates to subprogram");
+    require(linked.value.entryPoint == 0x20, "entry comes from main module");
+    require(linked.value.relocations.size() == 1, "one CALL relocation is applied");
+
+    casl::CometVm vm;
+    vm.load(linked.value.program);
+    require(vm.step().ok, "linked CALL executes");
+    require(vm.state().pr == 0x23, "CALL enters linked submodule");
+    require(vm.step().ok, "submodule LAD executes");
+    require(vm.state().gr[1] == 0x42, "submodule changes register");
+    require(vm.step().ok, "submodule RET executes");
+    require(vm.state().pr == 0x22, "RET returns to caller");
+}
+
+void LinkerKeepsModuleLocalSymbolsIndependent() {
+    auto project = twoModuleProject();
+    project.modules[0].source = "MAIN START\nLOCAL DC 1\n RET\n END";
+    project.modules[1].source = "SUB START\nLOCAL DC 2\n RET\n END";
+    casl::Linker linker;
+    const auto linked = linker.link(project);
+    require(linked.ok, "same local label may occur in different modules");
+    require(linked.value.program.symbols.contains("MAIN.LOCAL"), "main local is qualified");
+    require(linked.value.program.symbols.contains("SUB.LOCAL"), "sub local is qualified");
+    require(
+        std::none_of(linked.value.symbols.begin(), linked.value.symbols.end(), [](const casl::LinkedSymbol& symbol) {
+            return symbol.name == "LOCAL";
+        }),
+        "linked exported-symbol DTO excludes module-local labels"
+    );
+    require(linked.value.symbols.size() == 2, "only START program symbols are exported");
+}
+
+void LinkerRejectsDuplicateExportAndUnresolvedCall() {
+    auto duplicate = twoModuleProject();
+    duplicate.modules[1].source = "MAIN START\n RET\n END";
+    casl::Linker linker;
+    const auto duplicateResult = linker.link(duplicate);
+    require(!duplicateResult.ok, "duplicate exported program is rejected");
+    require(
+        std::any_of(duplicateResult.diagnostics.begin(), duplicateResult.diagnostics.end(), [](const casl::Diagnostic& diagnostic) {
+            return diagnostic.code == "linker.duplicateExportedProgram" && diagnostic.relatedLocations.size() == 1;
+        }),
+        "duplicate export identifies both definitions"
+    );
+
+    auto unresolved = twoModuleProject();
+    unresolved.modules.pop_back();
+    const auto unresolvedResult = linker.link(unresolved);
+    require(!unresolvedResult.ok, "unresolved external is rejected");
+    require(
+        std::any_of(unresolvedResult.diagnostics.begin(), unresolvedResult.diagnostics.end(), [](const casl::Diagnostic& diagnostic) {
+            return diagnostic.code == "linker.unresolvedExternalSymbol";
+        }),
+        "unresolved external uses stable link diagnostic"
+    );
+}
+
+void SingleModuleLinkMatchesAssembler() {
+    const auto assembled = assembleSample();
+    casl::Linker linker;
+    const auto linked = linker.link({
+        "project:single",
+        "link:single:1",
+        1,
+        "module:main",
+        {{
+            "module:main",
+            "source:main",
+            "assembly:main:1",
+            "main.cas",
+            kSample
+        }}
+    });
+    require(linked.ok, "single module links");
+    for (std::uint32_t address = 0x20; address <= 0x29; ++address) {
+        require(
+            linked.value.program.state.memory[address] == assembled.state.memory[address],
+            "single-module linked machine code matches assembler"
+        );
+    }
+}
+
 using TestFunction = void (*)();
 
 const std::vector<std::pair<std::string_view, TestFunction>>& tests() {
@@ -1940,6 +2080,11 @@ const std::vector<std::pair<std::string_view, TestFunction>>& tests() {
         {"ReverseInstructionRestoresMemoryStackBranchAndFlags", ReverseInstructionRestoresMemoryStackBranchAndFlags},
         {"ReverseInstructionRespectsBarriersAndCapacity", ReverseInstructionRespectsBarriersAndCapacity},
         {"ReverseInstructionRejectsStaleAndPreservesMicrostepReverse", ReverseInstructionRejectsStaleAndPreservesMicrostepReverse},
+        {"ModuleAssemblyProducesRelocations", ModuleAssemblyProducesRelocations},
+        {"LinkerResolvesCrossModuleCall", LinkerResolvesCrossModuleCall},
+        {"LinkerKeepsModuleLocalSymbolsIndependent", LinkerKeepsModuleLocalSymbolsIndependent},
+        {"LinkerRejectsDuplicateExportAndUnresolvedCall", LinkerRejectsDuplicateExportAndUnresolvedCall},
+        {"SingleModuleLinkMatchesAssembler", SingleModuleLinkMatchesAssembler},
     };
     return cases;
 }

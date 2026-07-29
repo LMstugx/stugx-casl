@@ -1841,6 +1841,106 @@ TARGET DS 1
   await page.setViewportSize({ width: viewport.width, height: viewport.height });
 }
 
+async function captureMultiProgramLinker(page: Page, viewport: Viewport) {
+  if (!viewport.primary) return;
+
+  const mainSource = `MAIN START
+     CALL SUB
+     RET
+     END`;
+  const subSource = `SUB START
+     LAD GR1,#0042
+     RET
+     END`;
+  const projectPanel = page.getByTestId("project-modules-panel");
+
+  const assembleActiveModule = async (source: string) => {
+    await setSource(page, source);
+    await page.getByTestId("project-assemble-current").click();
+    const activeModule = page.locator('[data-testid="project-module-select"][aria-pressed="true"]');
+    await expect(activeModule).toHaveAttribute("data-assembly-status", "ready");
+  };
+  const selectModule = async (index: number) => {
+    const moduleSelectors = page.getByTestId("project-module-select");
+    await expect(moduleSelectors).toHaveCount(2);
+    await moduleSelectors.nth(index).click();
+  };
+
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await openStudio(page, "Mock Core");
+  await page.getByTestId("locale-en").click();
+  await page.getByTestId("project-new-module").click();
+  await assembleActiveModule(subSource);
+  await selectModule(0);
+  await assembleActiveModule(mainSource);
+  await page.getByTestId("project-link").click();
+  await expect(projectPanel).toHaveAttribute("data-link-state", "linked");
+  await capture(page, { name: "1920x1080", width: 1920, height: 1080, primary: true }, "linker-project-modules-1920.png", false);
+
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await capture(page, { name: "1440x900", width: 1440, height: 900, primary: true }, "linker-main-submodule-1440.png", false);
+  await page.getByTestId("casl-mode-toggle").click();
+  await page.getByTestId("auxiliary-observation-source-mapping").click();
+  await step(page);
+  await expect(page.getByTestId("casl-source-module")).toHaveText("Module2.cas");
+  await capture(page, { name: "1440x900", width: 1440, height: 900, primary: true }, "linker-cross-module-call.png", false);
+  await capture(page, { name: "1440x900", width: 1440, height: 900, primary: true }, "linker-source-mapping-callee.png", false);
+  await run(page);
+  await capture(page, { name: "1440x900", width: 1440, height: 900, primary: true }, "linker-cross-module-ret.png", false);
+  await capture(page, { name: "1440x900", width: 1440, height: 900, primary: true }, "linker-unified-circuit.png", false);
+
+  await page.getByTestId("modern-mode-toggle").click();
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await capture(page, { name: "1280x720", width: 1280, height: 720, primary: true }, "linker-placement-table-1280.png", false);
+  await capture(page, { name: "1280x720", width: 1280, height: 720, primary: true }, "linker-relocation-table-1280.png", false);
+
+  await selectModule(0);
+  await setSource(page, `${mainSource}\n; source edit makes the linked image stale`);
+  await expect(projectPanel).toHaveAttribute("data-link-state", "stale");
+  await capture(page, { name: "1280x720", width: 1280, height: 720, primary: true }, "linker-link-stale.png", false);
+
+  await assembleActiveModule(`MAIN START
+     CALL MISSING
+     RET
+     END`);
+  await page.getByTestId("project-link").click();
+  await expect(projectPanel).toHaveAttribute("data-link-state", "error");
+  await capture(page, { name: "1280x720", width: 1280, height: 720, primary: true }, "linker-unresolved-symbol.png", false);
+
+  await selectModule(1);
+  await assembleActiveModule(`MAIN START
+     RET
+     END`);
+  await selectModule(0);
+  await assembleActiveModule(`MAIN START
+     RET
+     END`);
+  await page.getByTestId("project-link").click();
+  await expect(projectPanel).toHaveAttribute("data-link-state", "error");
+  await capture(page, { name: "1280x720", width: 1280, height: 720, primary: true }, "linker-duplicate-export.png", false);
+
+  await selectModule(1);
+  await assembleActiveModule(`SUB START
+PAD  DS 40000
+     END`);
+  await selectModule(0);
+  await assembleActiveModule(`MAIN START
+PAD  DS 40000
+     END`);
+  await page.getByTestId("project-link").click();
+  await expect(projectPanel).toHaveAttribute("data-link-state", "error");
+  await capture(page, { name: "1280x720", width: 1280, height: 720, primary: true }, "linker-memory-overflow.png", false);
+
+  await page.setViewportSize({ width: 1180, height: 700 });
+  await page.getByTestId("locale-ja").click();
+  await capture(page, { name: "1180x700", width: 1180, height: 700, primary: true }, "linker-ja-1180.png", false);
+  await page.getByTestId("locale-zh-CN").click();
+  await capture(page, { name: "1180x700", width: 1180, height: 700, primary: true }, "linker-zh-cn-1180.png", false);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+
+  await page.setViewportSize({ width: viewport.width, height: viewport.height });
+}
+
 test.describe("visual review screenshot gallery", () => {
   for (const viewport of viewports) {
     test(`captures visual review gallery at ${viewport.name}`, async ({ page }) => {
@@ -1909,6 +2009,7 @@ test.describe("visual review screenshot gallery", () => {
       await captureDebuggerEditingStates(page, viewport);
       await captureCometMicrocycleStates(page, viewport);
       await captureUnifiedObservationWorkspace(page, viewport);
+      await captureMultiProgramLinker(page, viewport);
     });
   }
 });

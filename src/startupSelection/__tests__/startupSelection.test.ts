@@ -61,7 +61,7 @@ describe("Phase 16B model and baseline", () => {
     const diagnostics = JSON.parse(readFileSync("docs/diagnostic-localization-baseline-v1.json", "utf8")) as { structuredDiagnostics: unknown[] };
     const fileLifecycle = JSON.parse(readFileSync("docs/file-lifecycle-baseline-v1.json", "utf8")) as { baselineVersion: number };
     const preferences = JSON.parse(readFileSync("docs/application-preferences-baseline-v1.json", "utf8")) as { persistedFields: string[] };
-    expect(diagnostics.structuredDiagnostics).toHaveLength(64);
+    expect(diagnostics.structuredDiagnostics).toHaveLength(76);
     expect(fileLifecycle.baselineVersion).toBe(1);
     expect(preferences.persistedFields).toEqual(["observationMode", "circuitFocusEnabled", "inspectorActiveTab", "outputDockActiveTab"]);
   });

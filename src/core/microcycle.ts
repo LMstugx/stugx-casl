@@ -31,6 +31,11 @@ export interface MicrocycleHistoryRecord {
   phase: Exclude<MicrocyclePhase, "none">;
   instructionAddress: number;
   instructionKind?: InstructionKind;
+  projectId?: string;
+  linkId?: string;
+  linkRevision?: number;
+  moduleId?: string;
+  sourceMappingId?: string;
   startsAtFetch: boolean;
   endsAtInstructionComplete: boolean;
   prBefore: number;

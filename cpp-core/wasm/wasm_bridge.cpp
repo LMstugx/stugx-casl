@@ -18,13 +18,17 @@
 
 #include "Assembler.hpp"
 #include "CometVm.hpp"
+#include "Linker.hpp"
 
 namespace {
 
 struct WasmRuntime {
     casl::Assembler assembler;
+    casl::Linker linker;
     casl::CometVm vm;
     std::optional<casl::AssembleOutput> assembled;
+    std::optional<casl::ProjectLinkInput> pendingProject;
+    std::optional<casl::LinkedProgramOutput> linkedProgram;
     std::optional<casl::StepResult> lastStep;
     std::vector<casl::Diagnostic> lastDiagnostics;
     bool loaded = false;
@@ -264,6 +268,9 @@ void writeDiagnostics(std::ostream& output, const std::vector<casl::Diagnostic>&
         if (!diagnostic.fallbackMessage.empty()) {
             output << ", \"fallbackMessage\": \"" << jsonEscape(diagnostic.fallbackMessage) << "\"";
         }
+        if (!diagnostic.fileName.empty()) {
+            output << ", \"fileName\": \"" << jsonEscape(diagnostic.fileName) << "\"";
+        }
         if (diagnostic.sourceRange.has_value()) {
             output << ", \"sourceRange\": ";
             writeSourceRange(output, *diagnostic.sourceRange);
@@ -354,7 +361,15 @@ void writeSourceRows(std::ostream& output, const casl::AssembleOutput& assembled
             output << "        \"sourceRegister\": " << static_cast<unsigned int>(*instruction->sourceRegister) << ",\n";
         }
         output << "        \"indexRegister\": " << nullableNumber(instruction && instruction->indexRegister != 0 ? std::optional<std::uint32_t>(instruction->indexRegister) : std::nullopt) << ",\n";
-        output << "        \"isCurrent\": " << boolText(currentAddress.has_value() && *currentAddress == entry.address) << "\n";
+        output << "        \"isCurrent\": " << boolText(currentAddress.has_value() && *currentAddress == entry.address);
+        if (!entry.moduleId.empty()) {
+            output << ",\n";
+            output << "        \"moduleId\": \"" << jsonEscape(entry.moduleId) << "\",\n";
+            output << "        \"sourceUnitId\": \"" << jsonEscape(entry.sourceUnitId) << "\",\n";
+            output << "        \"sourceMappingId\": \"" << jsonEscape(entry.sourceMappingId) << "\"\n";
+        } else {
+            output << "\n";
+        }
         output << "      }";
         if (index + 1 < entries.size()) output << ",";
         output << "\n";
@@ -415,6 +430,11 @@ std::string dumpStateJson(
     output << "  \"frOF\": " << boolText(state.fr.o) << ",\n";
     output << "  \"frSF\": " << boolText(state.fr.n) << ",\n";
     output << "  \"frZF\": " << boolText(state.fr.z) << ",\n";
+    if (!state.projectId.empty()) {
+        output << "  \"projectId\": \"" << jsonEscape(state.projectId) << "\",\n";
+        output << "  \"linkId\": \"" << jsonEscape(state.linkId) << "\",\n";
+        output << "  \"linkRevision\": " << state.linkRevision << ",\n";
+    }
     const auto emitsReverseRuntimeState =
         forceReverseRuntimeState
         || state.executionGranularity == casl::ExecutionGranularity::Microcycle
@@ -518,6 +538,321 @@ std::string resultJson(const char* resultType, bool ok, const std::string& state
     output << "\n";
     output << "}";
     (void)resultType;
+    return output.str();
+}
+
+const char* symbolScopeName(casl::ModuleSymbolScope scope) {
+    switch (scope) {
+        case casl::ModuleSymbolScope::ModuleExported: return "module-exported";
+        case casl::ModuleSymbolScope::GeneratedPrivate: return "generated-private";
+        default: return "module-local";
+    }
+}
+
+const char* relocationKindName(casl::RelocationKind kind) {
+    switch (kind) {
+        case casl::RelocationKind::CallTarget: return "call-target";
+        case casl::RelocationKind::DataAddressConstant: return "data-address-constant";
+        default: return "absolute-address-word";
+    }
+}
+
+const char* linkedWordKindName(casl::LinkedWordKind kind) {
+    switch (kind) {
+        case casl::LinkedWordKind::Instruction: return "instruction";
+        case casl::LinkedWordKind::Operand: return "operand";
+        case casl::LinkedWordKind::Data: return "data";
+        case casl::LinkedWordKind::Literal: return "literal";
+        default: return "storage";
+    }
+}
+
+void writeModuleSymbols(
+    std::ostream& output,
+    const std::string& moduleId,
+    const std::vector<casl::ModuleSymbol>& symbols,
+    std::optional<casl::ModuleSymbolScope> scope = std::nullopt
+) {
+    output << "[";
+    std::size_t written = 0;
+    for (const auto& symbol : symbols) {
+        if (scope.has_value() && symbol.scope != *scope) continue;
+        if (written++ != 0) output << ",";
+        output << "{\"symbolId\":\"" << jsonEscape(symbol.symbolId)
+               << "\",\"moduleId\":\"" << jsonEscape(moduleId)
+               << "\",\"name\":\"" << jsonEscape(symbol.name)
+               << "\",\"normalizedName\":\"" << jsonEscape(symbol.normalizedName)
+               << "\",\"scope\":\"" << symbolScopeName(symbol.scope)
+               << "\",\"relativeAddress\":" << symbol.relativeAddress
+               << ",\"definitionRange\":";
+        writeSourceRange(output, symbol.definitionRange);
+        output << ",\"kind\":\""
+               << (symbol.scope == casl::ModuleSymbolScope::ModuleExported ? "program"
+                   : symbol.scope == casl::ModuleSymbolScope::GeneratedPrivate ? "literal"
+                   : "label")
+               << "\"}";
+    }
+    output << "]";
+}
+
+void writeRelocationRecord(
+    std::ostream& output,
+    const casl::RelocationRecord& relocation,
+    const casl::LinkModuleInput& input
+) {
+    output << "{\"relocationId\":\"" << jsonEscape(relocation.relocationId)
+           << "\",\"moduleId\":\"" << jsonEscape(input.moduleId)
+           << "\",\"moduleAssemblyId\":\"" << jsonEscape(input.moduleAssemblyId)
+           << "\",\"wordOffset\":" << relocation.wordOffset
+           << ",\"kind\":\"" << relocationKindName(relocation.kind)
+           << "\",\"symbolName\":\"" << jsonEscape(relocation.symbolName)
+           << "\",\"normalizedSymbolName\":\"" << jsonEscape(relocation.normalizedSymbolName)
+           << "\",\"addend\":" << relocation.addend
+           << ",\"sourceRange\":";
+    writeSourceRange(output, relocation.sourceRange);
+    output << ",\"instructionIdentity\":\""
+           << relocation.line << ":" << relocation.wordOffset
+           << "\",\"external\":" << boolText(relocation.external) << "}";
+}
+
+void writeModuleAssembly(
+    std::ostream& output,
+    const casl::ModuleAssemblyOwnership& owned
+) {
+    const auto& input = owned.input;
+    const auto& module = owned.assembly;
+    output << "{\"ok\":true"
+           << ",\"moduleId\":\"" << jsonEscape(input.moduleId)
+           << "\",\"sourceUnitId\":\"" << jsonEscape(input.sourceUnitId)
+           << "\",\"moduleAssemblyId\":\"" << jsonEscape(input.moduleAssemblyId)
+           << "\",\"programName\":\"" << jsonEscape(module.programName) << "\"";
+    if (module.requestedEntrySymbol.has_value()) {
+        output << ",\"requestedEntrySymbol\":\"" << jsonEscape(*module.requestedEntrySymbol) << "\"";
+    }
+    output << ",\"localSymbols\":";
+    writeModuleSymbols(output, input.moduleId, module.symbols);
+    output << ",\"exportedSymbols\":";
+    writeModuleSymbols(output, input.moduleId, module.symbols, casl::ModuleSymbolScope::ModuleExported);
+    output << ",\"unresolvedReferences\":[";
+    std::size_t unresolvedWritten = 0;
+    for (const auto& relocation : module.relocations) {
+        if (!relocation.external) continue;
+        if (unresolvedWritten++ != 0) output << ",";
+        writeRelocationRecord(output, relocation, input);
+    }
+    output << "],\"relocations\":[";
+    for (std::size_t index = 0; index < module.relocations.size(); ++index) {
+        if (index != 0) output << ",";
+        writeRelocationRecord(output, module.relocations[index], input);
+    }
+    output << "],\"words\":";
+    writeNumberArray(output, module.words);
+    output << ",\"wordKinds\":[";
+    for (std::size_t offset = 0; offset < module.moduleSize; ++offset) {
+        if (offset != 0) output << ",";
+        casl::LinkedWordKind kind = casl::LinkedWordKind::Storage;
+        for (const auto& mapping : module.sourceMap.entries()) {
+            const auto start = static_cast<std::size_t>(mapping.address);
+            const auto end = start + mapping.machineWords.size();
+            if (offset < start || offset >= end) continue;
+            if (mapping.instruction == casl::Opcode::DS) kind = casl::LinkedWordKind::Storage;
+            else if (mapping.instruction == casl::Opcode::DC) kind = casl::LinkedWordKind::Data;
+            else kind = offset == start ? casl::LinkedWordKind::Instruction : casl::LinkedWordKind::Operand;
+            break;
+        }
+        output << "\"" << linkedWordKindName(kind) << "\"";
+    }
+    output << "],\"instructions\":[";
+    for (std::size_t index = 0; index < module.instructions.size(); ++index) {
+        if (index != 0) output << ",";
+        const auto& instruction = module.instructions[index];
+        output << "{\"address\":" << instruction.address
+               << ",\"line\":" << instruction.line
+               << ",\"op\":\"" << casl::opcodeName(instruction.opcode)
+               << "\",\"source\":\"" << jsonEscape(instruction.source)
+               << "\",\"size\":" << static_cast<unsigned int>(instruction.size);
+        output << ",\"gr\":" << static_cast<unsigned int>(instruction.gr);
+        if (instruction.sourceRegister.has_value()) output << ",\"sourceRegister\":" << static_cast<unsigned int>(*instruction.sourceRegister);
+        if (!instruction.operandLabel.empty()) output << ",\"operandLabel\":\"" << jsonEscape(instruction.operandLabel) << "\"";
+        if (instruction.operandAddress.has_value()) output << ",\"operandAddress\":" << *instruction.operandAddress;
+        if (instruction.indexRegister != 0) output << ",\"indexRegister\":" << static_cast<unsigned int>(instruction.indexRegister);
+        output << ",\"moduleId\":\"" << jsonEscape(input.moduleId)
+               << "\",\"sourceUnitId\":\"" << jsonEscape(input.sourceUnitId)
+               << "\",\"sourceMappingId\":\"" << jsonEscape(input.moduleId)
+               << ":line:" << instruction.line << ":offset:" << instruction.address << "\"}";
+    }
+    output << "],\"sourceMappings\":[";
+    const auto& mappings = module.sourceMap.entries();
+    for (std::size_t index = 0; index < mappings.size(); ++index) {
+        if (index != 0) output << ",";
+        const auto& mapping = mappings[index];
+        output << "{\"line\":" << mapping.line
+               << ",\"address\":" << mapping.address
+               << ",\"machineWords\":";
+        writeNumberArray(output, mapping.machineWords);
+        output << ",\"source\":\"" << jsonEscape(mapping.source)
+               << "\",\"label\":"
+               << (mapping.label.empty() ? "null" : "\"" + jsonEscape(mapping.label) + "\"")
+               << ",\"instruction\":\"" << casl::opcodeName(mapping.instruction)
+               << "\",\"mappingId\":\"" << jsonEscape(input.moduleId)
+               << ":line:" << mapping.line << ":offset:" << mapping.address
+               << "\",\"moduleId\":\"" << jsonEscape(input.moduleId)
+               << "\",\"sourceUnitId\":\"" << jsonEscape(input.sourceUnitId) << "\"}";
+    }
+    output << "],\"moduleSize\":" << module.moduleSize
+           << ",\"entryOffset\":" << module.entryOffset
+           << ",\"diagnostics\":[]}";
+}
+
+std::string moduleAssemblyResultJson(
+    const casl::LinkModuleInput& input,
+    const casl::ModuleAssemblyResult& result
+) {
+    if (result.ok) {
+        std::ostringstream output;
+        writeModuleAssembly(output, {input, result.value});
+        return output.str();
+    }
+    std::ostringstream output;
+    output << "{\"ok\":false"
+           << ",\"moduleId\":\"" << jsonEscape(input.moduleId)
+           << "\",\"sourceUnitId\":\"" << jsonEscape(input.sourceUnitId)
+           << "\",\"moduleAssemblyId\":\"" << jsonEscape(input.moduleAssemblyId)
+           << "\",\"programName\":\"\""
+           << ",\"localSymbols\":[],\"exportedSymbols\":[],\"unresolvedReferences\":[]"
+           << ",\"relocations\":[],\"words\":[],\"wordKinds\":[],\"instructions\":[]"
+           << ",\"sourceMappings\":[],\"moduleSize\":0,\"entryOffset\":0,\"diagnostics\":";
+    writeDiagnostics(output, result.diagnostics, 2);
+    output << "}";
+    return output.str();
+}
+
+std::string linkResultJson(
+    const casl::ProjectLinkInput& input,
+    const casl::LinkResult& result,
+    const std::string& stateJson
+) {
+    std::ostringstream output;
+    output << "{\"ok\":" << boolText(result.ok) << ",\"link\":{"
+           << "\"ok\":" << boolText(result.ok)
+           << ",\"projectId\":\"" << jsonEscape(input.projectId)
+           << "\",\"linkId\":\"" << jsonEscape(input.linkId)
+           << "\",\"linkRevision\":" << input.linkRevision
+           << ",\"mainModuleId\":\"" << jsonEscape(input.mainModuleId)
+           << "\",\"entryPoint\":" << (result.ok ? result.value.entryPoint : casl::kDefaultStartAddress)
+           << ",\"moduleAssemblies\":[";
+    if (result.ok) {
+        for (std::size_t index = 0; index < result.value.moduleAssemblies.size(); ++index) {
+            if (index != 0) output << ",";
+            writeModuleAssembly(output, result.value.moduleAssemblies[index]);
+        }
+    }
+    output << "],\"placements\":[";
+    if (result.ok) {
+        for (std::size_t index = 0; index < result.value.placements.size(); ++index) {
+            if (index != 0) output << ",";
+            const auto& placement = result.value.placements[index];
+            output << "{\"moduleId\":\"" << jsonEscape(placement.moduleId)
+                   << "\",\"baseAddress\":" << placement.baseAddress
+                   << ",\"wordCount\":" << placement.wordCount
+                   << ",\"endAddressExclusive\":" << placement.endAddressExclusive << "}";
+        }
+    }
+    output << "],\"words\":";
+    writeNumberArray(output, result.ok ? result.value.words : std::vector<std::uint16_t>{});
+    output << ",\"wordOwnership\":[";
+    if (result.ok) {
+        for (std::size_t index = 0; index < result.value.wordOwnership.size(); ++index) {
+            if (index != 0) output << ",";
+            const auto& owner = result.value.wordOwnership[index];
+            output << "{\"address\":" << owner.address
+                   << ",\"moduleId\":\"" << jsonEscape(owner.moduleId)
+                   << "\",\"moduleRelativeOffset\":" << owner.moduleRelativeOffset
+                   << ",\"kind\":\"" << linkedWordKindName(owner.kind) << "\"";
+            if (!owner.sourceMappingId.empty()) {
+                output << ",\"sourceMappingId\":\"" << jsonEscape(owner.sourceMappingId) << "\"";
+            }
+            output << "}";
+        }
+    }
+    output << "],\"exportedSymbols\":[";
+    if (result.ok) {
+        for (std::size_t index = 0; index < result.value.symbols.size(); ++index) {
+            if (index != 0) output << ",";
+            const auto& symbol = result.value.symbols[index];
+            output << "{\"moduleId\":\"" << jsonEscape(symbol.moduleId)
+                   << "\",\"name\":\"" << jsonEscape(symbol.name)
+                   << "\",\"normalizedName\":\"" << jsonEscape(symbol.normalizedName)
+                   << "\",\"scope\":\"" << symbolScopeName(symbol.scope)
+                   << "\",\"address\":" << symbol.address << "}";
+        }
+    }
+    output << "],\"relocations\":[";
+    if (result.ok) {
+        for (std::size_t index = 0; index < result.value.relocations.size(); ++index) {
+            if (index != 0) output << ",";
+            const auto& relocation = result.value.relocations[index];
+            output << "{\"relocationId\":\"" << jsonEscape(relocation.relocationId)
+                   << "\",\"moduleId\":\"" << jsonEscape(relocation.moduleId)
+                   << "\",\"kind\":\"" << relocationKindName(relocation.kind)
+                   << "\",\"linkedAddress\":" << relocation.linkedAddress
+                   << ",\"symbolName\":\"" << jsonEscape(relocation.symbolName)
+                   << "\",\"targetModuleId\":\"" << jsonEscape(relocation.targetModuleId)
+                   << "\",\"resolvedAddress\":" << relocation.resolvedAddress << "}";
+        }
+    }
+    output << "],\"sourceMappings\":[";
+    if (result.ok) {
+        const auto& mappings = result.value.program.sourceMap.entries();
+        for (std::size_t index = 0; index < mappings.size(); ++index) {
+            if (index != 0) output << ",";
+            const auto& mapping = mappings[index];
+            const auto placement = std::find_if(
+                result.value.placements.begin(),
+                result.value.placements.end(),
+                [&](const casl::ModulePlacement& candidate) { return candidate.moduleId == mapping.moduleId; }
+            );
+            const auto relativeAddress = placement == result.value.placements.end()
+                ? mapping.address
+                : static_cast<std::uint32_t>(mapping.address) - placement->baseAddress;
+            output << "{\"line\":" << mapping.line
+                   << ",\"address\":" << mapping.address
+                   << ",\"machineWords\":";
+            writeNumberArray(output, mapping.machineWords);
+            output << ",\"source\":\"" << jsonEscape(mapping.source)
+                   << "\",\"label\":" << (mapping.label.empty() ? "null" : "\"" + jsonEscape(mapping.label) + "\"")
+                   << ",\"instruction\":\"" << casl::opcodeName(mapping.instruction)
+                   << "\",\"mappingId\":\"" << jsonEscape(mapping.sourceMappingId)
+                   << "\",\"moduleId\":\"" << jsonEscape(mapping.moduleId)
+                   << "\",\"sourceUnitId\":\"" << jsonEscape(mapping.sourceUnitId)
+                   << "\",\"moduleRelativeAddress\":" << relativeAddress << "}";
+        }
+    }
+    output << "],\"instructions\":[";
+    if (result.ok) {
+        for (std::size_t index = 0; index < result.value.program.instructions.size(); ++index) {
+            if (index != 0) output << ",";
+            const auto& instruction = result.value.program.instructions[index];
+            output << "{\"address\":" << instruction.address
+                   << ",\"line\":" << instruction.line
+                   << ",\"op\":\"" << casl::opcodeName(instruction.opcode)
+                   << "\",\"source\":\"" << jsonEscape(instruction.source)
+                   << "\",\"size\":" << static_cast<unsigned int>(instruction.size);
+            output << ",\"gr\":" << static_cast<unsigned int>(instruction.gr);
+            if (instruction.sourceRegister.has_value()) output << ",\"sourceRegister\":" << static_cast<unsigned int>(*instruction.sourceRegister);
+            if (!instruction.operandLabel.empty()) output << ",\"operandLabel\":\"" << jsonEscape(instruction.operandLabel) << "\"";
+            if (instruction.operandAddress.has_value()) output << ",\"operandAddress\":" << *instruction.operandAddress;
+            if (instruction.indexRegister != 0) output << ",\"indexRegister\":" << static_cast<unsigned int>(instruction.indexRegister);
+            output << ",\"moduleId\":\"" << jsonEscape(instruction.moduleId)
+                   << "\",\"sourceUnitId\":\"" << jsonEscape(instruction.sourceUnitId)
+                   << "\",\"sourceMappingId\":\"" << jsonEscape(instruction.sourceMappingId) << "\"}";
+        }
+    }
+    output << "],\"diagnostics\":";
+    writeDiagnostics(output, result.diagnostics, 2);
+    output << "},\"state\":" << stateJson << ",\"diagnostics\":";
+    writeDiagnostics(output, result.diagnostics, 2);
+    output << "}";
     return output.str();
 }
 
@@ -644,6 +979,119 @@ EMSCRIPTEN_KEEPALIVE const char* stugx_casl_assemble(const char* sourceText) {
         g_lastError = error.what();
         const std::vector<casl::Diagnostic> diagnostics{{0, casl::Severity::Error, g_lastError}};
         return setJson(resultJson("assemble", false, stateErrorJson(g_lastError), diagnostics));
+    }
+}
+
+EMSCRIPTEN_KEEPALIVE const char* stugx_casl_assemble_module(
+    const char* moduleId,
+    const char* sourceUnitId,
+    const char* moduleAssemblyId,
+    const char* displayName,
+    const char* source
+) {
+    try {
+        auto& rt = runtime();
+        if (
+            moduleId == nullptr
+            || sourceUnitId == nullptr
+            || moduleAssemblyId == nullptr
+            || displayName == nullptr
+            || source == nullptr
+        ) {
+            return setError("Module assembly input is null");
+        }
+        casl::LinkModuleInput input{moduleId, sourceUnitId, moduleAssemblyId, displayName, source};
+        auto result = rt.assembler.assembleModule(source);
+        for (auto& diagnostic : result.diagnostics) diagnostic.fileName = displayName;
+        return setJson(moduleAssemblyResultJson(input, result));
+    } catch (const std::exception& error) {
+        return setError(error.what());
+    }
+}
+
+EMSCRIPTEN_KEEPALIVE const char* stugx_casl_project_begin(
+    const char* projectId,
+    const char* linkId,
+    std::uint32_t linkRevision,
+    const char* mainModuleId
+) {
+    try {
+        auto& rt = runtime();
+        if (projectId == nullptr || linkId == nullptr || mainModuleId == nullptr) {
+            return setError("Project link identity is null");
+        }
+        casl::ProjectLinkInput input;
+        input.projectId = projectId;
+        input.linkId = linkId;
+        input.linkRevision = linkRevision;
+        input.mainModuleId = mainModuleId;
+        rt.pendingProject = std::move(input);
+        return setJson("{\"ok\":true}");
+    } catch (const std::exception& error) {
+        return setError(error.what());
+    }
+}
+
+EMSCRIPTEN_KEEPALIVE const char* stugx_casl_project_add_module(
+    const char* moduleId,
+    const char* sourceUnitId,
+    const char* moduleAssemblyId,
+    const char* displayName,
+    const char* source
+) {
+    try {
+        auto& rt = runtime();
+        if (!rt.pendingProject.has_value()) return setError("Project link transaction has not started");
+        if (
+            moduleId == nullptr
+            || sourceUnitId == nullptr
+            || moduleAssemblyId == nullptr
+            || displayName == nullptr
+            || source == nullptr
+        ) {
+            return setError("Project module input is null");
+        }
+        if (rt.pendingProject->modules.size() >= 64) return setError("Project module limit exceeded");
+        rt.pendingProject->modules.push_back({
+            moduleId,
+            sourceUnitId,
+            moduleAssemblyId,
+            displayName,
+            source
+        });
+        return setJson("{\"ok\":true}");
+    } catch (const std::exception& error) {
+        return setError(error.what());
+    }
+}
+
+EMSCRIPTEN_KEEPALIVE const char* stugx_casl_project_link() {
+    try {
+        auto& rt = runtime();
+        if (!rt.pendingProject.has_value()) return setError("Project link transaction has not started");
+        const auto input = *rt.pendingProject;
+        rt.pendingProject.reset();
+        auto result = rt.linker.link(input);
+        rt.lastStep.reset();
+        rt.lastDiagnostics = result.diagnostics;
+
+        if (result.ok) {
+            rt.linkedProgram = result.value;
+            rt.assembled = result.value.program;
+            rt.vm.load(*rt.assembled);
+            rt.loaded = true;
+            rt.lastDiagnostics.clear();
+            g_lastError.clear();
+        } else {
+            g_lastError = result.diagnostics.empty() ? "Project link failed" : result.diagnostics.front().message;
+        }
+
+        const auto stateJson = currentStateJson(rt);
+        return setJson(linkResultJson(input, result, stateJson));
+    } catch (const std::exception& error) {
+        g_lastError = error.what();
+        const std::vector<casl::Diagnostic> diagnostics{{0, casl::Severity::Error, g_lastError}};
+        return setJson(resultJson("linkProject", false, stateErrorJson(g_lastError), diagnostics));
     }
 }
 

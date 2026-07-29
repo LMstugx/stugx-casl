@@ -117,4 +117,4 @@ Source text, symbol spelling, opcode/mnemonic, register name, address, numeric l
 
 ## Phase 14H Baseline Freeze
 
-The Phase 14 inventory originally froze 55 structured codes. Phase 19A explicitly appends nine double-boundary semantic codes to `diagnostic-localization-baseline-v1.json`, for 64 reviewed entries. Tests compare code order, producer allowlists, parameter schemas, locale coverage, backend ownership, and parity scope. Internal/raw payload classes are excluded from user localization. The three reserved VM codes remain `userVisible: false`; `transpiler.generatedLabelConflict` remains `ts-only`.
+The Phase 14 inventory originally froze 55 structured codes. Phase 19A appended nine double-boundary semantic codes, and Phase 20F appends twelve linker codes, for 76 reviewed entries in `diagnostic-localization-baseline-v1.json`. Tests compare code order, producer allowlists, parameter schemas, locale coverage, backend ownership, and parity scope. Internal/raw payload classes are excluded from user localization. The three reserved VM codes remain `userVisible: false`; `transpiler.generatedLabelConflict` remains `ts-only`.

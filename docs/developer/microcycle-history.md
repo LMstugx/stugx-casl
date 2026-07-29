@@ -14,6 +14,7 @@
 - `executionEpoch` invalidates pending application/WASM completions.
 - `historyEpoch` separates ranges that must never be crossed.
 - `timelineRevision` detects stale forward or reverse operations on the current range.
+- `ProjectId`, `LinkId`, and `LinkRevision` bind history to one immutable linked image.
 
 The app increments execution ownership before an asynchronous reverse request. On success it rebinds the restored DTO to the new execution owner while preserving the Core history epoch.
 
@@ -30,3 +31,5 @@ Every entry records a runtime `instructionId`, machine address, mnemonic, Fetch-
 The WASM adapter forwards `reverseMicrostep` and `reverseInstruction`; it must never calculate memory inverses. Mock Core follows the same status, grouping, barrier, capacity, and timeline contract for tests. React consumes returned state and may not synthesize a restored VM.
 
 No history DTO contains a full 65536-word snapshot. History is bounded, runtime-only, and absent from persistence and document models.
+
+Successful Link/Relink, module add/remove/reorder, Main change, and module source replacement invalidate linked ownership. Reverse cannot cross those boundaries or apply an entry from an older `LinkId`.

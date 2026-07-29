@@ -45,6 +45,7 @@ type CircuitFocusLayoutProps = {
   state: CometState;
   sourceMode: SourceMode;
   sourceText: string;
+  sourceDisplayName?: string;
   generatedCaslSource: string;
   cppToCaslMapping: CppToCaslMap[];
   cppStorageObjects?: CppStorageObject[];
@@ -362,10 +363,11 @@ function FocusProgramPanel({
   state,
   sourceMode,
   sourceText,
+  sourceDisplayName,
   generatedCaslSource,
   cppToCaslMapping,
   focus,
-}: Pick<CircuitFocusLayoutProps, "state" | "sourceMode" | "sourceText" | "generatedCaslSource" | "cppToCaslMapping"> & { focus: FocusInstructionContext }) {
+}: Pick<CircuitFocusLayoutProps, "state" | "sourceMode" | "sourceText" | "sourceDisplayName" | "generatedCaslSource" | "cppToCaslMapping"> & { focus: FocusInstructionContext }) {
   const { t } = useI18n();
   const hasGeneratedCasl = sourceMode === "cpp" && generatedCaslSource.trim().length > 0;
   const programTitle = hasGeneratedCasl ? `${t("codeMachine.generated")} CASL` : sourceMode === "cpp" ? "C++" : "CASL";
@@ -389,7 +391,9 @@ function FocusProgramPanel({
       <header className="panel-header">
         <div>
           <h2>{t("common.program")}</h2>
-          <span>{programTitle}</span>
+          <span data-testid={sourceDisplayName ? "focus-source-module" : undefined}>
+            {sourceDisplayName ? `${programTitle} · ${sourceDisplayName}` : programTitle}
+          </span>
         </div>
       </header>
       <div className="focus-program-lines">
@@ -793,7 +797,10 @@ function FocusMachineCodePanel({
           >
             <code className="mono-value focus-code-cell-primary">{formatWord(row.address)}</code>
             <code className="mono-value focus-code-cell-primary">{formatWord(row.word)}</code>
-            <span className="nowrap-symbol focus-code-cell-primary" title={row.sourceText}>{row.sourceText}</span>
+            <span className="nowrap-symbol focus-code-cell-primary" title={row.sourceText}>
+              {row.moduleId ? <small className="module-context-badge">{row.moduleName ?? row.moduleId}</small> : null}
+              {row.sourceText}
+            </span>
             <span className="text-ellipsis focus-code-cell-secondary focus-code-cell-meaning" title={row.meaning}>{row.meaning}</span>
           </div>
         ))}
@@ -2027,6 +2034,7 @@ export default function CircuitFocusLayout({
   state,
   sourceMode,
   sourceText,
+  sourceDisplayName,
   generatedCaslSource,
   cppToCaslMapping,
   cppStorageObjects = [],
@@ -2215,6 +2223,7 @@ export default function CircuitFocusLayout({
             state={state}
             sourceMode={sourceMode}
             sourceText={sourceText}
+            sourceDisplayName={sourceDisplayName}
             generatedCaslSource={generatedCaslSource}
             cppToCaslMapping={cppToCaslMapping}
             focus={focus}
@@ -2326,6 +2335,7 @@ export default function CircuitFocusLayout({
           state={state}
           sourceMode={sourceMode}
           sourceText={sourceText}
+          sourceDisplayName={sourceDisplayName}
           generatedCaslSource={generatedCaslSource}
           cppToCaslMapping={cppToCaslMapping}
           focus={focus}

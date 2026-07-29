@@ -71,12 +71,12 @@ describe("Phase 20B compatibility baseline", () => {
     expect(baseline.features.filter((feature) => feature.priority === "P2" && feature.currentStatus === "missing")).toEqual([]);
   });
 
-  it("reverse_linker_and_project_format_remain_out_of_scope_while_microcycles_are_compatible", () => {
+  it("reverse_and_multi_program_linking_are_supported_while_project_format_remains_blocked", () => {
     expect(byId.get("modern.reverse-step")?.currentStatus).toBe("compatible");
     expect(byId.get("modern.reverse-step")?.targetPhase).toBe("20E");
     expect(byId.get("modern.reverse-microstep")?.currentStatus).toBe("superset");
     expect(byId.get("comet.microcycle")?.currentStatus).toBe("compatible");
-    expect(byId.get("project.multi-source-link")?.currentStatus).toBe("partial");
+    expect(byId.get("project.multi-source-link")?.currentStatus).toBe("compatible");
     expect(byId.get("project.multi-source-link")?.targetPhase).toBe("20F");
     expect(byId.get("project.wcasl-format")?.currentStatus).toBe("blocked-needs-spec-evidence");
   });

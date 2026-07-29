@@ -11,14 +11,14 @@
 - CASL covers the official machine instructions, directives, literals, and fixed standard macros, without a general macro system.
 - Debugger mutation is limited to GR, PR, SP, current FR bits, and one Memory word; it has no bulk edit.
 - Reverse Microstep and Reverse Instruction are limited to the current retained history epoch. There is no Redo, Reverse Run, Reverse Macro, persistent timeline, or rollback across SVC/I/O and mutation/lifecycle barriers.
-- Multi-program linking remains deferred. COMET microcycle stepping is available through the deterministic teaching microarchitecture, not as a physical timing simulator.
+- Multi-program linking supports standard `.cas` modules, deterministic placement, and cross-module `CALL` to exported `START` program labels. Ordinary cross-module data labels, dynamic linking, object files, and proprietary WCASL project files are not supported.
 - C++ has no complete type system, preprocessing, standard library, native ABI, recursion, or stack-frame lowering.
 - The bridge uses one C++/WASM runtime and JSON DTO transfer.
 - Control-flow display is relationship-oriented, not a complete CFG analysis.
 
 ## Files and Persistence
 
-- One document is open at a time.
+- A session may contain up to 64 independently owned CASL modules. There is no persistent project file, recent-project list, autosave, or directory scan.
 - Browser direct Save depends on File System Access support; fallback is a downloaded copy.
 - Source, external file identity, paths, handles, diagnostics, and runtime state are deliberately session-only.
 

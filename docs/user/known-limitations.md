@@ -18,4 +18,5 @@
 - Circuit Focus visualizes current teaching relationships; it is not an electrical or cycle-accurate hardware simulator.
 - The unified workspace shows one main auxiliary data view beside the Circuit. Follow Execution and focus layout are session-only preferences.
 - Register/Memory editing is limited to one 16-bit target per confirmed transaction; bulk paste, fill, search-and-replace, and editing MAR/MDR are unavailable.
-- COMET microcycle stepping uses the deterministic stugx.CASL teaching microarchitecture and does not model physical timing. Reverse Microstep and Reverse Instruction use safe retained history; Redo, reverse run, Reverse Macro, persistent history, and multi-program linking are not production features.
+- COMET microcycle stepping uses the deterministic stugx.CASL teaching microarchitecture and does not model physical timing. Reverse Microstep and Reverse Instruction use safe retained history; Redo, reverse run, Reverse Macro, and persistent history are not production features.
+- Multi-program linking is limited to session-only standard `.cas` modules and cross-module `CALL` to exported `START` program labels. Project reopen files, proprietary WCASL project import, arbitrary exports, dynamic linking, and C/C++ object linking are not available.

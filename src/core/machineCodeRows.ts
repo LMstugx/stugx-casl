@@ -11,6 +11,8 @@ export type MachineCodeRow = {
   word: number;
   sourceLineIndex: number;
   sourceText: string;
+  moduleId?: string;
+  moduleName?: string;
   label?: string;
   kind: MachineCodeRowKind;
   instruction?: InstructionKind;
@@ -131,6 +133,8 @@ export function selectMachineCodeRows(state: CometState, mapping: CppToCaslMap[]
         word,
         sourceLineIndex: entry.line,
         sourceText: normalizeSourceText(entry.source),
+        moduleId: entry.moduleId,
+        moduleName: entry.moduleName,
         label: offset === 0 ? entry.label : undefined,
         instruction: entry.instruction,
         sourceRegister,

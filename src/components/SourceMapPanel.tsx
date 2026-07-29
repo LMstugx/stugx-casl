@@ -22,6 +22,7 @@ export default function SourceMapPanel({
       <table className="data-table source-map-table">
         <thead>
           <tr>
+            <th>{t("project.module")}</th>
             <th>Line</th>
             <th>{t("table.address")}</th>
             <th>Machine</th>
@@ -30,7 +31,7 @@ export default function SourceMapPanel({
         <tbody>
           {state.sourceMap.length === 0 ? (
             <tr className="empty-table-row">
-              <td colSpan={3}>{t("empty.noSourceMapping")}</td>
+              <td colSpan={4}>{t("empty.noSourceMapping")}</td>
             </tr>
           ) : null}
           {state.sourceMap.map((entry) => {
@@ -38,11 +39,12 @@ export default function SourceMapPanel({
             const wordMapping = cppToCaslMapping.find((mapping) => mapping.caslLines.includes(entry.line) && mapping.wordIndex !== undefined);
             return (
             <tr
-              key={`${entry.line}-${entry.address}`}
+              key={`${entry.moduleId ?? "single"}-${entry.line}-${entry.address}`}
               className={isCurrent ? "current" : ""}
               data-testid={isCurrent ? "source-row-current" : undefined}
               data-instruction={entry.source}
             >
+              <td title={entry.moduleName ?? entry.moduleId ?? ""}>{entry.moduleName ?? entry.moduleId ?? "-"}</td>
               <td className="mono-value" title={String(entry.line)}>{entry.line}</td>
               <td className="hex mono-value" title={formatWord(entry.address)}>{formatWord(entry.address)}</td>
               <td className="hex mono-value" title={entry.machineWords.map((word) => formatWord(word)).join(" ")}>

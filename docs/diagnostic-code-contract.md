@@ -58,6 +58,6 @@ A P2 code is not promoted because a raw English sentence exists. It needs a stab
 
 ## Baseline Freeze
 
-Phase 14H originally froze 55 structured codes in `diagnostic-localization-baseline-v1.json`. Phase 19A explicitly appends nine double-boundary semantic codes, bringing the reviewed snapshot to 64 without changing the original code order or schemas. Runtime registries remain authoritative; tests compare the snapshot against code order, producer allowlists, schemas, locale resources, backend ownership, and parity scope. The v1 manifest is never imported by runtime code.
+Phase 14H originally froze 55 structured codes in `diagnostic-localization-baseline-v1.json`. Phase 19A appended nine double-boundary semantic codes and Phase 20F appends twelve linker codes, bringing the reviewed snapshot to 76 without changing earlier code order or schemas. Runtime registries remain authoritative; tests compare the snapshot against code order, producer allowlists, schemas, locale resources, backend ownership, and parity scope. The v1 manifest is never imported by runtime code.
 
 Phase 14I records the final quality-gate result in [phase14i-i18n-diagnostics-final-quality-gate.md](phase14i-i18n-diagnostics-final-quality-gate.md). Future file/project lifecycle code consumes this contract through runtime adapters and must not read the manifest as business configuration.

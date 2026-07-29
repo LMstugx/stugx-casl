@@ -20,6 +20,22 @@ export type LoadedWasmCore = {
   create: () => string;
   destroy: () => void;
   assemble: (sourceText: string) => string;
+  assembleModule: (
+    moduleId: string,
+    sourceUnitId: string,
+    moduleAssemblyId: string,
+    displayName: string,
+    source: string
+  ) => string;
+  projectBegin: (projectId: string, linkId: string, linkRevision: number, mainModuleId: string) => string;
+  projectAddModule: (
+    moduleId: string,
+    sourceUnitId: string,
+    moduleAssemblyId: string,
+    displayName: string,
+    source: string
+  ) => string;
+  projectLink: () => string;
   step: () => string;
   microStep: () => string;
   reverseMicrostep: (historyEpoch: number, timelineRevision: number) => string;
@@ -171,6 +187,34 @@ export async function loadWasmModule(options: WasmModuleLoadOptions = {}): Promi
     create: wrapJsonFunction(module, "stugx_casl_create", []) as () => string,
     destroy: module.cwrap("stugx_casl_destroy", null, []) as () => void,
     assemble: wrapJsonFunction(module, "stugx_casl_assemble", ["string"]) as (sourceText: string) => string,
+    assembleModule: wrapJsonFunction(
+      module,
+      "stugx_casl_assemble_module",
+      ["string", "string", "string", "string", "string"]
+    ) as (
+      moduleId: string,
+      sourceUnitId: string,
+      moduleAssemblyId: string,
+      displayName: string,
+      source: string
+    ) => string,
+    projectBegin: wrapJsonFunction(
+      module,
+      "stugx_casl_project_begin",
+      ["string", "string", "number", "string"]
+    ) as (projectId: string, linkId: string, linkRevision: number, mainModuleId: string) => string,
+    projectAddModule: wrapJsonFunction(
+      module,
+      "stugx_casl_project_add_module",
+      ["string", "string", "string", "string", "string"]
+    ) as (
+      moduleId: string,
+      sourceUnitId: string,
+      moduleAssemblyId: string,
+      displayName: string,
+      source: string
+    ) => string,
+    projectLink: wrapJsonFunction(module, "stugx_casl_project_link", []) as () => string,
     step: wrapJsonFunction(module, "stugx_casl_step", []) as () => string,
     microStep: wrapJsonFunction(module, "stugx_casl_micro_step", []) as () => string,
     reverseMicrostep: wrapJsonFunction(module, "stugx_casl_reverse_microstep", ["number", "number"]) as (

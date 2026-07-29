@@ -56,14 +56,21 @@ function memoryFromDto(dto: CometStateDto, previous?: CometState): Record<number
   return memory;
 }
 
-function sourceMapFromDto(rows: SourceRowDto[]): SourceMapEntry[] {
+function sourceMapFromDto(rows: SourceRowDto[], previous?: CometState): SourceMapEntry[] {
   return rows.map((row) => ({
     line: row.line,
     address: row.address,
     machineWords: [...row.machineWords],
     source: row.source,
     label: row.label ?? undefined,
-    instruction: row.instruction ?? undefined
+    instruction: row.instruction ?? undefined,
+    moduleId: row.moduleId,
+    moduleName: previous?.sourceMap.find((entry) =>
+      entry.sourceMappingId === row.sourceMappingId
+      || (entry.moduleId === row.moduleId && entry.address === row.address)
+    )?.moduleName,
+    sourceUnitId: row.sourceUnitId,
+    sourceMappingId: row.sourceMappingId
   }));
 }
 
@@ -98,7 +105,10 @@ function programFromDto(sourceRows: SourceRowDto[]): AssembledInstruction[] {
         sourceRegister: row.sourceRegister ?? undefined,
         operandLabel: operandLabelForAddress(sourceRows, row.operandAddress),
         operandAddress: row.operandAddress ?? undefined,
-        indexRegister: row.indexRegister ?? undefined
+        indexRegister: row.indexRegister ?? undefined,
+        moduleId: row.moduleId,
+        sourceUnitId: row.sourceUnitId,
+        sourceMappingId: row.sourceMappingId
       };
     });
 }
@@ -360,7 +370,12 @@ function traceFromDto(dto: CometStateDto, previous?: CometState): TraceEvent[] {
       microcyclePhase: dto.microcyclePhase,
       microIndex: dto.microcycleIndex ?? 0,
       totalMicrosteps: dto.microcycleTotal ?? 0,
-      instructionComplete: dto.microcycleInstructionComplete ?? false
+      instructionComplete: dto.microcycleInstructionComplete ?? false,
+      projectId: dto.projectId,
+      linkId: dto.linkId,
+      linkRevision: dto.linkRevision,
+      moduleId: row?.moduleId,
+      sourceMappingId: row?.sourceMappingId
     };
     return [event, ...previousTrace].slice(0, MAX_TRACE_EVENTS).map((traceEvent) => ({ ...traceEvent }));
   }
@@ -397,7 +412,12 @@ function traceFromDto(dto: CometStateDto, previous?: CometState): TraceEvent[] {
     indexValue: dto.indexValue ?? undefined,
     effectiveAddress: dto.effectiveAddress ?? undefined,
     runState: dto.runState,
-    ...macro
+    ...macro,
+    projectId: dto.projectId,
+    linkId: dto.linkId,
+    linkRevision: dto.linkRevision,
+    moduleId: row?.moduleId,
+    sourceMappingId: row?.sourceMappingId
   };
   return [event, ...previousTrace].slice(0, MAX_TRACE_EVENTS).map((traceEvent) => ({ ...traceEvent }));
 }
@@ -432,7 +452,7 @@ export function createCometStateFromDto(dto: CometStateDto, options: StateFromDt
   ].filter((address, index, addresses) => addresses.indexOf(address) === index);
   const assembled = dto.runState !== "Idle" && dto.runState !== "Dirty" && dto.runState !== "Error" && dto.sourceRows.length > 0;
   const output = options.output ?? (options.previous ? [...options.previous.output] : defaultOutput(dto));
-  const sourceMap = sourceMapFromDto(dto.sourceRows);
+  const sourceMap = sourceMapFromDto(dto.sourceRows, options.previous);
   const partialStateForMemoryRows = {
     memory,
     memoryRows: [] as MemoryRow[],
@@ -469,6 +489,11 @@ export function createCometStateFromDto(dto: CometStateDto, options: StateFromDt
           phase: microcyclePhase,
           instructionAddress: dto.microcycleInstructionAddress ?? dto.pr,
           instructionKind: dto.microcycleInstructionKind ?? undefined,
+          projectId: dto.projectId,
+          linkId: dto.linkId,
+          linkRevision: dto.linkRevision,
+          moduleId: dto.sourceRows.find((row) => row.address === dto.microcycleInstructionAddress)?.moduleId,
+          sourceMappingId: dto.sourceRows.find((row) => row.address === dto.microcycleInstructionAddress)?.sourceMappingId,
           startsAtFetch: microcyclePhase === "fetch",
           endsAtInstructionComplete: microcyclePhase === "complete",
           prBefore: options.previous?.pr ?? dto.pr,
@@ -574,7 +599,10 @@ export function createCometStateFromDto(dto: CometStateDto, options: StateFromDt
     lastEffectiveAddress: dto.effectiveAddress ?? undefined,
     program: programFromDto(dto.sourceRows),
     changedRegisters,
-    changedMemoryAddresses
+    changedMemoryAddresses,
+    projectId: dto.projectId,
+    linkId: dto.linkId,
+    linkRevision: dto.linkRevision
   };
 }
 

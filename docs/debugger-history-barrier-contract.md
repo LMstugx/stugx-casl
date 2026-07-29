@@ -16,6 +16,8 @@ Every asynchronous Step, Run batch, WASM response, waiting-input continuation, a
 SourceUnitId + assemblyId + executionEpoch
 ```
 
+For a linked project, `assemblyId` is the committed `LinkId`; runtime and history additionally retain `ProjectId` and `LinkRevision`.
+
 The reducer accepts a completion only when all three values still match. A stale completion cannot overwrite a manual edit, restore an older register or memory word, append stale Trace, or emit a success notice.
 
 ## Epoch Rules
@@ -27,6 +29,8 @@ The reducer accepts a completion only when all three values still match. A stale
 - Full Clear
 - source replacement or source-mode change
 - successful new assembly
+- successful Link or Relink
+- module add, remove, reorder, Main change, or source replacement
 
 `historyEpoch` advances at the same invalidation boundaries. It is a monotonic barrier identity, not retained reverse history. Manual mutation events belong only to the new epoch.
 

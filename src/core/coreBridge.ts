@@ -1,4 +1,5 @@
 import type { CoreAdapter, ReloadInitializationMode } from "./coreAdapter";
+import type { ProjectLinkModuleInput, ProjectLinkRequest } from "../linker/types";
 import { MockCoreAdapter } from "./mockCoreAdapter";
 import { WasmCoreAdapter } from "./wasmCoreAdapter";
 import type { DebuggerMutationRequest } from "../debugger/debuggerMutation";
@@ -101,6 +102,22 @@ async function callCoreTransaction<T>(operation: () => Promise<T>): Promise<T> {
 export const coreBridge = {
   assemble(sourceText: string) {
     return callCoreTransaction(() => activeSelection.adapter.assemble(sourceText));
+  },
+  assembleModule(input: ProjectLinkModuleInput) {
+    return callCore(() => {
+      if (!activeSelection.adapter.assembleModule) {
+        throw new Error("Core backend does not support independent module assembly.");
+      }
+      return activeSelection.adapter.assembleModule(input);
+    });
+  },
+  linkProject(request: ProjectLinkRequest) {
+    return callCoreTransaction(() => {
+      if (!activeSelection.adapter.linkProject) {
+        throw new Error("Core backend does not support project linking.");
+      }
+      return activeSelection.adapter.linkProject(request);
+    });
   },
   reset() {
     return callCoreTransaction(() => activeSelection.adapter.reset());

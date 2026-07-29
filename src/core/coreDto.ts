@@ -32,6 +32,9 @@ export interface SourceRowDto {
   sourceRegister?: number | null;
   indexRegister: number | null;
   isCurrent: boolean;
+  moduleId?: string;
+  sourceUnitId?: string;
+  sourceMappingId?: string;
 }
 
 export interface MemoryRowDto {
@@ -91,6 +94,9 @@ export interface CometStateDto {
   sourceRows: SourceRowDto[];
   diagnostics: DiagnosticDto[];
   consoleOutput?: number[][];
+  projectId?: string;
+  linkId?: string;
+  linkRevision?: number;
 }
 
 export interface AssembleResultDto {
@@ -170,7 +176,10 @@ function sourceRowsToDto(state: CometState): SourceRowDto[] {
       operandAddress: programInstruction?.operandAddress ?? null,
       ...(programInstruction?.sourceRegister !== undefined ? { sourceRegister: programInstruction.sourceRegister } : {}),
       indexRegister: programInstruction?.indexRegister ?? null,
-      isCurrent: entry.address === state.currentAddress
+      isCurrent: entry.address === state.currentAddress,
+      ...(entry.moduleId ? { moduleId: entry.moduleId } : {}),
+      ...(entry.sourceUnitId ? { sourceUnitId: entry.sourceUnitId } : {}),
+      ...(entry.sourceMappingId ? { sourceMappingId: entry.sourceMappingId } : {})
     };
   });
 }
@@ -228,6 +237,9 @@ export function toCometStateDto(state: CometState, memoryStart = 0x20, memoryEnd
     frOF: state.fr.o,
     frSF: state.fr.n,
     frZF: state.fr.z,
+    ...(state.projectId ? { projectId: state.projectId } : {}),
+    ...(state.linkId ? { linkId: state.linkId } : {}),
+    ...(state.linkRevision !== undefined ? { linkRevision: state.linkRevision } : {}),
     ...(state.executionGranularity === "microcycle"
       || (state.reverseAvailability.reason !== "assembly-boundary"
         && state.reverseAvailability.reason !== "runtime-not-loaded")

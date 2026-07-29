@@ -54,6 +54,10 @@ Register values remain visually read-only until their Edit action is activated. 
 
 Full Clear unloads machine state and preserves the source document and its Dirty status. It is a separate destructive action from Reset, Reload, Clear Console, and New. See [Full Clear](full-clear.md).
 
+## Multi-program Sessions
+
+Project Modules can assemble standard `.cas` sources independently and link them into one runtime image. A cross-module `CALL` targets another module's `START` program label. Machine Code, Source Mapping, Trace, Circuit, and Reverse retain module ownership. See [Multi-program Projects](multi-program-projects.md).
+
 ## Scope
 
-Step executes one real machine instruction. Reverse Instruction returns to the previous machine boundary; an expanded macro reverses one real expanded instruction at a time. Use [COMET Microcycle Mode](comet-microcycle-mode.md) to advance or reverse one teaching-microarchitecture phase. Redo, Reverse Run, bulk Memory editing, and multi-program linking are not available.
+Step executes one real machine instruction. Reverse Instruction returns to the previous machine boundary; an expanded macro reverses one real expanded instruction at a time. Use [COMET Microcycle Mode](comet-microcycle-mode.md) to advance or reverse one teaching-microarchitecture phase. Redo, Reverse Run, bulk Memory editing, arbitrary cross-module data exports, and proprietary project import are not available.

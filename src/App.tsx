@@ -9,6 +9,7 @@ import DemoGuidePanel from "./components/DemoGuidePanel";
 import CircuitFocusLayout from "./components/CircuitFocusLayout";
 import CaslCompatibilityMode from "./components/CaslCompatibilityMode";
 import CometMicrocyclePanel from "./components/CometMicrocyclePanel";
+import ProjectModulesPanel from "./components/ProjectModulesPanel";
 import CometCircuitSvg from "./visual/CometCircuitSvg";
 import { formatWord } from "./core/types";
 import { summarizeCurrentInstruction } from "./visual/visualState";
@@ -30,8 +31,9 @@ import NewDocumentDialog from "./components/NewDocumentDialog";
 import { BrowserTextFileAdapter } from "./documents/browserTextFileAdapter";
 import { DocumentSessionController, type SaveDocumentResult } from "./documents/documentSessionController";
 import { createSequentialDocumentIdFactory } from "./documents/idFactory";
+import { createDocument, createExternalDocument, isDocumentDirty } from "./documents/documentModel";
 import { createIdleFileLifecycleState } from "./documents/lifecycle";
-import type { TextFileAdapter } from "./documents/fileAdapter";
+import { DEFAULT_MAX_TEXT_FILE_BYTES, type TextFileAdapter } from "./documents/fileAdapter";
 import { prepareSourceReplacement, type SourceReplacementIntent } from "./documents/replacementIntent";
 import { getDocumentDisplayName } from "./documents/documentPresentation";
 import { useBeforeUnloadDirtyGuard } from "./documents/beforeUnloadGuard";
@@ -42,6 +44,24 @@ import { WebLocalStorageStartupSelectionStorage, type StartupSelectionStorage } 
 import { LessonProgressController } from "./lessonProgress/controller";
 import { WebLocalStorageLessonProgressStorage, type LessonProgressStorage } from "./lessonProgress/storage";
 import { ProductionFailureScreen } from "./production/ProductionFailure";
+import {
+  addProjectModule,
+  commitModuleAssembly,
+  commitProjectLink,
+  createCaslModule,
+  createCaslProjectSession,
+  createProjectLinkRequest,
+  createSequentialProjectIdentityFactory,
+  moduleAssemblyInput,
+  moveProjectModule,
+  projectHasDirtyModules,
+  removeProjectModule,
+  renameProjectModule,
+  setMainProjectModule,
+  setProjectLinking,
+  syncProjectModule
+} from "./linker/projectSession";
+import type { CaslProjectSession, ModuleId } from "./linker/types";
 
 type AppProps = {
   fileAdapter?: TextFileAdapter;
@@ -200,6 +220,9 @@ function StudioShell({
     setInspectorActiveTab,
     setOutputDockActiveTab,
     replaceCurrentDocument,
+    selectProjectDocument,
+    assembleProjectModule,
+    linkProject,
     commitSavedDocument,
     setFileLifecycle
   } = useAppStore();
@@ -210,6 +233,20 @@ function StudioShell({
   const [showNewDocumentDialog, setShowNewDocumentDialog] = useState(false);
   const [pendingReplacementIntent, setPendingReplacementIntent] = useState<SourceReplacementIntent | null>(null);
   const [fileNotice, setFileNotice] = useState<FileOperationNoticeModel | null>(null);
+  const projectIdsRef = useRef(createSequentialProjectIdentityFactory("casl-project"));
+  const initialProjectSession = useMemo(
+    () => sourceMode === "casl"
+      ? createCaslProjectSession(currentDocument, currentWriteBinding, projectIdsRef.current)
+      : null,
+    []
+  );
+  const [projectSession, setProjectSession] = useState<CaslProjectSession | null>(initialProjectSession);
+  const projectSessionRef = useRef<CaslProjectSession | null>(initialProjectSession);
+  const retainedProjectDocumentIdsRef = useRef(new Set(
+    initialProjectSession?.modules.map((module) => module.document.documentId) ?? []
+  ));
+  const [projectBusy, setProjectBusy] = useState(false);
+  const [projectNotice, setProjectNotice] = useState<string | null>(null);
   const [workspaceMode, setWorkspaceMode] = useState<"modern" | "casl" | "comet">("modern");
   const openIdsRef = useRef(createSequentialDocumentIdFactory("browser-open"));
   const currentDocumentRef = useRef(currentDocument);
@@ -217,6 +254,25 @@ function StudioShell({
   const mountedRef = useRef(true);
   const documentController = useMemo(() => new DocumentSessionController(fileAdapter, openIdsRef.current), [fileAdapter]);
   currentDocumentRef.current = currentDocument;
+  const commitProjectSession = useCallback((next: CaslProjectSession | null) => {
+    projectSessionRef.current = next;
+    retainedProjectDocumentIdsRef.current = new Set(
+      next?.modules.map((module) => module.document.documentId) ?? []
+    );
+    setProjectSession(next);
+  }, []);
+  const syncActiveProjectModule = useCallback(() => {
+    const session = projectSessionRef.current;
+    if (!session || currentDocumentRef.current.language !== "casl") return session;
+    const next = syncProjectModule(
+      session,
+      session.activeModuleId,
+      currentDocumentRef.current,
+      writeBindingRef.current
+    );
+    commitProjectSession(next);
+    return next;
+  }, [commitProjectSession]);
   const selectWorkspaceMode = useCallback((mode: "modern" | "casl" | "comet") => {
     setWorkspaceMode(mode);
     setExecutionGranularity(mode === "comet" ? "microcycle" : "instruction");
@@ -224,11 +280,50 @@ function StudioShell({
 
   useEffect(() => {
     const previous = writeBindingRef.current;
-    if (previous && (!currentWriteBinding || currentWriteBinding.documentId !== previous.documentId)) {
+    if (
+      previous
+      && (!currentWriteBinding || currentWriteBinding.documentId !== previous.documentId)
+      && !retainedProjectDocumentIdsRef.current.has(previous.documentId)
+    ) {
       documentController.releaseDocumentBinding(previous.documentId);
     }
     writeBindingRef.current = currentWriteBinding;
   }, [currentWriteBinding, documentController]);
+
+  useEffect(() => {
+    const session = projectSessionRef.current;
+    if (currentDocument.language !== "casl") {
+      if (session) {
+        for (const module of session.modules) {
+          if (module.writeBinding) documentController.releaseDocumentBinding(module.document.documentId);
+        }
+      }
+      commitProjectSession(null);
+      return;
+    }
+    const owned = session?.modules.some((module) => module.moduleId === session.activeModuleId
+      && module.document.documentId === currentDocument.documentId
+    );
+    if (session && owned) {
+      commitProjectSession(syncProjectModule(
+        session,
+        session.activeModuleId,
+        currentDocument,
+        currentWriteBinding
+      ));
+      return;
+    }
+    if (session) {
+      for (const module of session.modules) {
+        if (module.writeBinding) documentController.releaseDocumentBinding(module.document.documentId);
+      }
+    }
+    commitProjectSession(createCaslProjectSession(
+      currentDocument,
+      currentWriteBinding,
+      projectIdsRef.current
+    ));
+  }, [commitProjectSession, currentDocument, currentWriteBinding, documentController]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -338,17 +433,168 @@ function StudioShell({
     void performReplacement(intent, false);
   }, [performReplacement, selectedDemoProgramId, setFileLifecycle]);
   const requestOpen = useCallback(() => requestReplacement({ kind: "open-file" }), [requestReplacement]);
-  const replacementBusy = fileLifecycle.status === "opening"
+  const selectModule = useCallback((moduleId: ModuleId) => {
+    const synced = syncActiveProjectModule();
+    const target = synced?.modules.find((module) => module.moduleId === moduleId);
+    if (!synced || !target || synced.activeModuleId === moduleId) return;
+    const next = { ...synced, activeModuleId: moduleId };
+    commitProjectSession(next);
+    currentDocumentRef.current = target.document;
+    writeBindingRef.current = target.writeBinding;
+    selectProjectDocument(target.document, target.writeBinding);
+    setSelectedDiagnosticId(undefined);
+    setDiagnosticNavigationRange(undefined);
+  }, [commitProjectSession, selectProjectDocument, syncActiveProjectModule]);
+
+  const addNewModule = useCallback(() => {
+    const session = syncActiveProjectModule();
+    if (!session) return;
+    if (session.modules.length >= 64) {
+      setProjectNotice(t("project.moduleLimit"));
+      return;
+    }
+    const sequence = session.modules.length + 1;
+    const document = createDocument({
+      language: "casl",
+      origin: "untitled",
+      displayName: `Module${sequence}.cas`,
+      content: `MODULE${sequence} START\n        RET\n        END\n`,
+      saveCapability: "save-as-only",
+      lineEnding: "lf"
+    }, openIdsRef.current);
+    const module = createCaslModule(document, null, projectIdsRef.current);
+    const next = addProjectModule(session, module);
+    commitProjectSession(next);
+    currentDocumentRef.current = document;
+    writeBindingRef.current = null;
+    selectProjectDocument(document, null);
+    setProjectNotice(null);
+  }, [commitProjectSession, selectProjectDocument, syncActiveProjectModule, t]);
+
+  const openProjectModule = useCallback(() => {
+    void (async () => {
+      const session = syncActiveProjectModule();
+      if (!session || projectBusy) return;
+      if (session.modules.length >= 64) {
+        setProjectNotice(t("project.moduleLimit"));
+        return;
+      }
+      setProjectBusy(true);
+      try {
+        const result = await fileAdapter.openTextFile({
+          acceptedExtensions: [".cas"],
+          maxBytes: DEFAULT_MAX_TEXT_FILE_BYTES
+        });
+        if (result.status !== "success") return;
+        if (result.value.language !== "casl") {
+          setProjectNotice(t("project.openCaslOnly"));
+          return;
+        }
+        const document = createExternalDocument(result.value, openIdsRef.current);
+        const module = createCaslModule(document, null, projectIdsRef.current);
+        const current = projectSessionRef.current;
+        if (!current || current.projectId !== session.projectId) return;
+        const next = addProjectModule(current, module);
+        commitProjectSession(next);
+        currentDocumentRef.current = document;
+        writeBindingRef.current = null;
+        selectProjectDocument(document, null);
+        setProjectNotice(null);
+      } finally {
+        if (mountedRef.current) setProjectBusy(false);
+      }
+    })();
+  }, [commitProjectSession, fileAdapter, projectBusy, selectProjectDocument, syncActiveProjectModule, t]);
+
+  const removeModule = useCallback((moduleId: ModuleId) => {
+    const session = syncActiveProjectModule();
+    const target = session?.modules.find((module) => module.moduleId === moduleId);
+    if (!session || !target || session.modules.length <= 1) return;
+    if (isDocumentDirty(target.document) && !globalThis.confirm(t("project.removeDirtyConfirm"))) return;
+    const next = removeProjectModule(session, moduleId);
+    if (target.writeBinding) documentController.releaseDocumentBinding(target.document.documentId);
+    commitProjectSession(next);
+    if (session.activeModuleId === moduleId) {
+      const replacement = next.modules.find((module) => module.moduleId === next.activeModuleId);
+      if (replacement) {
+        currentDocumentRef.current = replacement.document;
+        writeBindingRef.current = replacement.writeBinding;
+        selectProjectDocument(replacement.document, replacement.writeBinding);
+      }
+    }
+  }, [commitProjectSession, documentController, selectProjectDocument, syncActiveProjectModule, t]);
+
+  const assembleModules = useCallback((moduleIds: readonly ModuleId[]) => {
+    void (async () => {
+      const session = syncActiveProjectModule();
+      if (!session || projectBusy) return;
+      setProjectBusy(true);
+      setProjectNotice(null);
+      let next = session;
+      let failed = false;
+      try {
+        for (const moduleId of moduleIds) {
+          const module = next.modules.find((candidate) => candidate.moduleId === moduleId);
+          if (!module) continue;
+          const moduleAssemblyId = projectIdsRef.current.nextModuleAssemblyId(moduleId);
+          const input = moduleAssemblyInput(module, moduleAssemblyId);
+          const result = await assembleProjectModule(input);
+          const current = projectSessionRef.current;
+          if (!current || current.projectId !== session.projectId) return;
+          const currentModule = current.modules.find((candidate) => candidate.moduleId === moduleId);
+          if (
+            !currentModule
+            || currentModule.sourceUnitId !== input.sourceUnitId
+            || currentModule.document.content !== input.source
+          ) {
+            return;
+          }
+          next = commitModuleAssembly(next, moduleId, result);
+          failed ||= !result.ok;
+          commitProjectSession(next);
+        }
+        if (failed) setProjectNotice(t("project.assembleFailed"));
+      } finally {
+        if (mountedRef.current) setProjectBusy(false);
+      }
+    })();
+  }, [assembleProjectModule, commitProjectSession, projectBusy, syncActiveProjectModule, t]);
+
+  const linkCurrentProject = useCallback(() => {
+    void (async () => {
+      const session = syncActiveProjectModule();
+      if (!session || projectBusy) return;
+      const request = createProjectLinkRequest(session, projectIdsRef.current);
+      if (!request) {
+        setProjectNotice(t("project.assembleFailed"));
+        return;
+      }
+      const requestId = `${request.linkId}:request`;
+      commitProjectSession(setProjectLinking(session, requestId));
+      setProjectBusy(true);
+      try {
+        const result = await linkProject(request);
+        const current = projectSessionRef.current;
+        if (!current || current.projectId !== request.projectId || current.linkState.status !== "linking") return;
+        commitProjectSession(commitProjectLink(current, result.link));
+        setProjectNotice(result.ok ? t("project.linkCompleted") : t("project.linkFailed"));
+      } finally {
+        if (mountedRef.current) setProjectBusy(false);
+      }
+    })();
+  }, [commitProjectSession, linkProject, projectBusy, syncActiveProjectModule, t]);
+  const replacementBusy = projectBusy
+    || fileLifecycle.status === "opening"
     || fileLifecycle.status === "confirming-replace"
     || fileLifecycle.status === "creating-document"
     || fileLifecycle.status === "switching-example";
   const documentDisplayName = getDocumentDisplayName(currentDocument, t);
-  useBeforeUnloadDirtyGuard(documentDirty);
+  useBeforeUnloadDirtyGuard(documentDirty || Boolean(projectSession && projectHasDirtyModules(projectSession)));
   const isRunning = state.runState === "Running";
   const canExecute = state.runState === "Ready" || (state.runState === "Stopped" && runStopReason === "manual");
-  const canRun = !isSourceDirty && state.assembled && canExecute;
-  const canStep = !isSourceDirty && state.assembled && canExecute;
-  const canReset = !isSourceDirty && !isRunning && (state.assembled || state.runState === "Finished" || state.runState === "Stopped" || state.sourceMap.length > 0);
+  const canRun = !projectBusy && !isSourceDirty && state.assembled && canExecute;
+  const canStep = !projectBusy && !isSourceDirty && state.assembled && canExecute;
+  const canReset = !projectBusy && !isSourceDirty && !isRunning && (state.assembled || state.runState === "Finished" || state.runState === "Stopped" || state.sourceMap.length > 0);
   const diagnostics = useMemo(
     () => storeDiagnostics
       .filter((diagnostic) => diagnostic.severity === "error")
@@ -360,7 +606,16 @@ function StudioShell({
       })),
     [locale, storeDiagnostics]
   );
-  const editorCurrentLine = sourceMode === "cpp" ? cppLineForCaslLine(cppToCaslMapping, state.currentLine) : state.currentLine;
+  const activeRuntimeMapping = state.sourceMap.find((mapping) =>
+    mapping.address === (state.currentAddress ?? state.pr)
+  );
+  const runtimeMapsToActiveDocument = !activeRuntimeMapping?.sourceUnitId
+    || activeRuntimeMapping.sourceUnitId === sourceUnitId;
+  const editorCurrentLine = runtimeMapsToActiveDocument
+    ? sourceMode === "cpp"
+      ? cppLineForCaslLine(cppToCaslMapping, state.currentLine)
+      : state.currentLine
+    : undefined;
   const selectedDiagnostic = diagnostics.find((diagnostic) => diagnostic.identity === selectedDiagnosticId);
   const selectedDiagnosticDeveloperDetail = selectedDiagnostic
     ? formatDiagnosticDeveloperDetail(selectedDiagnostic.source.rawContext)
@@ -388,6 +643,22 @@ function StudioShell({
   const selectedDemoMatchesSource = Boolean(selectedDemoProgram && selectedDemoProgram.source === sourceText && selectedDemoProgram.mode === sourceMode);
   const selectedLesson = selectedDemoProgram && selectedDemoMatchesSource ? getLearningLesson(selectedDemoProgram.id) : undefined;
   const selectedLessonProgress = selectedDemoProgram && selectedLesson ? (lessonProgress[selectedDemoProgram.id] ?? {}) : {};
+  const runtimeSourceMapping = useMemo(() => {
+    if (sourceMode !== "casl" || !projectSession) return undefined;
+    const address = state.currentAddress ?? state.pr;
+    return state.sourceMap.find((mapping) => mapping.address === address)
+      ?? state.sourceMap.find((mapping) => mapping.address === state.lastStep?.executedAddress);
+  }, [projectSession, sourceMode, state.currentAddress, state.lastStep?.executedAddress, state.pr, state.sourceMap]);
+  const runtimeObservationModule = useMemo(
+    () => runtimeSourceMapping?.moduleId
+      ? projectSession?.modules.find((module) => module.moduleId === runtimeSourceMapping.moduleId)
+      : undefined,
+    [projectSession, runtimeSourceMapping?.moduleId]
+  );
+  const runtimeObservationSourceText = runtimeObservationModule?.document.content ?? sourceText;
+  const runtimeObservationSourceName = runtimeSourceMapping?.moduleName
+    ?? runtimeObservationModule?.displayName
+    ?? runtimeSourceMapping?.moduleId;
   const frameSymbolRelations = useMemo(() => selectFrameSymbolRelations(sourceMode, sourceText), [sourceMode, sourceText]);
   useEffect(() => {
     if (editorSelectedFrameSlotId && !frameSymbolRelations.some((relation) => relation.mappingId === editorSelectedFrameSlotId)) {
@@ -399,7 +670,7 @@ function StudioShell({
     if (compactProgram.length > 0 || state.trace.length === 0) {
       const labels = compactProgram.length > 0 ? compactProgram : [t("status.ready"), "LD", "ADDA", "ST", "RET"];
       return labels.map((label, index) => ({
-        key: label,
+        key: `${index}:${label}`,
         index,
         label,
         phase: state.runState === "Finished" || state.stepIndex > index ? "completed" : state.stepIndex === index ? "current" : "pending"
@@ -423,7 +694,7 @@ function StudioShell({
   return (
     <div className={(workspaceMode === "modern" && circuitFocusEnabled) || workspaceMode === "comet" ? "app-shell circuit-focus-active" : "app-shell"}>
       <Toolbar
-        assembleStatus={assembleStatus}
+        assembleStatus={projectBusy ? "running" : assembleStatus}
         canRun={canRun}
         canStep={canStep}
         canReset={canReset}
@@ -482,7 +753,38 @@ function StudioShell({
       />
       <FileOperationNotice notice={fileNotice} onDismiss={() => setFileNotice(null)} />
 
-      <div className="workspace-region">
+      <div className={projectSession ? "workspace-region project-session-active" : "workspace-region"}>
+      {projectSession ? (
+        <>
+          <ProjectModulesPanel
+            session={projectSession}
+            busy={projectBusy}
+            onAddNew={addNewModule}
+            onOpen={openProjectModule}
+            onSelect={selectModule}
+            onRemove={removeModule}
+            onRename={(moduleId, displayName) => {
+              const session = syncActiveProjectModule();
+              if (session) commitProjectSession(renameProjectModule(session, moduleId, displayName));
+            }}
+            onSetMain={(moduleId) => {
+              const session = syncActiveProjectModule();
+              if (session) commitProjectSession(setMainProjectModule(session, moduleId));
+            }}
+            onMove={(moduleId, direction) => {
+              const session = syncActiveProjectModule();
+              if (session) commitProjectSession(moveProjectModule(session, moduleId, direction));
+            }}
+            onAssembleCurrent={() => assembleModules([projectSession.activeModuleId])}
+            onAssembleAll={() => assembleModules(projectSession.moduleOrder)}
+            onLink={linkCurrentProject}
+            onSaveCurrent={() => void performSave(!currentWriteBinding || currentDocument.saveCapability !== "save")}
+          />
+          {projectNotice ? (
+            <p className="project-notice" role="status">{projectNotice}</p>
+          ) : null}
+        </>
+      ) : null}
       <nav className="workspace-mode-switch" aria-label={t("compatibility.workspaceView")}>
         <button
           type="button"
@@ -515,7 +817,8 @@ function StudioShell({
       {workspaceMode === "casl" ? (
         <CaslCompatibilityMode
           state={state}
-          sourceText={sourceMode === "cpp" && generatedCaslSource ? generatedCaslSource : sourceText}
+          sourceText={sourceMode === "cpp" && generatedCaslSource ? generatedCaslSource : runtimeObservationSourceText}
+          sourceDisplayName={runtimeObservationSourceName}
           isSourceDirty={isSourceDirty}
           onReset={reset}
           onReload={reload}
@@ -554,7 +857,8 @@ function StudioShell({
             key={sourceUnitId}
             state={state}
             sourceMode={sourceMode}
-            sourceText={sourceText}
+            sourceText={runtimeObservationSourceText}
+            sourceDisplayName={runtimeObservationSourceName}
             generatedCaslSource={generatedCaslSource}
             cppToCaslMapping={cppToCaslMapping}
             cppStorageObjects={cppStorageObjects}
@@ -574,7 +878,8 @@ function StudioShell({
           key={sourceUnitId}
           state={state}
           sourceMode={sourceMode}
-          sourceText={sourceText}
+          sourceText={runtimeObservationSourceText}
+          sourceDisplayName={runtimeObservationSourceName}
           generatedCaslSource={generatedCaslSource}
           cppToCaslMapping={cppToCaslMapping}
           cppStorageObjects={cppStorageObjects}
@@ -613,10 +918,10 @@ function StudioShell({
                 </select>
               </label>
               <div className="segmented source-mode" aria-label="Source mode">
-                <button type="button" className={sourceMode === "casl" ? "selected" : ""} data-testid="source-mode-casl" aria-pressed={sourceMode === "casl"} title="Use CASL source mode" onClick={() => setSourceMode("casl")}>
+                <button type="button" disabled={projectBusy} className={sourceMode === "casl" ? "selected" : ""} data-testid="source-mode-casl" aria-pressed={sourceMode === "casl"} title="Use CASL source mode" onClick={() => setSourceMode("casl")}>
                   CASL
                 </button>
-                <button type="button" className={sourceMode === "cpp" ? "selected" : ""} data-testid="source-mode-cpp" aria-pressed={sourceMode === "cpp"} title="Use C++ subset source mode" onClick={() => setSourceMode("cpp")}>
+                <button type="button" disabled={projectBusy} className={sourceMode === "cpp" ? "selected" : ""} data-testid="source-mode-cpp" aria-pressed={sourceMode === "cpp"} title="Use C++ subset source mode" onClick={() => setSourceMode("cpp")}>
                   <span className="source-mode-full">C++ subset</span><span className="source-mode-compact">C++</span>
                 </button>
               </div>
@@ -629,6 +934,7 @@ function StudioShell({
               source={sourceText}
               language={sourceMode}
               currentLine={editorCurrentLine}
+              readOnly={projectBusy}
               onChange={(nextSource) => {
                 setSelectedDiagnosticId(undefined);
                 setDiagnosticNavigationRange(undefined);

@@ -10,6 +10,12 @@ import {
   isValidDebuggerMutationInput,
   registerIndex
 } from "../debugger/debuggerMutation";
+import type {
+  LinkProjectResultDto,
+  ModuleAssemblyResult,
+  ProjectLinkModuleInput,
+  ProjectLinkRequest
+} from "../linker/types";
 
 export class WasmCoreAdapter implements CoreAdapter {
   private corePromise: Promise<LoadedWasmCore> | null = null;
@@ -19,6 +25,49 @@ export class WasmCoreAdapter implements CoreAdapter {
   async assemble(sourceText: string): Promise<AssembleResultDto> {
     const core = await this.ensureInitialized();
     return parseWasmJson<AssembleResultDto>(core.assemble(sourceText), "assemble", core);
+  }
+
+  async linkProject(request: ProjectLinkRequest): Promise<LinkProjectResultDto> {
+    const core = await this.ensureInitialized();
+    parseWasmJson<{ ok: boolean }>(
+      core.projectBegin(
+        request.projectId,
+        request.linkId,
+        request.linkRevision,
+        request.mainModuleId
+      ),
+      "projectBegin",
+      core
+    );
+    for (const module of request.modules) {
+      parseWasmJson<{ ok: boolean }>(
+        core.projectAddModule(
+          module.moduleId,
+          module.sourceUnitId,
+          module.moduleAssemblyId,
+          module.displayName,
+          module.source
+        ),
+        "projectAddModule",
+        core
+      );
+    }
+    return parseWasmJson<LinkProjectResultDto>(core.projectLink(), "linkProject", core);
+  }
+
+  async assembleModule(input: ProjectLinkModuleInput): Promise<ModuleAssemblyResult> {
+    const core = await this.ensureInitialized();
+    return parseWasmJson<ModuleAssemblyResult>(
+      core.assembleModule(
+        input.moduleId,
+        input.sourceUnitId,
+        input.moduleAssemblyId,
+        input.displayName,
+        input.source
+      ),
+      "assembleModule",
+      core
+    );
   }
 
   async reset(): Promise<CometStateDto> {

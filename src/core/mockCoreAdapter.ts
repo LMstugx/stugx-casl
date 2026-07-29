@@ -3,6 +3,8 @@ import { toAssembleResultDto, toCometStateDto, toStepResultDto } from "./coreDto
 import {
   mockCaslCore,
   createEmptyCometState,
+  assembleMockModule,
+  createMockStateFromLinkedProgram,
   reverseMockInstruction,
   reverseMockMicrocycle
 } from "./mockCaslCore";
@@ -13,6 +15,9 @@ import {
   isValidDebuggerMutationInput,
   type DebuggerMutationRequest
 } from "../debugger/debuggerMutation";
+import { linkCaslProject } from "../linker/caslLinker";
+import type { ProjectLinkRequest } from "../linker/types";
+import type { ProjectLinkModuleInput } from "../linker/types";
 
 export class MockCoreAdapter implements CoreAdapter {
   private state: CometState = createEmptyCometState("Idle", ["Editor ready. Assemble to load the current source."]);
@@ -25,6 +30,40 @@ export class MockCoreAdapter implements CoreAdapter {
       timelineRevision: previous.timelineRevision + 1
     };
     return toAssembleResultDto(this.state);
+  }
+
+  async linkProject(request: ProjectLinkRequest) {
+    const link = linkCaslProject(request);
+    if (link.ok) {
+      const previous = this.state;
+      this.state = {
+        ...createMockStateFromLinkedProgram(link),
+        historyEpoch: previous.historyEpoch + 1,
+        timelineRevision: previous.timelineRevision + 1
+      };
+    }
+    const state = toCometStateDto(this.state);
+    return {
+      ok: link.ok,
+      link,
+      state,
+      diagnostics: link.diagnostics.map((diagnostic) => ({
+        line: diagnostic.line,
+        message: diagnostic.message,
+        severity: diagnostic.severity,
+        code: diagnostic.code,
+        producer: diagnostic.producer,
+        params: diagnostic.params,
+        sourceRange: diagnostic.sourceRange,
+        relatedLocations: diagnostic.relatedLocations,
+        fileName: diagnostic.fileName,
+        fallbackMessage: diagnostic.fallbackMessage
+      }))
+    };
+  }
+
+  async assembleModule(input: ProjectLinkModuleInput) {
+    return assembleMockModule(input);
   }
 
   async reset() {

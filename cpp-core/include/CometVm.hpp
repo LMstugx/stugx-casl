@@ -122,6 +122,11 @@ private:
         std::uint64_t instructionId = 0;
         std::uint16_t instructionAddress = 0;
         std::optional<InstructionKind> instructionKind;
+        std::string projectId;
+        std::string linkId;
+        std::uint64_t linkRevision = 0;
+        std::string moduleId;
+        std::string sourceMappingId;
         int sourceLine = -1;
         bool startsAtFetch = false;
         bool endsAtInstructionComplete = false;

@@ -20,6 +20,6 @@ flowchart LR
 
 Direct CASL input enters at the assembler. The TypeScript CoreAdapter boundary provides Mock development/test and WASM implementations, but production builds require WASM and fail when its assets are missing.
 
-The application store owns one document and derived compiler/runtime views. File operations, persistence adapters, diagnostics, and lesson progress use explicit controllers or registries rather than component-level browser access.
+The application store owns the active editor document and derived compiler/runtime views. A CASL project session may retain several independently owned documents and one immutable linked runtime; selecting an editor module does not transfer linked-image ownership. File operations, persistence adapters, diagnostics, and lesson progress use explicit controllers or registries rather than component-level browser access.
 
 Historical implementation evidence remains under `docs/phase*.md`. Current contracts are summarized by this guide, the [Technical Reference](../README.md), and the ADRs.

@@ -6,6 +6,8 @@
 #include <cctype>
 #include <set>
 #include <limits>
+#include <string_view>
+#include <unordered_set>
 #include <utility>
 
 namespace casl {
@@ -261,6 +263,28 @@ std::string symbolKey(const std::string& label) {
     return key;
 }
 
+SourceRange tokenRange(const ParsedLine& line, const std::string& token) {
+    const auto position = line.raw.find(token);
+    const auto column = position == std::string::npos ? std::size_t{0} : position;
+    return {
+        {line.line, static_cast<int>(column + 1), std::nullopt},
+        {line.line, static_cast<int>(column + token.size() + 1), std::nullopt}
+    };
+}
+
+bool isSymbolToken(const std::string& token) {
+    if (token.empty() || parseNumber(token).has_value()) return false;
+    if (token.front() == '\'' || token.front() == '=') return false;
+    return parseRegister(token) == std::nullopt;
+}
+
+std::string relocationId(std::uint32_t wordOffset, RelocationKind kind, std::string_view symbol) {
+    const char* kindName = kind == RelocationKind::CallTarget
+        ? "call"
+        : kind == RelocationKind::DataAddressConstant ? "data" : "address";
+    return std::string(kindName) + ":" + std::to_string(wordOffset) + ":" + std::string(symbol);
+}
+
 bool isRegisterAddressOpcode(Opcode opcode) {
     return opcode == Opcode::LD || opcode == Opcode::LAD || opcode == Opcode::ADDA ||
            opcode == Opcode::SUBA || opcode == Opcode::ADDL || opcode == Opcode::SUBL ||
@@ -448,9 +472,157 @@ AssembleResult Assembler::assemble(const std::string& source) const {
     return result;
 }
 
-bool Assembler::pass1(std::vector<ParsedLine>& lines, AssembleOutput& output, std::vector<Diagnostic>& diagnostics) const {
+ModuleAssemblyResult Assembler::assembleModule(const std::string& source) const {
+    ModuleAssemblyResult result;
+    CaslParser parser;
+    auto parsed = parser.parse(source);
+    result.diagnostics = parsed.diagnostics;
+    auto commaDiagnostics = collectMalformedCommaDiagnostics(source);
+    if (!commaDiagnostics.empty()) {
+        parsed.ok = false;
+        result.diagnostics.insert(result.diagnostics.end(), commaDiagnostics.begin(), commaDiagnostics.end());
+    }
+
+    std::unordered_set<std::string> originalLabels;
+    for (const auto& line : parsed.value) {
+        if (!line.label.empty()) originalLabels.insert(symbolKey(line.label));
+    }
+
+    auto lines = std::move(parsed.value);
+    const auto expansionOk = expandMacrosAndLiterals(lines, result.diagnostics);
+    const auto requiredDirectivesOk = validateRequiredDirectives(lines, result.diagnostics);
+    const auto parseOk = parsed.ok && expansionOk && requiredDirectivesOk;
+
+    AssembleOutput assembled;
+    assembled.entryPoint = 0;
+    const auto pass1Ok = parseOk && pass1(lines, assembled, result.diagnostics, 0);
+    std::unordered_set<std::string> localKeys;
+    for (const auto& [name, _] : assembled.symbols) localKeys.insert(name);
+
+    std::unordered_set<std::string> externalKeys;
+    if (pass1Ok) {
+        for (const auto& line : lines) {
+            if (!line.opcode.has_value() || *line.opcode != Opcode::CALL || line.operands.empty()) continue;
+            const auto& token = line.operands.front();
+            const auto key = symbolKey(token);
+            if (!isSymbolToken(token) || localKeys.contains(key)) continue;
+            externalKeys.insert(key);
+            assembled.symbols.emplace(key, 0);
+        }
+    }
+
+    const auto pass2Ok = pass1Ok && pass2(lines, assembled, result.diagnostics);
+    for (const auto& external : externalKeys) assembled.symbols.erase(external);
+
+    auto& module = result.value;
+    const auto start = std::find_if(lines.begin(), lines.end(), [](const ParsedLine& line) {
+        return line.opcode.has_value() && *line.opcode == Opcode::START;
+    });
+    if (start != lines.end()) {
+        module.programName = start->label;
+        if (!start->operands.empty()) module.requestedEntrySymbol = start->operands.front();
+    }
+
+    std::uint32_t moduleSize = 0;
+    for (const auto& entry : assembled.sourceMap.entries()) {
+        module.sourceMap.add(entry);
+        moduleSize = std::max(
+            moduleSize,
+            static_cast<std::uint32_t>(entry.address) + static_cast<std::uint32_t>(entry.machineWords.size())
+        );
+    }
+    module.moduleSize = moduleSize;
+    module.entryOffset = assembled.entryPoint;
+    module.instructions = assembled.instructions;
+    module.words.reserve(moduleSize);
+    for (std::uint32_t offset = 0; offset < moduleSize; ++offset) {
+        module.words.push_back(assembled.state.memory[offset]);
+    }
+
+    for (const auto& line : lines) {
+        if (line.label.empty()) continue;
+        const auto normalized = symbolKey(line.label);
+        const auto symbol = assembled.symbols.find(normalized);
+        if (symbol == assembled.symbols.end()) continue;
+        const auto isProgram = line.opcode.has_value() && *line.opcode == Opcode::START;
+        const auto generated = !originalLabels.contains(normalized);
+        module.symbols.push_back({
+            "symbol:" + normalized,
+            line.label,
+            normalized,
+            isProgram
+                ? ModuleSymbolScope::ModuleExported
+                : generated ? ModuleSymbolScope::GeneratedPrivate : ModuleSymbolScope::ModuleLocal,
+            symbol->second,
+            line.line,
+            tokenRange(line, line.label)
+        });
+    }
+
+    const auto appendRelocation = [&](const ParsedLine& line, std::uint32_t wordOffset, RelocationKind kind, const std::string& token) {
+        const auto normalized = symbolKey(token);
+        if (!localKeys.contains(normalized) && !externalKeys.contains(normalized)) return;
+        module.relocations.push_back({
+            relocationId(wordOffset, kind, normalized),
+            wordOffset,
+            kind,
+            token,
+            normalized,
+            0,
+            line.line,
+            tokenRange(line, token),
+            externalKeys.contains(normalized)
+        });
+    };
+
+    for (const auto& line : lines) {
+        if (!line.opcode.has_value()) continue;
+        const auto opcode = *line.opcode;
+        if (isRegisterAddressOpcode(opcode)) {
+            if (line.operands.size() < 2) continue;
+            if (supportsRegisterForm(opcode) && line.operands.size() == 2 && parseRegister(line.operands[1]).has_value()) continue;
+            if (isSymbolToken(line.operands[1])) {
+                appendRelocation(line, static_cast<std::uint32_t>(line.address) + 1, RelocationKind::AbsoluteAddressWord, line.operands[1]);
+            }
+            continue;
+        }
+        if (isJumpOpcode(opcode) || isPushOpcode(opcode) || isCallOpcode(opcode) || opcode == Opcode::SVC) {
+            if (line.operands.empty() || !isSymbolToken(line.operands[0])) continue;
+            appendRelocation(
+                line,
+                static_cast<std::uint32_t>(line.address) + 1,
+                opcode == Opcode::CALL ? RelocationKind::CallTarget : RelocationKind::AbsoluteAddressWord,
+                line.operands[0]
+            );
+            continue;
+        }
+        if (opcode != Opcode::DC) continue;
+        auto wordOffset = static_cast<std::uint32_t>(line.address);
+        for (const auto& token : line.operands) {
+            if (const auto characters = characterConstantWords(token); characters.has_value()) {
+                wordOffset += static_cast<std::uint32_t>(characters->size());
+                continue;
+            }
+            if (isSymbolToken(token)) {
+                appendRelocation(line, wordOffset, RelocationKind::DataAddressConstant, token);
+            }
+            wordOffset += 1;
+        }
+    }
+
+    structureDiagnostics(result.diagnostics, source);
+    result.ok = parseOk && pass1Ok && pass2Ok && result.diagnostics.empty();
+    return result;
+}
+
+bool Assembler::pass1(
+    std::vector<ParsedLine>& lines,
+    AssembleOutput& output,
+    std::vector<Diagnostic>& diagnostics,
+    std::uint32_t startAddress
+) const {
     bool ok = true;
-    std::uint32_t address = kDefaultStartAddress;
+    std::uint32_t address = startAddress;
 
     for (auto& line : lines) {
         if (!line.opcode.has_value()) {
@@ -460,7 +632,7 @@ bool Assembler::pass1(std::vector<ParsedLine>& lines, AssembleOutput& output, st
 
         const auto opcode = *line.opcode;
         if (opcode == Opcode::START) {
-            address = kDefaultStartAddress;
+            address = startAddress;
             line.address = static_cast<std::uint16_t>(address);
         } else {
             if (opcode != Opcode::END && address >= kMemorySize) {

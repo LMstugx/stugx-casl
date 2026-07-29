@@ -17,6 +17,9 @@ struct SourceMapEntry {
     std::string source;
     std::string label;
     Opcode instruction = Opcode::DC;
+    std::string moduleId;
+    std::string sourceUnitId;
+    std::string sourceMappingId;
 };
 
 class SourceMap {

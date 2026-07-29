@@ -110,7 +110,11 @@ export default function TracePanel({
       <div className="trace-list" data-testid="trace-list">
         {state.trace.length === 0 ? <p className="muted">{t("empty.noTraceEntries")}</p> : null}
         {state.trace.map((event, index) => {
-          const caslLine = state.sourceMap.find((entry) => entry.address === event.address)?.line;
+          const mappedSource = state.sourceMap.find((entry) =>
+            entry.address === event.address
+            && (!event.moduleId || entry.moduleId === event.moduleId)
+          );
+          const caslLine = mappedSource?.line;
           const doubleOperation = doubleOperationForCaslLine(cppToCaslMapping, resolvedObjects, caslLine);
           const wordIndex = doubleOperation?.wordIndex ?? 0;
           const sourceWord = doubleOperation?.sourceObject?.words[wordIndex];
@@ -142,6 +146,11 @@ export default function TracePanel({
             </strong>
             <div className="trace-item-body">
               {operationTitle ? <p className="trace-double-operation" data-testid="trace-double-operation" title={operationTitle}>{operationTitle}</p> : null}
+              {event.moduleId ? (
+                <small className="module-context-badge">
+                  {mappedSource?.moduleName ?? event.moduleId}
+                </small>
+              ) : null}
               <div className="trace-row" data-testid="trace-row-main">
                 <span className="trace-main text-ellipsis" title={traceMainEvent(event)}>{traceMainEvent(event)}</span>
                 <span className="mono-value">at {formatWord(event.address)}</span>

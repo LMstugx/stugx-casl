@@ -28,9 +28,13 @@ Phase 20C implements the documented COMET teaching microarchitecture after provi
 
 Teacher feedback moves the Circuit from an exclusive observation mode to a persistent teaching view beside switchable data. This is a modern `superset` experience: it links the same runtime event across Circuit, Registers, Memory, Stack, Code / Machine, Source Mapping, and Trace without copying the WCASL interface or changing execution semantics.
 
+## Phase 20F
+
+Phase 20F implements independent module assembly, structured relocation, deterministic placement, linked runtime ownership, and cross-module Source Mapping for standard `.cas` files. It does not concatenate source or parse a proprietary WCASL project format.
+
 ## Candidate Next Work
 
-Structured multi-program linking remains behind the Phase 20F gate in [multi-program-linking-design.md](multi-program-linking-design.md). Redo, reverse run, Reverse Macro, and persistent timelines remain separate admission work.
+The next gate is evidence-based WCASL replacement evaluation using standard programs, course exercises, instructor workflow, and beginner usability. Proprietary project import remains blocked pending a public format contract. Redo, reverse run, Reverse Macro, and persistent timelines remain separate admission work.
 
 ## Prohibited Shortcuts
 

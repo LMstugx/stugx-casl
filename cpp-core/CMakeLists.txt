@@ -11,6 +11,7 @@ option(STUGX_CASL_BUILD_WASM "Build WASM bridge" OFF)
 add_library(casl_core
   src/CaslParser.cpp
   src/Assembler.cpp
+  src/Linker.cpp
   src/CometVm.cpp
   src/SourceMap.cpp
   src/InstructionSet.cpp
@@ -30,13 +31,17 @@ if(STUGX_CASL_BUILD_WASM)
 
   add_executable(stugx_casl_core wasm/wasm_bridge.cpp)
   target_link_libraries(stugx_casl_core PRIVATE casl_core)
+  target_compile_options(casl_core PRIVATE "-Oz" "-flto")
+  target_compile_options(stugx_casl_core PRIVATE "-Oz" "-flto")
   target_link_options(stugx_casl_core PRIVATE
+    "-Oz"
+    "-flto"
     "-sMODULARIZE=1"
     "-sEXPORT_ES6=1"
     "-sENVIRONMENT=web,worker"
     "-sALLOW_MEMORY_GROWTH=1"
     "-sSTACK_SIZE=2097152"
-    "-sEXPORTED_FUNCTIONS=['_stugx_casl_create','_stugx_casl_destroy','_stugx_casl_assemble','_stugx_casl_step','_stugx_casl_micro_step','_stugx_casl_reverse_microstep','_stugx_casl_reverse_instruction','_stugx_casl_run_microcycles','_stugx_casl_reset','_stugx_casl_reload','_stugx_casl_run','_stugx_casl_get_state','_stugx_casl_enqueue_input','_stugx_casl_mutate','_stugx_casl_full_clear','_stugx_casl_get_last_error']"
+    "-sEXPORTED_FUNCTIONS=['_stugx_casl_create','_stugx_casl_destroy','_stugx_casl_assemble','_stugx_casl_assemble_module','_stugx_casl_project_begin','_stugx_casl_project_add_module','_stugx_casl_project_link','_stugx_casl_step','_stugx_casl_micro_step','_stugx_casl_reverse_microstep','_stugx_casl_reverse_instruction','_stugx_casl_run_microcycles','_stugx_casl_reset','_stugx_casl_reload','_stugx_casl_run','_stugx_casl_get_state','_stugx_casl_enqueue_input','_stugx_casl_mutate','_stugx_casl_full_clear','_stugx_casl_get_last_error']"
     "-sEXPORTED_RUNTIME_METHODS=['ccall','cwrap','UTF8ToString','HEAPU8']"
   )
   set_target_properties(stugx_casl_core PROPERTIES
@@ -140,6 +145,11 @@ else()
     ReverseInstructionRestoresMemoryStackBranchAndFlags
     ReverseInstructionRespectsBarriersAndCapacity
     ReverseInstructionRejectsStaleAndPreservesMicrostepReverse
+    ModuleAssemblyProducesRelocations
+    LinkerResolvesCrossModuleCall
+    LinkerKeepsModuleLocalSymbolsIndependent
+    LinkerRejectsDuplicateExportAndUnresolvedCall
+    SingleModuleLinkMatchesAssembler
   )
 
   foreach(test_name IN LISTS CORE_TESTS)

@@ -52,6 +52,7 @@ struct Diagnostic {
     std::string fallbackMessage;
     std::optional<SourceRange> sourceRange;
     std::vector<DiagnosticRelatedLocation> relatedLocations;
+    std::string fileName;
 };
 
 template <typename T>
@@ -245,6 +246,9 @@ struct CometState {
     ReverseAvailability reverseAvailability{};
     ReverseInstructionAvailability reverseInstructionAvailability{};
     MicrocycleHistorySummary microcycleHistorySummary{};
+    std::string projectId;
+    std::string linkId;
+    std::uint64_t linkRevision = 0;
 };
 
 struct SourceRow {

@@ -17,3 +17,5 @@ Assembler diagnostics use stable producer/code/parameter/range contracts. Existi
 The TypeScript Mock and C++/WASM paths are tested for DTO parity. Production must not substitute Mock output when WASM assembly fails.
 
 The assembler result also drives CASL Mode assembler output. Symbol, literal, entry-point, source-line, and machine-word views must be derived from that result rather than maintained independently.
+
+For a project module, the same assembler emits module-relative words, scoped symbols, per-module literals, source mappings, and explicit address-word relocation records. An unresolved cross-module `CALL` is retained as a relocation; an unresolved local reference remains an assembly error. Final addresses are owned by the [CASL Linker](casl-linker.md), not the parser.

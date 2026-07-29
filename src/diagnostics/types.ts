@@ -1,7 +1,7 @@
 export type DiagnosticSeverity = "error" | "warning" | "info";
 
 export const diagnosticProducers = [
-  "casl-parser", "assembler", "cpp-lexer", "cpp-parser", "semantic", "transpiler", "vm", "wasm-adapter"
+  "casl-parser", "assembler", "linker", "cpp-lexer", "cpp-parser", "semantic", "transpiler", "vm", "wasm-adapter"
 ] as const;
 export type DiagnosticProducer = (typeof diagnosticProducers)[number];
 
@@ -11,6 +11,10 @@ export const diagnosticCodes = [
   "assembler.malformedOperandList", "assembler.invalidOperandCount", "assembler.addressOutOfRange",
   "assembler.literalOutOfRange", "assembler.missingOpcode", "assembler.invalidLiteral",
   "assembler.missingOperand", "assembler.unexpectedTrailingOperand",
+  "linker.invalidProjectIdentity", "linker.invalidModuleOrder", "linker.missingMainModule",
+  "linker.invalidProgramName", "linker.duplicateExportedProgram", "linker.unresolvedExternalSymbol",
+  "linker.duplicateRelocationTarget", "linker.relocationOverflow", "linker.projectMemoryOverflow",
+  "linker.moduleAssemblyNotReady", "linker.staleModuleAssembly", "linker.linkedImageStale",
   "cppParser.unexpectedToken", "cppParser.expectedToken", "cppParser.unterminatedBlock",
   "cppParser.missingSemicolon", "cppParser.invalidFunctionDeclaration", "cppParser.invalidParameterList",
   "cppParser.invalidVariableDeclaration", "cppParser.invalidAssignment", "cppParser.invalidIfStatement",
@@ -54,6 +58,18 @@ export interface DiagnosticParamSchemas {
   "assembler.invalidLiteral": { literal: string };
   "assembler.missingOperand": { mnemonic: string };
   "assembler.unexpectedTrailingOperand": { mnemonic: string; operand: string };
+  "linker.invalidProjectIdentity": NoParams;
+  "linker.invalidModuleOrder": { moduleId?: string; moduleCount?: number };
+  "linker.missingMainModule": { moduleId?: string };
+  "linker.invalidProgramName": { moduleId: string };
+  "linker.duplicateExportedProgram": { symbol: string };
+  "linker.unresolvedExternalSymbol": { symbol: string };
+  "linker.duplicateRelocationTarget": { address: number };
+  "linker.relocationOverflow": { symbol: string };
+  "linker.projectMemoryOverflow": { moduleId: string; wordCount: number };
+  "linker.moduleAssemblyNotReady": { moduleId: string };
+  "linker.staleModuleAssembly": { moduleId: string };
+  "linker.linkedImageStale": { reason: string };
   "cppParser.unexpectedToken": { token: string; expected?: string };
   "cppParser.expectedToken": { expectedToken: string; actualToken?: string };
   "cppParser.unterminatedBlock": { construct?: string };
@@ -156,6 +172,7 @@ export function isDiagnosticProducer(value: unknown): value is DiagnosticProduce
 }
 
 export function inferDiagnosticProducer(code: DiagnosticCode): DiagnosticProducer {
+  if (code.startsWith("linker.")) return "linker";
   if (code.startsWith("cppParser.")) return "cpp-parser";
   if (code.startsWith("semantic.")) return "semantic";
   if (code.startsWith("transpiler.")) return "transpiler";

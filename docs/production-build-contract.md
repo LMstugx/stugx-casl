@@ -23,7 +23,7 @@ Metadata has no timestamp, username, hostname, branch path, token, or local dire
 
 ## Size And Package
 
-`docs/production-size-budget.json` is the reviewed hard budget based on the self-hosted Monaco build. `scripts/report-production-size.ps1` emits deterministic `dist/production-size-report.json`; an excess fails. The main-chunk warning is below the hard budget but is a documented initial-load risk.
+`docs/production-size-budget.json` is the reviewed hard budget based on the self-hosted Monaco build. Baseline v2 keeps every v1 limit except CSS, which increases from 175,000 to 180,000 bytes for the Phase 20F project/linker workspace; the measured production CSS is 176,679 bytes. The linker WASM is optimized with `-Oz` and LTO and remains below the unchanged 300,000-byte WASM limit. `scripts/report-production-size.ps1` emits deterministic `dist/production-size-report.json`; an excess fails. The main-chunk warning is below the hard budget but is a documented initial-load risk.
 
 `pnpm package:production` verifies `dist/`, creates a sorted local ZIP with fixed timestamps, and writes SHA-256. It includes only deployable files and performs no upload.
 

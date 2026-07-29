@@ -51,6 +51,7 @@ describe("Phase 14G P2 stability audit", () => {
     expect(new Set(diagnosticCodes).size).toBe(diagnosticCodes.length);
     expect(new Set(diagnosticProducers).size).toBe(diagnosticProducers.length);
     expect(diagnosticProducers).toContain("transpiler");
+    expect(diagnosticProducers).toContain("linker");
   });
 
   it("schemas_reject_unknown_or_missing_params", () => {

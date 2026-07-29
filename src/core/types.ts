@@ -105,6 +105,10 @@ export interface SourceMapEntry {
   source: string;
   label?: string;
   instruction?: InstructionKind;
+  moduleId?: string;
+  moduleName?: string;
+  sourceUnitId?: string;
+  sourceMappingId?: string;
 }
 
 export interface TraceEvent {
@@ -147,6 +151,11 @@ export interface TraceEvent {
   microIndex?: number;
   totalMicrosteps?: number;
   instructionComplete?: boolean;
+  projectId?: string;
+  linkId?: string;
+  linkRevision?: number;
+  moduleId?: string;
+  sourceMappingId?: string;
 }
 
 export interface Diagnostic<C extends DiagnosticCode = DiagnosticCode> {
@@ -174,6 +183,9 @@ export interface AssembledInstruction {
   operandLabel?: string;
   operandAddress?: number;
   indexRegister?: number;
+  moduleId?: string;
+  sourceUnitId?: string;
+  sourceMappingId?: string;
 }
 
 export interface StepResult {
@@ -229,6 +241,9 @@ export interface CometState {
   program?: AssembledInstruction[];
   changedRegisters: string[];
   changedMemoryAddresses: number[];
+  projectId?: string;
+  linkId?: string;
+  linkRevision?: number;
 }
 
 export function word(value: number): number {

@@ -89,6 +89,68 @@ export async function run(page: Page) {
   await page.getByTestId("run-button").click();
 }
 
+export async function verifyMultiProgramLinker(page: Page, backendLabel: "Mock Core" | "WASM Core") {
+  const mainSource = `MAIN START
+     CALL SUB
+     RET
+     END`;
+  const subSource = `SUB START
+     LAD GR1,#0042
+     RET
+     END`;
+
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await openStudio(page, backendLabel);
+  await page.getByTestId("locale-en").click();
+  await page.getByTestId("project-new-module").click();
+  await setSource(page, subSource);
+  await page.getByTestId("project-assemble-current").click();
+
+  const moduleSelectors = page.getByTestId("project-module-select");
+  await expect(moduleSelectors).toHaveCount(2);
+  await expect(moduleSelectors.nth(1)).toHaveAttribute("data-assembly-status", "ready");
+  await moduleSelectors.nth(0).click();
+  await setSource(page, mainSource);
+  await page.getByTestId("project-assemble-current").click();
+  await expect(moduleSelectors.nth(0)).toHaveAttribute("data-assembly-status", "ready");
+  await expect(page.getByTestId("project-link")).toBeEnabled();
+  await page.getByTestId("project-link").click();
+
+  const projectPanel = page.getByTestId("project-modules-panel");
+  await expect(projectPanel).toHaveAttribute("data-link-state", "linked");
+  await expect(projectPanel).toContainText("#0020-#0022");
+  await expect(projectPanel).toContainText("#0023-#0025");
+  await expect(projectPanel).toContainText("call-target");
+  await expect(projectPanel).toContainText("SUB");
+
+  await page.getByTestId("casl-mode-toggle").click();
+  await page.getByTestId("auxiliary-observation-source-mapping").click();
+  await step(page);
+  await expect(page.getByTestId("casl-source-module")).toHaveText("Module2.cas");
+  await expect(page.locator(".casl-current-instruction")).toContainText("LAD GR1,#0042");
+
+  await page.getByTestId("reverse-instruction-button").click();
+  await expect(page.getByTestId("casl-source-module")).toContainText("CASL: GR2 Addition");
+  await expect(page.locator(".casl-current-instruction")).toContainText("CALL SUB");
+
+  await run(page);
+  await expect(page.getByTestId("run-state")).toHaveAttribute("data-run-state", "Finished");
+  await page.getByTestId("observation-mode-register-stack").click();
+  await expect(page.getByTestId("casl-register-gr1")).toContainText("#0042");
+
+  for (const viewport of [
+    { width: 1180, height: 700 },
+    { width: 1280, height: 720 },
+    { width: 1440, height: 900 },
+    { width: 1920, height: 1080 }
+  ]) {
+    await page.setViewportSize(viewport);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+    await expect(page.getByTestId("focus-circuit-panel")).toBeVisible();
+    await expect(page.getByTestId("project-modules-panel")).toBeVisible();
+  }
+}
+
 export async function verifyCaslCompatibilityMode(page: Page, backendLabel: "Mock Core" | "WASM Core") {
   const source = `MAIN START
      LAD GR3,#FFFF

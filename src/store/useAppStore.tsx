@@ -42,6 +42,12 @@ import {
   type DebuggerMemoryCategory,
   type RuntimeWordOverride
 } from "../debugger/debuggerMutation";
+import type {
+  LinkProjectResultDto,
+  ModuleAssemblyResult,
+  ProjectLinkModuleInput,
+  ProjectLinkRequest
+} from "../linker/types";
 
 type AssembleStatus = "default" | "running" | "success" | "error";
 export type SourceMode = "casl" | "cpp";
@@ -144,7 +150,14 @@ type AppStoreActions = {
   setCircuitFocusEnabled: (enabled: boolean) => void;
   setInspectorActiveTab: (tab: InspectorActiveTab) => void;
   setOutputDockActiveTab: (tab: OutputDockActiveTab) => void;
-  replaceCurrentDocument: (document: SourceDocument, selectedExampleId?: string) => void;
+  replaceCurrentDocument: (
+    document: SourceDocument,
+    selectedExampleId?: string,
+    writeBinding?: DocumentWriteBinding | null
+  ) => void;
+  selectProjectDocument: (document: SourceDocument, writeBinding: DocumentWriteBinding | null) => void;
+  assembleProjectModule: (input: ProjectLinkModuleInput) => Promise<ModuleAssemblyResult>;
+  linkProject: (request: ProjectLinkRequest) => Promise<LinkProjectResultDto>;
   commitSavedDocument: (document: SourceDocument, writeBinding: DocumentWriteBinding | null) => void;
   setFileLifecycle: (lifecycle: FileLifecycleState) => void;
 };
@@ -157,7 +170,10 @@ type AppStore = AppStoreState & AppStoreActions & {
 export type AppStoreAction =
   | { type: "setSourceText"; sourceText: string }
   | { type: "setSourceMode"; sourceMode: SourceMode }
-  | { type: "currentDocumentReplaced"; document: SourceDocument; selectedExampleId?: string }
+  | { type: "currentDocumentReplaced"; document: SourceDocument; selectedExampleId?: string; writeBinding?: DocumentWriteBinding | null }
+  | { type: "projectDocumentSelected"; document: SourceDocument; writeBinding: DocumentWriteBinding | null }
+  | { type: "projectLinked"; result: LinkProjectResultDto; cometState: CometState }
+  | { type: "projectLinkFailed"; diagnostics: Diagnostic[] }
   | { type: "currentDocumentSaved"; document: SourceDocument; writeBinding: DocumentWriteBinding | null }
   | { type: "fileLifecycleSet"; lifecycle: FileLifecycleState }
   | { type: "assembled"; sourceUnitId: SourceUnitId; sourceText: string; cometState: CometState; assembleStatus: AssembleStatus; assemblyId?: string; generatedCaslSource?: string; cppToCaslMapping?: CppToCaslMap[]; cppStorageObjects?: CppStorageObject[] }
@@ -361,7 +377,7 @@ export function appStoreReducer(state: AppStoreState, action: AppStoreAction): A
     return {
       ...state,
       currentDocument: action.document,
-      currentWriteBinding: null,
+      currentWriteBinding: action.writeBinding ?? null,
       fileLifecycle: createIdleFileLifecycleState(),
       sourceText: action.document.content,
       sourceMode: action.document.language,
@@ -386,6 +402,63 @@ export function appStoreReducer(state: AppStoreState, action: AppStoreAction): A
       dataModified: false,
       mutationInFlight: false,
       reverseInFlight: false,
+      reverseNotice: null
+    };
+  }
+
+  if (action.type === "projectDocumentSelected") {
+    return {
+      ...state,
+      currentDocument: action.document,
+      currentWriteBinding: action.writeBinding,
+      fileLifecycle: createIdleFileLifecycleState(),
+      sourceText: action.document.content,
+      sourceMode: action.document.language,
+      lastAssembledSource: action.document.content,
+      isSourceDirty: false,
+      diagnostics: [],
+      assembleStatus: state.cometState.assembled ? "success" : "default",
+      selectedDemoProgramId: "",
+      generatedCaslSource: "",
+      cppToCaslMapping: [],
+      cppStorageObjects: [],
+      reverseNotice: null
+    };
+  }
+
+  if (action.type === "projectLinked") {
+    return {
+      ...state,
+      assembleResult: action.cometState,
+      cometState: action.cometState,
+      diagnostics: action.cometState.diagnostics,
+      assembleStatus: "success",
+      runStopReason: null,
+      lastAssembledSource: state.sourceText,
+      isSourceDirty: false,
+      generatedCaslSource: "",
+      cppToCaslMapping: [],
+      cppStorageObjects: [],
+      selectedDemoProgramId: "",
+      assemblyId: action.result.link.linkId,
+      executionEpoch: state.executionEpoch + 1,
+      historyEpoch: action.cometState.historyEpoch,
+      runtimeImageRevision: 0,
+      runtimeOverrides: {},
+      programModified: false,
+      dataModified: false,
+      mutationInFlight: false,
+      reverseInFlight: false,
+      reverseNotice: null
+    };
+  }
+
+  if (action.type === "projectLinkFailed") {
+    return {
+      ...state,
+      diagnostics: action.diagnostics,
+      assembleStatus: "error",
+      runStopReason: null,
       reverseNotice: null
     };
   }
@@ -1400,9 +1473,37 @@ export function AppStoreProvider({
       setCircuitFocusEnabled: (enabled) => dispatch({ type: "circuitFocusEnabledSet", enabled }),
       setInspectorActiveTab: (tab) => dispatch({ type: "inspectorActiveTabSet", tab }),
       setOutputDockActiveTab: (tab) => dispatch({ type: "outputDockActiveTabSet", tab }),
-      replaceCurrentDocument: (document, selectedExampleId = "") => {
+      replaceCurrentDocument: (document, selectedExampleId = "", writeBinding = null) => {
         runControlRef.current = { runId: runControlRef.current.runId + 1, stopRequested: true };
-        dispatch({ type: "currentDocumentReplaced", document, selectedExampleId });
+        dispatch({ type: "currentDocumentReplaced", document, selectedExampleId, writeBinding });
+      },
+      selectProjectDocument: (document, writeBinding) => {
+        runControlRef.current = { runId: runControlRef.current.runId + 1, stopRequested: true };
+        dispatch({ type: "projectDocumentSelected", document, writeBinding });
+      },
+      assembleProjectModule: async (input) => coreBridge.assembleModule(input),
+      linkProject: async (request) => {
+        try {
+          const result = await coreBridge.linkProject(request);
+          const moduleNames = new Map(request.modules.map((module) => [module.moduleId, module.displayName]));
+          const decodedState = createCometStateFromDto(result.state);
+          const cometState = {
+            ...decodedState,
+            sourceMap: decodedState.sourceMap.map((mapping) => ({
+              ...mapping,
+              moduleName: mapping.moduleId ? moduleNames.get(mapping.moduleId as ProjectLinkModuleInput["moduleId"]) : undefined
+            }))
+          };
+          if (result.ok && result.link.ok && cometState.assembled) {
+            dispatch({ type: "projectLinked", result, cometState });
+          } else {
+            dispatch({ type: "projectLinkFailed", diagnostics: cometState.diagnostics });
+          }
+          return result;
+        } catch (error) {
+          eventBus.emit(AppEvent.VmError, { message: coreErrorMessage(error) });
+          throw error;
+        }
       },
       commitSavedDocument: (document, writeBinding) => dispatch({ type: "currentDocumentSaved", document, writeBinding }),
       setFileLifecycle: (lifecycle) => dispatch({ type: "fileLifecycleSet", lifecycle })

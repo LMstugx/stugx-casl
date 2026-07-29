@@ -631,14 +631,17 @@
       "featureId": "project.multi-source-link",
       "featureName": "Multiple CASL source linking",
       "sourceCategory": "WCASL workflow",
-      "evidenceReference": "docs/multi-program-linking-design.md",
-      "currentStatus": "partial",
+      "evidenceReference": "docs/casl-multi-program-linker-profile.md",
+      "currentStatus": "compatible",
       "priority": "P2",
       "implementationOwner": "linker",
       "tests": [
-        "multi_program_linking_admission_is_partial"
+        "modules_assemble_independently",
+        "call_target_relocation_is_correct",
+        "cross_module_call_executes_real_call",
+        "single_module_assembly_snapshot_unchanged"
       ],
-      "limitations": "Design and admission gate only; runtime remains single-document.",
+      "limitations": "Independent deterministic profile: START program labels are exported and cross-module CALL is supported; ordinary labels remain module-local.",
       "targetPhase": "20F"
     },
     {

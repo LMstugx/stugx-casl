@@ -16,6 +16,7 @@ type SourceEditorProps = {
   onSelectFrameSymbol?: (relation: FrameSymbolRelation) => void;
   diagnosticRange?: SourceRange;
   diagnosticMessage?: string;
+  readOnly?: boolean;
 };
 
 export default function SourceEditor({
@@ -27,7 +28,8 @@ export default function SourceEditor({
   selectedFrameSlotId,
   onSelectFrameSymbol,
   diagnosticRange,
-  diagnosticMessage
+  diagnosticMessage,
+  readOnly = false
 }: SourceEditorProps) {
   const { t } = useI18n();
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
@@ -111,6 +113,8 @@ export default function SourceEditor({
         onChange={(value) => onChange(value ?? "")}
         options={{
           minimap: { enabled: false },
+          readOnly,
+          readOnlyMessage: { value: t("project.linking") },
           fontFamily: "'Cascadia Mono', 'Consolas', monospace",
           fontSize: 14,
           lineHeight: 24,

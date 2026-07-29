@@ -60,7 +60,7 @@ describe("Phase 16D aggregate baseline", () => {
     for (const path of ["src/App.tsx", "src/store/useAppStore.tsx", "src/i18n/localeStorage.ts", "src/preferences/controller.ts", "src/startupSelection/controller.ts", "src/lessonProgress/controller.ts"]) {
       expect(readFileSync(path, "utf8")).not.toContain("persistence-baseline-v1.json");
     }
-    expect((JSON.parse(readFileSync("docs/diagnostic-localization-baseline-v1.json", "utf8")) as { structuredDiagnostics: unknown[] }).structuredDiagnostics).toHaveLength(64);
+    expect((JSON.parse(readFileSync("docs/diagnostic-localization-baseline-v1.json", "utf8")) as { structuredDiagnostics: unknown[] }).structuredDiagnostics).toHaveLength(76);
     expect((JSON.parse(readFileSync("docs/file-lifecycle-operation-matrix-v1.json", "utf8")) as { coverage: { totalCombinations: number } }).coverage.totalCombinations).toBe(112);
     expect((JSON.parse(readFileSync("docs/application-preferences-baseline-v1.json", "utf8")) as { persistedFields: string[] }).persistedFields).toEqual(["observationMode", "circuitFocusEnabled", "inspectorActiveTab", "outputDockActiveTab"]);
     expect((JSON.parse(readFileSync("docs/startup-selection-baseline-v1.json", "utf8")) as { persistedFields: string[] }).persistedFields).toEqual(["lastExampleId"]);

@@ -35,6 +35,16 @@ import {
 } from "./reverseInstruction";
 import { isDebuggerWord, isValidDebuggerMutationTarget } from "../debugger/debuggerMutation";
 import { decodeRuntimeInstruction } from "./instructionEncoding";
+import type {
+  LinkedWordKind,
+  LinkedProgramResult,
+  ModuleAssemblyResult,
+  ModuleSourceMapping,
+  ModuleSymbol,
+  ProjectLinkModuleInput,
+  RelocationKind,
+  RelocationRecord
+} from "../linker/types";
 
 export { DEFAULT_CASL_SOURCE };
 
@@ -107,6 +117,13 @@ type AssembleArtifacts = {
   symbols: Record<string, number>;
   diagnostics: Diagnostic[];
   entryPoint: number;
+  parsedLines: ParsedLine[];
+  externalSymbols: ReadonlySet<string>;
+};
+
+type AssembleOptions = {
+  startAddress?: number;
+  allowExternalCalls?: boolean;
 };
 
 export interface CaslCore {
@@ -332,6 +349,10 @@ function symbolKey(label: string): string {
   return label.toUpperCase();
 }
 
+function isSymbolOperand(token: string): boolean {
+  return /^[A-Za-z_][A-Za-z0-9_$]*$/.test(token.trim());
+}
+
 function instructionSize(line: ParsedLine): number {
   if (line.op && REGISTER_FORM_OPS.has(line.op as InstructionKind) && line.operands.length === 2 && /^GR[0-7]$/i.test(line.operands[1])) return 1;
   if (line.op && (REGISTER_ADDRESS_OPS.has(line.op as InstructionKind) || JUMP_OPS.has(line.op as InstructionKind) || STACK_ADDRESS_OPS.has(line.op as InstructionKind) || CALL_OPS.has(line.op as InstructionKind) || SYSTEM_ADDRESS_OPS.has(line.op as InstructionKind))) return 2;
@@ -528,15 +549,16 @@ function parseProgram(source: string): ParsedLine[] {
   return expanded;
 }
 
-function assembleArtifacts(source: string): AssembleArtifacts {
+function assembleArtifacts(source: string, options: AssembleOptions = {}): AssembleArtifacts {
   const lines = parseProgram(source);
   const diagnostics: Diagnostic[] = [];
   const symbols: Record<string, number> = {};
   const memory: Record<number, number> = {};
   const sourceMap: SourceMapEntry[] = [];
   const program: AssembledInstruction[] = [];
-  let address = START_ADDRESS;
-  let entryPoint = START_ADDRESS;
+  const startAddress = options.startAddress ?? START_ADDRESS;
+  let address = startAddress;
+  let entryPoint = startAddress;
 
   const directiveLine = lines[0]?.line ?? 0;
   for (const line of lines) {
@@ -591,9 +613,9 @@ function assembleArtifacts(source: string): AssembleArtifacts {
       }
     }
     if (line.op === "START") {
-      line.address = START_ADDRESS;
-      if (line.label && !Object.prototype.hasOwnProperty.call(symbols, symbolKey(line.label))) symbols[symbolKey(line.label)] = START_ADDRESS;
-      address = START_ADDRESS;
+      line.address = startAddress;
+      if (line.label && !Object.prototype.hasOwnProperty.call(symbols, symbolKey(line.label))) symbols[symbolKey(line.label)] = startAddress;
+      address = startAddress;
       continue;
     }
     if (line.op === "END") continue;
@@ -609,7 +631,21 @@ function assembleArtifacts(source: string): AssembleArtifacts {
     }
   }
 
-  address = START_ADDRESS;
+  const externalSymbols = new Set<string>();
+  if (options.allowExternalCalls) {
+    for (const line of lines) {
+      if (line.op !== "CALL") continue;
+      const operand = line.operands[0];
+      if (!operand || !isSymbolOperand(operand)) continue;
+      const normalized = symbolKey(operand);
+      if (!Object.prototype.hasOwnProperty.call(symbols, normalized)) {
+        externalSymbols.add(normalized);
+        symbols[normalized] = 0;
+      }
+    }
+  }
+
+  address = startAddress;
   for (const line of lines) {
     if (!line.op || line.op === "START" || line.op === "END") continue;
     const sourceText = line.source || line.raw.trim();
@@ -915,7 +951,235 @@ function assembleArtifacts(source: string): AssembleArtifacts {
     }
   }
 
-  return { memory, sourceMap, program, symbols, entryPoint, diagnostics: normalizeAssemblerDiagnostics(diagnostics, source) };
+  for (const external of externalSymbols) delete symbols[external];
+  return {
+    memory,
+    sourceMap,
+    program,
+    symbols,
+    entryPoint,
+    diagnostics: normalizeAssemblerDiagnostics(diagnostics, source),
+    parsedLines: lines,
+    externalSymbols
+  };
+}
+
+function tokenSourceRange(line: ParsedLine, token: string) {
+  const columnIndex = Math.max(0, line.raw.toUpperCase().indexOf(token.toUpperCase()));
+  return {
+    start: { line: line.line, column: columnIndex + 1 },
+    end: { line: line.line, column: columnIndex + token.length + 1 }
+  };
+}
+
+function relocationKindKey(kind: RelocationKind): string {
+  if (kind === "call-target") return "call";
+  if (kind === "data-address-constant") return "data";
+  return "address";
+}
+
+function wordKindsForModule(
+  artifacts: AssembleArtifacts,
+  originalLabels: ReadonlySet<string>
+): LinkedWordKind[] {
+  const kinds = Array.from({ length: Math.max(0, ...artifacts.sourceMap.map(
+    (mapping) => mapping.address + mapping.machineWords.length
+  )) }, () => "storage" as LinkedWordKind);
+  for (const mapping of artifacts.sourceMap) {
+    let kind: LinkedWordKind = "instruction";
+    if (mapping.instruction === "DC") {
+      kind = mapping.label && !originalLabels.has(symbolKey(mapping.label)) ? "literal" : "data";
+    } else if (mapping.instruction === "DS") {
+      kind = "storage";
+    }
+    mapping.machineWords.forEach((_word, offset) => {
+      kinds[mapping.address + offset] = offset > 0 && kind === "instruction" ? "operand" : kind;
+    });
+  }
+  return kinds;
+}
+
+export function assembleMockModule(input: ProjectLinkModuleInput): ModuleAssemblyResult {
+  const originalLines = input.source.split(/\r?\n/).map(parseLine);
+  const originalLabels = new Set(
+    originalLines.flatMap((line) => line.label ? [symbolKey(line.label)] : [])
+  );
+  const artifacts = assembleArtifacts(input.source, { startAddress: 0, allowExternalCalls: true });
+  const startLine = artifacts.parsedLines.find((line) => line.op === "START");
+  const programName = startLine?.label ?? "";
+  const symbols: ModuleSymbol[] = [];
+  const seenSymbols = new Set<string>();
+
+  for (const line of artifacts.parsedLines) {
+    if (!line.label) continue;
+    const normalizedName = symbolKey(line.label);
+    if (seenSymbols.has(normalizedName)) continue;
+    const relativeAddress = artifacts.symbols[normalizedName];
+    if (relativeAddress === undefined) continue;
+    seenSymbols.add(normalizedName);
+    const generated = !originalLabels.has(normalizedName);
+    symbols.push({
+      symbolId: `symbol:${normalizedName}`,
+      moduleId: input.moduleId,
+      name: line.label,
+      normalizedName,
+      scope: line.op === "START"
+        ? "module-exported"
+        : generated ? "generated-private" : "module-local",
+      relativeAddress,
+      definitionRange: tokenSourceRange(line, line.label),
+      kind: line.op === "START"
+        ? "program"
+        : generated ? "literal"
+          : line.op === "DC" ? "data" : line.op === "DS" ? "data" : "label"
+    });
+  }
+
+  const localSymbols = new Set(Object.keys(artifacts.symbols));
+  const relocations: RelocationRecord[] = [];
+  const appendRelocation = (
+    line: ParsedLine,
+    wordOffset: number,
+    kind: RelocationKind,
+    token: string
+  ) => {
+    const normalizedName = symbolKey(token);
+    const external = artifacts.externalSymbols.has(normalizedName);
+    if (!localSymbols.has(normalizedName) && !external) return;
+    relocations.push({
+      relocationId: `reloc:${wordOffset}:${relocationKindKey(kind)}:${normalizedName}`,
+      moduleId: input.moduleId,
+      moduleAssemblyId: input.moduleAssemblyId,
+      wordOffset,
+      kind,
+      symbolName: token,
+      normalizedSymbolName: normalizedName,
+      addend: 0,
+      sourceRange: tokenSourceRange(line, token),
+      instructionIdentity: line.op ? `${line.op}:${line.line}:${line.address ?? 0}` : undefined,
+      external
+    });
+  };
+
+  for (const line of artifacts.parsedLines) {
+    if (!line.op) continue;
+    if (REGISTER_ADDRESS_OPS.has(line.op as InstructionKind)) {
+      if (line.operands.length < 2) continue;
+      if (REGISTER_FORM_OPS.has(line.op as InstructionKind) && /^GR[0-7]$/i.test(line.operands[1])) continue;
+      if (isSymbolOperand(line.operands[1])) {
+        appendRelocation(line, (line.address ?? 0) + 1, "absolute-address-word", line.operands[1]);
+      }
+      continue;
+    }
+    if (
+      JUMP_OPS.has(line.op as InstructionKind)
+      || STACK_ADDRESS_OPS.has(line.op as InstructionKind)
+      || CALL_OPS.has(line.op as InstructionKind)
+      || SYSTEM_ADDRESS_OPS.has(line.op as InstructionKind)
+    ) {
+      const operand = line.operands[0];
+      if (operand && isSymbolOperand(operand)) {
+        appendRelocation(
+          line,
+          (line.address ?? 0) + 1,
+          line.op === "CALL" ? "call-target" : "absolute-address-word",
+          operand
+        );
+      }
+      continue;
+    }
+    if (line.op !== "DC") continue;
+    let wordOffset = line.address ?? 0;
+    for (const operand of line.operands) {
+      const characters = parseCharacterConstant(operand);
+      if (characters) {
+        wordOffset += characters.length;
+        continue;
+      }
+      if (isSymbolOperand(operand)) {
+        appendRelocation(line, wordOffset, "data-address-constant", operand);
+      }
+      wordOffset += 1;
+    }
+  }
+
+  const moduleSize = Math.max(
+    0,
+    ...artifacts.sourceMap.map((mapping) => mapping.address + mapping.machineWords.length)
+  );
+  const sourceMappings: ModuleSourceMapping[] = artifacts.sourceMap.map((mapping) => ({
+    ...mapping,
+    machineWords: [...mapping.machineWords],
+    mappingId: `${input.moduleId}:line:${mapping.line}:offset:${mapping.address}`,
+    moduleId: input.moduleId,
+    sourceUnitId: input.sourceUnitId
+  }));
+  const instructions = artifacts.program.map((instruction) => ({
+    ...instruction,
+    moduleId: input.moduleId,
+    sourceUnitId: input.sourceUnitId,
+    sourceMappingId: `${input.moduleId}:line:${instruction.line}:offset:${instruction.address}`
+  }));
+
+  return {
+    ok: artifacts.diagnostics.every((diagnostic) => diagnostic.severity !== "error"),
+    moduleId: input.moduleId,
+    sourceUnitId: input.sourceUnitId,
+    moduleAssemblyId: input.moduleAssemblyId,
+    programName,
+    requestedEntrySymbol: startLine?.operands[0],
+    localSymbols: symbols,
+    exportedSymbols: symbols.filter((symbol): symbol is ModuleSymbol & { scope: "module-exported" } =>
+      symbol.scope === "module-exported"
+    ),
+    unresolvedReferences: relocations.filter((relocation) => relocation.external),
+    relocations,
+    words: Array.from({ length: moduleSize }, (_unused, offset) => artifacts.memory[offset] ?? 0),
+    wordKinds: wordKindsForModule(artifacts, originalLabels),
+    instructions,
+    sourceMappings,
+    moduleSize,
+    entryOffset: artifacts.entryPoint,
+    diagnostics: artifacts.diagnostics
+  };
+}
+
+export function createMockStateFromLinkedProgram(link: LinkedProgramResult): CometState {
+  const memory: Record<number, number> = {};
+  link.words.forEach((value, offset) => {
+    memory[START_ADDRESS + offset] = word(value);
+  });
+  const symbols: Record<string, number> = {};
+  for (const symbol of link.exportedSymbols) {
+    symbols[`${symbol.moduleId}.${symbol.normalizedName}`.toUpperCase()] = symbol.address;
+    if (symbol.scope === "module-exported") symbols[symbol.normalizedName] = symbol.address;
+  }
+  const state = createState({
+    memory,
+    sourceMap: link.sourceMappings.map((mapping) => ({
+      line: mapping.line,
+      address: mapping.address,
+      machineWords: [...mapping.machineWords],
+      source: mapping.source,
+      label: mapping.label,
+      instruction: mapping.instruction,
+      moduleId: mapping.moduleId,
+      sourceUnitId: mapping.sourceUnitId,
+      sourceMappingId: mapping.mappingId
+    })),
+    program: link.instructions.map((instruction) => ({ ...instruction })),
+    symbols,
+    diagnostics: [...link.diagnostics],
+    entryPoint: link.entryPoint,
+    parsedLines: [],
+    externalSymbols: new Set<string>()
+  });
+  return {
+    ...state,
+    projectId: link.projectId,
+    linkId: link.linkId,
+    linkRevision: link.linkRevision
+  };
 }
 
 function getMemory(memory: Record<number, number>, address: number): number {
@@ -1879,6 +2143,9 @@ type MockReversibleEntry = {
   startsAtFetch: boolean;
   endsAtInstructionComplete: boolean;
   historyEpoch: number;
+  projectId?: string;
+  linkId?: string;
+  linkRevision?: number;
   before: MockReversibleSnapshot;
   after: MockReversibleSnapshot;
   availabilityBefore: CometState["reverseAvailability"];
@@ -2180,6 +2447,11 @@ function mockMicroStep(state: CometState): CometState {
     phase,
     instructionAddress: context.instruction.address,
     instructionKind: context.instruction.op,
+    projectId: state.projectId,
+    linkId: state.linkId,
+    linkRevision: state.linkRevision,
+    moduleId: context.instruction.moduleId,
+    sourceMappingId: context.instruction.sourceMappingId,
     startsAtFetch: phase === "fetch",
     endsAtInstructionComplete: instructionComplete,
     prBefore: before.pr,
@@ -2269,6 +2541,9 @@ function mockMicroStep(state: CometState): CometState {
     startsAtFetch: phase === "fetch",
     endsAtInstructionComplete: instructionComplete,
     historyEpoch: refreshed.historyEpoch,
+    projectId: refreshed.projectId,
+    linkId: refreshed.linkId,
+    linkRevision: refreshed.linkRevision,
     before: reversibleBefore,
     after: captureMockReversibleSnapshot(refreshed),
     availabilityBefore: { ...state.reverseAvailability },
@@ -2433,7 +2708,14 @@ export function reverseMockMicrocycle(
   }
   const history = [...(mockReversibleHistory.get(state) ?? [])];
   const entry = history.at(-1);
-  if (!entry || entry.historyEpoch !== state.historyEpoch || !mockSnapshotMatches(state, entry.after)) {
+  if (
+    !entry
+    || entry.historyEpoch !== state.historyEpoch
+    || entry.projectId !== state.projectId
+    || entry.linkId !== state.linkId
+    || entry.linkRevision !== state.linkRevision
+    || !mockSnapshotMatches(state, entry.after)
+  ) {
     return {
       state,
       result: {

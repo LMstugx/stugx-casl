@@ -8,7 +8,7 @@ stugx.CASL is a CASL II / COMET II learning studio for connecting source, Genera
 - Web: static Vite/WASM deployment on Cloudflare Pages
 - Windows: offline Tauri 2 local demo and unsigned NSIS build
 - Languages: EN, JA, and zh-CN
-- Documents: single-document New, Open, Save, Save As, Dirty guard, and `beforeunload`
+- Documents: independent CASL project modules plus per-module New, Open, Save, Save As, Dirty guard, and `beforeunload`
 - Persistence: locale, safe UI preferences, last built-in example, and built-in lesson progress only
 
 The project has no login, telemetry, analytics, cloud source storage, or remote compiler. Production requires the WASM backend and does not silently fall back to Mock.
@@ -48,6 +48,7 @@ The C++ path is not a complete C++ compiler and does not execute native code or 
 - bounded C++ subset lowering to inspectable CASL II
 - binary64 double storage and four-word assignment observation
 - Source, Generated CASL, Machine Code, and Trace mapping
+- deterministic multi-program CASL linking with independent SourceUnits, relocation records, and cross-module mapping
 - one persistent Circuit with switchable Register, Memory, Stack, Code / Machine, Source Mapping, Trace, Console, and Inspector data
 - clean-wire circuit visualization with active-flow-only emphasis
 - structured EN/JA/zh-CN diagnostics with stable source ranges
@@ -81,6 +82,7 @@ Additional commands are listed in [Build Commands](docs/reference/build-commands
 - [CASL State Editing](docs/user/casl-state-editing.md)
 - [Reverse Instruction](docs/user/reverse-instruction.md)
 - [Unified Observation Workspace](docs/user/unified-observation-workspace.md)
+- [Multi-program Projects](docs/user/multi-program-projects.md)
 - [WCASL-II Parity Audit](docs/phase20a-wcasl-parity-audit.md)
 - [C++ Subset Capabilities](docs/reference/cpp-subset-capabilities.md)
 - [Double Memory Observation](docs/user/double-memory-observation.md)
@@ -93,7 +95,7 @@ Canonical guides describe current behavior. Existing `docs/phase*.md` files and 
 
 ## Limits
 
-- CASL supports the official instruction set and fixed standard macros, but not a user-defined macro system or multi-program linker.
+- CASL supports the official instruction set, fixed standard macros, and a deterministic multi-program linker. It does not provide a user-defined macro system, dynamic linking, arbitrary exports, or proprietary WCASL project import.
 - C++ double handling is limited to four-word storage and assignment observation; arithmetic, comparison, conversion, parameters, returns, and arrays are not included.
 - C++ does not include pointers, references, classes, templates, vectors, lambdas, recursion, overloads, or stack-frame lowering.
 - Browser direct Save depends on File System Access support; fallback creates a download copy.
@@ -101,7 +103,7 @@ Canonical guides describe current behavior. Existing `docs/phase*.md` files and 
 - The Windows installer is unsigned and Tauri-native file I/O is deferred.
 - COMET Mode is a deterministic teaching microarchitecture, not a claim about physical COMET II timing or implementation.
 - Register/Memory editing is single-target only; bulk mutation is not included.
-- COMET Mode can reverse one retained safe microcycle or one grouped machine instruction. Redo, reverse run, Reverse Macro, persistent history, and multi-program linking remain future work.
+- COMET Mode can reverse one retained safe microcycle or one grouped machine instruction. Redo, reverse run, Reverse Macro, persistent history, and persistent project files remain future work.
 
 ## Security and Privacy
 

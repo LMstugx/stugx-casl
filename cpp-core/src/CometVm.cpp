@@ -782,6 +782,13 @@ MicrocycleStepResult CometVm::stepMicrocycle() {
             history.instructionId = microcycleSequence_;
             history.instructionAddress = before.pr;
             history.sourceLine = before.currentLine;
+            history.projectId = state_.projectId;
+            history.linkId = state_.linkId;
+            history.linkRevision = state_.linkRevision;
+            if (const auto instruction = instructionAt(before.pr); instruction.has_value()) {
+                history.moduleId = instruction->moduleId;
+                history.sourceMappingId = instruction->sourceMappingId;
+            }
             history.startsAtFetch = true;
             history.before = before;
             history.after = captureStateSnapshot();
@@ -878,6 +885,11 @@ MicrocycleStepResult CometVm::stepMicrocycle() {
     history.instructionId = active.instructionId;
     history.instructionAddress = instructionAddress;
     history.instructionKind = active.instruction.opcode;
+    history.projectId = state_.projectId;
+    history.linkId = state_.linkId;
+    history.linkRevision = state_.linkRevision;
+    history.moduleId = active.instruction.moduleId;
+    history.sourceMappingId = active.instruction.sourceMappingId;
     history.sourceLine = active.instruction.line;
     history.startsAtFetch = phase == MicrocyclePhase::Fetch;
     history.endsAtInstructionComplete = phase == MicrocyclePhase::Complete;
@@ -949,6 +961,9 @@ ReverseMicrostepResult CometVm::reverseMicrocycle(
     const auto& entry = microcycleHistory_.back();
     if (
         entry.historyEpoch != historyEpoch_
+        || entry.projectId != state_.projectId
+        || entry.linkId != state_.linkId
+        || entry.linkRevision != state_.linkRevision
         || entry.timelineRevisionAfter > timelineRevision_
         || !stateMatchesSnapshot(entry.after)
         || !contextMatches(entry.contextAfter)

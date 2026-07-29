@@ -1,10 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { selectGeneratedCaslRows } from "../core/generatedCaslRows";
 import { selectMachineCodeRows } from "../core/machineCodeRows";
 import { phasesForInstruction, type MicrocyclePhase } from "../core/microcycle";
 import type { CometState } from "../core/types";
 import { VisualPathKind, formatFlags, formatWord } from "../core/types";
 import { microcyclePhaseKey } from "../i18n/microcycle";
+import {
+  AUXILIARY_OBSERVATIONS,
+  auxiliaryObservationFromLegacyMode,
+  legacyModeForAuxiliaryObservation,
+  type AuxiliaryObservation,
+  type ObservationWorkspaceLayout
+} from "../observation/workspace";
 import type { ObservationMode, SourceMode } from "../store/useAppStore";
 import type { CppStorageObject, CppToCaslMap } from "../transpiler/cppAst";
 import { cppLineForCaslLine } from "../transpiler/cppMapping";
@@ -19,11 +27,10 @@ import {
   type FrameSlotPreview,
   type StackFramePreviewState
 } from "../transpiler/framePlanView";
-import CometCircuitSvg from "../visual/CometCircuitSvg";
 import { summarizeCurrentInstruction } from "../visual/visualState";
+import PersistentCircuitPane from "./PersistentCircuitPane";
 import RegisterPanel from "./RegisterPanel";
 import { handleHorizontalTabListKeyDown } from "./tabKeyboard";
-import { translateRunState } from "../i18n/locale";
 import { useI18n } from "../i18n/useI18n";
 import type { Translate, TranslationKey } from "../i18n/types";
 
@@ -45,15 +52,30 @@ type CircuitFocusLayoutProps = {
   timelineItems: TimelineItem[];
   observationMode?: ObservationMode;
   onObservationModeChange?: (mode: ObservationMode) => void;
+  executionMode?: "modern" | "casl" | "comet";
+  reverseNotice?: "microstep" | "instruction" | null;
+  manualEditActive?: boolean;
+  initialAuxiliaryObservation?: AuxiliaryObservation;
   initialSelectedFrameSlotId?: string;
   initialSelectionSource?: FrameSlotSelectionSource;
 };
 
-const observationModes: Array<{ id: ObservationMode; labelKey: TranslationKey; summary: string }> = [
-  { id: "cpu-flow", labelKey: "observation.cpuFlow", summary: "Circuit / active path / main memory" },
-  { id: "register-stack", labelKey: "observation.registerStack", summary: "GR, PR, SP, FR, stack, memory" },
-  { id: "code-machine", labelKey: "observation.codeMachine", summary: "Source, CASL, machine code, trace" }
-];
+const auxiliaryObservationLabels: Record<AuxiliaryObservation, TranslationKey> = {
+  registers: "workspace.registers",
+  memory: "workspace.memory",
+  stack: "workspace.stack",
+  "code-machine": "workspace.codeMachine",
+  "source-mapping": "workspace.sourceMapping",
+  trace: "workspace.trace",
+  console: "workspace.console",
+  inspector: "workspace.inspector"
+};
+
+const workspaceLayoutLabels: Record<ObservationWorkspaceLayout, TranslationKey> = {
+  "show-both": "workspace.showBoth",
+  "circuit-focus": "workspace.focusCircuit",
+  "data-focus": "workspace.focusData"
+};
 
 type FocusInstructionContext = {
   caslLine?: number;
@@ -388,8 +410,9 @@ function FocusProgramPanel({
   );
 }
 
-function FocusDisplayPanel() {
+function FocusDisplayPanel({ state }: { state: CometState }) {
   const { t } = useI18n();
+  const output = state.consoleOutput.at(-1);
   return (
     <section className="panel focus-display-panel" data-testid="focus-display-panel">
       <header className="panel-header">
@@ -397,7 +420,7 @@ function FocusDisplayPanel() {
         <span>OUT</span>
       </header>
       <div className="focus-display-value" data-testid="focus-display-value">
-        {t("empty.noOutput")}
+        {output || t("empty.noOutput")}
       </div>
     </section>
   );
@@ -518,9 +541,24 @@ function memoryWindowCenterAddress(state: CometState): number {
   return activeMemoryAddress(state) ?? state.currentAddress ?? state.pr;
 }
 
-function FocusMemoryWindowPanel({ state, rowCount = 9, title }: { state: CometState; rowCount?: number; title?: string }) {
+function FocusMemoryWindowPanel({
+  state,
+  rowCount = 9,
+  title,
+  followExecution = true
+}: {
+  state: CometState;
+  rowCount?: number;
+  title?: string;
+  followExecution?: boolean;
+}) {
   const { t } = useI18n();
-  const centerAddress = memoryWindowCenterAddress(state);
+  const executionAddress = memoryWindowCenterAddress(state);
+  const [browsedAddress, setBrowsedAddress] = useState(executionAddress);
+  useEffect(() => {
+    if (followExecution) setBrowsedAddress(executionAddress);
+  }, [executionAddress, followExecution]);
+  const centerAddress = followExecution ? executionAddress : browsedAddress;
   const startAddress = wrapAddress(centerAddress - Math.floor(rowCount / 2));
   const rows = Array.from({ length: rowCount }, (_, index) => {
     const address = wrapAddress(startAddress + index);
@@ -545,7 +583,31 @@ function FocusMemoryWindowPanel({ state, rowCount = 9, title }: { state: CometSt
           <h2>{title ?? t("registerStack.mainMemory")}</h2>
           <span>{rowCount} row window</span>
         </div>
-        <span>@{formatWord(centerAddress)}</span>
+        <div className="focus-memory-window-actions">
+          {!followExecution ? (
+            <>
+              <button
+                type="button"
+                className="icon-button compact-icon-button"
+                aria-label={t("workspace.previousMemory")}
+                title={t("workspace.previousMemory")}
+                onClick={() => setBrowsedAddress((address) => wrapAddress(address - rowCount))}
+              >
+                <ChevronLeft aria-hidden="true" size={15} />
+              </button>
+              <button
+                type="button"
+                className="icon-button compact-icon-button"
+                aria-label={t("workspace.nextMemory")}
+                title={t("workspace.nextMemory")}
+                onClick={() => setBrowsedAddress((address) => wrapAddress(address + rowCount))}
+              >
+                <ChevronRight aria-hidden="true" size={15} />
+              </button>
+            </>
+          ) : null}
+          <span>@{formatWord(centerAddress)}</span>
+        </div>
       </header>
       <div className="focus-memory-window-body">
         <div className="focus-memory-window-row focus-memory-window-head" aria-hidden="true">
@@ -576,19 +638,25 @@ function FocusMemoryWindowPanel({ state, rowCount = 9, title }: { state: CometSt
   );
 }
 
-function FocusRegisterStackDashboard({ state }: { state: CometState }) {
+function FocusRegisterBankPanel({ state }: { state: CometState }) {
   const { t } = useI18n();
   return (
+    <section className="panel focus-register-bank" data-testid="focus-register-bank">
+      <header className="panel-header">
+        <div>
+          <h2>{t("registerStack.registerBank")}</h2>
+          <span>GR0-GR7 / PR / SP / FR</span>
+        </div>
+      </header>
+      <RegisterPanel state={state} embedded />
+    </section>
+  );
+}
+
+function FocusRegisterStackDashboard({ state }: { state: CometState }) {
+  return (
     <section className="focus-register-stack-dashboard" data-testid="focus-register-stack-dashboard">
-      <section className="panel focus-register-bank" data-testid="focus-register-bank">
-        <header className="panel-header">
-          <div>
-            <h2>{t("registerStack.registerBank")}</h2>
-            <span>GR0-GR7 / PR / SP / FR</span>
-          </div>
-        </header>
-        <RegisterPanel state={state} embedded />
-      </section>
+      <FocusRegisterBankPanel state={state} />
       <FocusMemoryWindowPanel state={state} rowCount={10} />
     </section>
   );
@@ -682,9 +750,23 @@ function FocusGeneratedCaslPanel({
   );
 }
 
-function FocusMachineCodePanel({ state, cppToCaslMapping }: { state: CometState; cppToCaslMapping: CppToCaslMap[] }) {
+function FocusMachineCodePanel({
+  state,
+  cppToCaslMapping,
+  followExecution = true
+}: {
+  state: CometState;
+  cppToCaslMapping: CppToCaslMap[];
+  followExecution?: boolean;
+}) {
   const { t } = useI18n();
   const rows = selectMachineCodeRows(state, cppToCaslMapping);
+  const currentRowRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (followExecution && typeof currentRowRef.current?.scrollIntoView === "function") {
+      currentRowRef.current.scrollIntoView({ block: "nearest" });
+    }
+  }, [followExecution, state.currentAddress, state.microcycle.microIndex]);
 
   return (
     <section className="panel focus-machine-code-panel" data-testid="focus-machine-code-panel">
@@ -705,6 +787,7 @@ function FocusMachineCodePanel({ state, cppToCaslMapping }: { state: CometState;
         {rows.slice(0, 18).map((row) => (
           <div
             key={`${row.address}-${row.sourceLineIndex}`}
+            ref={row.isCurrentIr ? currentRowRef : undefined}
             className={`focus-code-row ${row.isCurrentIr ? "current" : ""} ${row.isRead ? "read" : ""} ${row.isWritten ? "write" : ""}`}
             data-testid={row.isCurrentIr ? "focus-machine-code-current" : "focus-machine-code-row"}
           >
@@ -1836,42 +1919,92 @@ function FocusFrameSlotRelationPanel({
   );
 }
 
-function ObservationModeSelector({
-  mode,
-  onChange
+export function ObservationWorkspaceHeader({
+  auxiliaryObservation,
+  layout,
+  followExecution,
+  executionMode,
+  onAuxiliaryObservationChange,
+  onLayoutChange,
+  onFollowExecutionChange
 }: {
-  mode: ObservationMode;
-  onChange: (mode: ObservationMode) => void;
+  auxiliaryObservation: AuxiliaryObservation;
+  layout: ObservationWorkspaceLayout;
+  followExecution: boolean;
+  executionMode: "modern" | "casl" | "comet";
+  onAuxiliaryObservationChange: (observation: AuxiliaryObservation) => void;
+  onLayoutChange: (layout: ObservationWorkspaceLayout) => void;
+  onFollowExecutionChange: (follow: boolean) => void;
 }) {
   const { t } = useI18n();
-  const current = observationModes.find((item) => item.id === mode) ?? observationModes[0];
 
   return (
-    <section className="panel observation-mode-bar" data-testid="observation-mode-selector">
-      <div className="observation-mode-copy">
-        <h2 title={t("accessibility.observationMode")}>{t("accessibility.observationMode")}</h2>
-        <span>{current.summary}</span>
+    <section className="panel observation-workspace-header" data-testid="observation-workspace-header">
+      <div className="observation-workspace-title">
+        <h2>{t("workspace.title")}</h2>
+        <span data-testid="workspace-execution-mode">
+          {t("workspace.executionMode")}: {executionMode === "comet" ? t("cometMode.title") : executionMode === "casl" ? t("caslMode.title") : t("compatibility.modernStudio")}
+        </span>
       </div>
-      <div className="segmented observation-mode-tabs" role="tablist" aria-label={t("accessibility.observationMode")} aria-orientation="horizontal" onKeyDown={handleHorizontalTabListKeyDown}>
-        {observationModes.map((item) => {
-          const label = t(item.labelKey);
+      <div
+        className="segmented auxiliary-observation-tabs"
+        role="tablist"
+        aria-label={t("workspace.observationData")}
+        aria-orientation="horizontal"
+        data-testid="observation-mode-selector"
+        data-workspace-testid="auxiliary-observation-tabs"
+        onKeyDown={handleHorizontalTabListKeyDown}
+      >
+        {AUXILIARY_OBSERVATIONS.map((observation) => {
+          const label = t(auxiliaryObservationLabels[observation]);
+          const legacyTestId = observation === "memory"
+            ? "observation-mode-cpu-flow"
+            : observation === "registers"
+              ? "observation-mode-register-stack"
+              : observation === "code-machine"
+                ? "observation-mode-code-machine"
+                : undefined;
           return (
-          <button
-            key={item.id}
-            type="button"
-            className={mode === item.id ? "selected" : ""}
-            role="tab"
-            aria-selected={mode === item.id}
-            tabIndex={mode === item.id ? 0 : -1}
-            aria-label={`${t("accessibility.observationMode")}: ${label}`}
-            title={item.summary}
-            data-testid={`observation-mode-${item.id}`}
-            onClick={() => onChange(item.id)}
-          >
-            {label}
-          </button>
+            <button
+              key={observation}
+              type="button"
+              className={auxiliaryObservation === observation ? "selected" : ""}
+              role="tab"
+              aria-selected={auxiliaryObservation === observation}
+              tabIndex={auxiliaryObservation === observation ? 0 : -1}
+              aria-label={`${t("workspace.observationData")}: ${label}`}
+              data-testid={legacyTestId ?? `auxiliary-observation-${observation}`}
+              onClick={() => onAuxiliaryObservationChange(observation)}
+            >
+              {label}
+            </button>
           );
         })}
+      </div>
+      <div className="observation-workspace-utilities">
+        <div className="segmented workspace-layout-selector" role="group" aria-label={t("workspace.layout")}>
+          {(["show-both", "circuit-focus", "data-focus"] as const).map((nextLayout) => (
+            <button
+              key={nextLayout}
+              type="button"
+              className={layout === nextLayout ? "selected" : ""}
+              aria-pressed={layout === nextLayout}
+              data-testid={`workspace-layout-${nextLayout}`}
+              onClick={() => onLayoutChange(nextLayout)}
+            >
+              {t(workspaceLayoutLabels[nextLayout])}
+            </button>
+          ))}
+        </div>
+        <label className="follow-execution-toggle">
+          <input
+            type="checkbox"
+            checked={followExecution}
+            data-testid="follow-execution-toggle"
+            onChange={(event) => onFollowExecutionChange(event.target.checked)}
+          />
+          <span>{t("workspace.followExecution")}</span>
+        </label>
       </div>
     </section>
   );
@@ -1901,10 +2034,20 @@ export default function CircuitFocusLayout({
   timelineItems,
   observationMode = "cpu-flow",
   onObservationModeChange = () => undefined,
+  executionMode = "modern",
+  reverseNotice = null,
+  manualEditActive = false,
+  initialAuxiliaryObservation,
   initialSelectedFrameSlotId,
   initialSelectionSource = "source-editor",
 }: CircuitFocusLayoutProps) {
   const { t } = useI18n();
+  const [auxiliaryObservation, setAuxiliaryObservation] = useState<AuxiliaryObservation>(
+    () => initialAuxiliaryObservation ?? auxiliaryObservationFromLegacyMode(observationMode)
+  );
+  const [workspaceLayout, setWorkspaceLayout] = useState<ObservationWorkspaceLayout>("show-both");
+  const [followExecution, setFollowExecution] = useState(true);
+  const previousLegacyMode = useRef(observationMode);
   const [selectedFrameFunctionName, setSelectedFrameFunctionName] = useState<string | undefined>();
   const [selectedFrameSlot, setSelectedFrameSlot] = useState<SelectedFrameSlot | undefined>();
   const lastAppliedInitialFrameSlotId = useRef<string | undefined>();
@@ -1945,6 +2088,12 @@ export default function CircuitFocusLayout({
   };
 
   useEffect(() => {
+    if (previousLegacyMode.current === observationMode) return;
+    previousLegacyMode.current = observationMode;
+    setAuxiliaryObservation(auxiliaryObservationFromLegacyMode(observationMode));
+  }, [observationMode]);
+
+  useEffect(() => {
     if (selectedFrameSlot && !selectedFrameSlotMapping) {
       setSelectedFrameSlot(undefined);
     }
@@ -1980,47 +2129,68 @@ export default function CircuitFocusLayout({
     if (!state.assembled) return "Assemble a program to visualize data and control paths.";
     return "Visualize the flow of data and control in COMET-II.";
   }, [isSourceDirty, state.assembled]);
-
-  return (
-    <main className="circuit-focus-workspace" data-testid="circuit-focus-layout" data-observation-mode={observationMode}>
-      <ObservationModeSelector mode={observationMode} onChange={onObservationModeChange} />
-
-      <aside className="focus-left-column">
-        <FocusProgramPanel state={state} sourceMode={sourceMode} sourceText={sourceText} generatedCaslSource={generatedCaslSource} cppToCaslMapping={cppToCaslMapping} focus={focus} />
-        <FocusCurrentInstructionPanel state={state} isSourceDirty={isSourceDirty} focus={focus} />
-        <FocusDisplayPanel />
-      </aside>
-
-      <section className="focus-center-column">
-        {observationMode === "code-machine" ? (
-          <section className="focus-code-machine-grid" data-testid="focus-code-machine-grid">
-            <FocusGeneratedCaslPanel
-              sourceMode={sourceMode}
-              sourceText={sourceText}
-              generatedCaslSource={generatedCaslSource}
-              cppToCaslMapping={cppToCaslMapping}
-              focus={focus}
-              frameSlotMappings={frameSlotMappings}
-              selectedFrameSlotId={selectedFrameSlot?.mappingId}
-              onSelectFrameSlot={selectFrameSlot}
-            />
-            <FocusMachineCodePanel state={state} cppToCaslMapping={cppToCaslMapping} />
-          </section>
-        ) : observationMode === "register-stack" ? (
-          <FocusRegisterStackDashboard state={state} />
-        ) : (
-          <section className="panel focus-circuit-panel" data-testid="focus-circuit-panel">
-            <header className="panel-header">
-              <div>
-                <h2 title={t("circuit.focusMode")}>{t("circuit.focusMode")}</h2>
-                <span>{circuitSubtitle}</span>
-              </div>
-              <span className={`run-pill ${state.runState.toLowerCase()}`}>{t("circuit.machine")}: {translateRunState(t, state.runState)}</span>
-            </header>
-            <CometCircuitSvg state={state} sourceMapFocus={{ line: focus.caslLine, address: focus.address, instruction: focus.instructionText }} />
-          </section>
-        )}
-        {observationMode === "code-machine" ? (
+  const selectAuxiliaryObservation = (observation: AuxiliaryObservation) => {
+    setAuxiliaryObservation(observation);
+    const legacyMode = legacyModeForAuxiliaryObservation(observation);
+    previousLegacyMode.current = legacyMode;
+    onObservationModeChange(legacyMode);
+  };
+  const auxiliaryPanel = (() => {
+    if (auxiliaryObservation === "registers") {
+      return <FocusRegisterStackDashboard state={state} />;
+    }
+    if (auxiliaryObservation === "memory") {
+      return (
+        <>
+          <FocusMemoryWindowPanel state={state} rowCount={10} followExecution={followExecution} />
+          <FocusSignalProbePanel state={state} focus={focus} density="compact" doubleOperation={doubleOperation} />
+        </>
+      );
+    }
+    if (auxiliaryObservation === "stack") {
+      return (
+        <section className="focus-register-stack-dashboard" data-testid="focus-register-stack-dashboard">
+          <FocusRegisterBankPanel state={state} />
+          <FocusMemoryWindowPanel state={state} rowCount={10} followExecution={followExecution} />
+          <FocusStackPreviewPanel state={state} />
+          <FocusCallStackPanel state={state} focus={focus} density="compact" />
+          <FocusSignalProbePanel
+            state={state}
+            focus={focus}
+            selectedFrameSlot={selectedFrameSlotMapping}
+            density="compact"
+            doubleOperation={doubleOperation}
+          />
+          <FocusStackFrameViewPanel
+            state={state}
+            focus={focus}
+            preview={framePreview}
+            selectedFrameSlotId={selectedFrameSlot?.mappingId}
+            selectionSource={selectedFrameSlot?.selectionSource}
+            onSelectFrameSlot={selectFrameSlot}
+            onFunctionChange={selectFrameFunction}
+          />
+        </section>
+      );
+    }
+    if (auxiliaryObservation === "code-machine") {
+      return (
+        <section className="focus-code-machine-grid" data-testid="focus-code-machine-grid">
+          <FocusGeneratedCaslPanel
+            sourceMode={sourceMode}
+            sourceText={sourceText}
+            generatedCaslSource={generatedCaslSource}
+            cppToCaslMapping={cppToCaslMapping}
+            focus={focus}
+            frameSlotMappings={frameSlotMappings}
+            selectedFrameSlotId={selectedFrameSlot?.mappingId}
+            onSelectFrameSlot={selectFrameSlot}
+          />
+          <FocusMachineCodePanel
+            state={state}
+            cppToCaslMapping={cppToCaslMapping}
+            followExecution={followExecution}
+          />
           <FocusSourceMappingPanel
             focus={focus}
             sourceMode={sourceMode}
@@ -2028,47 +2198,140 @@ export default function CircuitFocusLayout({
             selectedFrameSlotId={selectedFrameSlot?.mappingId}
             onSelectFrameSlot={selectFrameSlot}
           />
-        ) : <FocusTimeline state={state} timelineItems={timelineItems} />}
-      </section>
+          <FocusFrameSlotRelationPanel
+            mapping={selectedFrameSlotMapping}
+            selectionSource={selectedFrameSlot?.selectionSource}
+            frameSlotMappings={frameSlotMappings}
+            selectedFrameSlotId={selectedFrameSlot?.mappingId}
+            onSelectFrameSlot={selectFrameSlot}
+          />
+        </section>
+      );
+    }
+    if (auxiliaryObservation === "source-mapping") {
+      return (
+        <>
+          <FocusProgramPanel
+            state={state}
+            sourceMode={sourceMode}
+            sourceText={sourceText}
+            generatedCaslSource={generatedCaslSource}
+            cppToCaslMapping={cppToCaslMapping}
+            focus={focus}
+          />
+          <FocusSourceMappingPanel
+            focus={focus}
+            sourceMode={sourceMode}
+            sourceSlotMappings={sourceSlotMappings}
+            selectedFrameSlotId={selectedFrameSlot?.mappingId}
+            onSelectFrameSlot={selectFrameSlot}
+          />
+          <FocusFrameSlotRelationPanel
+            mapping={selectedFrameSlotMapping}
+            selectionSource={selectedFrameSlot?.selectionSource}
+            frameSlotMappings={frameSlotMappings}
+            selectedFrameSlotId={selectedFrameSlot?.mappingId}
+            onSelectFrameSlot={selectFrameSlot}
+          />
+        </>
+      );
+    }
+    if (auxiliaryObservation === "trace") {
+      return <FocusTracePanel state={state} />;
+    }
+    if (auxiliaryObservation === "console") {
+      return <FocusDisplayPanel state={state} />;
+    }
+    return (
+      <>
+        <FocusSignalProbePanel
+          state={state}
+          focus={focus}
+          selectedFrameSlot={selectedFrameSlotMapping}
+          doubleOperation={doubleOperation}
+        />
+        <FocusCallStackPanel state={state} focus={focus} density="compact" />
+      </>
+    );
+  })();
 
-      <aside className="focus-right-column">
-        {observationMode === "cpu-flow" ? (
-          <>
-            <FocusMemoryWindowPanel state={state} rowCount={9} />
-            <FocusSignalProbePanel state={state} focus={focus} doubleOperation={doubleOperation} />
-            <FocusTracePanel state={state} />
-            <FocusSourceContextPanel focus={focus} sourceMode={sourceMode} />
-          </>
-        ) : observationMode === "register-stack" ? (
-          <>
-            <FocusStackPreviewPanel state={state} />
-            <FocusCallStackPanel state={state} focus={focus} density="compact" />
-            <FocusStackFrameViewPanel
-              state={state}
-              focus={focus}
-              preview={framePreview}
-              selectedFrameSlotId={selectedFrameSlot?.mappingId}
-              selectionSource={selectedFrameSlot?.selectionSource}
-              onSelectFrameSlot={selectFrameSlot}
-              onFunctionChange={selectFrameFunction}
-            />
-            <FocusSignalProbePanel state={state} focus={focus} density="compact" selectedFrameSlot={selectedFrameSlotMapping} doubleOperation={doubleOperation} />
-            <FocusTracePanel state={state} />
-          </>
-        ) : (
-          <>
-            <FocusFrameSlotRelationPanel
-              mapping={selectedFrameSlotMapping}
-              selectionSource={selectedFrameSlot?.selectionSource}
-              frameSlotMappings={frameSlotMappings}
-              selectedFrameSlotId={selectedFrameSlot?.mappingId}
-              onSelectFrameSlot={selectFrameSlot}
-            />
-            <FocusTracePanel state={state} />
-            <FocusCallStackPanel state={state} focus={focus} density="compact" />
-          </>
-        )}
-      </aside>
+  return (
+    <main
+      className="circuit-focus-workspace observation-workspace"
+      data-testid="circuit-focus-layout"
+      data-observation-mode={observationMode}
+      data-auxiliary-observation={auxiliaryObservation}
+      data-workspace-layout={workspaceLayout}
+      data-execution-mode={executionMode}
+    >
+      <ObservationWorkspaceHeader
+        auxiliaryObservation={auxiliaryObservation}
+        layout={workspaceLayout}
+        followExecution={followExecution}
+        executionMode={executionMode}
+        onAuxiliaryObservationChange={selectAuxiliaryObservation}
+        onLayoutChange={setWorkspaceLayout}
+        onFollowExecutionChange={setFollowExecution}
+      />
+
+      <div className="observation-workspace-body">
+        <section className="workspace-circuit-column" aria-label={t("workspace.circuit")}>
+          <FocusCurrentInstructionPanel state={state} isSourceDirty={isSourceDirty} focus={focus} />
+          <PersistentCircuitPane
+            state={state}
+            subtitle={circuitSubtitle}
+            compact={workspaceLayout === "data-focus"}
+            sourceMapFocus={{
+              line: focus.caslLine,
+              address: focus.address,
+              instruction: focus.instructionText
+            }}
+          />
+          <FocusTimeline state={state} timelineItems={timelineItems} />
+        </section>
+
+        <aside
+          className="workspace-observation-pane"
+          data-testid="observation-data-pane"
+          aria-label={t("workspace.observationData")}
+        >
+          <header className="workspace-observation-pane-header">
+            <div>
+              <strong>{t(auxiliaryObservationLabels[auxiliaryObservation])}</strong>
+              <span>{followExecution ? t("workspace.following") : t("workspace.notFollowing")}</span>
+            </div>
+            <div className="workspace-change-indicators" role="status" aria-live="off">
+              {reverseNotice ? <span data-change-kind="restored-by-reverse">{t("workspace.restored")}</span> : null}
+              {manualEditActive ? <span data-change-kind="manual-edit">{t("workspace.manualEdit")}</span> : null}
+              {state.lastMemoryReadAddress !== undefined ? <span data-change-kind="read">{t("workspace.read")}</span> : null}
+              {state.lastMemoryWriteAddress !== undefined ? <span data-change-kind="written">{t("workspace.written")}</span> : null}
+            </div>
+          </header>
+          {workspaceLayout === "circuit-focus" ? (
+            <button
+              type="button"
+              className="restore-observation-pane"
+              data-testid="restore-observation-pane"
+              onClick={() => setWorkspaceLayout("show-both")}
+            >
+              {t("workspace.showObservationData")}: {t(auxiliaryObservationLabels[auxiliaryObservation])}
+            </button>
+          ) : (
+            <div className="workspace-observation-content">{auxiliaryPanel}</div>
+          )}
+        </aside>
+      </div>
+      <div className="workspace-context-strip">
+        <FocusProgramPanel
+          state={state}
+          sourceMode={sourceMode}
+          sourceText={sourceText}
+          generatedCaslSource={generatedCaslSource}
+          cppToCaslMapping={cppToCaslMapping}
+          focus={focus}
+        />
+        <FocusSourceContextPanel focus={focus} sourceMode={sourceMode} />
+      </div>
     </main>
   );
 }

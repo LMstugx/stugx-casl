@@ -33,7 +33,7 @@ describe("typed translation resources", () => {
 
     expect(toolbar).toContain('t("toolbar.assemble")');
     expect(toolbar).toContain('t("toolbar.circuitFocus")');
-    expect(focus).toContain('labelKey: "observation.cpuFlow"');
+    expect(focus).toContain('"workspace.observationData"');
     expect(inspector).toContain('labelKey: "inspector.sourceMap"');
     expect(output).toContain('labelKey: "tabs.outputLog"');
     expect(memory).toContain('t("memory.start")');

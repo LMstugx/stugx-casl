@@ -14,6 +14,7 @@ import TracePanel from "../components/TracePanel";
 import { mockCaslCore } from "../core/mockCaslCore";
 import type { CometState } from "../core/types";
 import { getDemoProgram } from "../examples/demoPrograms";
+import type { AuxiliaryObservation } from "../observation/workspace";
 import { prepareSourceForCoreAssembly, type ObservationMode } from "../store/useAppStore";
 import { selectFrameSymbolRelations } from "../transpiler/framePlanView";
 
@@ -41,7 +42,12 @@ const timelineItems = [
   { key: "adda", index: 2, label: "ADDA", phase: "pending" },
 ];
 
-function renderFocus(state: CometState, sourceText = gr2Source, observationMode: ObservationMode = "cpu-flow"): string {
+function renderFocus(
+  state: CometState,
+  sourceText = gr2Source,
+  observationMode: ObservationMode = "cpu-flow",
+  initialAuxiliaryObservation?: AuxiliaryObservation
+): string {
   return renderToStaticMarkup(
     <CircuitFocusLayout
       state={state}
@@ -52,6 +58,7 @@ function renderFocus(state: CometState, sourceText = gr2Source, observationMode:
       isSourceDirty={false}
       timelineItems={timelineItems}
       observationMode={observationMode}
+      initialAuxiliaryObservation={initialAuxiliaryObservation ?? (observationMode === "register-stack" ? "stack" : undefined)}
     />
   );
 }
@@ -61,7 +68,8 @@ function renderCppFocus(
   sourceText: string,
   generatedCaslSource: string,
   mapping: ReturnType<typeof prepareSourceForCoreAssembly>["mapping"],
-  observationMode: ObservationMode = "cpu-flow"
+  observationMode: ObservationMode = "cpu-flow",
+  initialAuxiliaryObservation?: AuxiliaryObservation
 ): string {
   return renderToStaticMarkup(
     <CircuitFocusLayout
@@ -73,6 +81,7 @@ function renderCppFocus(
       isSourceDirty={false}
       timelineItems={timelineItems}
       observationMode={observationMode}
+      initialAuxiliaryObservation={initialAuxiliaryObservation ?? (observationMode === "register-stack" ? "stack" : undefined)}
     />
   );
 }
@@ -141,7 +150,6 @@ function expectFocusAligned(markup: string, instruction: string, line: number, a
   expect(markup).toContain(`Address ${address}`);
   expect(markup).toContain(`CASL ${instruction}`);
   expect(sourceContext(markup).replace(/\s+/g, " ")).toContain(instruction);
-  expect(traceLatest(markup)).toContain(instruction.split(/\s+/)[0]);
 }
 
 describe("Circuit Focus Mode layout", () => {
@@ -149,7 +157,7 @@ describe("Circuit Focus Mode layout", () => {
     const markup = renderFocus(mockCaslCore.assemble(gr2Source));
 
     expect(markup).toContain('data-testid="observation-mode-selector"');
-    expect(markup).toContain('role="tablist" aria-label="Observation mode"');
+    expect(markup).toContain('role="tablist" aria-label="Observation Data"');
     expect(markup).toContain('data-testid="observation-mode-cpu-flow"');
     expect(markup).toContain('data-testid="observation-mode-register-stack"');
     expect(markup).toContain('data-testid="observation-mode-code-machine"');
@@ -158,15 +166,15 @@ describe("Circuit Focus Mode layout", () => {
   it("observation_mode_buttons_are_accessible", () => {
     const markup = renderFocus(mockCaslCore.assemble(gr2Source), gr2Source, "register-stack");
 
-    expect(markup).toContain('aria-label="Observation mode: CPU Flow"');
-    expect(markup).toContain('aria-label="Observation mode: Registers / Stack"');
-    expect(markup).toContain('aria-label="Observation mode: Code / Machine"');
+    expect(markup).toContain('aria-label="Observation Data: Memory"');
+    expect(markup).toContain('aria-label="Observation Data: Registers"');
+    expect(markup).toContain('aria-label="Observation Data: Code / Machine"');
     expect(markup).toContain('role="tab"');
     expect(markup).toContain('aria-selected="true"');
   });
 
   it("focus_mode_layout_renders_program_display_instruction", () => {
-    const markup = renderFocus(mockCaslCore.assemble(gr2Source));
+    const markup = renderFocus(mockCaslCore.assemble(gr2Source), gr2Source, "cpu-flow", "console");
 
     expect(markup).toContain('data-testid="circuit-focus-layout"');
     expect(markup).toContain('data-testid="focus-program-panel"');
@@ -178,8 +186,7 @@ describe("Circuit Focus Mode layout", () => {
   it("focus_mode_current_instruction_is_primary_left_info", () => {
     const markup = renderFocus(stepTimes(1));
 
-    expect(markup.indexOf('data-testid="focus-program-panel"')).toBeLessThan(markup.indexOf('data-testid="focus-current-instruction-panel"'));
-    expect(markup.indexOf('data-testid="focus-current-instruction-panel"')).toBeLessThan(markup.indexOf('data-testid="focus-display-panel"'));
+    expect(markup.indexOf('data-testid="focus-current-instruction-panel"')).toBeLessThan(markup.indexOf('data-testid="focus-program-panel"'));
     expect(markup).toContain('class="panel focus-current-panel"');
     expect(markup).toContain('data-testid="focus-current-mnemonic"');
     expect(currentPanel(markup)).toContain("LD");
@@ -257,7 +264,7 @@ describe("Circuit Focus Mode layout", () => {
     expect(markup).toContain('data-testid="focus-circuit-panel"');
     expect(markup).toContain('data-testid="focus-memory-window"');
     expect(markup).toContain('data-testid="focus-signal-probe"');
-    expect(markup).toContain('data-testid="focus-trace-panel"');
+    expect(markup).not.toContain('data-testid="focus-trace-panel"');
     expect(markup).not.toContain('data-testid="focus-register-bank"');
   });
 
@@ -601,7 +608,7 @@ describe("Circuit Focus Mode layout", () => {
     expect(markup).toContain('data-testid="focus-generated-casl-panel"');
     expect(markup).toContain('data-testid="focus-machine-code-panel"');
     expect(markup).toContain('data-testid="focus-source-mapping-panel"');
-    expect(markup).toContain('data-testid="focus-trace-panel"');
+    expect(markup).not.toContain('data-testid="focus-trace-panel"');
     expect(markup).toContain("LD GR2,A");
   });
 
@@ -672,7 +679,7 @@ describe("Circuit Focus Mode layout", () => {
 
   it("circuit_push_activates_sp_memory_write", () => {
     const state = stepSource(pushPopSource, 2);
-    const markup = renderFocus(state, pushPopSource);
+    const markup = renderFocus(state, pushPopSource, "cpu-flow", "stack");
 
     expect(markup).toContain('data-testid="module-sp" data-active="true"');
     expect(markup).toContain('data-testid="effective-address-unit" data-active="true"');
@@ -680,12 +687,12 @@ describe("Circuit Focus Mode layout", () => {
     expect(activeWireIds(markup)).not.toContain("mar-to-memory");
     expect(markup).toContain('data-testid="memory-row-FFFD"');
     expect(markup).toContain('data-write="true"');
-    expect(markup).toContain("SP: FFFE -&gt; FFFD");
+    expect(markup).toContain("FFFE -&gt; FFFD");
   });
 
   it("circuit_pop_activates_sp_memory_read_gr_write", () => {
     const state = stepSource(pushPopSource, 3);
-    const markup = renderFocus(state, pushPopSource);
+    const markup = renderFocus(state, pushPopSource, "cpu-flow", "stack");
 
     expect(markup).toContain('data-testid="module-sp" data-active="true"');
     expect(markup).toContain('data-testid="register-gr1" data-active="true"');
@@ -693,12 +700,12 @@ describe("Circuit Focus Mode layout", () => {
     expect(activeWireIds(markup)).not.toContain("mar-to-memory");
     expect(markup).toContain('data-testid="memory-row-FFFD"');
     expect(markup).toContain('data-read="true"');
-    expect(markup).toContain("Read MEM[FFFD]");
+    expect(markup).toContain("Stack read");
   });
 
   it("circuit_call_activates_sp_memory_write_pr_target", () => {
     const state = stepSource(callReturnSource, 2);
-    const markup = renderFocus(state, callReturnSource);
+    const markup = renderFocus(state, callReturnSource, "cpu-flow", "stack");
 
     expect(markup).toContain('data-testid="module-sp" data-active="true"');
     expect(markup).toContain('data-testid="module-pr" data-active="true"');
@@ -808,7 +815,7 @@ describe("Circuit Focus Mode layout", () => {
 
   it("circuit_stack_ret_activates_sp_memory_read_pr", () => {
     const state = stepSource(callReturnSource, 4);
-    const markup = renderFocus(state, callReturnSource);
+    const markup = renderFocus(state, callReturnSource, "cpu-flow", "stack");
 
     expect(markup).toContain('data-testid="module-sp" data-active="true"');
     expect(markup).toContain('data-testid="module-pr" data-active="true"');
@@ -816,18 +823,18 @@ describe("Circuit Focus Mode layout", () => {
     expect(activeWireIds(markup)).not.toContain("mar-to-memory");
     expect(markup).toContain('data-testid="memory-row-FFFD"');
     expect(markup).toContain('data-read="true"');
-    expect(markup).toContain("RET stack return");
+    expect(markup).toContain("Stack return");
     expect(markup).toContain("Return address");
   });
 
   it("circuit_top_level_ret_does_not_activate_sp", () => {
     const state = stepSource(gr2Source, 4);
-    const markup = renderFocus(state, gr2Source);
+    const markup = renderFocus(state, gr2Source, "cpu-flow", "stack");
 
     expect(markup).toContain('data-testid="module-sp" data-active="false"');
     expect(activeWireIds(markup)).not.toContain("sp-to-mar-preview");
     expect(activeWireIds(markup)).not.toContain("memory-to-mdr");
-    expect(markup).toContain("RET top-level finish");
+    expect(markup).toContain("Top-level finish");
   });
 
   it("non_stack_instructions_do_not_activate_sp", () => {
@@ -1089,7 +1096,7 @@ DONE RET
   });
 
   it("focus_mode_display_does_not_show_pr_as_output", () => {
-    const markup = renderFocus(mockCaslCore.assemble(gr2Source));
+    const markup = renderFocus(mockCaslCore.assemble(gr2Source), gr2Source, "cpu-flow", "console");
 
     const displayMatch = /data-testid="focus-display-panel"[\s\S]*?<\/section>/.exec(markup)?.[0] ?? "";
     expect(displayMatch).toContain("No output");
@@ -1100,7 +1107,7 @@ DONE RET
     const outputMarkup = renderToStaticMarkup(
       <OutputPanel lines={["Assemble succeeded."]} onClear={() => undefined} />
     );
-    const focusMarkup = renderFocus(mockCaslCore.assemble(gr2Source));
+    const focusMarkup = renderFocus(mockCaslCore.assemble(gr2Source), gr2Source, "cpu-flow", "console");
 
     expect(outputMarkup).toContain("Output Log");
     expect(focusMarkup).toContain("OUT Display");
@@ -1163,7 +1170,7 @@ DONE RET
   });
 
   it("focus_mode_out_display_is_low_emphasis_when_empty", () => {
-    const markup = renderFocus(mockCaslCore.assemble(gr2Source));
+    const markup = renderFocus(mockCaslCore.assemble(gr2Source), gr2Source, "cpu-flow", "console");
     const displayMatch = /data-testid="focus-display-panel"[\s\S]*?<\/section>/.exec(markup)?.[0] ?? "";
 
     expect(markup).toContain('data-testid="focus-display-value"');
@@ -1173,7 +1180,7 @@ DONE RET
   });
 
   it("focus_mode_trace_history_rows_are_deemphasized", () => {
-    const markup = renderFocus(stepTimes(3));
+    const markup = renderFocus(stepTimes(3), gr2Source, "cpu-flow", "trace");
 
     expect(markup).toContain('data-testid="focus-trace-latest"');
     expect(markup).toContain('data-latest="true"');
@@ -1182,7 +1189,7 @@ DONE RET
   });
 
   it("trace_item_has_main_effect_note_structure", () => {
-    const markup = renderFocus(stepTimes(3));
+    const markup = renderFocus(stepTimes(3), gr2Source, "cpu-flow", "trace");
 
     expect(markup).toContain("focus-trace-lines");
     expect(markup).toContain("trace-main text-ellipsis");
@@ -1191,7 +1198,7 @@ DONE RET
   });
 
   it("trace_latest_row_prominent_but_not_excessively_tall", () => {
-    const markup = renderFocus(stepSource(callReturnSource, 3), callReturnSource);
+    const markup = renderFocus(stepSource(callReturnSource, 3), callReturnSource, "cpu-flow", "trace");
 
     expect(markup).toContain('class="focus-trace-item latest"');
     expect(markup).toContain('data-latest="true"');
@@ -1199,14 +1206,14 @@ DONE RET
   });
 
   it("trace_history_rows_compact", () => {
-    const markup = renderFocus(stepSource(callReturnSource, 4), callReturnSource);
+    const markup = renderFocus(stepSource(callReturnSource, 4), callReturnSource, "cpu-flow", "trace");
 
     expect(markup).toContain('data-testid="focus-trace-item"');
     expect(markup).toContain('data-latest="false"');
   });
 
   it("trace_long_text_ellipsis_with_title", () => {
-    const markup = renderFocus(stepSource(callReturnSource, 2), callReturnSource);
+    const markup = renderFocus(stepSource(callReturnSource, 2), callReturnSource, "cpu-flow", "trace");
 
     expect(markup).toContain('class="trace-main text-ellipsis"');
     expect(markup).toContain('class="trace-effect text-ellipsis"');
@@ -1244,7 +1251,7 @@ DONE RET
   });
 
   it("trace_call_ret_key_note_readable", () => {
-    const markup = renderFocus(stepSource(callReturnSource, 2), callReturnSource);
+    const markup = renderFocus(stepSource(callReturnSource, 2), callReturnSource, "cpu-flow", "trace");
 
     expect(markup).toContain("SP: FFFE -&gt; FFFD");
     expect(markup).toContain("callDepth: 0 -&gt; 1");
@@ -1813,11 +1820,12 @@ A    DC    3
   });
 
   it("long_symbols_have_title", () => {
-    const markup = renderFocus(stepSource(callReturnSource, 2), callReturnSource, "register-stack");
+    const traceMarkup = renderFocus(stepSource(callReturnSource, 2), callReturnSource, "cpu-flow", "trace");
+    const stackMarkup = renderFocus(stepSource(callReturnSource, 2), callReturnSource, "register-stack");
 
-    expect(markup).toContain('title="#2 CALL SUB"');
-    expect(markup).toContain('title="Return address"');
-    expect(markup).toContain('title="Call target SUB; return 0024"');
+    expect(traceMarkup).toContain('title="#2 CALL SUB"');
+    expect(stackMarkup).toContain('title="Return address"');
+    expect(stackMarkup).toContain('title="Call target SUB; return 0024"');
   });
 
   it("current_instruction_title_not_uselessly_truncated", () => {

@@ -24,6 +24,10 @@ stugx.CASL is an independent, unofficial CASL II / COMET II learning studio. It 
 
 Phase 20C implements the documented COMET teaching microarchitecture after proving instruction-specific phases and the absence of fake memory accesses. Phase 20D adds deterministic Reverse Microstep inside one history epoch, with atomic inverse deltas and strict SVC/I/O, mutation, lifecycle, ownership, and capacity barriers. Phase 20E groups those retained transactions by runtime machine instruction identity and adds atomic Reverse Instruction.
 
+## Phase 20E.1
+
+Teacher feedback moves the Circuit from an exclusive observation mode to a persistent teaching view beside switchable data. This is a modern `superset` experience: it links the same runtime event across Circuit, Registers, Memory, Stack, Code / Machine, Source Mapping, and Trace without copying the WCASL interface or changing execution semantics.
+
 ## Candidate Next Work
 
 Structured multi-program linking remains behind the Phase 20F gate in [multi-program-linking-design.md](multi-program-linking-design.md). Redo, reverse run, Reverse Macro, and persistent timelines remain separate admission work.

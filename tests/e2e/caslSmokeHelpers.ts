@@ -104,10 +104,13 @@ LEN DS 1
   await assemble(page);
   await page.getByTestId("casl-mode-toggle").click();
   await expect(page.getByTestId("casl-compatibility-mode")).toBeVisible();
+  await page.getByTestId("observation-mode-register-stack").click();
   await expect(page.getByTestId("casl-register-gr7")).toBeVisible();
+  await page.getByTestId("observation-mode-code-machine").click();
   await expect(page.getByTestId("casl-assembler-output")).toContainText("SYMBOL TABLE");
   await expect(page.getByTestId("casl-assembler-output")).toContainText("TOTAL WORDS");
 
+  await page.getByTestId("observation-mode-register-stack").click();
   await step(page);
   await page.getByTestId("casl-numeric-hex").click();
   await expect(page.getByTestId("casl-register-gr3")).toContainText("#FFFF");
@@ -118,6 +121,7 @@ LEN DS 1
   await page.getByTestId("casl-numeric-binary").click();
   await expect(page.getByTestId("casl-register-gr3")).toContainText("1111 1111 1111 1111");
 
+  await page.getByTestId("auxiliary-observation-console").click();
   await run(page);
   await expect(page.getByTestId("run-state")).toHaveAttribute("data-run-state", "WaitingInput");
   await expect(page.getByTestId("casl-console-input")).toBeEnabled();

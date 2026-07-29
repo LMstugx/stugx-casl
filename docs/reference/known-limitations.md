@@ -30,4 +30,6 @@
 ## Visualization
 
 - Circuit Focus is a pedagogical state visualization, not cycle-accurate hardware.
+- The workspace shows one auxiliary data panel at a time. Focus Data retains a compact Circuit instead of a second or simplified runtime.
+- Follow Execution is session-only and is not restored after application restart.
 - FramePlan material is design metadata and does not imply live stack-frame variables.

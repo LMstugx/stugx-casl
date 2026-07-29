@@ -21,6 +21,7 @@ function renderFocus(state: CometState, sourceText = gr2Source, observationMode:
       isSourceDirty={false}
       timelineItems={[]}
       observationMode={observationMode}
+      initialAuxiliaryObservation={observationMode === "register-stack" ? "stack" : undefined}
     />
   );
 }

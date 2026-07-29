@@ -5521,3 +5521,352 @@ button {
     min-height: 650px;
   }
 }
+
+/* Phase 20E.1: one live Circuit with a switchable auxiliary observation pane. */
+.circuit-focus-workspace.observation-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto auto auto;
+  gap: var(--space-8);
+  min-width: 0;
+}
+
+.observation-workspace-header {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: var(--space-8);
+  align-items: center;
+  padding: var(--space-8);
+  border-color: var(--color-border-strong);
+  box-shadow: none;
+}
+
+.observation-workspace-title {
+  min-width: 150px;
+}
+
+.observation-workspace-title h2,
+.observation-workspace-title span {
+  display: block;
+  margin: 0;
+}
+
+.observation-workspace-title h2 {
+  font-size: 13px;
+}
+
+.observation-workspace-title span,
+.workspace-observation-pane-header span {
+  color: var(--color-muted);
+  font-size: var(--font-size-caption);
+}
+
+.auxiliary-observation-tabs {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(8, minmax(64px, 1fr));
+}
+
+.auxiliary-observation-tabs button,
+.workspace-layout-selector button {
+  min-width: 0;
+  min-height: 30px;
+  padding: 4px 7px;
+  overflow-wrap: anywhere;
+  font-size: 11px;
+  line-height: 1.15;
+}
+
+.observation-workspace-utilities {
+  display: grid;
+  gap: var(--space-6);
+  justify-items: end;
+}
+
+.workspace-layout-selector {
+  flex: 0 0 auto;
+}
+
+.follow-execution-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-4);
+  color: var(--color-muted);
+  font-size: var(--font-size-caption);
+  white-space: nowrap;
+}
+
+.follow-execution-toggle input {
+  margin: 0;
+}
+
+.observation-workspace-body,
+.casl-observation-workspace {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(620px, 1.62fr) minmax(330px, 0.9fr);
+  gap: var(--space-8);
+  align-items: start;
+}
+
+.workspace-circuit-column,
+.workspace-observation-pane,
+.casl-persistent-circuit,
+.casl-observation-data {
+  min-width: 0;
+  display: grid;
+  gap: var(--space-8);
+  align-content: start;
+}
+
+.workspace-circuit-column {
+  grid-template-rows: auto auto auto;
+}
+
+.workspace-observation-pane,
+.casl-observation-data {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--color-surface) 86%, var(--color-background));
+}
+
+.workspace-observation-pane-header {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-8);
+  padding: var(--space-6) var(--space-8);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.workspace-observation-pane-header > div:first-child {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.workspace-change-indicators {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-4);
+}
+
+.workspace-change-indicators span {
+  padding: 2px 6px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.workspace-change-indicators [data-change-kind="written"] {
+  border-color: var(--color-active-red);
+}
+
+.workspace-change-indicators [data-change-kind="restored-by-reverse"] {
+  border-color: var(--color-primary);
+}
+
+.workspace-change-indicators [data-change-kind="manual-edit"] {
+  border-style: dashed;
+}
+
+.workspace-observation-content {
+  min-width: 0;
+  display: grid;
+  gap: var(--space-8);
+  padding: var(--space-8);
+}
+
+.workspace-observation-content .focus-register-stack-dashboard,
+.workspace-observation-content .focus-code-machine-grid {
+  grid-template-columns: minmax(0, 1fr);
+  min-height: 0;
+}
+
+.workspace-observation-content .focus-register-bank,
+.workspace-observation-content .focus-memory-window,
+.workspace-observation-content .focus-trace-panel,
+.workspace-observation-content .focus-generated-casl-panel,
+.workspace-observation-content .focus-machine-code-panel {
+  max-height: min(620px, 68vh);
+}
+
+.workspace-observation-content .focus-trace-list,
+.casl-trace-list {
+  max-height: min(520px, 58vh);
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+
+.focus-memory-window-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.compact-icon-button {
+  width: 26px;
+  min-width: 26px;
+  height: 26px;
+  padding: 0;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.persistent-circuit-pane {
+  min-width: 0;
+}
+
+.persistent-circuit-pane[data-compact="true"] {
+  min-height: 280px;
+}
+
+.persistent-circuit-pane[data-compact="true"] .comet-circuit {
+  min-height: 240px;
+  max-height: 310px;
+}
+
+.observation-workspace[data-workspace-layout="circuit-focus"] .observation-workspace-body,
+.casl-observation-workspace[data-workspace-layout="circuit-focus"] {
+  grid-template-columns: minmax(0, 1fr) minmax(180px, 220px);
+}
+
+.observation-workspace[data-workspace-layout="data-focus"] .observation-workspace-body,
+.casl-observation-workspace[data-workspace-layout="data-focus"] {
+  grid-template-columns: minmax(300px, 0.55fr) minmax(520px, 1.45fr);
+}
+
+.restore-observation-pane {
+  min-height: 72px;
+  margin: var(--space-8);
+  padding: var(--space-8);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-sm);
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  font-weight: 700;
+}
+
+.workspace-context-strip {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(360px, 1fr) minmax(280px, 0.45fr);
+  gap: var(--space-8);
+}
+
+.workspace-context-strip .focus-program-panel {
+  max-height: 210px;
+}
+
+.workspace-context-strip .focus-program-lines {
+  max-height: 150px;
+}
+
+.casl-observation-data {
+  padding: var(--space-8);
+}
+
+.casl-observation-data .casl-mode-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.casl-observation-data .casl-assembler-output {
+  grid-column: auto;
+}
+
+.casl-trace-observer {
+  min-height: 260px;
+}
+
+.casl-trace-list {
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-8);
+}
+
+.casl-trace-list article {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 44px minmax(110px, 0.45fr) minmax(0, 1fr);
+  gap: var(--space-6);
+  padding: 5px 6px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.casl-trace-list code,
+.casl-trace-list span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 1600px) {
+  .observation-workspace-body,
+  .casl-observation-workspace {
+    grid-template-columns: minmax(700px, 1.8fr) minmax(380px, 1fr);
+  }
+}
+
+@media (max-width: 1320px) {
+  .observation-workspace-header {
+    grid-template-columns: minmax(150px, auto) minmax(0, 1fr);
+  }
+
+  .observation-workspace-utilities {
+    grid-column: 1 / -1;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    justify-items: stretch;
+  }
+
+  .follow-execution-toggle {
+    justify-self: end;
+  }
+
+  .observation-workspace-body,
+  .casl-observation-workspace,
+  .observation-workspace[data-workspace-layout="circuit-focus"] .observation-workspace-body,
+  .observation-workspace[data-workspace-layout="data-focus"] .observation-workspace-body,
+  .casl-observation-workspace[data-workspace-layout="circuit-focus"],
+  .casl-observation-workspace[data-workspace-layout="data-focus"] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .workspace-observation-pane,
+  .casl-observation-data {
+    min-width: 0;
+  }
+
+  .workspace-context-strip {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
+  .observation-workspace-header {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .auxiliary-observation-tabs {
+    grid-template-columns: repeat(4, minmax(72px, 1fr));
+  }
+
+  .observation-workspace-utilities {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .workspace-layout-selector {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .follow-execution-toggle {
+    justify-self: start;
+  }
+}

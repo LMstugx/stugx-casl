@@ -47,6 +47,7 @@ function renderCaslFocus(locale: SupportedLocale, mode: ObservationMode = "cpu-f
         isSourceDirty={false}
         timelineItems={timelineItems}
         observationMode={mode}
+        initialAuxiliaryObservation={mode === "register-stack" ? "stack" : undefined}
       />
     </I18nProvider>
   );
@@ -66,6 +67,7 @@ function renderCppFocus(locale: SupportedLocale, mode: ObservationMode): string 
         isSourceDirty={false}
         timelineItems={timelineItems}
         observationMode={mode}
+        initialAuxiliaryObservation={mode === "register-stack" ? "stack" : undefined}
       />
     </I18nProvider>
   );

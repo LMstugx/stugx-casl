@@ -48,7 +48,7 @@ The C++ path is not a complete C++ compiler and does not execute native code or 
 - bounded C++ subset lowering to inspectable CASL II
 - binary64 double storage and four-word assignment observation
 - Source, Generated CASL, Machine Code, and Trace mapping
-- CPU Flow, Register / Stack, and Code / Machine observation modes
+- one persistent Circuit with switchable Register, Memory, Stack, Code / Machine, Source Mapping, Trace, Console, and Inspector data
 - clean-wire circuit visualization with active-flow-only emphasis
 - structured EN/JA/zh-CN diagnostics with stable source ranges
 - guided built-in lessons and local progress
@@ -80,6 +80,7 @@ Additional commands are listed in [Build Commands](docs/reference/build-commands
 - [CASL Compatibility Mode](docs/user/casl-compatibility-mode.md)
 - [CASL State Editing](docs/user/casl-state-editing.md)
 - [Reverse Instruction](docs/user/reverse-instruction.md)
+- [Unified Observation Workspace](docs/user/unified-observation-workspace.md)
 - [WCASL-II Parity Audit](docs/phase20a-wcasl-parity-audit.md)
 - [C++ Subset Capabilities](docs/reference/cpp-subset-capabilities.md)
 - [Double Memory Observation](docs/user/double-memory-observation.md)

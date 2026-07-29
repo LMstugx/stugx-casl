@@ -726,6 +726,22 @@
       "targetPhase": "20A"
     },
     {
+      "featureId": "visualization.unified-observation-workspace",
+      "featureName": "Persistent Circuit with linked auxiliary observation data",
+      "sourceCategory": "modern-superset",
+      "evidenceReference": "docs/user/unified-observation-workspace.md",
+      "currentStatus": "superset",
+      "priority": "P2",
+      "implementationOwner": "frontend",
+      "tests": [
+        "circuit_remains_visible_in_registers_view",
+        "auxiliary_tab_switch_does_not_remount_runtime_or_circuit",
+        "linked_runtime_state_uses_core_dto_fields"
+      ],
+      "limitations": "One main auxiliary data view is shown at a time; this is an independent teaching workspace rather than a WCASL UI copy.",
+      "targetPhase": "20E.1"
+    },
+    {
       "featureId": "accessibility.keyboard",
       "featureName": "Keyboard and localized accessible controls",
       "sourceCategory": "modern-superset",

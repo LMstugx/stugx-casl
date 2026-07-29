@@ -44,16 +44,18 @@ async function enterCircuitFocusMode(page: Page) {
   await expect(page.getByTestId("circuit-focus-layout")).toBeVisible();
   await expect(page.getByTestId("observation-mode-selector")).toBeVisible();
   await expect(page.getByTestId("focus-program-panel")).toBeVisible();
-  await expect(page.getByTestId("focus-display-panel")).toBeVisible();
   await expect(page.getByTestId("focus-current-instruction-panel")).toBeVisible();
   await expect(page.getByTestId("focus-circuit-panel")).toBeVisible();
   await expect(page.getByTestId("focus-memory-window")).toBeVisible();
   await expect(page.getByTestId("focus-signal-probe")).toBeVisible();
-  await expect(page.getByTestId("focus-trace-panel")).toBeVisible();
   await expect(page.getByTestId("focus-step-timeline")).toBeVisible();
 }
 
 async function selectObservationMode(page: Page, mode: "cpu-flow" | "register-stack" | "code-machine") {
+  if (mode === "register-stack") {
+    await page.getByTestId("auxiliary-observation-stack").click();
+    return;
+  }
   await page.getByTestId(`observation-mode-${mode}`).click();
 }
 
@@ -253,7 +255,7 @@ async function captureObservationCpuFlow(page: Page, viewport: Viewport) {
   await assemble(page);
   await step(page);
   await expect(page.getByTestId("focus-circuit-panel")).toBeVisible();
-  await expect(page.getByTestId("focus-memory-window-row")).toHaveCount(9);
+  await expect(page.getByTestId("focus-memory-window-row")).toHaveCount(10);
   await capture(page, viewport, "observation-cpu-flow.png");
 }
 
@@ -302,7 +304,6 @@ async function captureObservationCodeMachine(page: Page, viewport: Viewport) {
   await selectObservationMode(page, "code-machine");
   await expect(page.getByTestId("focus-generated-casl-panel")).toContainText("FUNC_ADD");
   await expect(page.getByTestId("focus-machine-code-panel")).toContainText("CALL FUNC_ADD");
-  await expect(page.getByTestId("focus-trace-panel")).toContainText("CALL");
   await capture(page, viewport, "observation-code-machine.png");
 }
 
@@ -638,9 +639,9 @@ async function captureCppFunctionArgumentsTrace(page: Page, viewport: Viewport) 
   await step(page);
   await step(page);
   await step(page);
-  await selectObservationMode(page, "code-machine");
+  await page.getByTestId("auxiliary-observation-trace").click();
   await expect(page.getByTestId("focus-trace-panel")).toContainText("CALL");
-  await expect(page.getByTestId("focus-source-mapping-panel").first()).toContainText("result = add(2, 3);");
+  await expect(page.getByTestId("focus-source-context-text")).toContainText("result = add(2, 3);");
   await capture(page, viewport, "cpp-function-arguments-trace.png");
 }
 
@@ -1367,6 +1368,7 @@ LEN DS 1
   await setSource(page, macroIoSource);
   await assemble(page);
   await page.getByTestId("casl-mode-toggle").click();
+  await page.getByTestId("observation-mode-register-stack").click();
   await page.getByTestId("casl-numeric-hex").click();
   await capture(page, standardViewport, "casl-mode-hex.png", false);
   await step(page);
@@ -1379,8 +1381,10 @@ LEN DS 1
   await capture(page, standardViewport, "casl-mode-binary.png", false);
 
   await step(page);
+  await page.getByTestId("auxiliary-observation-stack").click();
   await capture(page, standardViewport, "casl-mode-stack.png", false);
   await capture(page, standardViewport, "casl-mode-rpush-rpop.png", false);
+  await page.getByTestId("auxiliary-observation-console").click();
   await run(page);
   await expect(page.getByTestId("run-state")).toHaveAttribute("data-run-state", "WaitingInput");
   await capture(page, standardViewport, "casl-mode-input-waiting.png", false);
@@ -1389,6 +1393,7 @@ LEN DS 1
   await run(page);
   await expect(page.getByTestId("run-state")).toHaveText("Finished");
   await capture(page, standardViewport, "casl-mode-output.png", false);
+  await page.getByTestId("observation-mode-code-machine").click();
   const assemblerOutput = page.getByTestId("casl-assembler-output");
   await assemblerOutput.scrollIntoViewIfNeeded();
   await assemblerOutput.evaluate((element) => {
@@ -1437,6 +1442,7 @@ DATA DS 1
   await setSource(page, source);
   await assemble(page);
   await page.getByTestId("casl-mode-toggle").click();
+  await page.getByTestId("observation-mode-register-stack").click();
 
   await page.getByTestId("casl-register-gr2").getByRole("button").click();
   await capture(page, standardViewport, "casl-edit-register-hex.png", false);
@@ -1447,6 +1453,7 @@ DATA DS 1
   await page.getByRole("dialog").getByRole("button", { name: "Cancel" }).click();
   await page.getByTestId("casl-numeric-hex").click();
 
+  await page.getByTestId("observation-mode-cpu-flow").click();
   await page.getByTestId("casl-memory-row-0025").click();
   await page.getByRole("button", { name: "Edit memory word" }).click();
   await page.getByRole("dialog").getByRole("textbox").fill("FFFF");
@@ -1462,6 +1469,7 @@ DATA DS 1
   await programDialog.getByRole("button", { name: "Apply" }).click();
   await capture(page, standardViewport, "casl-runtime-override.png", false);
 
+  await page.getByTestId("observation-mode-register-stack").click();
   await page.getByRole("button", { name: /Edit register PR/ }).click();
   await page.getByRole("dialog").getByRole("textbox").fill("1234");
   await page.getByRole("dialog").getByRole("button", { name: "Apply" }).click();
@@ -1519,6 +1527,7 @@ DATA DS 1
      END`);
   await assemble(page);
   await page.getByTestId("casl-mode-toggle").click();
+  await page.getByTestId("observation-mode-register-stack").click();
   await step(page);
   await step(page);
   await capture(page, standardViewport, "casl-shift-of.png", false);
@@ -1666,6 +1675,7 @@ TARGET DS 1
      END`);
   await assemble(page);
   await page.getByTestId("casl-mode-toggle").click();
+  await page.getByTestId("observation-mode-cpu-flow").click();
   await step(page);
   await capture(page, standardViewport, "reverse-instruction-casl-mode.png", false);
 
@@ -1752,10 +1762,89 @@ DATA DC 1
   await page.setViewportSize({ width: viewport.width, height: viewport.height });
 }
 
+async function captureUnifiedObservationWorkspace(page: Page, viewport: Viewport) {
+  if (!viewport.primary) return;
+
+  const wideViewport: Viewport = { name: "1920x1080", width: 1920, height: 1080 };
+  const standardViewport: Viewport = { name: "1440x900", width: 1440, height: 900, primary: true };
+  const compactViewport: Viewport = { name: "1280x720", width: 1280, height: 720 };
+  const minimumViewport: Viewport = { name: "1180x700", width: 1180, height: 700 };
+  const source = `MAIN START
+     LD GR2,DATA
+     ST GR2,TARGET
+     RET
+DATA DC #0061
+TARGET DS 1
+     END`;
+
+  async function prepare(targetViewport: Viewport, comet = false) {
+    await page.setViewportSize({ width: targetViewport.width, height: targetViewport.height });
+    await openStudio(page, "Mock Core");
+    await page.getByTestId("locale-en").click();
+    await setSource(page, source);
+    await assemble(page);
+    await enterCircuitFocusMode(page);
+    if (comet) {
+      await page.getByTestId("comet-mode-toggle").click();
+      await expect(page.getByTestId("comet-mode-workspace")).toBeVisible();
+    }
+  }
+
+  await prepare(wideViewport);
+  await page.getByTestId("observation-mode-register-stack").click();
+  await capture(page, wideViewport, "unified-workspace-registers-1920.png", false);
+
+  await prepare(standardViewport);
+  await page.getByTestId("observation-mode-cpu-flow").click();
+  await capture(page, standardViewport, "unified-workspace-memory-1440.png", false);
+
+  await prepare(compactViewport);
+  await page.getByTestId("auxiliary-observation-stack").click();
+  await capture(page, compactViewport, "unified-workspace-stack-1280.png", false);
+  await page.getByTestId("observation-mode-code-machine").click();
+  await capture(page, compactViewport, "unified-workspace-code-machine-1280.png", false);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+
+  await prepare(minimumViewport);
+  await page.getByTestId("auxiliary-observation-trace").click();
+  await capture(page, minimumViewport, "unified-workspace-trace-1180.png", false);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+
+  await prepare(standardViewport, true);
+  await page.getByTestId("observation-mode-code-machine").click();
+  await step(page);
+  await capture(page, standardViewport, "unified-workspace-comet-fetch.png", false);
+  await page.getByTestId("reverse-microstep-button").click();
+  await capture(page, standardViewport, "unified-workspace-reverse-microstep.png", false);
+  for (let index = 0; index < 5; index += 1) await step(page);
+  await page.getByTestId("observation-mode-cpu-flow").click();
+  await capture(page, standardViewport, "unified-workspace-comet-memory-read.png", false);
+  for (let index = 0; index < 2; index += 1) await step(page);
+  await page.getByTestId("observation-mode-register-stack").click();
+  await capture(page, standardViewport, "unified-workspace-comet-writeback.png", false);
+  await page.getByTestId("reverse-instruction-button").click();
+  await capture(page, standardViewport, "unified-workspace-reverse-instruction.png", false);
+
+  await page.getByTestId("workspace-layout-circuit-focus").click();
+  await capture(page, standardViewport, "unified-workspace-focus-circuit.png", false);
+  await page.getByTestId("workspace-layout-data-focus").click();
+  await capture(page, standardViewport, "unified-workspace-focus-data.png", false);
+  await page.getByTestId("workspace-layout-show-both").click();
+
+  await page.setViewportSize({ width: minimumViewport.width, height: minimumViewport.height });
+  await page.getByTestId("locale-ja").click();
+  await capture(page, minimumViewport, "unified-workspace-ja-1180.png", false);
+  await page.getByTestId("locale-zh-CN").click();
+  await capture(page, minimumViewport, "unified-workspace-zh-cn-1180.png", false);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+
+  await page.setViewportSize({ width: viewport.width, height: viewport.height });
+}
+
 test.describe("visual review screenshot gallery", () => {
   for (const viewport of viewports) {
     test(`captures visual review gallery at ${viewport.name}`, async ({ page }) => {
-      test.setTimeout(360_000);
+      test.setTimeout(720_000);
       await page.setViewportSize({ width: viewport.width, height: viewport.height });
       await page.addInitScript(() => {
         const startupSeed = sessionStorage.getItem("visual-startup-seed-active") === "true";
@@ -1819,6 +1908,7 @@ test.describe("visual review screenshot gallery", () => {
       await captureCaslCompatibilityStates(page, viewport);
       await captureDebuggerEditingStates(page, viewport);
       await captureCometMicrocycleStates(page, viewport);
+      await captureUnifiedObservationWorkspace(page, viewport);
     });
   }
 });

@@ -13,6 +13,7 @@ This directory separates current product documentation from historical implement
 - [Getting Started](user/getting-started.md)
 - [Interface Overview](user/interface-overview.md)
 - [Observation Modes](user/observation-modes.md)
+- [Unified Observation Workspace](user/unified-observation-workspace.md)
 - [CASL Workflow](user/casl-workflow.md)
 - [CASL Compatibility Mode](user/casl-compatibility-mode.md)
 - [COMET Mode](user/comet-mode.md)
@@ -48,6 +49,7 @@ This directory separates current product documentation from historical implement
 - [Microcycle History](developer/microcycle-history.md)
 - [WASM Bridge](developer/wasm-bridge.md)
 - [Circuit Visualization](developer/circuit-visualization.md)
+- [Observation Workspace Layout](developer/observation-workspace-layout.md)
 - [Diagnostics and i18n](developer/diagnostics-and-i18n.md)
 - [Document Lifecycle](developer/document-lifecycle.md)
 - [Persistence Architecture](developer/persistence-architecture.md)
@@ -62,6 +64,7 @@ This directory separates current product documentation from historical implement
 - [Reverse Instruction Runtime Contract](reverse-instruction-runtime-contract.md)
 - [Reverse History Integrity](reverse-history-integrity.md)
 - [Instruction History Grouping](instruction-history-grouping.md)
+- [Observation Data Linking Contract](observation-data-linking-contract.md)
 
 ## Technical Reference
 
@@ -143,6 +146,7 @@ Historical Phase reports, manifests, release-candidate evidence, and visual revi
 - [Phase 20C COMET Instruction-Cycle Runtime](phase20c-comet-instruction-cycle-runtime.md)
 - [Phase 20D Reverse Microstep](phase20d-reverse-microstep.md)
 - [Phase 20E Reverse Instruction](phase20e-reverse-instruction.md)
+- [Phase 20E.1 Unified Observation Workspace](phase20e1-unified-observation-workspace.md)
 - [WCASL Debugger Editing Audit](wcasl-debugger-editing-audit.md)
 - [WCASL-compatible Workflow Roadmap](wcasl-replacement-roadmap.md)
 - [COMET Microcycle Visual Contract](comet-microcycle-visual-contract.md)

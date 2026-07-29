@@ -6,9 +6,11 @@
 - Classification: Canonical
 - Related: [CASL Workflow](casl-workflow.md), [CASL Input and Output](casl-input-output.md)
 
-CASL Mode is a responsive observation layout over the same assembled program and COMET II state used by the modern Observation Modes. It is an independent stugx.CASL interface, not a copy of WCASL-II and not a separate emulator.
+CASL Mode is instruction-level execution over the same assembled program and COMET II state used by COMET Mode. It is an independent stugx.CASL interface, not a copy of WCASL-II and not a separate emulator.
 
 Open CASL Mode from the low-weight view switch below the toolbar. Entering or leaving it does not edit source, set Dirty, assemble, run, change the selected source relation, or write a persistence key.
+
+The [Unified Observation Workspace](unified-observation-workspace.md) keeps the Circuit visible while the auxiliary data selection changes. CASL Mode remains the execution-granularity choice; it no longer owns an exclusive whole-page data layout.
 
 ## Visible State
 

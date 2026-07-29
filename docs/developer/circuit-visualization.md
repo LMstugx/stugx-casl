@@ -15,7 +15,7 @@ The frozen clean-wire contract is:
 - no inactive ghost wires
 - active-flow-only wires
 
-CPU Flow prioritizes active data, address, and control relationships. Register / Stack prioritizes machine values and stack context. Code / Machine prioritizes source, generated assembly, machine rows, and Trace mapping.
+The Circuit is persistent across auxiliary observation tabs. Registers, Memory, Stack, Code / Machine, Source Mapping, Trace, Console, and Inspector are sibling data projections, not alternate Circuit runtimes. Compact and full Circuit presentation share `CometCircuitSvg` and the same runtime DTO.
 
 Address relationships use target highlights and Effective Address Unit context instead of decorative long wires. Reduced-motion preference disables nonessential signal animation.
 
@@ -24,3 +24,5 @@ Multi-word double operations still use one real 16-bit path per CASL instruction
 The visualization is subordinate to VM semantics. COMET Mode is cycle-staged according to **stugx.CASL Teaching Microarchitecture v1**, not a claim about physical hardware timing.
 
 The [microcycle runtime contract](../comet-microcycle-runtime-contract.md) requires phase- and operand-aware active paths. Register-register forms cannot invent effective-address or operand-memory paths, and macros are observed through their real expanded instructions.
+
+The [observation data linking contract](../observation-data-linking-contract.md) defines how the same runtime read, write, stack, Fetch, Decode, flag, mutation, and reverse state appears in both panes.

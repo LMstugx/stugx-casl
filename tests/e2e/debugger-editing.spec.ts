@@ -33,6 +33,7 @@ test("CASL Mode debugger editing and Full Clear preserve document ownership", as
   await setSource(page, source);
   await assemble(page);
   await page.getByTestId("casl-mode-toggle").click();
+  await page.getByTestId("observation-mode-register-stack").click();
 
   const gr2 = page.getByTestId("casl-register-gr2");
   await gr2.getByRole("button").click();
@@ -55,8 +56,10 @@ test("CASL Mode debugger editing and Full Clear preserve document ownership", as
 
   await page.getByRole("button", { name: /Edit register SP/ }).click();
   await applyWord(page, "FFFC");
+  await page.getByTestId("auxiliary-observation-stack").click();
   await expect(page.locator(".casl-stack-observer")).toContainText("SP FFFC");
 
+  await page.getByTestId("observation-mode-register-stack").click();
   await page.getByRole("button", { name: "Edit register FR" }).click();
   const frDialog = page.getByRole("dialog");
   for (const flag of ["OF", "SF", "ZF"]) {
@@ -66,6 +69,7 @@ test("CASL Mode debugger editing and Full Clear preserve document ownership", as
   await expect(page.locator(".casl-fr-grid")).toContainText("OF1");
   await expect(page.locator(".casl-fr-grid")).toContainText("SF1");
 
+  await page.getByTestId("observation-mode-cpu-flow").click();
   await editMemoryWord(page, "0025", "FFFF");
   await expect(page.getByTestId("casl-memory-row-0025")).toContainText("#FFFF");
   await expect(page.locator(".casl-runtime-status")).toContainText("Data modified");
@@ -81,11 +85,13 @@ test("CASL Mode debugger editing and Full Clear preserve document ownership", as
   await expect(page.getByTestId("casl-memory-selection")).toContainText("runtime-word-modified");
   await expect(page.locator(".casl-runtime-status")).toContainText("Program modified");
 
+  await page.getByTestId("observation-mode-register-stack").click();
   await page.getByRole("button", { name: /Edit register PR/ }).click();
   await applyWord(page, "0020");
   await step(page);
   await expect(page.getByTestId("casl-register-gr2")).toContainText("#0042");
 
+  await page.getByTestId("observation-mode-cpu-flow").click();
   await page.locator(".casl-reload-actions").getByRole("button", { name: "Reset", exact: true }).click();
   await expect(page.getByTestId("casl-memory-row-0020")).toContainText("#0000");
   await expect(page.getByTestId("casl-memory-row-0025")).toContainText("#FFFF");
@@ -115,6 +121,7 @@ test("CASL debugger controls fit three locales at compact viewports", async ({ p
   await setSource(page, source);
   await assemble(page);
   await page.getByTestId("casl-mode-toggle").click();
+  await page.getByTestId("observation-mode-register-stack").click();
 
   for (const viewport of [
     { width: 1180, height: 700 },

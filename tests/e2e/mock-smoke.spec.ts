@@ -8,8 +8,13 @@ async function chooseTextFile(page: Page, fileName: string, text: string) {
   await chooser.setFiles({ name: fileName, mimeType: "text/plain", buffer: Buffer.from(text, "utf8") });
 }
 
-async function switchObservationMode(page: Page, mode: "cpu-flow" | "register-stack" | "code-machine") {
-  await page.getByTestId(`observation-mode-${mode}`).click();
+async function switchObservationMode(page: Page, mode: "cpu-flow" | "register-stack" | "code-machine" | "trace" | "console" | "inspector") {
+  const testId = mode === "register-stack"
+    ? "auxiliary-observation-stack"
+    : mode === "trace" || mode === "console" || mode === "inspector"
+      ? `auxiliary-observation-${mode}`
+      : `observation-mode-${mode}`;
+  await page.getByTestId(testId).click();
 }
 
 async function ensureGuidedLessonOpen(page: Page) {
@@ -896,12 +901,16 @@ test("Mock backend presents Circuit Focus Mode as a teaching layout", async ({ p
 
   await expect(page.getByTestId("circuit-focus-layout")).toBeVisible();
   await expect(page.getByTestId("focus-program-panel")).toBeVisible();
+  await switchObservationMode(page, "console");
   await expect(page.getByTestId("focus-display-panel")).toContainText("No output");
   await expect(page.getByTestId("focus-current-instruction-panel")).toBeVisible();
   await expect(page.getByTestId("focus-circuit-panel")).toContainText("Circuit Focus Mode");
   await expect(page.getByTestId("observation-mode-selector")).toBeVisible();
+  await switchObservationMode(page, "cpu-flow");
   await expect(page.getByTestId("focus-memory-window")).toBeVisible();
+  await switchObservationMode(page, "inspector");
   await expect(page.getByTestId("focus-signal-probe")).toBeVisible();
+  await switchObservationMode(page, "trace");
   await expect(page.getByTestId("focus-trace-panel")).toBeVisible();
   await expect(page.getByTestId("focus-step-timeline")).toBeVisible();
   await expect(page.getByRole("tab", { name: "Output" })).toBeVisible();
@@ -929,6 +938,7 @@ test("Mock backend presents Circuit Focus Mode as a teaching layout", async ({ p
   await expect(page.getByTestId("source-map-highlight")).toHaveAttribute("data-current-line", "2");
   await expect(page.getByTestId("focus-source-context-text")).toContainText(/LD\s+GR2,A/);
   await expect(page.getByTestId("focus-trace-latest")).toContainText(/LD/);
+  await switchObservationMode(page, "inspector");
   await expect(circuit.locator("[data-testid='register-gr2']")).toHaveAttribute("data-active", "true");
   await expect(circuit.locator("[data-testid='memory-row-0027']")).toHaveAttribute("data-read", "true");
   await expect(circuit.locator("[data-testid='wire-memory-to-mdr']")).toBeVisible();
@@ -953,7 +963,9 @@ test("Mock backend presents Circuit Focus Mode as a teaching layout", async ({ p
   await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("0024");
   await expect(page.getByTestId("source-map-highlight")).toHaveAttribute("data-current-line", "3");
   await expect(page.getByTestId("focus-source-context-text")).toContainText(/ADDA\s+GR2,B/);
+  await switchObservationMode(page, "trace");
   await expect(page.getByTestId("focus-trace-latest")).toContainText(/ADDA/);
+  await switchObservationMode(page, "inspector");
   await expect(circuit.locator("[data-testid='module-alu']")).toHaveAttribute("data-active", "true");
   await expect(circuit.locator("[data-testid='wire-gr-to-alu']")).toHaveAttribute("data-lane", "data-compute");
   await expect(circuit.locator("[data-testid='wire-gr-to-alu']")).toHaveAttribute("data-to-anchor", "alu.inputA");
@@ -982,7 +994,9 @@ test("Mock backend presents Circuit Focus Mode as a teaching layout", async ({ p
   await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("RET");
   await expect(page.getByTestId("source-map-highlight")).toHaveAttribute("data-current-line", "4");
   await expect(page.getByTestId("focus-source-context-text")).toContainText(/ST\s+GR2,C/);
+  await switchObservationMode(page, "trace");
   await expect(page.getByTestId("focus-trace-latest")).toContainText(/ST/);
+  await switchObservationMode(page, "inspector");
   await expect(circuit.locator("[data-testid='memory-row-0029']")).toHaveAttribute("data-write", "true");
   await expect(circuit.locator("[data-testid='wire-mdr-to-memory']")).toBeVisible();
   await expect(circuit.locator("[data-testid='wire-mdr-to-memory']")).toHaveClass(/circuit-wire--flow/);
@@ -1010,7 +1024,7 @@ test("Mock backend switches observation modes without resetting VM state", async
 
   await switchObservationMode(page, "cpu-flow");
   await expect(page.getByTestId("focus-circuit-panel")).toBeVisible();
-  await expect(page.getByTestId("focus-memory-window-row")).toHaveCount(9);
+  await expect(page.getByTestId("focus-memory-window-row")).toHaveCount(10);
   await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("LD");
 
   await switchObservationMode(page, "register-stack");
@@ -1025,6 +1039,7 @@ test("Mock backend switches observation modes without resetting VM state", async
   await switchObservationMode(page, "code-machine");
   await expect(page.getByTestId("focus-generated-casl-panel")).toBeVisible();
   await expect(page.getByTestId("focus-machine-code-panel")).toBeVisible();
+  await switchObservationMode(page, "trace");
   await expect(page.getByTestId("focus-trace-panel")).toContainText("LD");
   await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("LD");
 });
@@ -1202,7 +1217,7 @@ test("focus_mode_works_at_1280x720", async ({ page }) => {
   const stackFrameBodyOverflow = await page.getByTestId("stack-frame-view-state").evaluate((element) => getComputedStyle(element).overflowY);
   expect(stackFrameBodyOverflow).toBe("visible");
 
-  for (const testId of ["focus-current-instruction-panel", "focus-signal-probe", "focus-call-stack", "focus-stack-preview", "focus-stack-frame-view", "focus-trace-panel"]) {
+  for (const testId of ["focus-current-instruction-panel", "focus-signal-probe", "focus-call-stack", "focus-stack-preview", "focus-stack-frame-view"]) {
     const hasHorizontalOverflow = await page.getByTestId(testId).evaluate((element) => element.scrollWidth > element.clientWidth + 1);
     expect(hasHorizontalOverflow, `${testId} should not overflow horizontally`).toBe(false);
   }
@@ -1218,6 +1233,7 @@ test("focus_mode_works_at_1440x900", async ({ page }) => {
   await expect(page.getByTestId("focus-program-panel")).toBeVisible();
   await expect(page.getByTestId("focus-circuit-panel")).toBeVisible();
   await expect(page.getByTestId("focus-memory-window")).toBeVisible();
+  await switchObservationMode(page, "trace");
   await expect(page.getByTestId("focus-trace-panel")).toBeVisible();
   await expect(page.getByTestId("focus-step-timeline")).toBeVisible();
   await expect(page.locator(".output-panel")).toBeVisible();
@@ -1253,18 +1269,20 @@ test("keyboard tab navigation and 1280 viewport remain consistent", async ({ pag
 
   await focusToggle.click();
   await expect(focusToggle).toHaveAttribute("aria-pressed", "true");
-  const cpuFlowTab = page.getByRole("tab", { name: "Observation mode: CPU Flow" });
-  const registerStackTab = page.getByRole("tab", { name: "Observation mode: Registers / Stack" });
-  const codeMachineTab = page.getByRole("tab", { name: "Observation mode: Code / Machine" });
-  await cpuFlowTab.focus();
+  const workspaceRegistersTab = page.getByTestId("observation-mode-register-stack");
+  const memoryObservationTab = page.getByTestId("observation-mode-cpu-flow");
+  const stackTab = page.getByTestId("auxiliary-observation-stack");
+  const codeMachineTab = page.getByTestId("observation-mode-code-machine");
+  const inspectorObservationTab = page.getByTestId("auxiliary-observation-inspector");
+  await workspaceRegistersTab.focus();
   await page.keyboard.press("ArrowRight");
-  await expect(registerStackTab).toBeFocused();
-  await expect(registerStackTab).toHaveAttribute("aria-selected", "true");
+  await expect(memoryObservationTab).toBeFocused();
+  await expect(memoryObservationTab).toHaveAttribute("aria-selected", "true");
   await page.keyboard.press("End");
-  await expect(codeMachineTab).toBeFocused();
-  await expect(codeMachineTab).toHaveAttribute("aria-selected", "true");
+  await expect(inspectorObservationTab).toBeFocused();
+  await expect(inspectorObservationTab).toHaveAttribute("aria-selected", "true");
 
-  for (const tab of [cpuFlowTab, registerStackTab, codeMachineTab]) {
+  for (const tab of [workspaceRegistersTab, memoryObservationTab, stackTab, codeMachineTab]) {
     await tab.click();
     const hasHorizontalOverflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
     expect(hasHorizontalOverflow).toBe(false);
@@ -1291,7 +1309,9 @@ test("locale switching preserves source execution and FramePlan UI state", async
   await slotBadge.click();
 
   const programBefore = await page.getByTestId("focus-program-panel").locator("code").allTextContents();
+  await switchObservationMode(page, "trace");
   const traceBefore = await page.getByTestId("focus-trace-panel").locator("code").allTextContents();
+  await switchObservationMode(page, "code-machine");
   const instructionBefore = await page.getByTestId("focus-current-instruction-panel").locator("code").allTextContents();
   const selectorWidthBefore = (await page.getByTestId("locale-selector").boundingBox())?.width;
 
@@ -1303,7 +1323,9 @@ test("locale switching preserves source execution and FramePlan UI state", async
   await expect(page.getByTestId("observation-mode-code-machine")).toContainText("コード / 機械語");
   await expect(slotBadge).toHaveAttribute("aria-pressed", "true");
   expect(await page.getByTestId("focus-program-panel").locator("code").allTextContents()).toEqual(programBefore);
+  await switchObservationMode(page, "trace");
   expect(await page.getByTestId("focus-trace-panel").locator("code").allTextContents()).toEqual(traceBefore);
+  await switchObservationMode(page, "code-machine");
   expect(await page.getByTestId("focus-current-instruction-panel").locator("code").allTextContents()).toEqual(instructionBefore);
   expect((await page.getByTestId("locale-selector").boundingBox())?.width).toBe(selectorWidthBefore);
   expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)).toBe(false);
@@ -1519,15 +1541,18 @@ test("Phase 14C localizes Circuit Focus compact UI without changing technical st
   await page.getByTestId("circuit-focus-toggle").click();
   const instructionBefore = await page.getByTestId("focus-current-instruction-panel").locator("code").allTextContents();
   const programBefore = await page.getByTestId("focus-program-panel").locator("code").allTextContents();
+  await switchObservationMode(page, "trace");
   const traceBefore = await page.getByTestId("focus-trace-panel").locator("code").allTextContents();
 
   await page.getByTestId("locale-ja").click();
   await expect(page.locator("html")).toHaveAttribute("lang", "ja");
   await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("現在の命令");
   await expect(page.getByTestId("focus-step-timeline")).toContainText("ステップタイムライン");
+  await switchObservationMode(page, "inspector");
   await expect(page.getByTestId("focus-signal-probe")).toContainText("信号プローブ");
   expect(await page.getByTestId("focus-current-instruction-panel").locator("code").allTextContents()).toEqual(instructionBefore);
   expect(await page.getByTestId("focus-program-panel").locator("code").allTextContents()).toEqual(programBefore);
+  await switchObservationMode(page, "trace");
   expect(await page.getByTestId("focus-trace-panel").locator("code").allTextContents()).toEqual(traceBefore);
 
   await switchObservationMode(page, "register-stack");

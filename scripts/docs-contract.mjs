@@ -3,6 +3,7 @@ export const CANONICAL_DOCS = Object.freeze([
   "docs/user/getting-started.md",
   "docs/user/interface-overview.md",
   "docs/user/observation-modes.md",
+  "docs/user/unified-observation-workspace.md",
   "docs/user/casl-workflow.md",
   "docs/user/casl-compatibility-mode.md",
   "docs/user/comet-mode.md",
@@ -35,6 +36,7 @@ export const CANONICAL_DOCS = Object.freeze([
   "docs/developer/microcycle-history.md",
   "docs/developer/wasm-bridge.md",
   "docs/developer/circuit-visualization.md",
+  "docs/developer/observation-workspace-layout.md",
   "docs/developer/diagnostics-and-i18n.md",
   "docs/developer/document-lifecycle.md",
   "docs/developer/persistence-architecture.md",
@@ -50,6 +52,7 @@ export const CANONICAL_DOCS = Object.freeze([
   "docs/reverse-instruction-runtime-contract.md",
   "docs/reverse-history-integrity.md",
   "docs/instruction-history-grouping.md",
+  "docs/observation-data-linking-contract.md",
   "docs/reference/supported-casl-instructions.md",
   "docs/reference/casl-syntax-support.md",
   "docs/reference/comet-ii-instruction-coverage.md",
@@ -80,7 +83,8 @@ export const CANONICAL_DOCS = Object.freeze([
   "docs/adr/0015-comet-flag-register-three-bit-contract.md",
   "docs/adr/0016-comet-teaching-microarchitecture.md",
   "docs/adr/0017-reverse-microstep-and-history-barriers.md",
-  "docs/adr/0018-reverse-instruction-boundary.md"
+  "docs/adr/0018-reverse-instruction-boundary.md",
+  "docs/adr/0019-persistent-circuit-with-auxiliary-data.md"
 ]);
 
 export const REQUIRED_HEADER_FIELDS = Object.freeze([

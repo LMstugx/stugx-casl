@@ -9,6 +9,8 @@
 - Toolbar actions and locale controls are keyboard reachable and have accessible names.
 - Locale buttons expose the current selection without changing layout dimensions.
 - Tabs use the established tablist/selection semantics and retain visible focus.
+- Execution mode and Observation Data use separate labelled groups. Auxiliary tabs use horizontal keyboard navigation and never move focus during automatic data following.
+- Show Both, Focus Circuit, Focus Data, and Follow Execution are keyboard reachable. Focus Data retains an accessible live Circuit.
 - Diagnostic rows expose selection and severity as text, not color alone.
 - Related diagnostic locations are keyboard actionable.
 - Dialogs, including Changelog and Dirty replacement, trap focus, close with Escape where permitted, and restore focus to their trigger.

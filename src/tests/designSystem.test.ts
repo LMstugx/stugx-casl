@@ -217,7 +217,7 @@ describe("advanced UI design system foundation", () => {
 
   it("observation_tabs_support_keyboard_navigation", () => {
     expect(focusLayoutTsx).toContain("onKeyDown={handleHorizontalTabListKeyDown}");
-    expect(focusLayoutTsx).toContain("tabIndex={mode === item.id ? 0 : -1}");
+    expect(focusLayoutTsx).toContain("tabIndex={auxiliaryObservation === observation ? 0 : -1}");
     expect(inspectorTsx).toContain("onKeyDown={handleHorizontalTabListKeyDown}");
     expect(outputTsx).toContain("onKeyDown={handleHorizontalTabListKeyDown}");
     expect(tabKeyboardTs).toContain('"ArrowLeft"');

@@ -533,6 +533,8 @@ function StudioShell({
           reverseInFlight={reverseInFlight}
           reverseInstructionNotice={reverseNotice?.kind === "instruction" ? reverseNotice : null}
           onReverseInstruction={reverseInstruction}
+          observationMode={observationMode}
+          onObservationModeChange={setObservationMode}
         />
       ) : workspaceMode === "comet" ? (
         <div
@@ -560,6 +562,9 @@ function StudioShell({
             timelineItems={timelineItems}
             observationMode={observationMode}
             onObservationModeChange={setObservationMode}
+            executionMode="comet"
+            reverseNotice={reverseNotice?.kind ?? null}
+            manualEditActive={programModified || dataModified}
             initialSelectedFrameSlotId={editorSelectedFrameSlotId}
             initialSelectionSource="source-editor"
           />
@@ -577,6 +582,9 @@ function StudioShell({
           timelineItems={timelineItems}
           observationMode={observationMode}
           onObservationModeChange={setObservationMode}
+          executionMode="modern"
+          reverseNotice={reverseNotice?.kind ?? null}
+          manualEditActive={programModified || dataModified}
           initialSelectedFrameSlotId={editorSelectedFrameSlotId}
           initialSelectionSource="source-editor"
         />

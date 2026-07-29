@@ -26,5 +26,6 @@ ADRs record decisions that protect compatibility, security, and teaching behavio
 | [0016](0016-comet-teaching-microarchitecture.md) | COMET microcycles use a deterministic teaching microarchitecture |
 | [0017](0017-reverse-microstep-and-history-barriers.md) | Reverse Microstep uses verified transactions and hard history barriers |
 | [0018](0018-reverse-instruction-boundary.md) | Reverse Instruction groups and atomically restores runtime machine instructions |
+| [0019](0019-persistent-circuit-with-auxiliary-data.md) | One live Circuit remains visible beside switchable auxiliary data |
 
 To supersede an ADR, add a new numbered record, link the old record, state migration and compatibility effects, and update affected baselines and tests explicitly.

@@ -6,18 +6,23 @@
 - Classification: Canonical
 - Related: [Interface Overview](interface-overview.md), [Circuit Visualization](../developer/circuit-visualization.md)
 
-Observation Mode changes presentation only. It does not modify source, assemble, run, or alter VM semantics.
+Observation is split into two independent choices. Execution mode selects CASL instruction stepping or COMET microcycle stepping. Observation Data selects the values shown beside the persistent Circuit.
 
-## CPU Flow
+## Persistent Circuit
 
-Use CPU Flow to follow the current instruction through the active circuit path, compact memory, Signal Probe, and execution timeline.
+The live Circuit remains visible for Registers, Memory, Stack, Code / Machine, Source Mapping, Trace, Console, and Inspector views. It uses the same runtime state in full and compact layouts.
 
-## Register / Stack
+## Auxiliary Data
 
-Use Register / Stack to compare GR0-GR7, PR, SP, FR, Stack Preview, Call Stack, and memory values. Design-only frame metadata is identified separately from live VM state.
+- Registers compares GR0-GR7, PR, SP, IR, MAR, MDR, and FR with the active path.
+- Memory follows the current read or write address in a bounded window.
+- Stack connects PUSH, POP, CALL, and RET paths to SP and stack words.
+- Code / Machine keeps generated instructions and machine words aligned with Fetch and Decode.
+- Source Mapping and Trace expose the current source/runtime relationship.
+- Console and Inspector provide I/O and detailed signal context without replacing the Circuit.
 
-## Code / Machine
+The former CPU Flow, Register / Stack, and Code / Machine preference values remain compatible inputs and map to safe auxiliary selections.
 
-Use Code / Machine to compare Source, Generated CASL, Machine Code, and Trace mappings. This mode is useful when explaining lowering and instruction encoding.
+See [Unified Observation Workspace](unified-observation-workspace.md) for layout and Follow Execution behavior.
 
 The clean-wire contract applies in every mode: no arrows, no circular markers, no ghost inactive wires, and active-flow-only emphasis.

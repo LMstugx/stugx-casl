@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import type { ReloadInitializationMode } from "../core/coreAdapter";
 import { decodeCaslOutputRecord } from "../core/caslIoEncoding";
@@ -7,6 +7,13 @@ import type { CometState, SourceMapEntry } from "../core/types";
 import { formatWord, word } from "../core/types";
 import { useI18n } from "../i18n/useI18n";
 import { translateRunState } from "../i18n/locale";
+import {
+  auxiliaryObservationFromLegacyMode,
+  legacyModeForAuxiliaryObservation,
+  type AuxiliaryObservation,
+  type ObservationWorkspaceLayout
+} from "../observation/workspace";
+import type { ObservationMode } from "../preferences/types";
 import type {
   DebuggerMemoryCategory,
   DebuggerMutationInput,
@@ -16,6 +23,8 @@ import type {
 } from "../debugger/debuggerMutation";
 import { categorizeMemoryAddress, packDebuggerFlags } from "../debugger/debuggerMutation";
 import { DebuggerEditDialog, FullClearDialog } from "./DebuggerDialogs";
+import { ObservationWorkspaceHeader } from "./CircuitFocusLayout";
+import PersistentCircuitPane from "./PersistentCircuitPane";
 import ReverseInstructionControl from "./ReverseInstructionControl";
 import type { ReverseInstructionStatus } from "../core/reverseInstruction";
 
@@ -43,6 +52,8 @@ type CaslCompatibilityModeProps = {
     reversedMicrostepCount: number;
   } | null;
   onReverseInstruction?: () => Promise<ReverseInstructionStatus>;
+  observationMode?: ObservationMode;
+  onObservationModeChange?: (mode: ObservationMode) => void;
 };
 
 const numericModes: CaslNumericDisplayMode[] = ["hex", "signed", "unsigned", "binary"];
@@ -139,6 +150,8 @@ export default function CaslCompatibilityMode({
   fileOperationActive = false,
   reverseInFlight = false,
   reverseInstructionNotice = null,
+  observationMode = "cpu-flow",
+  onObservationModeChange = () => undefined,
   onMutate = async () => ({ status: "rejected", reason: "backend-rejected" }),
   onFullClear = async () => false,
   onReverseInstruction
@@ -150,6 +163,12 @@ export default function CaslCompatibilityMode({
   const [consoleInput, setConsoleInput] = useState("");
   const [consoleClearOffset, setConsoleClearOffset] = useState(0);
   const [selectedMemoryAddress, setSelectedMemoryAddress] = useState(0x20);
+  const [auxiliaryObservation, setAuxiliaryObservation] = useState<AuxiliaryObservation>(
+    () => auxiliaryObservationFromLegacyMode(observationMode)
+  );
+  const [workspaceLayout, setWorkspaceLayout] = useState<ObservationWorkspaceLayout>("show-both");
+  const [followExecution, setFollowExecution] = useState(true);
+  const previousLegacyMode = useRef(observationMode);
   const [editTarget, setEditTarget] = useState<DebuggerMutationTarget | null>(null);
   const [fullClearOpen, setFullClearOpen] = useState(false);
   const assemblerTextRef = useRef<HTMLTextAreaElement>(null);
@@ -184,6 +203,37 @@ export default function CaslCompatibilityMode({
   const editCategory = editTarget?.kind === "memory-word"
     ? categorizeMemoryAddress(state.sourceMap, editTarget.address, state.sp)
     : undefined;
+
+  useEffect(() => {
+    if (previousLegacyMode.current === observationMode) return;
+    previousLegacyMode.current = observationMode;
+    setAuxiliaryObservation(auxiliaryObservationFromLegacyMode(observationMode));
+  }, [observationMode]);
+
+  useEffect(() => {
+    if (!followExecution) return;
+    const target = state.lastEffectiveAddress
+      ?? state.lastMemoryWriteAddress
+      ?? state.lastMemoryReadAddress
+      ?? state.currentAddress
+      ?? state.pr;
+    setMemoryStart(word(target - Math.floor(MEMORY_WINDOW_ROWS / 2)));
+    setSelectedMemoryAddress(word(target));
+  }, [
+    followExecution,
+    state.currentAddress,
+    state.lastEffectiveAddress,
+    state.lastMemoryReadAddress,
+    state.lastMemoryWriteAddress,
+    state.pr
+  ]);
+
+  const selectAuxiliaryObservation = (observation: AuxiliaryObservation) => {
+    setAuxiliaryObservation(observation);
+    const legacyMode = legacyModeForAuxiliaryObservation(observation);
+    previousLegacyMode.current = legacyMode;
+    onObservationModeChange(legacyMode);
+  };
 
   const goToAddress = (address: number) => {
     const normalized = word(address);
@@ -259,8 +309,47 @@ export default function CaslCompatibilityMode({
         </div>
       ) : null}
 
-      <div className="casl-mode-grid">
-        <section className="panel casl-source-observer">
+      <ObservationWorkspaceHeader
+        auxiliaryObservation={auxiliaryObservation}
+        layout={workspaceLayout}
+        followExecution={followExecution}
+        executionMode="casl"
+        onAuxiliaryObservationChange={selectAuxiliaryObservation}
+        onLayoutChange={setWorkspaceLayout}
+        onFollowExecutionChange={setFollowExecution}
+      />
+
+      <div
+        className="casl-observation-workspace"
+        data-testid="casl-observation-workspace"
+        data-workspace-layout={workspaceLayout}
+        data-auxiliary-observation={auxiliaryObservation}
+      >
+        <section className="casl-persistent-circuit" aria-label={t("workspace.circuit")}>
+          <PersistentCircuitPane
+            state={state}
+            subtitle={t("caslMode.summary")}
+            compact={workspaceLayout === "data-focus"}
+            sourceMapFocus={{
+              line: state.currentLine ?? state.lastStep?.executedLine,
+              address: state.currentAddress ?? state.lastStep?.executedAddress,
+              instruction: state.currentInstruction ?? state.lastStep?.executedInstruction
+            }}
+          />
+        </section>
+
+        <div className="casl-observation-data" data-testid="observation-data-pane" aria-label={t("workspace.observationData")}>
+          {workspaceLayout === "circuit-focus" ? (
+            <button
+              type="button"
+              className="restore-observation-pane"
+              onClick={() => setWorkspaceLayout("show-both")}
+            >
+              {t("workspace.showObservationData")}
+            </button>
+          ) : null}
+          <div className="casl-mode-grid" hidden={workspaceLayout === "circuit-focus"}>
+        <section className="panel casl-source-observer" hidden={auxiliaryObservation !== "source-mapping"}>
           <header className="panel-header">
             <h3>{t("panel.source")}</h3>
             <span>{t("instruction.currentPr")} {formatWord(state.pr)}</span>
@@ -279,7 +368,7 @@ export default function CaslCompatibilityMode({
           </div>
         </section>
 
-        <section className="panel casl-register-observer">
+        <section className="panel casl-register-observer" hidden={auxiliaryObservation !== "registers" && auxiliaryObservation !== "inspector"}>
           <header className="panel-header"><h3>{t("inspector.registers")}</h3><span>16-bit</span></header>
           <div className="casl-register-grid" data-format={numericMode} role="table" aria-label={t("inspector.registers")}>
             {state.gr.map((value, index) => (
@@ -341,7 +430,7 @@ export default function CaslCompatibilityMode({
           </button>
         </section>
 
-        <section className="panel casl-memory-observer">
+        <section className="panel casl-memory-observer" hidden={auxiliaryObservation !== "memory"}>
           <header className="panel-header"><h3>{t("inspector.memory")}</h3><span>{formatWord(memoryStart)}-{formatWord(memoryStart + MEMORY_WINDOW_ROWS - 1)}</span></header>
           <form
             className="casl-memory-controls"
@@ -432,7 +521,7 @@ export default function CaslCompatibilityMode({
           </div>
         </section>
 
-        <section className="panel casl-stack-observer">
+        <section className="panel casl-stack-observer" hidden={auxiliaryObservation !== "stack"}>
           <header className="panel-header"><h3>{t("caslMode.stack")}</h3><span>SP {formatWord(state.sp)}</span></header>
           <div className="casl-stack-list scroll-safe">
             {stackRows.map((address, index) => (
@@ -446,7 +535,7 @@ export default function CaslCompatibilityMode({
           </div>
         </section>
 
-        <section className="panel casl-console-observer">
+        <section className="panel casl-console-observer" hidden={auxiliaryObservation !== "console"}>
           <header className="panel-header">
             <h3>{t("tabs.console")}</h3>
             <button type="button" className="text-button" onClick={() => setConsoleClearOffset(state.consoleOutput.length)}>{t("common.clear")}</button>
@@ -474,7 +563,7 @@ export default function CaslCompatibilityMode({
           </p>
         </section>
 
-        <section className="panel casl-assembler-output">
+        <section className="panel casl-assembler-output" hidden={auxiliaryObservation !== "code-machine"}>
           <header className="panel-header">
             <h3>{t("caslMode.assemblerOutput")}</h3>
             <button
@@ -490,6 +579,24 @@ export default function CaslCompatibilityMode({
           </header>
           <textarea data-testid="casl-assembler-output" ref={assemblerTextRef} readOnly value={assemblerText} aria-label={t("caslMode.assemblerOutput")} />
         </section>
+        <section className="panel casl-trace-observer" hidden={auxiliaryObservation !== "trace"}>
+          <header className="panel-header">
+            <h3>{t("workspace.trace")}</h3>
+            <span>{state.trace.length}</span>
+          </header>
+          <div className="casl-trace-list scroll-safe">
+            {state.trace.length === 0 ? <p>{t("empty.noTraceEntries")}</p> : null}
+            {state.trace.slice(0, 32).map((event) => (
+              <article key={event.eventId ?? `${event.index}-${event.address}-${event.microIndex ?? 0}`}>
+                <strong>#{event.index}</strong>
+                <code>{event.instruction}</code>
+                <span>{event.detail}</span>
+              </article>
+            ))}
+          </div>
+        </section>
+          </div>
+        </div>
       </div>
       <p className="casl-mode-footnote">{t("caslMode.dsInitializationNote")}</p>
       <DebuggerEditDialog

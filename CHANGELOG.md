@@ -22,11 +22,13 @@ The learning studio is available as a production WASM application on Cloudflare 
 - Debugger controls edit GR0-GR7, PR, SP, the three COMET II flags, individual memory words, and runtime machine words, with Full Clear and epoch-based mutation ownership.
 - COMET Mode executes real Fetch, Decode, Effective Address, Operand Read, Execute, Write Back, Flag Update, and Instruction Complete microcycles across all 28 machine instructions.
 - COMET Mode can reverse one committed microcycle within the current history epoch through the same C++ Core, Mock, and WASM contract, with a bounded history of 1,000 entries.
+- Reverse Instruction atomically restores the latest real machine instruction, including partial microcycles, Memory, Registers, OF / SF / ZF, Trace, Source Mapping, Machine highlighting, and Circuit state. Macro source lines reverse one expanded machine instruction at a time.
 
 ### Improved
 
 - EN, JA, and zh-CN presentation for application controls and structured diagnostics, while technical identities remain locale-independent.
-- CPU Flow, Register / Stack, and Code / Machine observation modes with responsive natural scrolling and clean active-flow-only wires.
+- The teacher-feedback-driven Unified Observation Workspace keeps the live Circuit visible while Registers, Memory, Stack, Code / Machine, Source Mapping, Trace, Console, or Inspector data is selected. CASL / COMET execution mode is independent from observation data.
+- Show Both, Focus Circuit, Focus Data, and session-only Follow Execution coordinate Circuit and data highlighting. The 1180 / 1280 layouts stack the panes safely, while 1440 / 1920 use readable side-by-side panes.
 - The WCASL-compatible workflow offers hexadecimal, signed decimal, unsigned decimal, and binary displays plus explicit assembled, zero-DS, and FFFF-DS reload modes.
 - The COMET II flag register is modeled as the official OF, SF, and ZF bits only; shift instructions write the shifted-out bit to OF and no CF is exposed.
 - Source, machine word, microcycle trace, and clean active circuit flow stay aligned through stugx.CASL Teaching Microarchitecture v1, an explanatory model rather than a claim about a unique physical implementation.
@@ -41,9 +43,9 @@ The learning studio is available as a production WASM application on Cloudflare 
 - The C++ path is a teaching subset, not a complete C++ compiler; arrays, pointers, classes, templates, recursion, and the full standard library are outside the current scope.
 - The Windows demo is unsigned and still uses the browser file adapter boundary; native Tauri file dialogs and updates are deferred.
 - Double support is limited to local storage, finite literals, and copy assignment; arithmetic, comparison, conversion, parameters, returns, and arrays remain unsupported.
-- Reverse Microstep is limited to COMET Mode and the current history epoch. Redo, Reverse Run, Reverse Instruction, cross-SVC or cross-I/O rollback, and a complete time-travel debugger are not supported.
+- Reverse history is limited to the current history epoch and 1,000 retained microcycles. Redo, Reverse Run, Reverse Macro, cross-SVC, cross-I/O, mutation, Reload, Reset, or Full Clear rollback, and a complete time-travel debugger are not supported.
 
-Release references: [Commit](https://github.com/LMstugx/stugx-casl/commit/172ea6ca5225f1e4dc4ef6a6a4b43fabf824e001)
+Release references: [Commit](https://github.com/LMstugx/stugx-casl/commit/f9807c6e7fb913ca0f2062157ff761fc68e99f20)
 
 ## v1.0-rc10 - 2026-07-11 (Preview)
 

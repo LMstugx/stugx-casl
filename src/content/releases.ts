@@ -107,6 +107,11 @@ export const RELEASES: readonly ReleaseNote[] = [
             en: "COMET Mode can reverse one committed microcycle within the current history epoch through the same C++ Core, Mock, and WASM contract, with a bounded history of 1,000 entries.",
             ja: "COMET Mode では、同一の C++ Core、Mock、WASM 契約を通して、現在の history epoch 内で確定済み microcycle を 1 つ戻せます。履歴は最大 1,000 件です。",
             "zh-CN": "COMET Mode 可通过同一套 C++ Core、Mock 和 WASM 契约，在当前 history epoch 内回退一个已提交的 microcycle；历史记录最多保留 1,000 条。"
+          },
+          {
+            en: "Reverse Instruction atomically restores the latest real machine instruction, including partial microcycles, Memory, Registers, OF / SF / ZF, Trace, Source Mapping, Machine highlighting, and Circuit state. Macro source lines reverse one expanded machine instruction at a time.",
+            ja: "Reverse Instruction は、途中まで実行された microcycle を含む直近の実機械命令を原子的に戻し、Memory、Registers、OF / SF / ZF、Trace、Source Mapping、Machine の強調表示、Circuit 状態を復元します。macro の source line は、展開後の機械命令を 1 命令ずつ戻します。",
+            "zh-CN": "Reverse Instruction 会原子回退最近一条真实机器指令，包括部分完成的 microcycle，并恢复 Memory、Registers、OF / SF / ZF、Trace、Source Mapping、Machine 高亮和 Circuit 状态。宏源码行每次回退一条展开后的机器指令。"
           }
         ]
       },
@@ -119,9 +124,14 @@ export const RELEASES: readonly ReleaseNote[] = [
             "zh-CN": "应用控件和结构化 diagnostics 支持 EN、JA、zh-CN，同时技术 identity 与 locale 保持独立。"
           },
           {
-            en: "CPU Flow, Register / Stack, and Code / Machine observation modes with responsive natural scrolling and clean active-flow-only wires.",
-            ja: "CPU Flow、Register / Stack、Code / Machine の observation mode、responsive な自然スクロール、active-flow-only の clean-wire 表示。",
-            "zh-CN": "CPU Flow、Register / Stack、Code / Machine 三种 observation mode，以及响应式自然滚动和仅显示 active flow 的 clean-wire。"
+            en: "The teacher-feedback-driven Unified Observation Workspace keeps the live Circuit visible while Registers, Memory, Stack, Code / Machine, Source Mapping, Trace, Console, or Inspector data is selected. CASL / COMET execution mode is independent from observation data.",
+            ja: "教師フィードバックに基づく Unified Observation Workspace では、Registers、Memory、Stack、Code / Machine、Source Mapping、Trace、Console、Inspector のデータを選択しても、live Circuit が表示され続けます。CASL / COMET execution mode と observation data は独立しています。",
+            "zh-CN": "基于教师反馈的 Unified Observation Workspace 在选择 Registers、Memory、Stack、Code / Machine、Source Mapping、Trace、Console 或 Inspector 数据时仍持续显示实时 Circuit。CASL / COMET execution mode 与 observation data 相互独立。"
+          },
+          {
+            en: "Show Both, Focus Circuit, Focus Data, and session-only Follow Execution coordinate Circuit and data highlighting. The 1180 / 1280 layouts stack the panes safely, while 1440 / 1920 use readable side-by-side panes.",
+            ja: "Show Both、Focus Circuit、Focus Data、session-only の Follow Execution により、Circuit とデータの強調表示を連動させます。1180 / 1280 では pane を安全に縦配置し、1440 / 1920 では読みやすい横並びにします。",
+            "zh-CN": "Show Both、Focus Circuit、Focus Data 和仅限当前会话的 Follow Execution 会联动 Circuit 与数据高亮。1180 / 1280 使用安全的上下布局，1440 / 1920 使用清晰的双栏布局。"
           },
           {
             en: "The WCASL-compatible workflow offers hexadecimal, signed decimal, unsigned decimal, and binary displays plus explicit assembled, zero-DS, and FFFF-DS reload modes.",
@@ -174,14 +184,14 @@ export const RELEASES: readonly ReleaseNote[] = [
             "zh-CN": "double 支持仅限局部存储、有限字面量和复制赋值；算术、比较、转换、参数、返回值和数组仍不受支持。"
           },
           {
-            en: "Reverse Microstep is limited to COMET Mode and the current history epoch. Redo, Reverse Run, Reverse Instruction, cross-SVC or cross-I/O rollback, and a complete time-travel debugger are not supported.",
-            ja: "Reverse Microstep は COMET Mode と現在の history epoch に限定されます。Redo、Reverse Run、Reverse Instruction、SVC または入出力をまたぐ回退、完全な time-travel debugger は未対応です。",
-            "zh-CN": "Reverse Microstep 仅限 COMET Mode 和当前 history epoch。不支持 Redo、Reverse Run、Reverse Instruction、跨 SVC 或输入输出回退，也不提供完整的 time-travel debugger。"
+            en: "Reverse history is limited to the current history epoch and 1,000 retained microcycles. Redo, Reverse Run, Reverse Macro, cross-SVC, cross-I/O, mutation, Reload, Reset, or Full Clear rollback, and a complete time-travel debugger are not supported.",
+            ja: "Reverse history は現在の history epoch と保持済み 1,000 microcycle に限定されます。Redo、Reverse Run、Reverse Macro、SVC、入出力、mutation、Reload、Reset、Full Clear をまたぐ回退、完全な time-travel debugger は未対応です。",
+            "zh-CN": "Reverse history 仅限当前 history epoch 和保留的 1,000 个 microcycle。不支持 Redo、Reverse Run、Reverse Macro、跨 SVC、输入输出、mutation、Reload、Reset 或 Full Clear 回退，也不提供完整的 time-travel debugger。"
           }
         ]
       }
     ],
-    commit: "172ea6ca5225f1e4dc4ef6a6a4b43fabf824e001",
+    commit: "f9807c6e7fb913ca0f2062157ff761fc68e99f20",
     webUrl: PUBLIC_WEB_URL
   },
   {

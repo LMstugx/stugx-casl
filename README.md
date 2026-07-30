@@ -1,6 +1,6 @@
 # stugx.CASL
 
-stugx.CASL is a CASL II / COMET II learning studio for connecting source, Generated CASL, machine words, memory, Trace, and circuit state. The public WASM application is available at <https://stugx-casl.pages.dev/>.
+stugx.CASL is an independent, unofficial, browser-based CASL II / COMET II learning studio for connecting source, Generated CASL, machine words, memory, Trace, and circuit state. It is based on public CASL II / COMET II specifications and is intended for learning. The public WASM application is available at <https://stugx-casl.pages.dev/>; no Java setup is required for the browser version.
 
 ## Current Status
 
@@ -12,6 +12,8 @@ stugx.CASL is a CASL II / COMET II learning studio for connecting source, Genera
 - Persistence: locale, safe UI preferences, last built-in example, and built-in lesson progress only
 
 The project has no login, telemetry, analytics, cloud source storage, or remote compiler. Production requires the WASM backend and does not silently fall back to Mock.
+
+The WCASL replacement readiness decision is `PASS_WITH_LIMITATIONS`: the core classroom workflow is ready for teacher evaluation, while proprietary WCASL project import, project persistence, Redo, Reverse Run, and other documented limits remain outside scope. stugx.CASL is not a WCASL binary or project-format clone.
 
 ## Learning Paths
 
@@ -83,6 +85,10 @@ Additional commands are listed in [Build Commands](docs/reference/build-commands
 - [Reverse Instruction](docs/user/reverse-instruction.md)
 - [Unified Observation Workspace](docs/user/unified-observation-workspace.md)
 - [Multi-program Projects](docs/user/multi-program-projects.md)
+- [WCASL Replacement Final Gate](docs/wcasl-replacement-final-gate.md)
+- [Final CASL II / COMET II Conformance Report](docs/final-casl-comet-conformance-report.md)
+- [First-year Student Usability Check](docs/first-year-usability-check.md)
+- [Teacher Demo Script (Japanese)](docs/demo/teacher-demo-script-ja.md)
 - [WCASL-II Parity Audit](docs/phase20a-wcasl-parity-audit.md)
 - [C++ Subset Capabilities](docs/reference/cpp-subset-capabilities.md)
 - [Double Memory Observation](docs/user/double-memory-observation.md)
@@ -100,6 +106,7 @@ Canonical guides describe current behavior. Existing `docs/phase*.md` files and 
 - C++ does not include pointers, references, classes, templates, vectors, lambdas, recursion, overloads, or stack-frame lowering.
 - Browser direct Save depends on File System Access support; fallback creates a download copy.
 - Source, paths, handles, diagnostics, and VM state are not restored between sessions.
+- Multi-program project sessions are not persisted or reopened as one project.
 - The Windows installer is unsigned and Tauri-native file I/O is deferred.
 - COMET Mode is a deterministic teaching microarchitecture, not a claim about physical COMET II timing or implementation.
 - Register/Memory editing is single-target only; bulk mutation is not included.

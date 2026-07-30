@@ -6,8 +6,9 @@
 - Classification: Canonical
 - Related: [Technical Limitations](../reference/known-limitations.md), [Unsupported C++ Features](../reference/unsupported-cpp-features.md)
 
-- CASL covers the official machine instructions, four directives, literals, and fixed standard macros. User-defined macros and multi-program linking are unavailable.
+- CASL covers the official machine instructions, four directives, literals, fixed standard macros, and deterministic multi-program linking. User-defined macros, arbitrary exports, dynamic linking, and proprietary WCASL project import are unavailable.
 - The C++ path is a bounded teaching subset, not a native or standards-conforming compiler.
+- C++ `double` is limited to four-word storage and copy observation; double arithmetic and comparison are unavailable.
 - C++ function calls use up to three register arguments; recursion, overloads, and stack arguments are unavailable.
 - Stack-frame locals remain design metadata and are not runtime lowering.
 - The WASM bridge uses one runtime and JSON DTOs.
@@ -20,3 +21,4 @@
 - Register/Memory editing is limited to one 16-bit target per confirmed transaction; bulk paste, fill, search-and-replace, and editing MAR/MDR are unavailable.
 - COMET microcycle stepping uses the deterministic stugx.CASL teaching microarchitecture and does not model physical timing. Reverse Microstep and Reverse Instruction use safe retained history; Redo, reverse run, Reverse Macro, and persistent history are not production features.
 - Multi-program linking is limited to session-only standard `.cas` modules and cross-module `CALL` to exported `START` program labels. Project reopen files, proprietary WCASL project import, arbitrary exports, dynamic linking, and C/C++ object linking are not available.
+- The final first-year usability result is an expert walkthrough. A moderated student cohort and further teacher feedback are still needed for stronger usability claims.

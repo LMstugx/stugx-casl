@@ -13,6 +13,7 @@
 - Reverse Microstep and Reverse Instruction are limited to the current retained history epoch. There is no Redo, Reverse Run, Reverse Macro, persistent timeline, or rollback across SVC/I/O and mutation/lifecycle barriers.
 - Multi-program linking supports standard `.cas` modules, deterministic placement, and cross-module `CALL` to exported `START` program labels. Ordinary cross-module data labels, dynamic linking, object files, and proprietary WCASL project files are not supported.
 - C++ has no complete type system, preprocessing, standard library, native ABI, recursion, or stack-frame lowering.
+- C++ `double` has binary64 storage and copy observation only; double arithmetic, comparison, conversion, parameters, returns, and arrays are unsupported.
 - The bridge uses one C++/WASM runtime and JSON DTO transfer.
 - Control-flow display is relationship-oriented, not a complete CFG analysis.
 
@@ -33,3 +34,8 @@
 - The workspace shows one auxiliary data panel at a time. Focus Data retains a compact Circuit instead of a second or simplified runtime.
 - Follow Execution is session-only and is not restored after application restart.
 - FramePlan material is design metadata and does not imply live stack-frame variables.
+
+## Evaluation Boundary
+
+- The WCASL replacement gate is `PASS_WITH_LIMITATIONS`, not a claim of official endorsement or proprietary format compatibility.
+- First-year usability currently has expert-walkthrough and automated viewport evidence; a moderated classroom cohort remains future evidence.

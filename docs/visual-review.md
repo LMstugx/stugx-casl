@@ -263,6 +263,26 @@ Phase 20C adds `comet-fetch.png`, `comet-decode.png`, `comet-effective-address.p
 
 Phase 20F adds `linker-project-modules-1920.png`, `linker-main-submodule-1440.png`, `linker-placement-table-1280.png`, `linker-relocation-table-1280.png`, `linker-cross-module-call.png`, `linker-cross-module-ret.png`, `linker-source-mapping-callee.png`, `linker-link-stale.png`, `linker-duplicate-export.png`, `linker-unresolved-symbol.png`, `linker-memory-overflow.png`, `linker-ja-1180.png`, `linker-zh-cn-1180.png`, and `linker-unified-circuit.png`. Review independent module ownership, explicit main selection, deterministic placement and relocation, module-aware execution mapping, clear stale/error states, 1180px CJK containment, and a persistent Circuit beside linker data. The scenes must not imply support for a proprietary WCASL project file or dynamic linking.
 
+## Phase 20G Final Scenario Confirmation
+
+Phase 20G adds no runtime-only visual state. The final scenario names below are review aliases over already generated, behavior-specific evidence:
+
+| Final scenario | Confirmed evidence |
+| --- | --- |
+| `final-getting-started-1180` | Phase 18A.1 minimum-width Toolbar and first-run captures |
+| `final-casl-mode-1280` | Phase 20A CASL compatibility captures |
+| `final-comet-mode-fetch-1280` | `comet-fetch.png` and `comet-1280-en.png` |
+| `final-unified-workspace-1440` | `unified-workspace-memory-1440.png` |
+| `final-reverse-microstep-1440` | `unified-workspace-reverse-microstep.png` |
+| `final-reverse-instruction-1440` | `reverse-instruction-after-complete.png` |
+| `final-in-out-workflow-1280` | Phase 20A WaitingInput and Console captures |
+| `final-multi-program-linker-1440` | `linker-main-submodule-1440.png` and cross-module captures |
+| `final-ja-classroom-1180` | `linker-ja-1180.png` and unified-workspace Japanese capture |
+| `final-zh-cn-1180` | `linker-zh-cn-1180.png` and unified-workspace Chinese capture |
+| `final-en-1180` | minimum-width English CASL/Toolbar captures |
+
+The aliases prevent duplicate screenshots from being treated as new product evidence. Final production smoke separately checks the deployed root, WASM Core, Assemble, Step, COMET, Reverse, Unified Workspace, Multi-program Linker, console errors, and third-party requests.
+
 - This is a review gallery, not a pixel-diff visual regression suite.
 - Screenshots are generated artifacts and are not committed to git.
 - The gallery is local only unless you use an existing tunnel tool.

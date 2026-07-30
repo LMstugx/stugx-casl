@@ -32,9 +32,11 @@ Teacher feedback moves the Circuit from an exclusive observation mode to a persi
 
 Phase 20F implements independent module assembly, structured relocation, deterministic placement, linked runtime ownership, and cross-module Source Mapping for standard `.cas` files. It does not concatenate source or parse a proprietary WCASL project format.
 
-## Candidate Next Work
+## Phase 20G Final Gate
 
-The next gate is evidence-based WCASL replacement evaluation using standard programs, course exercises, instructor workflow, and beginner usability. Proprietary project import remains blocked pending a public format contract. Redo, reverse run, Reverse Macro, and persistent timelines remain separate admission work.
+The evidence-based replacement audit uses the frozen compatibility matrix, official conformance regression, an independently authored classroom corpus, production smoke, teacher demo scripts, and a first-year expert walkthrough. The result is `PASS_WITH_LIMITATIONS`: the core classroom workflow is ready for teacher evaluation, with no P0/P1 gaps.
+
+Proprietary project import remains the one blocked P2 item pending a public format contract. Project persistence, Redo, Reverse Run, Reverse Macro, a complete C++ compiler, and stronger student-usability claims remain outside this gate.
 
 ## Prohibited Shortcuts
 

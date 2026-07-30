@@ -1,0 +1,356 @@
+{
+  "schemaVersion": 1,
+  "profile": "stugx.CASL independently authored classroom demo corpus v1",
+  "copyrightPolicy": "Short original programs written for regression and teaching; no textbook or slide images are included.",
+  "programs": [
+    {
+      "id": "classroom-simple-ld-st",
+      "title": "Load and store one word",
+      "category": "simple-ld-st",
+      "source": "MAIN START\n     LAD GR1,#0061\n     ST GR1,DATA\n     LD GR2,DATA\n     RET\nDATA DS 1\n     END",
+      "expected": {
+        "runState": "Finished",
+        "registers": {
+          "GR1": "0061",
+          "GR2": "0061"
+        },
+        "memory": [
+          {
+            "label": "DATA",
+            "offset": 0,
+            "value": "0061"
+          }
+        ]
+      },
+      "teachingPoint": "ST changes Memory without clearing the source register; LD reads the stored word."
+    },
+    {
+      "id": "classroom-arithmetic-fr",
+      "title": "Arithmetic overflow and FR",
+      "category": "arithmetic-fr",
+      "source": "MAIN START\n     LAD GR1,#7FFF\n     ADDA GR1,ONE\n     RET\nONE  DC 1\n     END",
+      "expected": {
+        "runState": "Finished",
+        "registers": {
+          "GR1": "8000"
+        },
+        "flags": {
+          "OF": true,
+          "SF": true,
+          "ZF": false
+        }
+      },
+      "teachingPoint": "A signed overflow sets OF while the 16-bit result sets SF and ZF."
+    },
+    {
+      "id": "classroom-cpa-branch",
+      "title": "Compare and branch",
+      "category": "branch-by-cpa",
+      "source": "MAIN START\n     LAD GR1,3\n     CPA GR1,THREE\n     JZE MATCH\n     LAD GR2,0\n     RET\nMATCH LAD GR2,1\n     RET\nTHREE DC 3\n     END",
+      "expected": {
+        "runState": "Finished",
+        "registers": {
+          "GR2": "0001"
+        },
+        "flags": {
+          "OF": false,
+          "SF": false,
+          "ZF": true
+        }
+      },
+      "teachingPoint": "CPA updates OF/SF/ZF and JZE reads ZF without changing it."
+    },
+    {
+      "id": "classroom-counted-loop",
+      "title": "Three-iteration loop",
+      "category": "loop",
+      "source": "MAIN START\n     LAD GR1,0\n     LAD GR2,3\nLOOP ADDA GR1,ONE\n     SUBA GR2,ONE\n     JNZ LOOP\n     RET\nONE  DC 1\n     END",
+      "expected": {
+        "runState": "Finished",
+        "registers": {
+          "GR1": "0003",
+          "GR2": "0000"
+        },
+        "flags": {
+          "OF": false,
+          "SF": false,
+          "ZF": true
+        }
+      },
+      "teachingPoint": "The loop counter reaches zero and JNZ stops taking the branch."
+    },
+    {
+      "id": "classroom-push-pop",
+      "title": "Stack round trip",
+      "category": "stack-push-pop",
+      "source": "MAIN START\n     LAD GR1,#1234\n     PUSH 0,GR1\n     LAD GR1,0\n     POP GR2\n     RET\n     END",
+      "expected": {
+        "runState": "Finished",
+        "registers": {
+          "GR1": "0000",
+          "GR2": "1234"
+        },
+        "sp": "FFFE"
+      },
+      "teachingPoint": "PUSH and POP transfer one 16-bit word through Memory while SP returns to its initial value."
+    },
+    {
+      "id": "classroom-call-ret",
+      "title": "Subroutine call and return",
+      "category": "call-ret",
+      "source": "MAIN START\n     CALL SUB\n     LAD GR2,1\n     RET\nSUB  LAD GR1,#0042\n     RET\n     END",
+      "expected": {
+        "runState": "Finished",
+        "registers": {
+          "GR1": "0042",
+          "GR2": "0001"
+        },
+        "sp": "FFFE"
+      },
+      "teachingPoint": "CALL stores the return address on the COMET II stack and RET restores PR."
+    },
+    {
+      "id": "classroom-in-out",
+      "title": "Input and output record",
+      "category": "in-out",
+      "source": "MAIN START\n     IN BUF,LEN\n     OUT BUF,LEN\n     RET\nBUF  DS 256\nLEN  DS 1\n     END",
+      "input": "OK",
+      "expected": {
+        "runState": "Finished",
+        "console": [
+          "OK"
+        ],
+        "memory": [
+          {
+            "label": "LEN",
+            "offset": 0,
+            "value": "0002"
+          }
+        ]
+      },
+      "teachingPoint": "IN waits without blocking the browser, then OUT emits the submitted record as plain text."
+    },
+    {
+      "id": "classroom-rpush-rpop",
+      "title": "Register save and restore",
+      "category": "rpush-rpop",
+      "source": "MAIN START\n     LAD GR1,#1111\n     RPUSH\n     LAD GR1,#2222\n     RPOP\n     RET\n     END",
+      "expected": {
+        "runState": "Finished",
+        "registers": {
+          "GR1": "1111"
+        },
+        "sp": "FFFE"
+      },
+      "teachingPoint": "RPUSH and RPOP expand to real PUSH/POP instructions for GR1 through GR7; GR0 is not included."
+    },
+    {
+      "id": "classroom-string-dc",
+      "title": "Character string storage",
+      "category": "string-dc",
+      "source": "MAIN START\n     LD GR1,TEXT\n     LAD GR2,1\n     LD GR3,TEXT,GR2\n     RET\nTEXT DC 'ABC'\n     END",
+      "expected": {
+        "runState": "Finished",
+        "registers": {
+          "GR1": "0041",
+          "GR3": "0042"
+        },
+        "memory": [
+          {
+            "label": "TEXT",
+            "offset": 0,
+            "value": "0041"
+          },
+          {
+            "label": "TEXT",
+            "offset": 1,
+            "value": "0042"
+          },
+          {
+            "label": "TEXT",
+            "offset": 2,
+            "value": "0043"
+          }
+        ]
+      },
+      "teachingPoint": "DC stores one character per consecutive word and adds no implicit terminator."
+    },
+    {
+      "id": "classroom-indexed-addressing",
+      "title": "Indexed load and store",
+      "category": "indexed-addressing",
+      "source": "MAIN START\n     LAD GR1,DATA\n     LD GR2,1,GR1\n     LAD GR3,DST\n     ST GR2,0,GR3\n     RET\nDATA DC 10,20\nDST  DS 1\n     END",
+      "expected": {
+        "runState": "Finished",
+        "registers": {
+          "GR2": "0014"
+        },
+        "memory": [
+          {
+            "label": "DST",
+            "offset": 0,
+            "value": "0014"
+          }
+        ]
+      },
+      "teachingPoint": "The effective address is the address operand plus the selected GR1-GR7 index value."
+    },
+    {
+      "id": "classroom-bit-operations",
+      "title": "AND OR XOR",
+      "category": "bit-operations",
+      "source": "MAIN START\n     LAD GR1,#00F0\n     AND GR1,MASK\n     OR GR1,ADDEND\n     XOR GR1,TOGGLE\n     RET\nMASK DC #00FF\nADDEND DC #0F00\nTOGGLE DC #00FF\n     END",
+      "expected": {
+        "runState": "Finished",
+        "registers": {
+          "GR1": "0F0F"
+        }
+      },
+      "teachingPoint": "Each logical instruction operates on the same 16-bit word and updates FR using the official rule."
+    },
+    {
+      "id": "classroom-shift",
+      "title": "Logical shift and OF",
+      "category": "shift",
+      "source": "MAIN START\n     LAD GR1,#8001\n     SLL GR1,1\n     RET\n     END",
+      "expected": {
+        "runState": "Finished",
+        "registers": {
+          "GR1": "0002"
+        },
+        "flags": {
+          "OF": true,
+          "SF": false,
+          "ZF": false
+        }
+      },
+      "teachingPoint": "The last bit shifted out is written to OF; COMET II exposes no CF."
+    },
+    {
+      "id": "classroom-prg0204-style",
+      "title": "PRG0204-style reverse copy",
+      "category": "teacher-prg0204-style",
+      "source": "PRG0204 START\n     LAD GR1,ORG\n     LAD GR2,DST\n     LD GR3,3,GR1\n     LD GR4,2,GR1\n     LD GR5,1,GR1\n     LD GR6,0,GR1\n     ST GR3,0,GR2\n     ST GR4,1,GR2\n     ST GR5,2,GR2\n     ST GR6,3,GR2\n     RET\nORG  DC '0123'\nDST  DS 4\n     END",
+      "expected": {
+        "runState": "Finished",
+        "memory": [
+          {
+            "label": "DST",
+            "offset": 0,
+            "value": "0033"
+          },
+          {
+            "label": "DST",
+            "offset": 1,
+            "value": "0032"
+          },
+          {
+            "label": "DST",
+            "offset": 2,
+            "value": "0031"
+          },
+          {
+            "label": "DST",
+            "offset": 3,
+            "value": "0030"
+          }
+        ]
+      },
+      "teachingPoint": "Four indexed reads and writes reverse the independently authored digit sequence into DST."
+    },
+    {
+      "id": "classroom-prg0205-style",
+      "title": "PRG0205-style record echo",
+      "category": "teacher-prg0205-style-in-out",
+      "source": "PRG0205 START\n     IN BUF,LEN\n     OUT BUF,LEN\n     RET\nBUF  DS 256\nLEN  DS 1\n     END",
+      "input": "CASL",
+      "expected": {
+        "runState": "Finished",
+        "console": [
+          "CASL"
+        ],
+        "memory": [
+          {
+            "label": "LEN",
+            "offset": 0,
+            "value": "0004"
+          }
+        ]
+      },
+      "teachingPoint": "The input length and output record can be observed without a synchronous browser prompt."
+    },
+    {
+      "id": "classroom-multi-program-call",
+      "title": "Two-module CALL",
+      "category": "multi-program-call",
+      "modules": [
+        {
+          "moduleId": "module:classroom:main",
+          "sourceUnitId": "source:classroom:main",
+          "moduleAssemblyId": "assembly:classroom:main",
+          "displayName": "main.cas",
+          "source": "MAIN START\n     CALL SUB\n     RET\n     END"
+        },
+        {
+          "moduleId": "module:classroom:sub",
+          "sourceUnitId": "source:classroom:sub",
+          "moduleAssemblyId": "assembly:classroom:sub",
+          "displayName": "sub.cas",
+          "source": "SUB  START\n     LAD GR1,#0042\n     RET\n     END"
+        }
+      ],
+      "mainModuleId": "module:classroom:main",
+      "expected": {
+        "runState": "Finished",
+        "registers": {
+          "GR1": "0042"
+        },
+        "sp": "FFFE"
+      },
+      "teachingPoint": "Independent module assembly and a call-target relocation produce one linked image without concatenating source."
+    },
+    {
+      "id": "classroom-comet-microcycle",
+      "title": "LD microcycle observation",
+      "category": "comet-microcycle",
+      "source": "MICRO START\n     LD GR2,DATA\n     RET\nDATA DC #0061\n     END",
+      "expected": {
+        "runState": "Finished",
+        "registers": {
+          "GR2": "0061"
+        }
+      },
+      "teachingPoint": "Fetch, Decode, Effective Address, Operand Read, Write Back, Flag Update, and Complete are real runtime transitions."
+    },
+    {
+      "id": "classroom-reverse-microstep",
+      "title": "Reverse one committed microcycle",
+      "category": "reverse-microstep",
+      "source": "REVMIC START\n     LAD GR1,#0061\n     ST GR1,DATA\n     RET\nDATA DS 1\n     END",
+      "expected": {
+        "runState": "Finished",
+        "memory": [
+          {
+            "label": "DATA",
+            "offset": 0,
+            "value": "0061"
+          }
+        ]
+      },
+      "teachingPoint": "After observing a write phase, Reverse Microstep restores the retained pre-phase runtime transaction."
+    },
+    {
+      "id": "classroom-reverse-instruction",
+      "title": "Reverse one machine instruction",
+      "category": "reverse-instruction",
+      "source": "REVINS START\n     LAD GR1,1\n     ADDA GR1,ONE\n     RET\nONE  DC 1\n     END",
+      "expected": {
+        "runState": "Finished",
+        "registers": {
+          "GR1": "0002"
+        }
+      },
+      "teachingPoint": "Reverse Instruction groups the retained microcycles and returns atomically to the state before Fetch."
+    }
+  ]
+}

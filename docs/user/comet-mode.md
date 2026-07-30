@@ -15,3 +15,5 @@ COMET is an execution mode, not an exclusive page layout. The [Unified Observati
 Reverse Microstep restores one retained committed phase. Reverse Instruction restores the complete or partial current machine instruction to its state before Fetch. Both obey the same history barriers and are intentionally narrower than a complete time-travel debugger.
 
 This teaching model explains COMET II instruction semantics. It is not a claim about a unique physical COMET II implementation.
+
+For beginners, start in CASL Mode and switch to COMET Mode only after the instruction-level result is understood. This avoids presenting every microcycle before the learner has a register/Memory outcome to relate it to.

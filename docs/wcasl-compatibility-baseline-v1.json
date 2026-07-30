@@ -18,6 +18,36 @@
     "not-applicable": "The item is a product or distribution property, not a compatibility feature.",
     "blocked-needs-spec-evidence": "Implementation is blocked until a public, unambiguous format or semantic contract is available."
   },
+  "finalGate": {
+    "gateId": "wcasl-replacement-final-gate-v1",
+    "decision": "PASS_WITH_LIMITATIONS",
+    "evaluatedBaselineCommit": "1c43887abce860535c040c5e7927c38eb3089aa5",
+    "evaluatedBaselineTag": "multi-program-linker-baseline-phase20f",
+    "featureCounts": {
+      "total": 56,
+      "exact": 13,
+      "compatible": 24,
+      "superset": 15,
+      "partial": 0,
+      "missing": 0,
+      "intentionally-different": 2,
+      "not-applicable": 1,
+      "blocked-needs-spec-evidence": 1
+    },
+    "gapCounts": {
+      "P0": 0,
+      "P1": 0,
+      "P2": 1,
+      "P3": 0
+    },
+    "limitations": [
+      "No proprietary WCASL project format or binary compatibility.",
+      "No persistent project session, Redo, Reverse Run, or Reverse Macro.",
+      "No rollback across SVC, input/output, mutation, or lifecycle barriers.",
+      "The C++ teaching subset remains intentionally incomplete.",
+      "First-year usability is an expert walkthrough pending classroom cohort evidence."
+    ]
+  },
   "featureCategories": [
     "CASL editor",
     "assembler",
@@ -123,7 +153,7 @@
       "tests": [
         "start_entry_point_and_end_rules_are_enforced"
       ],
-      "limitations": "Single assembled program only.",
+      "limitations": "START is resolved per independently assembled module; linked program placement follows the documented profile.",
       "targetPhase": "20A"
     },
     {
@@ -683,7 +713,7 @@
       "tests": [
         "Phase15_file_lifecycle_unchanged"
       ],
-      "limitations": "Single-document browser lifecycle.",
+      "limitations": "Each project module retains independent browser document and save ownership.",
       "targetPhase": "20A"
     },
     {

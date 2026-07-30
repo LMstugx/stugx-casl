@@ -37,6 +37,15 @@ This directory separates current product documentation from historical implement
 - [Windows Desktop Demo](user/windows-desktop-demo.md)
 - [Known Limitations](user/known-limitations.md)
 
+## Final Evaluation and Teacher Demo
+
+- [WCASL Replacement Final Gate](wcasl-replacement-final-gate.md)
+- [Final CASL II / COMET II Conformance Report](final-casl-comet-conformance-report.md)
+- [First-year Student Usability Check](first-year-usability-check.md)
+- [Teacher Demo Script (Japanese)](demo/teacher-demo-script-ja.md)
+- [Teacher Demo Script (Chinese)](demo/teacher-demo-script-zh-cn.md)
+- [Teacher Feedback Checklist (Japanese)](demo/teacher-feedback-checklist-ja.md)
+
 ## Developer Guide
 
 - [Architecture Overview](developer/architecture-overview.md)

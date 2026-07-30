@@ -6,7 +6,7 @@
 - Classification: Canonical
 - Related: [Interface Overview](interface-overview.md), [CASL Workflow](casl-workflow.md)
 
-stugx.CASL is a learning studio for CASL II, COMET II, and a small C++ teaching subset. The public Web version is available at <https://stugx-casl.pages.dev/>. A Windows Tauri demo can also be built for offline local demonstrations.
+stugx.CASL is an independent, unofficial learning studio for CASL II, COMET II, and a small C++ teaching subset. The public Web version is available at <https://stugx-casl.pages.dev/> and requires no Java setup. A Windows Tauri demo can also be built for offline local demonstrations.
 
 Use a current browser with WebAssembly and ES module support. File System Access is optional; browsers without it use the documented download fallback.
 
@@ -20,5 +20,7 @@ Use a current browser with WebAssembly and ES module support. File System Access
 6. Switch among EN, JA, and zh-CN with the locale controls.
 
 Source is never assembled or run automatically. The tool is not a complete C++ compiler, and it is not an official school product.
+
+For a first classroom walkthrough, keep the default example and use only Assemble, Step, Registers, and Memory. COMET Mode, Reverse, and Multi-program Linker can be introduced after the instruction-level result is clear. This path is designed to reach the first visible register change within two minutes.
 
 For precise support boundaries, see [CASL Syntax Support](../reference/casl-syntax-support.md) and [C++ Subset Capabilities](../reference/cpp-subset-capabilities.md).

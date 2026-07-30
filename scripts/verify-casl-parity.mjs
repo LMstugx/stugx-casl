@@ -95,6 +95,27 @@ for (const [index, feature] of features.entries()) {
   }
 }
 
+const finalGate = baseline.finalGate;
+if (!finalGate || !["PASS", "PASS_WITH_LIMITATIONS", "BLOCKED"].includes(finalGate.decision)) {
+  fail("finalGate must contain a valid decision");
+} else {
+  if (!/^[0-9a-f]{40}$/.test(finalGate.evaluatedBaselineCommit ?? "")) fail("finalGate baseline commit must be a full SHA-1");
+  if (!Array.isArray(finalGate.limitations) || finalGate.limitations.length === 0) fail("finalGate limitations must be explicit");
+  if (finalGate.featureCounts?.total !== features.length) fail("finalGate total feature count is stale");
+  for (const status of allowedStatuses) {
+    if (finalGate.featureCounts?.[status] !== counts[status]) fail(`finalGate ${status} count is stale`);
+  }
+  const gapStatuses = new Set(["missing", "partial", "blocked-needs-spec-evidence"]);
+  for (const priority of ["P0", "P1", "P2"]) {
+    const gapCount = features.filter((feature) => feature.priority === priority && gapStatuses.has(feature.currentStatus)).length;
+    if (finalGate.gapCounts?.[priority] !== gapCount) fail(`finalGate ${priority} gap count is stale`);
+  }
+  if (finalGate.gapCounts?.P3 !== 0) fail("finalGate P3 gap count must be zero while the v1 matrix has no P3 entries");
+  if (finalGate.decision === "PASS" && (finalGate.gapCounts.P0 > 0 || finalGate.gapCounts.P1 > 0)) {
+    fail("finalGate cannot PASS with a P0 or P1 gap");
+  }
+}
+
 const enumMatch = /enum class Opcode\s*\{([\s\S]*?)\};/.exec(readFileSync(instructionHeaderPath, "utf8"));
 const nonMachine = new Set(["START", "END", "DC", "DS", "IN", "OUT", "RPUSH", "RPOP"]);
 const runtimeOpcodes = (enumMatch?.[1] ?? "")

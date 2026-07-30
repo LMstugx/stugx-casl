@@ -19,3 +19,5 @@ The Main module is placed first. A cross-module `CALL` may target another module
 Each module has independent Dirty and Save ownership. Saving does not Link, linking does not Save, and editing/reordering marks the link stale. Projects are session-only: there is no project file, automatic reopen, directory scan, or localStorage source persistence.
 
 This independent, unofficial workflow uses standard `.cas` files. It does not read WCASL proprietary project files and does not claim official WCASL endorsement.
+
+The final compatibility gate classifies deterministic multi-program linking as compatible. Project-file persistence remains the one blocked P2 compatibility item because no public proprietary format contract has been admitted.

@@ -15,3 +15,5 @@ Registers, PR, SP, OF/SF/ZF, Memory changes, IR, MAR, MDR, Trace, Machine Code h
 Expanded macros remain real machine instructions. Reversing an `RPUSH` sequence reverses one expanded `PUSH` at a time, not the complete macro.
 
 Reverse is unavailable across debugger edits, Reset, Reload, Full Clear, new assembly, source replacement, SVC, input/output, and discarded history. Up to 1000 microcycles are retained in the current session. There is no Redo, Reverse Run, Reverse Macro, persistent history, or rollback across external side effects.
+
+For a first-year introduction, demonstrate Reverse Instruction before Reverse Microstep. It preserves the familiar machine-instruction boundary and reduces the chance that a learner mistakes an intermediate microarchitecture latch for a completed CASL operation.

@@ -61,3 +61,5 @@ Project Modules can assemble standard `.cas` sources independently and link them
 ## Scope
 
 Step executes one real machine instruction. Reverse Instruction returns to the previous machine boundary; an expanded macro reverses one real expanded instruction at a time. Use [COMET Microcycle Mode](comet-microcycle-mode.md) to advance or reverse one teaching-microarchitecture phase. Redo, Reverse Run, bulk Memory editing, arbitrary cross-module data exports, and proprietary project import are not available.
+
+The final readiness audit classifies this workflow as WCASL-compatible, not as an official or pixel-identical WCASL interface. See the [WCASL Replacement Final Gate](../wcasl-replacement-final-gate.md).

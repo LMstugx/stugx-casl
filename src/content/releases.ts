@@ -112,6 +112,11 @@ export const RELEASES: readonly ReleaseNote[] = [
             en: "Reverse Instruction atomically restores the latest real machine instruction, including partial microcycles, Memory, Registers, OF / SF / ZF, Trace, Source Mapping, Machine highlighting, and Circuit state. Macro source lines reverse one expanded machine instruction at a time.",
             ja: "Reverse Instruction は、途中まで実行された microcycle を含む直近の実機械命令を原子的に戻し、Memory、Registers、OF / SF / ZF、Trace、Source Mapping、Machine の強調表示、Circuit 状態を復元します。macro の source line は、展開後の機械命令を 1 命令ずつ戻します。",
             "zh-CN": "Reverse Instruction 会原子回退最近一条真实机器指令，包括部分完成的 microcycle，并恢复 Memory、Registers、OF / SF / ZF、Trace、Source Mapping、Machine 高亮和 Circuit 状态。宏源码行每次回退一条展开后的机器指令。"
+          },
+          {
+            en: "The deterministic Multi-program Linker assembles independent CASL modules, selects an explicit main module, exports START program labels, applies auditable address relocations, and executes cross-module CALL / RET in one linked COMET II image.",
+            ja: "決定的な Multi-program Linker は、独立した CASL module を個別に assemble し、明示的な main module を選択し、START program label を export し、監査可能な address relocation を適用して、単一の linked COMET II image 上で module 間 CALL / RET を実行します。",
+            "zh-CN": "确定性的 Multi-program Linker 会独立汇编各 CASL module、显式选择 main module、导出 START program label、应用可审计的地址重定位，并在同一个 linked COMET II image 中执行跨模块 CALL / RET。"
           }
         ]
       },
@@ -152,6 +157,11 @@ export const RELEASES: readonly ReleaseNote[] = [
             en: "Reverse Microstep atomically restores VM state, Trace, Source Mapping, Machine Code highlighting, and Circuit flow, while refusing to cross debugger mutation, Reset, Reload, Full Clear, SVC, or input/output boundaries.",
             ja: "Reverse Microstep は VM 状態、Trace、Source Mapping、Machine Code の強調表示、Circuit flow を原子的に復元し、debugger mutation、Reset、Reload、Full Clear、SVC、入出力の境界を越えません。",
             "zh-CN": "Reverse Microstep 会原子恢复 VM 状态、Trace、Source Mapping、Machine Code 高亮和 Circuit flow，并拒绝跨越 debugger mutation、Reset、Reload、Full Clear、SVC 或输入输出边界。"
+          },
+          {
+            en: "Project and Module identities, relocation and placement tables, module-aware Machine Code / Trace / Source Mapping, and hard relink history barriers keep linked execution auditable without changing single-file behavior.",
+            ja: "Project / Module identity、relocation / placement table、module 対応の Machine Code / Trace / Source Mapping、relink 時の強制 history barrier により、単一ファイル動作を変更せず linked execution を監査できます。",
+            "zh-CN": "Project / Module identity、重定位与放置表、带 module 上下文的 Machine Code / Trace / Source Mapping，以及 relink 的硬 history barrier，使链接执行可审计，同时不改变单文件行为。"
           }
         ]
       },
@@ -187,11 +197,16 @@ export const RELEASES: readonly ReleaseNote[] = [
             en: "Reverse history is limited to the current history epoch and 1,000 retained microcycles. Redo, Reverse Run, Reverse Macro, cross-SVC, cross-I/O, mutation, Reload, Reset, or Full Clear rollback, and a complete time-travel debugger are not supported.",
             ja: "Reverse history は現在の history epoch と保持済み 1,000 microcycle に限定されます。Redo、Reverse Run、Reverse Macro、SVC、入出力、mutation、Reload、Reset、Full Clear をまたぐ回退、完全な time-travel debugger は未対応です。",
             "zh-CN": "Reverse history 仅限当前 history epoch 和保留的 1,000 个 microcycle。不支持 Redo、Reverse Run、Reverse Macro、跨 SVC、输入输出、mutation、Reload、Reset 或 Full Clear 回退，也不提供完整的 time-travel debugger。"
+          },
+          {
+            en: "The linker does not read a proprietary WCASL project format, persist project sessions, scan directories, perform dynamic linking, accept C/C++ object files, or concatenate source files.",
+            ja: "Linker は proprietary WCASL project format の読込、project session の永続化、directory scan、dynamic linking、C/C++ object file の取込、source file の連結を行いません。",
+            "zh-CN": "Linker 不读取 proprietary WCASL project format，不持久化 project session，不扫描目录，不执行 dynamic linking，不接受 C/C++ object file，也不拼接 source file。"
           }
         ]
       }
     ],
-    commit: "f9807c6e7fb913ca0f2062157ff761fc68e99f20",
+    commit: "de1b28d6440f9a791772488443cb03d4703b73a9",
     webUrl: PUBLIC_WEB_URL
   },
   {

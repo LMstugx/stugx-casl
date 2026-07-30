@@ -23,6 +23,7 @@ The learning studio is available as a production WASM application on Cloudflare 
 - COMET Mode executes real Fetch, Decode, Effective Address, Operand Read, Execute, Write Back, Flag Update, and Instruction Complete microcycles across all 28 machine instructions.
 - COMET Mode can reverse one committed microcycle within the current history epoch through the same C++ Core, Mock, and WASM contract, with a bounded history of 1,000 entries.
 - Reverse Instruction atomically restores the latest real machine instruction, including partial microcycles, Memory, Registers, OF / SF / ZF, Trace, Source Mapping, Machine highlighting, and Circuit state. Macro source lines reverse one expanded machine instruction at a time.
+- The deterministic Multi-program Linker assembles independent CASL modules, selects an explicit main module, exports START program labels, applies auditable address relocations, and executes cross-module CALL / RET in one linked COMET II image.
 
 ### Improved
 
@@ -33,6 +34,7 @@ The learning studio is available as a production WASM application on Cloudflare 
 - The COMET II flag register is modeled as the official OF, SF, and ZF bits only; shift instructions write the shifted-out bit to OF and no CF is exposed.
 - Source, machine word, microcycle trace, and clean active circuit flow stay aligned through stugx.CASL Teaching Microarchitecture v1, an explanatory model rather than a claim about a unique physical implementation.
 - Reverse Microstep atomically restores VM state, Trace, Source Mapping, Machine Code highlighting, and Circuit flow, while refusing to cross debugger mutation, Reset, Reload, Full Clear, SVC, or input/output boundaries.
+- Project and Module identities, relocation and placement tables, module-aware Machine Code / Trace / Source Mapping, and hard relink history barriers keep linked execution auditable without changing single-file behavior.
 
 ### Security
 
@@ -44,8 +46,9 @@ The learning studio is available as a production WASM application on Cloudflare 
 - The Windows demo is unsigned and still uses the browser file adapter boundary; native Tauri file dialogs and updates are deferred.
 - Double support is limited to local storage, finite literals, and copy assignment; arithmetic, comparison, conversion, parameters, returns, and arrays remain unsupported.
 - Reverse history is limited to the current history epoch and 1,000 retained microcycles. Redo, Reverse Run, Reverse Macro, cross-SVC, cross-I/O, mutation, Reload, Reset, or Full Clear rollback, and a complete time-travel debugger are not supported.
+- The linker does not read a proprietary WCASL project format, persist project sessions, scan directories, perform dynamic linking, accept C/C++ object files, or concatenate source files.
 
-Release references: [Commit](https://github.com/LMstugx/stugx-casl/commit/f9807c6e7fb913ca0f2062157ff761fc68e99f20)
+Release references: [Commit](https://github.com/LMstugx/stugx-casl/commit/de1b28d6440f9a791772488443cb03d4703b73a9)
 
 ## v1.0-rc10 - 2026-07-11 (Preview)
 

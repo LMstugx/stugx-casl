@@ -32,7 +32,8 @@ describe("v2 workbench presentation code derives no machine state", () => {
 
   it("exists", () => {
     expect(presentationFiles).toContain("src/visual/datapath/DatapathCanvas.tsx");
-    expect(presentationFiles).toContain("src/components/workbench/WorkbenchShell.tsx");
+    expect(presentationFiles).toContain("src/components/workbench/CircuitCanvas.tsx");
+    expect(presentationFiles).toContain("src/components/workbench/ControlBar.tsx");
   });
 
   it("imports no core implementation, bridge, or store", () => {
@@ -41,9 +42,9 @@ describe("v2 workbench presentation code derives no machine state", () => {
     }
   });
 
-  it("fixtures are used only by tests and the development preview", () => {
+  it("fixtures are used only by tests", () => {
     const users = sourceFiles("src").filter((file) => importSpecifiers(file).some((specifier) => /datapath\/fixtures$|^\.\/fixtures$/.test(specifier)));
-    expect(users).toEqual(["src/dev/WorkbenchPreview.tsx"]);
+    expect(users).toEqual([]);
   });
 });
 
@@ -60,20 +61,13 @@ describe("production source makes no network request", () => {
   });
 });
 
-describe("development preview stays out of production", () => {
-  const main = readFileSync("src/main.tsx", "utf8");
-
-  it("is loaded only behind the DEV flag and only dynamically", () => {
-    expect(main).toContain('import.meta.env.DEV ? new URLSearchParams(window.location.search).get("preview") : null');
-    expect(main).toContain('import("./dev/WorkbenchPreview")');
-    expect(main).not.toMatch(/^import .*["']\.\/dev\//m);
-  });
-
-  it("nothing outside src/dev and main.tsx imports src/dev", () => {
-    const offenders = sourceFiles("src")
-      .filter((file) => !file.startsWith("src/dev/") && file !== "src/main.tsx")
-      .filter((file) => importSpecifiers(file).some((specifier) => /(?:^|\/)dev\//.test(specifier)));
-    expect(offenders).toEqual([]);
+// The phase 1 preview page is gone: the application itself is the workbench now.
+describe("no development-only page ships", () => {
+  it("the entry point loads nothing by query string and nothing from src/dev", () => {
+    const main = readFileSync("src/main.tsx", "utf8");
+    expect(main).not.toContain("URLSearchParams");
+    expect(main).not.toContain("./dev/");
+    expect(sourceFiles("src").filter((file) => file.startsWith("src/dev/"))).toEqual([]);
   });
 });
 
@@ -115,8 +109,8 @@ describe("ADR 0023 documentation", () => {
     expect(contract).toContain("A reverse step plays no motion and nothing ever plays backward.");
   });
 
-  it("workbench shortcuts are registered before they are implemented", () => {
-    expect(keyboard).toContain("## Workbench Shortcuts (v2)");
+  it("workbench shortcuts are registered in the keyboard reference", () => {
+    expect(keyboard).toContain("## Workbench Shortcuts");
     for (const key of ["| Space |", "| Shift+Space |", "| F5 |", "| F6 |", "| Ctrl+Enter |", "| Ctrl+S |"]) expect(keyboard).toContain(key);
     expect(keyboard).toContain("A shortcut never bypasses a disabled control.");
   });

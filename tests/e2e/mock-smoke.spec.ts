@@ -1078,7 +1078,7 @@ test("Mock backend shows Stack Frame View FramePlan preview in Register Stack mo
   await expect(page.getByTestId("focus-stack-frame-view")).toContainText("FrameSlot");
   await expect(page.getByTestId("stack-frame-view-state")).toHaveAttribute("data-has-live-frame", "false");
   await expect(page.getByTestId("stack-frame-view-state")).toHaveAttribute("data-runtime-state", "false");
-  await expect(page.locator('[data-slot-id="add:argument:a:1"]')).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByTestId("focus-stack-frame-view").locator('[data-slot-id="add:argument:a:1"]')).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByTestId("stack-frame-slot-detail")).toContainText("Source Editor");
   await expect(page.getByTestId("signal-probe-frame-slot-relation")).toContainText("GR1");
   await expect(page.getByTestId("signal-probe-frame-slot-relation")).toContainText("FUNC_ADD_A");
@@ -1088,8 +1088,8 @@ test("Mock backend shows Stack Frame View FramePlan preview in Register Stack mo
   await page.getByTestId("stack-frame-view-state").evaluate((element) => {
     element.scrollTop = element.scrollHeight;
   });
-  await page.locator('[data-slot-id="add:argument:a:1"]').click();
-  await expect(page.locator('[data-slot-id="add:argument:a:1"]')).toHaveAttribute("aria-pressed", "true");
+  await page.getByTestId("focus-stack-frame-view").locator('[data-slot-id="add:argument:a:1"]').click();
+  await expect(page.getByTestId("focus-stack-frame-view").locator('[data-slot-id="add:argument:a:1"]')).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByTestId("stack-frame-slot-detail")).toContainText("a");
   await expect(page.getByTestId("stack-frame-slot-detail")).toContainText("argument");
   await expect(page.getByTestId("stack-frame-slot-detail")).toContainText("static label FUNC_ADD_A");
@@ -1102,18 +1102,18 @@ test("Mock backend shows Stack Frame View FramePlan preview in Register Stack mo
   await expect(page.getByTestId("signal-probe-frame-slot-relation")).toContainText("frame arg");
   await expect(page.getByTestId("signal-probe-frame-slot-relation")).toContainText("not runtime");
   await expect(page.getByTestId("signal-probe-frame-slot-row").first()).toHaveAttribute("data-active", "false");
-  await page.locator('[data-slot-id="add:argument:b:2"]').focus();
-  await expect(page.locator('[data-slot-id="add:argument:b:2"]')).toBeFocused();
+  await page.getByTestId("focus-stack-frame-view").locator('[data-slot-id="add:argument:b:2"]').focus();
+  await expect(page.getByTestId("focus-stack-frame-view").locator('[data-slot-id="add:argument:b:2"]')).toBeFocused();
   await page.keyboard.press("Enter");
-  await expect(page.locator('[data-slot-id="add:argument:b:2"]')).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByTestId("focus-stack-frame-view").locator('[data-slot-id="add:argument:b:2"]')).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByTestId("stack-frame-slot-detail")).toContainText("FUNC_ADD_B");
   await page.getByTestId("stack-frame-function-select").selectOption("main");
   await expect(page.locator('[data-testid="stack-frame-future-slot"][data-selected="true"]')).toHaveCount(0);
   await page.getByTestId("stack-frame-view-state").evaluate((element) => {
     element.scrollTop = element.scrollHeight;
   });
-  await page.locator('[data-slot-id="main:local:result:1"]').click();
-  await expect(page.locator('[data-slot-id="main:local:result:1"]')).toHaveAttribute("aria-pressed", "true");
+  await page.getByTestId("focus-stack-frame-view").locator('[data-slot-id="main:local:result:1"]').click();
+  await expect(page.getByTestId("focus-stack-frame-view").locator('[data-slot-id="main:local:result:1"]')).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByTestId("signal-probe-frame-slot-relation")).toContainText("result");
   await expect(page.getByTestId("signal-probe-frame-slot-relation")).toContainText("MAIN_RESULT");
   await expect(page.getByTestId("signal-probe-frame-slot-relation")).toContainText("frame local");
@@ -1142,7 +1142,7 @@ test("Mock backend wires Generated CASL and source chips to FramePlan slots", as
   await page.getByTestId("stack-frame-view-state").evaluate((element) => {
     element.scrollTop = element.scrollHeight;
   });
-  await expect(page.locator('[data-slot-id="add:argument:a:1"]')).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByTestId("focus-stack-frame-view").locator('[data-slot-id="add:argument:a:1"]')).toHaveAttribute("aria-pressed", "true");
 
   await switchObservationMode(page, "code-machine");
   await page.getByTestId("source-frame-slot-chip").first().click();
@@ -1200,11 +1200,17 @@ test("focus_mode_works_at_1280x720", async ({ page }) => {
   await page.keyboard.press("Enter");
   await expect(page.getByTestId("stack-frame-view-details-summary")).toHaveAttribute("aria-expanded", "true");
 
-  const focusUsesPageScroll = await page.evaluate(() => document.documentElement.scrollHeight > window.innerHeight + 24);
-  expect(focusUsesPageScroll).toBe(true);
-
-  const appShellOverflow = await page.locator(".app-shell").evaluate((element) => getComputedStyle(element).overflowY);
-  expect(appShellOverflow).not.toBe("hidden");
+  // The workbench frame fills the viewport; what does not fit is reached by scrolling the pane it
+  // is in, not the page. Nothing is clipped: the pane holding these panels scrolls and is longer
+  // than its box, and the page itself has no overflow in either direction.
+  const observationPane = page.getByTestId("observation-data-pane");
+  expect(await observationPane.evaluate((element) => getComputedStyle(element).overflowY)).toBe("auto");
+  expect(await observationPane.evaluate((element) => element.scrollHeight > element.clientHeight + 24)).toBe(true);
+  const pageOverflow = await page.evaluate(() => ({
+    horizontal: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+    vertical: document.documentElement.scrollHeight > window.innerHeight
+  }));
+  expect(pageOverflow).toEqual({ horizontal: false, vertical: false });
 
   const signalProbeBodyOverflow = await page.locator(".signal-probe-body").first().evaluate((element) => getComputedStyle(element).overflowY);
   expect(signalProbeBodyOverflow).toBe("visible");

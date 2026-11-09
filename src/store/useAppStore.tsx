@@ -58,6 +58,17 @@ export type LessonProgress = LessonProgressState;
 const DEFAULT_RUN_MAX_STEPS = 1000;
 const RUN_BATCH_SIZE = 20;
 
+/** Options of one run. They live for that run only and are never stored. */
+export interface RunOptions {
+  /** Addresses of instructions the run stops in front of (breakpoints of the page session). */
+  breakAddresses?: ReadonlySet<number>;
+}
+
+function isAtInstructionBoundary(state: CometState, granularity: "instruction" | "microcycle"): boolean {
+  if (granularity === "instruction") return true;
+  return state.microcycle.phase === "complete" || state.microcycle.phase === "none";
+}
+
 export type PreparedCoreSource =
   | {
       ok: true;
@@ -131,7 +142,7 @@ type AppStoreActions = {
   setSourceText: (sourceText: string) => void;
   setSourceMode: (sourceMode: SourceMode) => void;
   assemble: () => void;
-  run: (maxSteps?: number) => void;
+  run: (maxSteps?: number, options?: RunOptions) => void;
   step: () => void;
   reset: () => void;
   reload: (mode: ReloadInitializationMode) => void;
@@ -1035,7 +1046,7 @@ export function AppStoreProvider({
           }
         })();
       },
-      run: (maxSteps = DEFAULT_RUN_MAX_STEPS) => {
+      run: (maxSteps = DEFAULT_RUN_MAX_STEPS, options = {}) => {
         if (state.isSourceDirty || !state.cometState.assembled || !canExecuteFromCurrentState(state.cometState, state.runStopReason)) return;
         const requestedMaxSteps = typeof maxSteps === "number" && Number.isFinite(maxSteps) ? maxSteps : DEFAULT_RUN_MAX_STEPS;
         const boundedMaxSteps = Math.max(1, Math.floor(requestedMaxSteps));
@@ -1044,8 +1055,11 @@ export function AppStoreProvider({
         const owner = executionOwnerOf(state);
         const runUnit = state.executionGranularity === "microcycle" ? "microsteps" : "steps";
         runControlRef.current = { runId, stopRequested: false };
+        const breakAddresses = options.breakAddresses;
+        const granularity = state.executionGranularity;
         void (async () => {
           let executedSteps = 0;
+          let breakpointAddress: number | undefined;
           let workingState: CometState = {
             ...state.cometState,
             runState: "Running",
@@ -1067,8 +1081,13 @@ export function AppStoreProvider({
                 const nextState = createCometStateFromDto(result.state, { previous: workingState, output: workingState.output });
                 workingState = nextState.runState === "Ready" ? { ...nextState, runState: "Running" } : nextState;
                 if (isRunTerminal(workingState.runState)) break;
+                if (breakAddresses?.has(workingState.pr) && isAtInstructionBoundary(workingState, granularity)) {
+                  breakpointAddress = workingState.pr;
+                  break;
+                }
               }
 
+              if (breakpointAddress !== undefined) break;
               if (runControlRef.current.runId !== runId || runControlRef.current.stopRequested || isRunTerminal(workingState.runState) || executedSteps >= boundedMaxSteps) break;
               dispatch({ type: "runProgress", cometState: workingState, owner });
               await yieldToBrowser();
@@ -1077,7 +1096,14 @@ export function AppStoreProvider({
             if (runControlRef.current.runId !== runId) return;
 
             let finalState = workingState;
-            if (runControlRef.current.stopRequested) {
+            if (breakpointAddress !== undefined && !runControlRef.current.stopRequested) {
+              finalState = {
+                ...workingState,
+                runState: "Stopped",
+                output: appendOutputLine(workingState.output, `Breakpoint reached at #${formatWord(breakpointAddress)} after ${executedSteps} ${runUnit}.`)
+              };
+              eventBus.emit(AppEvent.VmRunStopped, { reason: "manual" });
+            } else if (runControlRef.current.stopRequested) {
               finalState = {
                 ...workingState,
                 runState: "Stopped",
@@ -1112,7 +1138,7 @@ export function AppStoreProvider({
               eventBus.emit(AppEvent.VmRunStopped, { reason: "maxSteps" });
             }
 
-            const stopReason = finalRunStopReason(finalState, executedSteps, boundedMaxSteps, runControlRef.current.stopRequested);
+            const stopReason = finalRunStopReason(finalState, executedSteps, boundedMaxSteps, runControlRef.current.stopRequested || breakpointAddress !== undefined);
             runControlRef.current.stopRequested = false;
             dispatch({ type: "runStopped", cometState: finalState, reason: stopReason, owner });
           } catch (error) {

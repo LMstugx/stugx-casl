@@ -17,6 +17,10 @@ type SourceEditorProps = {
   diagnosticRange?: SourceRange;
   diagnosticMessage?: string;
   readOnly?: boolean;
+  /** Lines that carry a breakpoint. Breakpoints are page-session state owned by the caller. */
+  breakpointLines?: readonly number[];
+  /** Called when the reader clicks a line number or presses F9 on a line. */
+  onToggleBreakpoint?: (line: number) => void;
 };
 
 export default function SourceEditor({
@@ -29,12 +33,18 @@ export default function SourceEditor({
   onSelectFrameSymbol,
   diagnosticRange,
   diagnosticMessage,
-  readOnly = false
+  readOnly = false,
+  breakpointLines = [],
+  onToggleBreakpoint
 }: SourceEditorProps) {
   const { t } = useI18n();
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
   const decorationIds = useRef<string[]>([]);
   const diagnosticDecorationIds = useRef<string[]>([]);
+  const breakpointDecorationIds = useRef<string[]>([]);
+  const toggleBreakpointRef = useRef(onToggleBreakpoint);
+  toggleBreakpointRef.current = onToggleBreakpoint;
+  const breakpointLabel = t("workbench.breakpoint.marker");
   const visibleRelations = language === "cpp" ? frameSymbolRelations.slice(0, 8) : [];
 
   const handleMount: OnMount = (editorInstance, monaco) => {
@@ -54,7 +64,47 @@ export default function SourceEditor({
       }
     });
     monaco.editor.setTheme("caslStudioLight");
+    // Breakpoints: click a line number, or press F9 on the line the cursor is in.
+    editorInstance.onMouseDown((event) => {
+      const kind = event.target.type;
+      if (kind !== monaco.editor.MouseTargetType.GUTTER_LINE_NUMBERS && kind !== monaco.editor.MouseTargetType.GUTTER_GLYPH_MARGIN) return;
+      const line = event.target.position?.lineNumber;
+      if (line) toggleBreakpointRef.current?.(line);
+    });
+    editorInstance.addAction({
+      id: "stugx.toggleBreakpoint",
+      label: breakpointLabel,
+      keybindings: [monaco.KeyCode.F9],
+      run: (instance) => {
+        const line = instance.getPosition()?.lineNumber;
+        if (line) toggleBreakpointRef.current?.(line);
+      }
+    });
+    applyBreakpointDecorations();
   };
+
+  const breakpointKey = breakpointLines.join(",");
+  const applyBreakpointDecorations = () => {
+    const editorInstance = editorRef.current;
+    if (!editorInstance) return;
+    const lineCount = editorInstance.getModel()?.getLineCount() ?? 0;
+    breakpointDecorationIds.current = editorInstance.deltaDecorations(
+      breakpointDecorationIds.current,
+      breakpointLines
+        .filter((line) => line >= 1 && line <= lineCount)
+        .map((line) => ({
+          range: { startLineNumber: line, endLineNumber: line, startColumn: 1, endColumn: 1 },
+          options: {
+            isWholeLine: true,
+            className: "breakpoint-line",
+            linesDecorationsClassName: "breakpoint-marker",
+            linesDecorationsTooltip: breakpointLabel
+          }
+        }))
+    );
+  };
+
+  useEffect(applyBreakpointDecorations, [breakpointKey, source]);
 
   useEffect(() => {
     if (!editorRef.current) return;
@@ -104,7 +154,7 @@ export default function SourceEditor({
   }, [diagnosticMessage, diagnosticRange]);
 
   return (
-    <div className="source-editor" data-testid="source-editor">
+    <div className="source-editor" data-testid="source-editor" data-breakpoint-lines={breakpointKey}>
       <Editor
         height="100%"
         language={language === "cpp" ? "cpp" : "plaintext"}
@@ -119,6 +169,7 @@ export default function SourceEditor({
           fontSize: 14,
           lineHeight: 24,
           glyphMargin: true,
+          lineDecorationsWidth: 14,
           scrollBeyondLastLine: false,
           overviewRulerBorder: false,
           renderLineHighlight: "all",

@@ -252,6 +252,7 @@ export default function CaslCompatibilityMode({
 
   return (
     <main className="casl-mode-workspace" data-testid="casl-compatibility-mode">
+      <div className="casl-mode-top">
       <header className="casl-mode-heading">
         <div>
           <h2>{t("caslMode.title")}</h2>
@@ -300,6 +301,7 @@ export default function CaslCompatibilityMode({
           </button>
         </div>
       </section>
+      </div>
 
       {isSourceDirty ? <p className="casl-mode-warning">{t("caslMode.reloadDirtyWarning")}</p> : null}
       {programModified || dataModified ? (

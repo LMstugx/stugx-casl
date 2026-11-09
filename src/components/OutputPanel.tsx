@@ -1,3 +1,4 @@
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { CometState } from "../core/types";
 import { formatWord } from "../core/types";
@@ -32,6 +33,9 @@ type OutputPanelProps = {
   autoOpenGenerated?: boolean;
   onConsoleInput?: (text: string, endOfFile?: boolean) => void;
   onClear: () => void;
+  /** Workbench dock: when given, the panel can be collapsed to its tab row. */
+  collapsed?: boolean;
+  onToggleCollapsed?: () => void;
 };
 
 type OutputTab = "output" | "console" | "messages" | "generated" | "machine";
@@ -88,7 +92,9 @@ export default function OutputPanel({
   autoOpenGenerated = false,
   onActiveTabChange,
   onConsoleInput,
-  onClear
+  onClear,
+  collapsed = false,
+  onToggleCollapsed
 }: OutputPanelProps) {
   const { t } = useI18n();
   const [activeTab, setActiveTab] = useState<OutputTab>(() => fromPreferenceTab(initialTab));
@@ -132,7 +138,7 @@ export default function OutputPanel({
   const selectedMachineEdge = selectedMachineRow ? selectControlFlowForMachineRow(selectedMachineRow, controlFlowGraph) : undefined;
 
   return (
-    <section className="output-panel" data-active-tab={toPreferenceTab(activeTab)}>
+    <section className="output-panel" data-active-tab={toPreferenceTab(activeTab)} data-collapsed={collapsed ? "true" : "false"}>
       <header className="dock-header">
         <div className="tab-list dock-tabs" role="tablist" aria-label={t("accessibility.outputPanels")} aria-orientation="horizontal" onKeyDown={handleHorizontalTabListKeyDown}>
           {tabs.map((tab) => {
@@ -152,6 +158,7 @@ export default function OutputPanel({
               onClick={() => {
                 setActiveTab(tab.id);
                 onActiveTabChange?.(toPreferenceTab(tab.id));
+                if (collapsed) onToggleCollapsed?.();
               }}
             >
               {label}
@@ -168,8 +175,23 @@ export default function OutputPanel({
         >
           {t("common.clear")}
         </button>
+        {onToggleCollapsed ? (
+          <button
+            type="button"
+            className="text-button dock-collapse-toggle"
+            data-testid="dock-collapse-toggle"
+            aria-expanded={!collapsed}
+            aria-controls={`output-panel-${activeTab}`}
+            aria-label={t(collapsed ? "workbench.dock.expand" : "workbench.dock.collapse")}
+            title={t(collapsed ? "workbench.dock.expand" : "workbench.dock.collapse")}
+            onClick={onToggleCollapsed}
+          >
+            {collapsed ? <ChevronUp aria-hidden="true" size={16} /> : <ChevronDown aria-hidden="true" size={16} />}
+          </button>
+        ) : null}
       </header>
       <div
+        hidden={collapsed}
         id={`output-panel-${activeTab}`}
         className={`console-lines ${activeTab}`}
         role="tabpanel"

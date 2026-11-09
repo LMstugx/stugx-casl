@@ -10,7 +10,9 @@ import CircuitFocusLayout from "./components/CircuitFocusLayout";
 import CaslCompatibilityMode from "./components/CaslCompatibilityMode";
 import CometMicrocyclePanel from "./components/CometMicrocyclePanel";
 import ProjectModulesPanel from "./components/ProjectModulesPanel";
-import { LiveDatapath } from "./visual/datapath/LiveDatapath";
+import { CircuitCanvas } from "./components/workbench/CircuitCanvas";
+import { ControlBar } from "./components/workbench/ControlBar";
+import { useWorkbenchShortcuts } from "./components/workbench/useWorkbenchShortcuts";
 import { formatWord } from "./core/types";
 import { summarizeCurrentInstruction } from "./visual/visualState";
 import { AppStoreProvider, useAppStore } from "./store/useAppStore";
@@ -62,6 +64,10 @@ import {
   syncProjectModule
 } from "./linker/projectSession";
 import type { CaslProjectSession, ModuleId } from "./linker/types";
+
+/** Source lines that assemble to no instruction; a breakpoint on them could never be reached. */
+const NON_EXECUTABLE_SOURCE_LINES: ReadonlySet<string> = new Set(["START", "END", "DC", "DS"]);
+const WORKBENCH_SHORTCUT_HINTS = { assemble: "Ctrl+Enter", run: "F5", step: "Space", stop: "F6", save: "Ctrl+S" } as const;
 
 type AppProps = {
   fileAdapter?: TextFileAdapter;
@@ -248,6 +254,8 @@ function StudioShell({
   const [projectBusy, setProjectBusy] = useState(false);
   const [projectNotice, setProjectNotice] = useState<string | null>(null);
   const [workspaceMode, setWorkspaceMode] = useState<"modern" | "casl" | "comet">("modern");
+  const [codePaneOpen, setCodePaneOpen] = useState(true);
+  const [dockCollapsed, setDockCollapsed] = useState(false);
   const openIdsRef = useRef(createSequentialDocumentIdFactory("browser-open"));
   const currentDocumentRef = useRef(currentDocument);
   const writeBindingRef = useRef(currentWriteBinding);
@@ -687,12 +695,68 @@ function StudioShell({
       }));
   }, [state.program, state.runState, state.stepIndex, state.trace, t]);
 
+  // Breakpoints are page-session state of the document being edited. They are cleared when the
+  // document or the assembly changes and are never written to any storage.
+  const [breakpointLines, setBreakpointLines] = useState<readonly number[]>([]);
+  useEffect(() => {
+    setBreakpointLines([]);
+  }, [assemblyId, sourceUnitId]);
+  const breakpointAddressByLine = useMemo(() => {
+    const addresses = new Map<number, number>();
+    if (!state.assembled || isSourceDirty) return addresses;
+    for (const mapping of state.sourceMap) {
+      if (mapping.sourceUnitId && mapping.sourceUnitId !== sourceUnitId) continue;
+      if (mapping.machineWords.length === 0 || !mapping.instruction || NON_EXECUTABLE_SOURCE_LINES.has(mapping.instruction)) continue;
+      const editorLine = sourceMode === "cpp" ? cppLineForCaslLine(cppToCaslMapping, mapping.line) : mapping.line;
+      if (editorLine === undefined) continue;
+      const known = addresses.get(editorLine);
+      if (known === undefined || mapping.address < known) addresses.set(editorLine, mapping.address);
+    }
+    return addresses;
+  }, [cppToCaslMapping, isSourceDirty, sourceMode, sourceUnitId, state.assembled, state.sourceMap]);
+  const toggleBreakpoint = useCallback((line: number) => {
+    // Only a line that holds an instruction of the assembled program can carry a breakpoint.
+    if (!breakpointAddressByLine.has(line)) return;
+    setBreakpointLines((lines) => lines.includes(line) ? lines.filter((entry) => entry !== line) : [...lines, line].sort((a, b) => a - b));
+  }, [breakpointAddressByLine]);
+  const activeBreakpointLines = useMemo(
+    () => breakpointLines.filter((line) => breakpointAddressByLine.has(line)),
+    [breakpointAddressByLine, breakpointLines]
+  );
+  const breakAddresses = useMemo(
+    () => new Set(activeBreakpointLines.map((line) => breakpointAddressByLine.get(line)!)),
+    [activeBreakpointLines, breakpointAddressByLine]
+  );
+  const stoppedBreakpointLine = state.runState === "Stopped" && runStopReason === "manual"
+    ? activeBreakpointLines.find((line) => breakpointAddressByLine.get(line) === state.pr)
+    : undefined;
+  const runToBreakpoint = useCallback(() => run(undefined, { breakAddresses }), [breakAddresses, run]);
+  const saveCurrentDocument = () => void performSave(!currentWriteBinding || currentDocument.saveCapability !== "save");
+  const fileBusy = replacementBusy || fileLifecycle.status === "saving" || fileLifecycle.status === "save-as";
+  const canAssemble = !projectBusy && !isRunning && assembleStatus !== "running";
+  useWorkbenchShortcuts({
+    step: canStep ? step : undefined,
+    reverseInstruction: state.reverseInstructionAvailability.available && !reverseInFlight ? () => void reverseInstruction() : undefined,
+    run: canRun ? () => run() : undefined,
+    stop: isRunning ? stop : undefined,
+    assemble: canAssemble ? assemble : undefined,
+    save: !fileBusy && !isRunning ? saveCurrentDocument : undefined
+  });
+
   if (applicationFailure) {
     return <ProductionFailureScreen kind={backendInfo.kind === "wasm" ? "wasm-initialization" : "unexpected"} locale={locale} />;
   }
 
+  const focusActive = (workspaceMode === "modern" && circuitFocusEnabled) || workspaceMode === "comet";
+
   return (
-    <div className={(workspaceMode === "modern" && circuitFocusEnabled) || workspaceMode === "comet" ? "app-shell circuit-focus-active" : "app-shell"}>
+    <div
+      className={focusActive ? "app-shell wb circuit-focus-active" : "app-shell wb"}
+      data-testid="workbench"
+      data-workspace-mode={workspaceMode}
+      data-code={codePaneOpen ? "open" : "closed"}
+      data-dock={dockCollapsed ? "collapsed" : "open"}
+    >
       <Toolbar
         assembleStatus={projectBusy ? "running" : assembleStatus}
         canRun={canRun}
@@ -716,6 +780,40 @@ function StudioShell({
         onStep={step}
         onReset={reset}
         onStop={stop}
+        shortcutHints={WORKBENCH_SHORTCUT_HINTS}
+        isCodePaneOpen={codePaneOpen}
+        onToggleCodePane={() => setCodePaneOpen((open) => !open)}
+        viewSwitch={(
+          <nav className="workspace-mode-switch" aria-label={t("compatibility.workspaceView")}>
+            <button
+              type="button"
+              data-testid="modern-mode-toggle"
+              className={workspaceMode === "modern" ? "selected" : ""}
+              aria-pressed={workspaceMode === "modern"}
+              onClick={() => selectWorkspaceMode("modern")}
+            >
+              {t("compatibility.modernStudio")}
+            </button>
+            <button
+              type="button"
+              className={workspaceMode === "casl" ? "selected" : ""}
+              data-testid="casl-mode-toggle"
+              aria-pressed={workspaceMode === "casl"}
+              onClick={() => selectWorkspaceMode("casl")}
+            >
+              {t("caslMode.title")}
+            </button>
+            <button
+              type="button"
+              className={workspaceMode === "comet" ? "selected" : ""}
+              data-testid="comet-mode-toggle"
+              aria-pressed={workspaceMode === "comet"}
+              onClick={() => selectWorkspaceMode("comet")}
+            >
+              {t("cometMode.title")}
+            </button>
+          </nav>
+        )}
       />
       <NewDocumentDialog
         open={showNewDocumentDialog}
@@ -753,149 +851,8 @@ function StudioShell({
       />
       <FileOperationNotice notice={fileNotice} onDismiss={() => setFileNotice(null)} />
 
-      <div className={projectSession ? "workspace-region project-session-active" : "workspace-region"}>
-      {projectSession ? (
-        <>
-          <ProjectModulesPanel
-            session={projectSession}
-            busy={projectBusy}
-            onAddNew={addNewModule}
-            onOpen={openProjectModule}
-            onSelect={selectModule}
-            onRemove={removeModule}
-            onRename={(moduleId, displayName) => {
-              const session = syncActiveProjectModule();
-              if (session) commitProjectSession(renameProjectModule(session, moduleId, displayName));
-            }}
-            onSetMain={(moduleId) => {
-              const session = syncActiveProjectModule();
-              if (session) commitProjectSession(setMainProjectModule(session, moduleId));
-            }}
-            onMove={(moduleId, direction) => {
-              const session = syncActiveProjectModule();
-              if (session) commitProjectSession(moveProjectModule(session, moduleId, direction));
-            }}
-            onAssembleCurrent={() => assembleModules([projectSession.activeModuleId])}
-            onAssembleAll={() => assembleModules(projectSession.moduleOrder)}
-            onLink={linkCurrentProject}
-            onSaveCurrent={() => void performSave(!currentWriteBinding || currentDocument.saveCapability !== "save")}
-          />
-          {projectNotice ? (
-            <p className="project-notice" role="status">{projectNotice}</p>
-          ) : null}
-        </>
-      ) : null}
-      <nav className="workspace-mode-switch" aria-label={t("compatibility.workspaceView")}>
-        <button
-          type="button"
-          data-testid="modern-mode-toggle"
-          className={workspaceMode === "modern" ? "selected" : ""}
-          aria-pressed={workspaceMode === "modern"}
-          onClick={() => selectWorkspaceMode("modern")}
-        >
-          {t("compatibility.modernStudio")}
-        </button>
-        <button
-          type="button"
-          className={workspaceMode === "casl" ? "selected" : ""}
-          data-testid="casl-mode-toggle"
-          aria-pressed={workspaceMode === "casl"}
-          onClick={() => selectWorkspaceMode("casl")}
-        >
-          {t("caslMode.title")}
-        </button>
-        <button
-          type="button"
-          className={workspaceMode === "comet" ? "selected" : ""}
-          data-testid="comet-mode-toggle"
-          aria-pressed={workspaceMode === "comet"}
-          onClick={() => selectWorkspaceMode("comet")}
-        >
-          {t("cometMode.title")}
-        </button>
-      </nav>
-      {workspaceMode === "casl" ? (
-        <CaslCompatibilityMode
-          state={state}
-          sourceText={sourceMode === "cpp" && generatedCaslSource ? generatedCaslSource : runtimeObservationSourceText}
-          sourceDisplayName={runtimeObservationSourceName}
-          isSourceDirty={isSourceDirty}
-          onReset={reset}
-          onReload={reload}
-          onSubmitConsoleInput={submitConsoleInput}
-          assemblyId={assemblyId}
-          executionEpoch={executionEpoch}
-          runtimeImageRevision={runtimeImageRevision}
-          runtimeOverrides={runtimeOverrides}
-          programModified={programModified}
-          dataModified={dataModified}
-          mutationInFlight={mutationInFlight}
-          fileOperationActive={fileLifecycle.status !== "idle"}
-          onMutate={mutateDebuggerState}
-          onFullClear={fullClear}
-          reverseInFlight={reverseInFlight}
-          reverseInstructionNotice={reverseNotice?.kind === "instruction" ? reverseNotice : null}
-          onReverseInstruction={reverseInstruction}
-          observationMode={observationMode}
-          onObservationModeChange={setObservationMode}
-        />
-      ) : workspaceMode === "comet" ? (
-        <div
-          className="comet-mode-workspace"
-          data-testid="comet-mode-workspace"
-          data-execution-granularity={executionGranularity}
-        >
-          <CometMicrocyclePanel
-            state={state}
-            reverseInFlight={reverseInFlight}
-            reverseNotice={reverseNotice?.kind === "microstep" ? reverseNotice : null}
-            reverseInstructionNotice={reverseNotice?.kind === "instruction" ? reverseNotice : null}
-            onReverse={reverseMicrostep}
-            onReverseInstruction={reverseInstruction}
-          />
-          <CircuitFocusLayout
-            key={sourceUnitId}
-            state={state}
-            sourceMode={sourceMode}
-            sourceText={runtimeObservationSourceText}
-            sourceDisplayName={runtimeObservationSourceName}
-            generatedCaslSource={generatedCaslSource}
-            cppToCaslMapping={cppToCaslMapping}
-            cppStorageObjects={cppStorageObjects}
-            isSourceDirty={isSourceDirty}
-            timelineItems={timelineItems}
-            observationMode={observationMode}
-            onObservationModeChange={setObservationMode}
-            executionMode="comet"
-            reverseNotice={reverseNotice?.kind ?? null}
-            manualEditActive={programModified || dataModified}
-            initialSelectedFrameSlotId={editorSelectedFrameSlotId}
-            initialSelectionSource="source-editor"
-          />
-        </div>
-      ) : circuitFocusEnabled ? (
-        <CircuitFocusLayout
-          key={sourceUnitId}
-          state={state}
-          sourceMode={sourceMode}
-          sourceText={runtimeObservationSourceText}
-          sourceDisplayName={runtimeObservationSourceName}
-          generatedCaslSource={generatedCaslSource}
-          cppToCaslMapping={cppToCaslMapping}
-          cppStorageObjects={cppStorageObjects}
-          isSourceDirty={isSourceDirty}
-          timelineItems={timelineItems}
-          observationMode={observationMode}
-          onObservationModeChange={setObservationMode}
-          executionMode="modern"
-          reverseNotice={reverseNotice?.kind ?? null}
-          manualEditActive={programModified || dataModified}
-          initialSelectedFrameSlotId={editorSelectedFrameSlotId}
-          initialSelectionSource="source-editor"
-        />
-      ) : (
-      <main className="workspace">
-        <section className="left-column">
+      <div className="wb-main">
+        <aside className="wb-code" data-testid="workbench-code-pane" aria-label={t("workbench.region.code")} hidden={!codePaneOpen}>
           <section className="panel source-panel">
             <header className="panel-header source-panel-header" data-testid="source-panel-header">
               <h2 title="Source Editor">{t("panel.source")}</h2>
@@ -945,29 +902,10 @@ function StudioShell({
               frameSymbolRelations={frameSymbolRelations}
               selectedFrameSlotId={editorSelectedFrameSlotId}
               onSelectFrameSymbol={(relation) => setEditorSelectedFrameSlotId(relation.mappingId)}
+              breakpointLines={activeBreakpointLines}
+              onToggleBreakpoint={toggleBreakpoint}
             />
           </section>
-
-          <section className="panel current-panel">
-            <header className="panel-header">
-              <h2 title="Current Instruction">Current Instruction</h2>
-            </header>
-            <div className="current-instruction">
-              <strong>{summarizeCurrentInstruction(state)}</strong>
-              <span>PR {formatWord(state.pr)}</span>
-            </div>
-          </section>
-
-          {selectedDemoProgram ? (
-            <DemoGuidePanel
-              program={selectedDemoProgram}
-              lesson={selectedLesson}
-              lessonProgress={selectedLessonProgress}
-              onToggleLessonStep={toggleLessonStep}
-              onResetLessonProgress={resetLessonProgress}
-            />
-          ) : null}
-
           <section className="panel errors-panel" data-testid="errors-panel" data-has-diagnostics={diagnostics.length > 0 ? "true" : "false"}>
             <header className="panel-header errors-panel-header">
               <h2>{t("diagnostic.errors")}</h2>
@@ -1047,52 +985,187 @@ function StudioShell({
               </section>
             ) : null}
           </section>
-        </section>
-
-        <section className="center-column">
-          <section className="panel circuit-panel">
-            <header className="panel-header">
-              <div>
-                <h2 title={t("circuit.simulator")}>{t("circuit.simulator")}</h2>
-              <span>{isSourceDirty ? t("status.dirty") : sourceMode === "cpp" ? t("circuit.generatedCaslDriving") : t("circuit.focusMode")}</span>
-              </div>
-              <span className={`run-pill ${state.runState.toLowerCase()}`}>{translateRunState(t, state.runState)}</span>
-            </header>
-            <div className="persistent-circuit-canvas">
-              <LiveDatapath state={state} />
-            </div>
-          </section>
-
-          <LearningFlowPanel state={state} sourceMode={sourceMode} sourceText={sourceText} generatedCaslSource={generatedCaslSource} cppToCaslMapping={cppToCaslMapping} />
-
-          <section className="panel timeline-panel">
-            <header className="panel-header">
-              <h2>{t("timeline.title")}</h2>
-              <span>{state.trace.length ? `${t("timeline.recent")} / ${state.stepIndex}` : `${state.stepIndex} / 4`}</span>
-            </header>
-            <div className="timeline">
-              {timelineItems.map((item) => (
-                <div key={item.key} className={`timeline-node ${item.phase}`} aria-current={item.phase === "current" ? "step" : undefined} title={item.label}>
-                  <span>{item.index}</span>
-                  <strong>{item.label}</strong>
-                </div>
-              ))}
-            </div>
-          </section>
-        </section>
-
-        <aside className="right-column">
-          <InspectorPanel
-            state={state}
-            initialTab={inspectorActiveTab}
-            onActiveTabChange={setInspectorActiveTab}
-            storageObjects={cppStorageObjects}
-            cppToCaslMapping={cppToCaslMapping}
-            sourceUnitId={sourceUnitId}
-          />
+          {projectSession ? (
+            <>
+              <ProjectModulesPanel
+                session={projectSession}
+                busy={projectBusy}
+                onAddNew={addNewModule}
+                onOpen={openProjectModule}
+                onSelect={selectModule}
+                onRemove={removeModule}
+                onRename={(moduleId, displayName) => {
+                  const session = syncActiveProjectModule();
+                  if (session) commitProjectSession(renameProjectModule(session, moduleId, displayName));
+                }}
+                onSetMain={(moduleId) => {
+                  const session = syncActiveProjectModule();
+                  if (session) commitProjectSession(setMainProjectModule(session, moduleId));
+                }}
+                onMove={(moduleId, direction) => {
+                  const session = syncActiveProjectModule();
+                  if (session) commitProjectSession(moveProjectModule(session, moduleId, direction));
+                }}
+                onAssembleCurrent={() => assembleModules([projectSession.activeModuleId])}
+                onAssembleAll={() => assembleModules(projectSession.moduleOrder)}
+                onLink={linkCurrentProject}
+                onSaveCurrent={() => void performSave(!currentWriteBinding || currentDocument.saveCapability !== "save")}
+              />
+              {projectNotice ? (
+                <p className="project-notice" role="status">{projectNotice}</p>
+              ) : null}
+            </>
+          ) : null}
+          {selectedDemoProgram ? (
+            <DemoGuidePanel
+              program={selectedDemoProgram}
+              lesson={selectedLesson}
+              lessonProgress={selectedLessonProgress}
+              onToggleLessonStep={toggleLessonStep}
+              onResetLessonProgress={resetLessonProgress}
+            />
+          ) : null}
         </aside>
-      </main>
-      )}
+
+        <div className="wb-workspace" data-testid="workbench-workspace">
+          {workspaceMode === "casl" ? (
+            <CaslCompatibilityMode
+              state={state}
+              sourceText={sourceMode === "cpp" && generatedCaslSource ? generatedCaslSource : runtimeObservationSourceText}
+              sourceDisplayName={runtimeObservationSourceName}
+              isSourceDirty={isSourceDirty}
+              onReset={reset}
+              onReload={reload}
+              onSubmitConsoleInput={submitConsoleInput}
+              assemblyId={assemblyId}
+              executionEpoch={executionEpoch}
+              runtimeImageRevision={runtimeImageRevision}
+              runtimeOverrides={runtimeOverrides}
+              programModified={programModified}
+              dataModified={dataModified}
+              mutationInFlight={mutationInFlight}
+              fileOperationActive={fileLifecycle.status !== "idle"}
+              onMutate={mutateDebuggerState}
+              onFullClear={fullClear}
+              reverseInFlight={reverseInFlight}
+              reverseInstructionNotice={reverseNotice?.kind === "instruction" ? reverseNotice : null}
+              onReverseInstruction={reverseInstruction}
+              observationMode={observationMode}
+              onObservationModeChange={setObservationMode}
+            />
+          ) : workspaceMode === "comet" ? (
+            <div
+              className="comet-mode-workspace"
+              data-testid="comet-mode-workspace"
+              data-execution-granularity={executionGranularity}
+            >
+              <CircuitFocusLayout
+                key={sourceUnitId}
+                state={state}
+                sourceMode={sourceMode}
+                sourceText={runtimeObservationSourceText}
+                sourceDisplayName={runtimeObservationSourceName}
+                generatedCaslSource={generatedCaslSource}
+                cppToCaslMapping={cppToCaslMapping}
+                cppStorageObjects={cppStorageObjects}
+                isSourceDirty={isSourceDirty}
+                timelineItems={timelineItems}
+                observationMode={observationMode}
+                onObservationModeChange={setObservationMode}
+                executionMode="comet"
+                reverseNotice={reverseNotice?.kind ?? null}
+                manualEditActive={programModified || dataModified}
+                initialSelectedFrameSlotId={editorSelectedFrameSlotId}
+                initialSelectionSource="source-editor"
+                onSelectedFrameSlotChange={setEditorSelectedFrameSlotId}
+                belowCircuit={(
+                  <CometMicrocyclePanel
+                    state={state}
+                    reverseInFlight={reverseInFlight}
+                    reverseNotice={reverseNotice?.kind === "microstep" ? reverseNotice : null}
+                    reverseInstructionNotice={reverseNotice?.kind === "instruction" ? reverseNotice : null}
+                    onReverse={reverseMicrostep}
+                    onReverseInstruction={reverseInstruction}
+                  />
+                )}
+              />
+            </div>
+          ) : circuitFocusEnabled ? (
+            <CircuitFocusLayout
+              key={sourceUnitId}
+              state={state}
+              sourceMode={sourceMode}
+              sourceText={runtimeObservationSourceText}
+              sourceDisplayName={runtimeObservationSourceName}
+              generatedCaslSource={generatedCaslSource}
+              cppToCaslMapping={cppToCaslMapping}
+              cppStorageObjects={cppStorageObjects}
+              isSourceDirty={isSourceDirty}
+              timelineItems={timelineItems}
+              observationMode={observationMode}
+              onObservationModeChange={setObservationMode}
+              executionMode="modern"
+              reverseNotice={reverseNotice?.kind ?? null}
+              manualEditActive={programModified || dataModified}
+              initialSelectedFrameSlotId={editorSelectedFrameSlotId}
+              initialSelectionSource="source-editor"
+              onSelectedFrameSlotChange={setEditorSelectedFrameSlotId}
+            />
+          ) : (
+          <main className="workspace wb-studio">
+          <section className="center-column">
+            <section className="panel circuit-panel">
+              <header className="panel-header">
+                <div>
+                  <h2 title={t("circuit.simulator")}>{t("circuit.simulator")}</h2>
+                <span>{isSourceDirty ? t("status.dirty") : sourceMode === "cpp" ? t("circuit.generatedCaslDriving") : t("circuit.focusMode")}</span>
+                </div>
+                <span className={`run-pill ${state.runState.toLowerCase()}`}>{translateRunState(t, state.runState)}</span>
+              </header>
+              <CircuitCanvas state={state} />
+            </section>
+
+            <section className="panel current-panel">
+              <header className="panel-header">
+                <h2 title="Current Instruction">Current Instruction</h2>
+              </header>
+              <div className="current-instruction">
+                <strong>{summarizeCurrentInstruction(state)}</strong>
+                <span>PR {formatWord(state.pr)}</span>
+              </div>
+            </section>
+
+            <LearningFlowPanel state={state} sourceMode={sourceMode} sourceText={sourceText} generatedCaslSource={generatedCaslSource} cppToCaslMapping={cppToCaslMapping} />
+
+            <section className="panel timeline-panel">
+              <header className="panel-header">
+                <h2>{t("timeline.title")}</h2>
+                <span>{state.trace.length ? `${t("timeline.recent")} / ${state.stepIndex}` : `${state.stepIndex} / 4`}</span>
+              </header>
+              <div className="timeline">
+                {timelineItems.map((item) => (
+                  <div key={item.key} className={`timeline-node ${item.phase}`} aria-current={item.phase === "current" ? "step" : undefined} title={item.label}>
+                    <span>{item.index}</span>
+                    <strong>{item.label}</strong>
+                  </div>
+                ))}
+              </div>
+            </section>
+          </section>
+
+          <aside className="right-column">
+            <InspectorPanel
+              state={state}
+              initialTab={inspectorActiveTab}
+              onActiveTabChange={setInspectorActiveTab}
+              storageObjects={cppStorageObjects}
+              cppToCaslMapping={cppToCaslMapping}
+              sourceUnitId={sourceUnitId}
+            />
+          </aside>
+          </main>
+          )}
+        </div>
       </div>
 
       <OutputPanel
@@ -1109,8 +1182,24 @@ function StudioShell({
         autoOpenGenerated={sourceMode === "cpp" && !isSourceDirty && Boolean(generatedCaslSource)}
         onConsoleInput={submitConsoleInput}
         onClear={clearOutput}
+        collapsed={dockCollapsed}
+        onToggleCollapsed={() => setDockCollapsed((collapsed) => !collapsed)}
       />
-      <StatusBar state={state} backendInfo={backendInfo} />
+      <footer className="wb-controls" data-testid="workbench-controls" aria-label={t("workbench.region.controls")}>
+        <ControlBar
+          granularity={executionGranularity}
+          canStep={canStep}
+          onStep={step}
+          breakpointCount={activeBreakpointLines.length}
+          canRunToBreakpoint={canRun && activeBreakpointLines.length > 0}
+          onRunToBreakpoint={runToBreakpoint}
+          onClearBreakpoints={() => setBreakpointLines([])}
+          stoppedAt={stoppedBreakpointLine !== undefined ? { line: stoppedBreakpointLine, address: formatWord(state.pr) } : undefined}
+          historyRetained={state.microcycleHistorySummary.retainedEntries}
+          historyCapacity={state.microcycleHistorySummary.capacity}
+        />
+        <StatusBar state={state} backendInfo={backendInfo} />
+      </footer>
     </div>
   );
 }

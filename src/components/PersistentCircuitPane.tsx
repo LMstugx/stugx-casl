@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import type { CometState } from "../core/types";
 import { translateRunState } from "../i18n/locale";
 import { useI18n } from "../i18n/useI18n";
-import { LiveDatapath } from "../visual/datapath/LiveDatapath";
+import { CircuitCanvas } from "./workbench/CircuitCanvas";
 
 type PersistentCircuitPaneProps = {
   state: CometState;
@@ -43,9 +43,7 @@ export default function PersistentCircuitPane({
           </span>
         )}
       </header>
-      <div className="persistent-circuit-canvas">
-        <LiveDatapath state={state} compact={compact} />
-      </div>
+      <CircuitCanvas state={state} compact={compact} />
     </section>
   );
 }

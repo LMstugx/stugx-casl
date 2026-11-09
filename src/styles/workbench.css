@@ -1,227 +1,730 @@
 /*
- * v2 workbench layout shell. Sizes follow docs/refactor/v2-refactor-standard.md, section 3.1.
- * Colours and spacing come from the shared tokens.
+ * Workbench frame (docs/refactor/v2-refactor-standard.md, section 3.1).
+ *
+ * One frame for every view: tool bar, source pane, workspace (datapath and observation data),
+ * output dock, control bar. The frame fills the viewport and never scrolls as a page; each
+ * region scrolls on its own. Colours and spacing come from the shared tokens.
+ *
+ * These rules are scoped under `.wb` and loaded after app.css, so they replace the page-flow
+ * layout of the earlier interface without touching the styling of the panels themselves.
  */
 
-.wb {
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto auto;
-  height: 100vh;
-  min-height: 560px;
-  background: var(--color-background);
-  color: var(--color-text-primary);
-  font-family: var(--font-family-ui);
-  font-size: var(--font-size-body);
-}
-
-.wb-top {
+.app-shell.wb {
+  --wb-code: 300px;
+  --wb-right: 340px;
+  --wb-right-wide: 400px;
+  --wb-dock: clamp(132px, 16vh, 200px);
+  /* Height left for the datapath once the fixed parts of the frame are taken away. */
+  --wb-circuit-max: max(294px, calc(100vh - 16vh - 180px));
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-6) var(--space-8);
-  min-height: 44px;
-  padding: 0 var(--space-12);
-  background: var(--color-surface);
-  border-bottom: 1px solid var(--color-border);
+  flex-direction: column;
+  gap: var(--space-8);
+  height: 100vh;
+  min-height: 640px;
+  padding: var(--space-8);
+  overflow: hidden;
+  background: var(--color-background);
 }
 
-.wb-main {
-  position: relative;
+.app-shell.wb[data-workspace-mode="casl"] {
+  --wb-circuit-max: max(294px, calc(100vh - 16vh - 318px));
+}
+
+.app-shell.wb.circuit-focus-active {
+  --wb-circuit-max: max(294px, calc(100vh - 16vh - 232px));
+}
+
+/* Tool bar */
+
+.wb > .toolbar {
+  flex: 0 0 auto;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: var(--space-8);
+  min-height: 48px;
+  padding: var(--space-4) 10px;
+}
+
+.wb .brand {
+  gap: var(--space-8);
+}
+
+.wb .brand-mark {
+  width: 34px;
+  height: 34px;
+  font-size: 11px;
+}
+
+.wb .brand h1 {
+  font-size: 16px;
+  line-height: 1.1;
+}
+
+.wb .brand p {
+  display: none;
+}
+
+.wb .toolbar-actions {
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: var(--space-4);
+  row-gap: var(--space-4);
+}
+
+.wb .tool-button {
+  gap: 5px;
+  min-height: 32px;
+  padding: 0 8px;
+  font-size: 13px;
+}
+
+.wb .tool-button.icon-only-tool {
+  padding: 0 7px;
+}
+
+.wb .tool-button.group-start {
+  margin-left: var(--space-4);
+}
+
+.wb .toolbar-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+}
+
+.wb .workspace-mode-switch {
+  flex: 0 0 auto;
+}
+
+.wb .workspace-mode-switch button {
+  min-height: 30px;
+  padding: 3px 9px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+/* Main area: source pane and workspace */
+
+.wb > .wb-main {
+  flex: 1 1 0;
   display: grid;
-  grid-template-columns: 300px minmax(0, 1fr) 320px;
+  grid-template-columns: var(--wb-code) minmax(0, 1fr);
   gap: var(--space-8);
   min-height: 0;
-  padding: var(--space-8) var(--space-8) 0;
 }
 
-.wb[data-code="closed"] .wb-main {
-  grid-template-columns: minmax(0, 1fr) 320px;
-}
-
-.wb[data-layout="circuit-focus"] .wb-main {
+.wb[data-code="closed"] > .wb-main {
   grid-template-columns: minmax(0, 1fr);
 }
 
-/* Data focus gives the data more room. The datapath keeps its readable minimum and scrolls. */
-.wb[data-layout="data-focus"] .wb-main {
-  grid-template-columns: 300px minmax(0, 1fr) minmax(0, 1.2fr);
+.wb-code {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  min-width: 0;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
-.wb[data-layout="data-focus"][data-code="closed"] .wb-main {
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+/* A hidden source pane stays mounted, so the editor keeps its state; only its box goes away. */
+.wb-code[hidden] {
+  display: none;
 }
 
-.wb-pane {
+.wb-code > * {
+  flex: 0 0 auto;
+}
+
+/* Project modules, compact: icon commands, one column. The titles carry the command names. */
+.wb-code .project-modules-header {
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-6);
+}
+
+.wb-code .project-command-group {
+  justify-content: flex-start;
+}
+
+.wb-code .project-command-group button span {
+  display: none;
+}
+
+.wb-code .project-modules-body {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.wb-code .project-module-row {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.wb-code .project-module-name {
+  grid-column: 1 / -1;
+  grid-row: 2;
+}
+
+.wb-code .project-module-list,
+.wb-code .project-link-output {
+  max-height: 150px;
+}
+
+.wb-code .project-link-tables {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.wb-code .project-link-summary {
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.wb-workspace {
   display: flex;
   flex-direction: column;
   min-width: 0;
   min-height: 0;
-  overflow: auto;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
 }
 
-/* A hidden pane stays mounted; only its box goes away. */
-.wb-pane[hidden] {
+.wb-workspace > * {
+  flex: 1 1 0;
+  min-height: 0;
+}
+
+/* Studio view: datapath in the middle, inspector on the right */
+
+.wb .workspace.wb-studio {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--wb-right);
+  gap: var(--space-8);
+  overflow: hidden;
+}
+
+.wb .wb-studio > .center-column {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.wb .wb-studio > .center-column > * {
+  flex: 0 0 auto;
+}
+
+.wb .wb-studio > .right-column {
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.wb .current-panel {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+}
+
+.wb .current-panel > .panel-header {
+  flex: 0 0 auto;
+  border-bottom: 0;
+}
+
+.wb .current-panel > .current-instruction {
+  flex: 1 1 auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-4) var(--space-12);
+  min-width: 0;
+  padding: var(--space-6) 10px;
+}
+
+/* Observation workspace (circuit focus and COMET views) */
+
+.wb .comet-mode-workspace {
+  display: flex;
+  flex-direction: column;
+}
+
+.wb .comet-mode-workspace > .circuit-focus-workspace {
+  flex: 1 1 0;
+  min-height: 0;
+}
+
+.wb .circuit-focus-workspace.observation-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--wb-right-wide);
+  grid-template-rows: auto minmax(0, 1fr);
+  align-items: stretch;
+  gap: var(--space-8);
+}
+
+.wb .observation-workspace > .observation-workspace-header {
+  grid-column: 1 / -1;
+}
+
+/* The body's two children become direct cells of the workspace grid. */
+.wb .observation-workspace > .observation-workspace-body {
+  display: contents;
+}
+
+.wb .observation-workspace .workspace-circuit-column {
+  grid-column: 1;
+  grid-row: 2;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.wb .observation-workspace .workspace-circuit-column > * {
+  flex: 0 0 auto;
+}
+
+.wb .observation-workspace .workspace-observation-pane {
+  grid-column: 2;
+  grid-row: 2;
+  align-content: start;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.wb .observation-workspace[data-workspace-layout="circuit-focus"] {
+  grid-template-columns: minmax(0, 1fr) 200px;
+}
+
+.wb .observation-workspace[data-workspace-layout="data-focus"] {
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+}
+
+/* One row: title, the eight observation tabs, then layout and follow side by side. */
+.wb .observation-workspace-header {
+  padding: var(--space-6) var(--space-8);
+}
+
+.wb .observation-workspace-utilities {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+}
+
+.wb .observation-workspace-title {
+  min-width: 0;
+}
+
+.wb .workspace-context-strip {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.6fr);
+}
+
+/* CASL view */
+
+.wb .casl-mode-workspace {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+
+.wb .casl-mode-workspace > * {
+  flex: 0 0 auto;
+}
+
+/* The heading and the command row share one band. */
+.wb .casl-mode-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4) var(--space-12);
+  min-width: 0;
+  padding: var(--space-4) var(--space-8);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+}
+
+.wb .casl-mode-top > .casl-mode-heading {
+  flex: 0 0 auto;
+  gap: var(--space-8);
+}
+
+.wb .casl-mode-top > .casl-mode-controls {
+  flex: 1 1 520px;
+  flex-wrap: wrap;
+  gap: var(--space-4) var(--space-8);
+  padding: 0;
+  border: 0;
+}
+
+.wb .casl-mode-heading h2 {
+  font-size: 15px;
+  white-space: nowrap;
+}
+
+.wb .casl-mode-heading p {
   display: none;
 }
 
-/* The datapath keeps a readable minimum width and scrolls inside its own pane. */
-.wb-datapath {
+.wb .casl-mode-workspace > .casl-observation-workspace {
+  flex: 1 1 0;
+  grid-template-columns: minmax(0, 1fr) var(--wb-right-wide);
+  align-items: stretch;
+  min-height: 0;
+}
+
+.wb .casl-mode-workspace > .casl-observation-workspace[data-workspace-layout="circuit-focus"] {
+  grid-template-columns: minmax(0, 1fr) 200px;
+}
+
+.wb .casl-mode-workspace > .casl-observation-workspace[data-workspace-layout="data-focus"] {
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+}
+
+.wb .casl-persistent-circuit,
+.wb .casl-observation-data {
+  align-content: start;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* Datapath: as wide as its column, never narrower than readable, never taller than the frame */
+
+.wb .persistent-circuit-canvas {
   overflow-x: auto;
+  padding: var(--space-6);
 }
 
-.wb-datapath .dp {
+.wb .persistent-circuit-canvas > .dp {
+  display: block;
+  width: 100%;
   min-width: 600px;
+  height: auto;
+  max-height: var(--wb-circuit-max);
 }
 
-.wb-dock {
-  height: 132px;
-  margin: var(--space-8) var(--space-8) 0;
+.wb .persistent-circuit-pane,
+.wb .persistent-circuit-pane[data-compact="true"],
+.wb .focus-circuit-panel {
+  min-height: 0;
+}
+
+/* Title and subtitle on one line, so the picture starts higher. */
+.wb .persistent-circuit-pane > .panel-header > div,
+.wb .circuit-panel > .panel-header > div {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-8);
+  min-width: 0;
+}
+
+.wb .persistent-circuit-pane > .panel-header > div > span,
+.wb .circuit-panel > .panel-header > div > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Output dock and control bar */
+
+.wb > .output-panel {
+  flex: 0 0 var(--wb-dock);
+  height: var(--wb-dock);
+  min-height: 0;
 }
 
 .wb-controls {
+  flex: 0 0 auto;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-6) var(--space-8);
-  min-height: 40px;
-  margin-top: var(--space-8);
-  padding: var(--space-4) var(--space-12);
+  justify-content: space-between;
+  gap: var(--space-4) var(--space-12);
+  min-height: 34px;
+  padding: var(--space-2) 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
   background: var(--color-surface);
-  border-top: 1px solid var(--color-border);
 }
 
-/* Phase pills */
-
-.wb-phases {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-6);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.wb-phase {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-4);
-  height: 22px;
-  padding: 0 var(--space-8);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-pill);
-  background: var(--color-surface-soft);
-  color: var(--color-text-muted);
-  font-size: var(--font-size-section-title);
-  white-space: nowrap;
-}
-
-.wb-phase[data-state="done"] {
-  border-color: var(--color-success);
-  background: var(--color-success-soft);
-  color: var(--color-success);
-}
-
-.wb-phase[data-state="current"] {
-  border-color: var(--color-state-selected-border);
-  background: var(--color-state-selected-bg);
-  color: var(--color-text-strong);
-  font-weight: 700;
-}
-
-.wb-phase-position {
-  font-family: var(--font-family-mono);
-  font-variant-numeric: tabular-nums;
-}
-
-.wb-visually-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
+.wb-controls > .status-bar {
+  margin-left: auto;
 }
 
 /* 1280 to 1439: narrower side columns. */
 @media (max-width: 1439px) {
-  .wb-main {
-    grid-template-columns: 260px minmax(0, 1fr) 280px;
-  }
-
-  .wb[data-code="closed"] .wb-main {
-    grid-template-columns: minmax(0, 1fr) 280px;
-  }
-
-  .wb[data-layout="circuit-focus"] .wb-main {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .wb[data-layout="data-focus"] .wb-main {
-    grid-template-columns: 260px minmax(0, 1fr) minmax(0, 1.2fr);
-  }
-
-  .wb[data-layout="data-focus"][data-code="closed"] .wb-main {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  .app-shell.wb {
+    --wb-code: 260px;
+    --wb-right: 300px;
+    --wb-right-wide: 340px;
   }
 }
 
-/* 1180 to 1279: the source pane becomes a drawer over the datapath. */
+/* 1180 to 1279: narrower again; the datapath keeps at least 600px. */
 @media (max-width: 1279px) {
-  .wb-main,
-  .wb[data-code="closed"] .wb-main {
-    grid-template-columns: minmax(0, 1fr) 280px;
-  }
-
-  .wb[data-layout="circuit-focus"] .wb-main {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .wb[data-layout="data-focus"] .wb-main,
-  .wb[data-layout="data-focus"][data-code="closed"] .wb-main {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
-  }
-
-  .wb-code {
-    position: absolute;
-    z-index: 2;
-    top: var(--space-8);
-    bottom: 0;
-    left: var(--space-8);
-    width: 300px;
-    box-shadow: var(--shadow-floating);
+  .app-shell.wb {
+    --wb-code: 240px;
+    --wb-right: 280px;
+    --wb-right-wide: 300px;
   }
 }
 
-/* Below 1180: one column, datapath first. The page scrolls; nothing is squeezed. */
-@media (max-width: 1179px) {
-  .wb {
-    height: auto;
-    min-height: 100vh;
+/* Source pane details */
+
+.wb-code > .source-panel {
+  flex: 1 0 360px;
+  min-height: 360px;
+}
+
+.wb-code .project-module-select {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* CASL command band: the reverse control and the destructive command close the second row. */
+.wb .casl-mode-controls .reverse-instruction-control {
+  flex: 1 1 260px;
+}
+
+.wb .casl-mode-controls .casl-destructive-actions {
+  margin-left: auto;
+}
+
+/* COMET microcycle panel, directly under the datapath: phases first, then the facts, then history. */
+.wb .comet-microcycle-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.wb .comet-microcycle-panel > .comet-phase-track {
+  order: 1;
+}
+
+.wb .comet-microcycle-panel > .comet-microcycle-status {
+  order: 2;
+}
+
+.wb .comet-microcycle-panel > .comet-reverse-controls {
+  order: 3;
+}
+
+.wb .comet-microcycle-panel > .comet-reverse-live {
+  order: 4;
+}
+
+.wb .comet-microcycle-panel > .comet-microcycle-source {
+  order: 5;
+}
+
+.wb .comet-microcycle-panel > .comet-microcycle-trace {
+  order: 6;
+}
+
+.wb .comet-microcycle-header p {
+  display: none;
+}
+
+/* The observation header stays one band at every supported width. */
+.wb .observation-workspace-header {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.wb .auxiliary-observation-tabs {
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+}
+
+@media (max-width: 1439px) {
+  .app-shell.wb {
+    --wb-dock: clamp(112px, 16vh, 200px);
   }
 
-  .wb-main,
-  .wb[data-code="closed"] .wb-main,
-  .wb[data-layout="data-focus"] .wb-main,
-  .wb[data-layout="data-focus"][data-code="closed"] .wb-main {
-    grid-template-columns: minmax(0, 1fr);
+  /* Secondary commands keep their icon; the name stays in the tooltip and the accessible name. */
+  .wb .tool-button.secondary-action > span {
+    display: none;
   }
 
-  .wb-pane {
-    overflow: visible;
+  .wb .tool-button.secondary-action {
+    padding: 0 7px;
   }
 
-  /* The source pane is an ordinary block again, below the datapath. */
-  .wb-code {
-    position: static;
-    width: auto;
-    box-shadow: none;
+  .wb .observation-workspace-utilities {
+    flex-direction: column;
+    align-items: flex-end;
+    gap: var(--space-2);
   }
 
-  .wb-datapath {
-    order: -1;
-    overflow-x: auto;
+  .wb .observation-workspace-title span {
+    display: none;
   }
+}
+
+.wb .toolbar-actions {
+  padding: 0 var(--space-8);
+}
+
+.wb .tool-button.emphasis:not(:disabled) {
+  min-height: 32px;
+  padding-inline: 9px;
+}
+
+@media (max-width: 1439px) {
+  /* The mark alone identifies the product; the name stays for assistive technology. */
+  .wb .brand h1 {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
+/* Collapsed dock: only the tab row stays. */
+.wb > .output-panel[data-collapsed="true"] {
+  flex-basis: auto;
+  height: auto;
+  grid-template-rows: auto;
+}
+
+.app-shell.wb[data-dock="collapsed"] {
+  --wb-dock: 38px;
+}
+
+.wb .dock-collapse-toggle {
+  min-width: 30px;
+  padding: 0 var(--space-6);
+}
+
+.wb .observation-workspace-utilities {
+  grid-column: auto;
+  justify-items: end;
+}
+
+@media (max-width: 1279px) {
+  /* The theme switch is a disabled placeholder; at this width the commands need its room. */
+  .wb .theme-toggle {
+    display: none;
+  }
+
+  .wb .workspace-mode-switch button {
+    padding: 3px 6px;
+    font-size: 11px;
+  }
+
+  .wb .toolbar-meta {
+    gap: var(--space-4);
+  }
+}
+
+/* Control bar */
+
+.wb-control-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4) 10px;
+  min-width: 0;
+  font-size: 12px;
+}
+
+.wb-control-bar .text-button {
+  gap: 5px;
+  min-height: 28px;
+  padding: 0 9px;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.wb-control-bar .icon-only {
+  width: 26px;
+  min-width: 26px;
+  height: 26px;
+}
+
+.wb-control-step kbd {
+  padding: 0 5px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-soft);
+  color: var(--color-muted);
+  font-family: var(--font-family-mono);
+  font-size: 10px;
+}
+
+.wb-control-fact {
+  color: var(--color-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.wb-control-hint {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--color-muted);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wb-control-notice {
+  color: var(--color-text-strong);
+  font-weight: 700;
+}
+
+.wb-control-notice:empty {
+  display: none;
+}
+
+/* What the run state means for the picture (section 3.3 of the standard) */
+
+.persistent-circuit-canvas {
+  position: relative;
+}
+
+/* After an edit the picture still shows the previous assembly: dimmed, and said in words. */
+.persistent-circuit-canvas[data-stale="true"] > .dp {
+  opacity: 0.55;
+}
+
+.circuit-state-note {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  margin: 0;
+  padding: var(--space-4) var(--space-12);
+  transform: translateX(-50%);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+  color: var(--color-text-strong);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.circuit-state-note[data-run-state="Idle"] {
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+/* Breakpoints in the editor: a filled dot in the lane beside the line numbers. */
+
+.monaco-editor .breakpoint-marker {
+  width: 10px !important;
+  height: 10px !important;
+  margin-top: 7px;
+  margin-left: 2px;
+  border-radius: 50%;
+  background: var(--color-danger);
+}
+
+.monaco-editor .breakpoint-line {
+  background: color-mix(in srgb, var(--color-danger) 8%, transparent);
+}
+
+.wb .dock-header {
+  justify-content: flex-start;
+  gap: var(--space-6);
+}
+
+.wb .dock-header > .tab-list {
+  margin-right: auto;
 }

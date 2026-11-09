@@ -1,4 +1,4 @@
-import { Check, Cpu, FolderOpen, Loader2, Moon, Play, Plus, RotateCcw, Save, Square, StepForward, Sun } from "lucide-react";
+import { Check, Cpu, FolderOpen, Loader2, Moon, PanelLeft, Play, Plus, RotateCcw, Save, Square, StepForward, Sun } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { useI18n } from "../i18n/useI18n";
@@ -24,6 +24,13 @@ type ToolbarProps = {
   onStep: () => void;
   onReset: () => void;
   onStop: () => void;
+  /** Whether the source pane of the workbench is shown. Omit to leave the toggle out. */
+  isCodePaneOpen?: boolean;
+  onToggleCodePane?: () => void;
+  /** Shortcut hints shown in the tooltips of the commands that have one. */
+  shortcutHints?: Partial<Record<"assemble" | "run" | "step" | "stop" | "save", string>>;
+  /** Rendered between the commands and the language selector: the view switch of the workbench. */
+  viewSwitch?: ReactNode;
 };
 
 type ButtonProps = {
@@ -40,6 +47,8 @@ type ButtonProps = {
   title?: string;
   accessibleLabel?: string;
   secondaryAction?: boolean;
+  /** Shows the icon alone; the label stays in the accessible name and the tooltip. */
+  iconOnly?: boolean;
   onClick?: () => void;
 };
 
@@ -49,11 +58,11 @@ const localeOptions: ReadonlyArray<{ locale: SupportedLocale; shortLabel: string
   { locale: "zh-CN", shortLabel: "CN", languageKey: "locale.chineseSimplified" }
 ];
 
-function ToolButton({ label, icon, testId, variant, emphasis, disabled, active, pressed, groupStart, loading, title, accessibleLabel, secondaryAction, onClick }: ButtonProps) {
+function ToolButton({ label, icon, testId, variant, emphasis, disabled, active, pressed, groupStart, loading, title, accessibleLabel, secondaryAction, iconOnly, onClick }: ButtonProps) {
   return (
     <button
       data-testid={testId}
-      className={`tool-button ${variant ?? ""} ${emphasis ? "emphasis" : ""} ${active ? "active" : ""} ${groupStart ? "group-start" : ""} ${loading ? "loading" : ""} ${secondaryAction ? "secondary-action" : ""}`}
+      className={`tool-button ${variant ?? ""} ${emphasis ? "emphasis" : ""} ${active ? "active" : ""} ${groupStart ? "group-start" : ""} ${loading ? "loading" : ""} ${secondaryAction ? "secondary-action" : ""} ${iconOnly ? "icon-only-tool" : ""}`}
       disabled={disabled}
       onClick={onClick}
       title={title ?? label}
@@ -62,7 +71,7 @@ function ToolButton({ label, icon, testId, variant, emphasis, disabled, active, 
       aria-busy={loading || undefined}
     >
       {loading ? <Loader2 className="spinner" size={17} /> : icon}
-      <span>{label}</span>
+      {iconOnly ? null : <span>{label}</span>}
     </button>
   );
 }
@@ -87,6 +96,10 @@ export default function Toolbar({
   onStep,
   onReset,
   onStop,
+  isCodePaneOpen,
+  onToggleCodePane,
+  shortcutHints = {},
+  viewSwitch
 }: ToolbarProps) {
   const { locale, setLocale, t } = useI18n();
   const [showAssembleSuccess, setShowAssembleSuccess] = useState(false);
@@ -98,6 +111,7 @@ export default function Toolbar({
     return () => window.clearTimeout(timeout);
   }, [assembleStatus]);
 
+  const withShortcut = (text: string, shortcut?: string) => (shortcut ? `${text} (${shortcut})` : text);
   const assembleLabel = assembleStatus === "running" ? t("toolbar.assembling") : showAssembleSuccess ? t("toolbar.assembled") : t("toolbar.assemble");
 
   return (
@@ -111,6 +125,20 @@ export default function Toolbar({
       </div>
 
       <nav className="toolbar-actions" aria-label={t("accessibility.primaryCommands")}>
+        {onToggleCodePane ? (
+          <ToolButton
+            label={t("workbench.region.code")}
+            icon={<PanelLeft size={18} />}
+            active={isCodePaneOpen}
+            pressed={Boolean(isCodePaneOpen)}
+            testId="code-pane-toggle"
+            iconOnly
+            onClick={onToggleCodePane}
+            title={t(isCodePaneOpen ? "workbench.codePane.hide" : "workbench.codePane.show")}
+            accessibleLabel={t(isCodePaneOpen ? "workbench.codePane.hide" : "workbench.codePane.show")}
+            secondaryAction
+          />
+        ) : null}
         <ToolButton label={t("toolbar.new")} icon={<Plus size={18} />} disabled={isReplacingSource || isOpeningFile || isSavingFile || isRunning || assembleStatus === "running"} testId="new-document-button" onClick={onNewDocument} title={t("file.newDocument")} accessibleLabel={t("file.newDocument")} secondaryAction />
         <ToolButton
           label={isOpeningFile ? t("file.opening") : t("toolbar.open")}
@@ -130,7 +158,7 @@ export default function Toolbar({
           loading={isSavingFile}
           testId="save-file-button"
           onClick={onSaveFile}
-          title={saveMode === "save" ? t("toolbar.save") : t("file.chooseSaveLocation")}
+          title={withShortcut(saveMode === "save" ? t("toolbar.save") : t("file.chooseSaveLocation"), shortcutHints.save)}
           accessibleLabel={saveMode === "save" ? t("toolbar.save") : t("file.saveAs")}
           secondaryAction
         />
@@ -156,14 +184,17 @@ export default function Toolbar({
           disabled={assembleStatus === "running" || isRunning}
           testId="assemble-button"
           onClick={onAssemble}
+          title={withShortcut(assembleLabel, shortcutHints.assemble)}
+          accessibleLabel={assembleLabel}
         />
-        <ToolButton label={isRunning ? t("toolbar.running") : t("toolbar.run")} icon={<Play size={18} />} variant="primary" emphasis disabled={!canRun} testId="run-button" onClick={onRun} title={canRun ? "Run with max step protection" : "Run is available after Assemble"} />
-        <ToolButton label={t("toolbar.step")} icon={<StepForward size={18} />} variant="primary" emphasis disabled={!canStep} testId="step-button" onClick={onStep} />
+        <ToolButton label={isRunning ? t("toolbar.running") : t("toolbar.run")} icon={<Play size={18} />} variant="primary" emphasis disabled={!canRun} testId="run-button" onClick={onRun} title={withShortcut(canRun ? "Run with max step protection" : "Run is available after Assemble", shortcutHints.run)} accessibleLabel={canRun ? "Run with max step protection" : "Run is available after Assemble"} />
+        <ToolButton label={t("toolbar.step")} icon={<StepForward size={18} />} variant="primary" emphasis disabled={!canStep} testId="step-button" onClick={onStep} title={withShortcut(t("toolbar.step"), shortcutHints.step)} accessibleLabel={t("toolbar.step")} />
         <ToolButton label={t("toolbar.reset")} icon={<RotateCcw size={18} />} emphasis disabled={!canReset} testId="reset-button" onClick={onReset} />
-        <ToolButton label={t("toolbar.stop")} icon={<Square size={18} />} variant="danger" disabled={!isRunning} testId="stop-button" onClick={onStop} title="Stop is enabled only while running" />
+        <ToolButton label={t("toolbar.stop")} icon={<Square size={18} />} variant="danger" disabled={!isRunning} testId="stop-button" onClick={onStop} title={withShortcut("Stop is enabled only while running", shortcutHints.stop)} accessibleLabel="Stop is enabled only while running" />
       </nav>
 
       <div className="toolbar-meta">
+        {viewSwitch}
         <div className="segmented" aria-label={t("accessibility.languageSelector")} data-testid="locale-selector">
           {localeOptions.map((option) => {
             const selected = locale === option.locale;

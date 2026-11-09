@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { selectGeneratedCaslRows } from "../core/generatedCaslRows";
 import { selectMachineCodeRows } from "../core/machineCodeRows";
@@ -59,6 +59,10 @@ type CircuitFocusLayoutProps = {
   initialAuxiliaryObservation?: AuxiliaryObservation;
   initialSelectedFrameSlotId?: string;
   initialSelectionSource?: FrameSlotSelectionSource;
+  /** Shown directly under the datapath, for example the microcycle panel of the COMET view. */
+  belowCircuit?: ReactNode;
+  /** Reports the selected frame slot, so the source pane can show the same selection. */
+  onSelectedFrameSlotChange?: (mappingId: string | undefined) => void;
 };
 
 const auxiliaryObservationLabels: Record<AuxiliaryObservation, TranslationKey> = {
@@ -2048,6 +2052,8 @@ export default function CircuitFocusLayout({
   initialAuxiliaryObservation,
   initialSelectedFrameSlotId,
   initialSelectionSource = "source-editor",
+  belowCircuit,
+  onSelectedFrameSlotChange
 }: CircuitFocusLayoutProps) {
   const { t } = useI18n();
   const [auxiliaryObservation, setAuxiliaryObservation] = useState<AuxiliaryObservation>(
@@ -2106,6 +2112,14 @@ export default function CircuitFocusLayout({
       setSelectedFrameSlot(undefined);
     }
   }, [selectedFrameSlot, selectedFrameSlotMapping]);
+
+  const reportedFrameSlotId = useRef(selectedFrameSlot?.mappingId);
+  useEffect(() => {
+    if (reportedFrameSlotId.current === selectedFrameSlot?.mappingId) return;
+    reportedFrameSlotId.current = selectedFrameSlot?.mappingId;
+    // A selection made here is passed on. Losing the selection is not: the source pane keeps its own.
+    if (selectedFrameSlot) onSelectedFrameSlotChange?.(selectedFrameSlot.mappingId);
+  }, [onSelectedFrameSlotChange, selectedFrameSlot]);
 
   useEffect(() => {
     if (!initialSelectedFrameSlotId) {
@@ -2285,7 +2299,6 @@ export default function CircuitFocusLayout({
 
       <div className="observation-workspace-body">
         <section className="workspace-circuit-column" aria-label={t("workspace.circuit")}>
-          <FocusCurrentInstructionPanel state={state} isSourceDirty={isSourceDirty} focus={focus} />
           <PersistentCircuitPane
             state={state}
             subtitle={circuitSubtitle}
@@ -2296,7 +2309,21 @@ export default function CircuitFocusLayout({
               instruction: focus.instructionText
             }}
           />
+          {belowCircuit}
+          <FocusCurrentInstructionPanel state={state} isSourceDirty={isSourceDirty} focus={focus} />
           <FocusTimeline state={state} timelineItems={timelineItems} />
+          <div className="workspace-context-strip">
+            <FocusProgramPanel
+              state={state}
+              sourceMode={sourceMode}
+              sourceText={sourceText}
+              sourceDisplayName={sourceDisplayName}
+              generatedCaslSource={generatedCaslSource}
+              cppToCaslMapping={cppToCaslMapping}
+              focus={focus}
+            />
+            <FocusSourceContextPanel focus={focus} sourceMode={sourceMode} />
+          </div>
         </section>
 
         <aside
@@ -2329,18 +2356,6 @@ export default function CircuitFocusLayout({
             <div className="workspace-observation-content">{auxiliaryPanel}</div>
           )}
         </aside>
-      </div>
-      <div className="workspace-context-strip">
-        <FocusProgramPanel
-          state={state}
-          sourceMode={sourceMode}
-          sourceText={sourceText}
-          sourceDisplayName={sourceDisplayName}
-          generatedCaslSource={generatedCaslSource}
-          cppToCaslMapping={cppToCaslMapping}
-          focus={focus}
-        />
-        <FocusSourceContextPanel focus={focus} sourceMode={sourceMode} />
       </div>
     </main>
   );

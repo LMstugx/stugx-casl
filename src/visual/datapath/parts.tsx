@@ -225,11 +225,13 @@ export const ControllerPart = memo(function ControllerPart({ phaseText, instruct
 interface RegisterFilePartProps {
   cells: readonly WordCell[];
   active: boolean;
+  /** The register that supplies the index to the effective-address adder in this step, if any. */
+  indexRegister?: number;
   labels: Pick<DatapathLabels, "previousValue">;
 }
 
 /** General registers GR0 to GR7 in one body, one value window per register. */
-export const RegisterFilePart = memo(function RegisterFilePart({ cells, active, labels }: RegisterFilePartProps) {
+export const RegisterFilePart = memo(function RegisterFilePart({ cells, active, indexRegister, labels }: RegisterFilePartProps) {
   const changedIndex = cells.findIndex((cell) => cell.state === "changed" && cell.previous !== undefined);
   const changedCell = changedIndex >= 0 ? cells[changedIndex] : undefined;
   return (
@@ -251,7 +253,13 @@ export const RegisterFilePart = memo(function RegisterFilePart({ cells, active, 
         const cell = cells[index] ?? { value: 0, state: "idle" as const };
         const center = grRowY(index);
         return (
-          <g key={index} data-gr-row={index} data-testid={`register-gr${index}`} data-active={cell.state === "idle" ? "false" : "true"}>
+          <g
+            key={index}
+            data-gr-row={index}
+            data-testid={`register-gr${index}`}
+            data-active={cell.state === "idle" ? "false" : "true"}
+            data-index={index === indexRegister ? "true" : "false"}
+          >
             <text className="dp-key" x={258} y={center + 4}>
               {index}
             </text>

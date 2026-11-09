@@ -39,7 +39,8 @@ test("Cloudflare Pages runs the verified WASM application", async ({ page, baseU
   await expect(page.getByTestId("run-state")).toHaveAttribute("data-run-state", "Finished");
   await page.getByTestId("reset-button").click();
   await expect(page.getByTestId("run-state")).toHaveAttribute("data-run-state", "Ready");
-  await expect(page.getByTestId("comet-circuit-svg").locator("path.circuit-wire[marker-start], path.circuit-wire[marker-mid], path.circuit-wire[marker-end]")).toHaveCount(0);
+  await expect(page.getByTestId("comet-circuit-svg").locator("[data-layer='structural-buses'] [data-bus-id]")).not.toHaveCount(0);
+  await expect(page.getByTestId("comet-circuit-svg").locator("[data-layer='structural-buses'] [marker-start], [data-layer='structural-buses'] [marker-mid], [data-layer='structural-buses'] [marker-end]")).toHaveCount(0);
 
   await page.getByTestId("circuit-focus-toggle").click();
   await expect(page.getByTestId("circuit-focus-layout")).toHaveAttribute("data-observation-mode", "register-stack");

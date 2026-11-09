@@ -43,14 +43,29 @@ export function DebuggerEditDialog({
   const [programConfirmed, setProgramConfirmed] = useState(false);
   const [error, setError] = useState<"invalid-format" | "out-of-range" | "backend" | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [draftSource, setDraftSource] = useState<{
+    target: DebuggerMutationTarget | null;
+    currentWord: number;
+    numericMode: CaslNumericDisplayMode;
+  }>({ target: null, currentWord: 0, numericMode });
+
+  // The draft restarts from the current value whenever the dialog opens for another target or
+  // the value under it changes. It is reset while rendering, not in an effect, so the dialog is
+  // never painted with the previous target's draft: an effect left one frame in which, for
+  // example, the FR boxes still showed the bits of the stack pointer edited just before.
+  if (draftSource.target !== target || (target !== null && (draftSource.currentWord !== currentWord || draftSource.numericMode !== numericMode))) {
+    setDraftSource({ target, currentWord, numericMode });
+    if (target) {
+      setValueText(formatCaslWord(currentWord, numericMode));
+      setFrFlags(unpackDebuggerFlags(currentWord));
+      setProgramConfirmed(false);
+      setError(null);
+      setSubmitting(false);
+    }
+  }
 
   useEffect(() => {
     if (!target) return;
-    setValueText(formatCaslWord(currentWord, numericMode));
-    setFrFlags(unpackDebuggerFlags(currentWord));
-    setProgramConfirmed(false);
-    setError(null);
-    setSubmitting(false);
     const returnFocus = document.activeElement as HTMLElement | null;
     cancelRef.current?.focus();
     return () => returnFocus?.focus();

@@ -230,20 +230,17 @@ async function captureCaslGr2Flow(page: Page, viewport: Viewport) {
   await step(page);
   await expect(page.getByTestId("comet-circuit-svg").locator("[data-testid='register-gr2']")).toHaveAttribute("data-active", "true");
   await expect(page.getByTestId("comet-circuit-svg").locator("[data-testid='module-sp']")).toHaveAttribute("data-active", "false");
-  await expect(page.getByTestId("comet-circuit-svg")).toContainText("DATA BUS");
+  await expect(page.getByTestId("comet-circuit-svg").locator("[data-bus-width='data-bus']")).toHaveCount(1);
   await expect(page.getByTestId("comet-circuit-svg").locator("[data-testid='module-alu']")).toHaveAttribute("data-active", "false");
-  await expect(page.getByTestId("comet-circuit-svg").locator("[data-testid='wire-mdr-to-gr']")).toHaveAttribute("data-lane", "data-bypass");
   await capture(page, viewport, "casl-gr2-ld.png");
 
   await step(page);
   await expect(page.getByTestId("comet-circuit-svg").locator("[data-testid='module-alu']")).toHaveAttribute("data-active", "true");
-  await expect(page.getByTestId("comet-circuit-svg").locator("[data-testid='wire-gr-to-alu']")).toHaveAttribute("data-lane", "data-compute");
   await capture(page, viewport, "casl-gr2-adda.png");
 
   await step(page);
   await expect(page.getByTestId("comet-circuit-svg").locator("[data-testid='memory-row-0029']")).toHaveAttribute("data-write", "true");
   await expect(page.getByTestId("comet-circuit-svg").locator("[data-testid='module-alu']")).toHaveAttribute("data-active", "false");
-  await expect(page.getByTestId("comet-circuit-svg").locator("[data-testid='wire-gr-to-mdr']")).toHaveAttribute("data-lane", "data-bypass");
   await capture(page, viewport, "casl-gr2-st.png");
 }
 
@@ -313,7 +310,7 @@ async function captureStackPreviewFocus(page: Page, viewport: Viewport) {
   await enterCircuitFocusMode(page);
   await assemble(page);
   await expect(page.getByTestId("comet-circuit-svg").locator("[data-testid='module-sp']")).toHaveAttribute("data-active", "false");
-  await expect(page.getByTestId("comet-circuit-svg").locator("[data-testid='wire-guide-sp-to-mar-preview']")).toHaveCount(0);
+  await expect(page.getByTestId("comet-circuit-svg").locator("[data-path-id='sp-to-mux']")).toHaveCount(0);
   await selectObservationMode(page, "register-stack");
   await expect(page.getByTestId("focus-stack-preview")).toContainText("Stack path preview only.");
   await expect(page.getByTestId("focus-stack-preview")).toContainText("SP FFFE");
@@ -395,8 +392,8 @@ async function captureShiftOperationsCircuit(page: Page, viewport: Viewport) {
   await step(page);
   await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("SLL");
   await expect(page.getByTestId("comet-circuit-svg").locator("[data-testid='module-alu']")).toHaveAttribute("data-active", "true");
-  await expect(page.getByTestId("comet-circuit-svg").locator("[data-testid='alu-shift-badge']")).toContainText("SLL");
-  await expect(page.getByTestId("comet-circuit-svg").locator("[data-testid='wire-shift-count-to-alu']")).toBeVisible();
+  await expect(page.getByTestId("comet-circuit-svg").locator("[data-signal='alu-op']")).toContainText("SLL");
+  await expect(page.getByTestId("comet-circuit-svg").locator("[data-path-id='ea-to-alu-b']")).toHaveCount(1);
   await capture(page, viewport, "shift-operations-circuit.png");
 }
 
@@ -419,10 +416,10 @@ async function captureIndexAddressingCircuit(page: Page, viewport: Viewport) {
   await step(page);
   await step(page);
   await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("LD");
-  await expect(page.getByTestId("comet-circuit-svg").locator("[data-testid='effective-address-unit']")).toContainText("Address Unit");
-  await expect(page.getByTestId("comet-circuit-svg").locator("[data-testid='effective-address-base-row']")).toContainText("0027");
-  await expect(page.getByTestId("comet-circuit-svg").locator("[data-testid='effective-address-index-row']")).toContainText("GR2=0001");
-  await expect(page.getByTestId("comet-circuit-svg").locator("[data-testid='effective-address-ea-row']")).toContainText("0028");
+  await expect(page.getByTestId("comet-circuit-svg").locator("[data-testid='effective-address-unit']")).toContainText("EA");
+  await expect(page.getByTestId("comet-circuit-svg").locator("[data-decoder-field='adr']")).toContainText("0027");
+  await expect(page.getByTestId("comet-circuit-svg").locator("[data-testid='register-gr2']")).toContainText("0001");
+  await expect(page.getByTestId("comet-circuit-svg").locator("[data-testid='effective-address-unit']")).toContainText("0028");
   await expect(page.getByTestId("comet-circuit-svg").locator("[data-testid='memory-row-0028']")).toHaveAttribute("data-read", "true");
   await capture(page, viewport, "index-addressing-circuit.png");
 }
@@ -479,8 +476,8 @@ async function captureCallReturnCall(page: Page, viewport: Viewport) {
   await step(page);
   await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("CALL");
   await expect(page.getByTestId("comet-circuit-svg").locator("[data-testid='module-sp']")).toHaveAttribute("data-active", "true");
-  await expect(page.getByTestId("comet-circuit-svg").locator("[data-testid='wire-return-address-to-mdr']")).toHaveAttribute("data-active", "true");
-  await expect(page.getByTestId("comet-circuit-svg").locator("[data-testid='wire-eau-to-pr']")).toHaveAttribute("data-active", "true");
+  await expect(page.getByTestId("comet-circuit-svg")).toHaveAttribute("data-active-wires", /(?:^| )return-address-to-mdr(?: |$)/);
+  await expect(page.getByTestId("comet-circuit-svg")).toHaveAttribute("data-active-wires", /(?:^| )eau-to-pr(?: |$)/);
   await expect(page.getByTestId("focus-signal-probe")).toContainText("Return");
   await selectObservationMode(page, "register-stack");
   await expect(page.getByTestId("focus-call-stack")).toContainText("Depth 1");
@@ -499,7 +496,7 @@ async function captureCallReturnRetStack(page: Page, viewport: Viewport) {
   await step(page);
   await step(page);
   await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("RET");
-  await expect(page.getByTestId("comet-circuit-svg").locator("[data-testid='wire-mdr-to-pr']")).toHaveAttribute("data-active", "true");
+  await expect(page.getByTestId("comet-circuit-svg")).toHaveAttribute("data-active-wires", /(?:^| )mdr-to-pr(?: |$)/);
   await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("Next");
   await expect(page.getByTestId("focus-current-instruction-panel")).toContainText("ST GR1,RESULT");
   await selectObservationMode(page, "register-stack");
@@ -803,7 +800,11 @@ async function captureBrowserSaveStates(page: Page, viewport: Viewport) {
   await setSource(page, "int main() { return 16; }");
   await page.evaluate(() => { (window as unknown as { __delaySave: boolean }).__delaySave = true; });
   await page.getByTestId("save-file-button").click();
+  await expect(page.getByTestId("save-file-button")).toHaveAttribute("aria-busy", "true");
   await setSource(page, "int main() { return 17; }");
+  // The write must have reached the delayed close before it is released; otherwise the release is a
+  // no-op, the save never completes, and the notice of the previous save is what stays on screen.
+  await expect.poll(() => page.evaluate(() => Boolean((window as unknown as { __finishSave?: () => void }).__finishSave))).toBe(true);
   await page.evaluate(() => (window as unknown as { __finishSave?: () => void }).__finishSave?.());
   await expect(page.getByTestId("file-operation-notice")).toContainText("still unsaved");
   await capture(page, viewport, "save-still-dirty-after-concurrent-edit.png");

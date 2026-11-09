@@ -244,16 +244,16 @@ DATA DC #8000
     await expect(page.getByTestId("comet-current-instruction")).toContainText("LD");
 
     if (index === 0) {
-      await expect(page.getByTestId("wire-pr-to-mar")).toHaveAttribute("data-active", "true");
-      await expect(page.getByTestId("wire-memory-to-mdr")).toHaveAttribute("data-active", "true");
+      await expect(page.getByTestId("comet-circuit-svg")).toHaveAttribute("data-active-wires", /(?:^| )pr-to-mar(?: |$)/);
+      await expect(page.getByTestId("comet-circuit-svg")).toHaveAttribute("data-active-wires", /(?:^| )memory-to-mdr(?: |$)/);
     }
     if (index === 1) {
-      await expect(page.getByTestId("wire-ir-to-decoder")).toHaveAttribute("data-active", "true");
-      await expect(page.getByTestId("wire-decoder-to-controller")).toHaveAttribute("data-active", "true");
-      await expect(page.getByTestId("wire-pr-to-mar")).toHaveCount(0);
+      await expect(page.getByTestId("comet-circuit-svg")).toHaveAttribute("data-active-wires", /(?:^| )ir-to-decoder(?: |$)/);
+      await expect(page.getByTestId("comet-circuit-svg")).toHaveAttribute("data-active-wires", /(?:^| )decoder-to-controller(?: |$)/);
+      await expect(page.getByTestId("comet-circuit-svg")).not.toHaveAttribute("data-active-wires", /(?:^| )pr-to-mar(?: |$)/);
     }
     if (index === 5) {
-      await expect(page.getByTestId("wire-mdr-to-gr")).toHaveAttribute("data-active", "true");
+      await expect(page.getByTestId("comet-circuit-svg")).toHaveAttribute("data-active-wires", /(?:^| )mdr-to-gr(?: |$)/);
     }
   }
 

@@ -93,7 +93,12 @@ export const DatapathCanvas = memo(function DatapathCanvas({ model, labels, comp
         ]}
         labels={labels}
       />
-      <RegisterFilePart cells={model.gr} active={activeParts.has("gr")} labels={labels} />
+      <RegisterFilePart
+        cells={model.gr}
+        active={activeParts.has("gr")}
+        indexRegister={model.activePaths.find((path) => path.id === "gr-to-ea")?.grIndex}
+        labels={labels}
+      />
       <AluPart operator={model.alu.operator} />
       <RegisterPart
         id="mdr"

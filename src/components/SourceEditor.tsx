@@ -17,6 +17,8 @@ type SourceEditorProps = {
   diagnosticRange?: SourceRange;
   diagnosticMessage?: string;
   readOnly?: boolean;
+  /** After a finished run: the line of the instruction that was executed last. */
+  lastExecutedLine?: number;
   /** Lines that carry a breakpoint. Breakpoints are page-session state owned by the caller. */
   breakpointLines?: readonly number[];
   /** Called when the reader clicks a line number or presses F9 on a line. */
@@ -34,6 +36,7 @@ export default function SourceEditor({
   diagnosticRange,
   diagnosticMessage,
   readOnly = false,
+  lastExecutedLine,
   breakpointLines = [],
   onToggleBreakpoint
 }: SourceEditorProps) {
@@ -45,6 +48,8 @@ export default function SourceEditor({
   const toggleBreakpointRef = useRef(onToggleBreakpoint);
   toggleBreakpointRef.current = onToggleBreakpoint;
   const breakpointLabel = t("workbench.breakpoint.marker");
+  const lastExecutedLabel = t("workbench.editor.lastExecuted");
+  const lastExecutedDecorationIds = useRef<string[]>([]);
   const visibleRelations = language === "cpp" ? frameSymbolRelations.slice(0, 8) : [];
 
   const handleMount: OnMount = (editorInstance, monaco) => {
@@ -107,6 +112,27 @@ export default function SourceEditor({
   useEffect(applyBreakpointDecorations, [breakpointKey, source]);
 
   useEffect(() => {
+    const editorInstance = editorRef.current;
+    const model = editorInstance?.getModel();
+    if (!editorInstance || !model) return;
+    const line = lastExecutedLine && lastExecutedLine <= model.getLineCount() ? lastExecutedLine : undefined;
+    lastExecutedDecorationIds.current = editorInstance.deltaDecorations(
+      lastExecutedDecorationIds.current,
+      line
+        ? [{
+            range: { startLineNumber: line, endLineNumber: line, startColumn: 1, endColumn: model.getLineMaxColumn(line) },
+            options: {
+              isWholeLine: true,
+              className: "last-executed-line",
+              // The words carry the meaning; the tint only supports them.
+              after: { content: `  ${lastExecutedLabel}`, inlineClassName: "last-executed-label" }
+            }
+          }]
+        : []
+    );
+  }, [lastExecutedLabel, lastExecutedLine, source]);
+
+  useEffect(() => {
     if (!editorRef.current) return;
     decorationIds.current = editorRef.current.deltaDecorations(
       decorationIds.current,
@@ -154,7 +180,7 @@ export default function SourceEditor({
   }, [diagnosticMessage, diagnosticRange]);
 
   return (
-    <div className="source-editor" data-testid="source-editor" data-breakpoint-lines={breakpointKey}>
+    <div className="source-editor" data-testid="source-editor" data-breakpoint-lines={breakpointKey} data-last-executed-line={lastExecutedLine}>
       <Editor
         height="100%"
         language={language === "cpp" ? "cpp" : "plaintext"}

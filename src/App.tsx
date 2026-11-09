@@ -624,6 +624,15 @@ function StudioShell({
       ? cppLineForCaslLine(cppToCaslMapping, state.currentLine)
       : state.currentLine
     : undefined;
+  // After a finished run nothing is current any more; the editor marks what ran last instead.
+  const lastExecutedMapping = state.runState === "Finished" && state.lastStep?.executedAddress !== undefined
+    ? state.sourceMap.find((mapping) => mapping.address === state.lastStep?.executedAddress)
+    : undefined;
+  const editorLastExecutedLine = lastExecutedMapping && (!lastExecutedMapping.sourceUnitId || lastExecutedMapping.sourceUnitId === sourceUnitId)
+    ? sourceMode === "cpp"
+      ? cppLineForCaslLine(cppToCaslMapping, lastExecutedMapping.line)
+      : lastExecutedMapping.line
+    : undefined;
   const selectedDiagnostic = diagnostics.find((diagnostic) => diagnostic.identity === selectedDiagnosticId);
   const selectedDiagnosticDeveloperDetail = selectedDiagnostic
     ? formatDiagnosticDeveloperDetail(selectedDiagnostic.source.rawContext)
@@ -780,6 +789,7 @@ function StudioShell({
         onStep={step}
         onReset={reset}
         onStop={stop}
+        isResetPrimary={state.runState === "Finished" || state.runState === "Error"}
         shortcutHints={WORKBENCH_SHORTCUT_HINTS}
         isCodePaneOpen={codePaneOpen}
         onToggleCodePane={() => setCodePaneOpen((open) => !open)}
@@ -902,6 +912,7 @@ function StudioShell({
               frameSymbolRelations={frameSymbolRelations}
               selectedFrameSlotId={editorSelectedFrameSlotId}
               onSelectFrameSymbol={(relation) => setEditorSelectedFrameSlotId(relation.mappingId)}
+              lastExecutedLine={editorLastExecutedLine}
               breakpointLines={activeBreakpointLines}
               onToggleBreakpoint={toggleBreakpoint}
             />
@@ -1027,7 +1038,10 @@ function StudioShell({
           ) : null}
         </aside>
 
-        <div className="wb-workspace" data-testid="workbench-workspace">
+        <div className="wb-workspace" data-testid="workbench-workspace" data-stale={state.runState === "Dirty" ? "true" : "false"}>
+          {state.runState === "Dirty" ? (
+            <p className="wb-stale-banner" data-testid="stale-data-banner" role="status">{t("workbench.stale.banner")}</p>
+          ) : null}
           {workspaceMode === "casl" ? (
             <CaslCompatibilityMode
               state={state}

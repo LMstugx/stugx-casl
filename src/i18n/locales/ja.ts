@@ -630,5 +630,7 @@ export const ja = {
   "workbench.breakpoint.marker": "ブレークポイント",
   "workbench.shortcut.spaceKey": "スペース",
   "workbench.dock.collapse": "出力パネルを折りたたむ",
-  "workbench.dock.expand": "出力パネルを展開"
+  "workbench.dock.expand": "出力パネルを展開",
+  "workbench.stale.banner": "下のデータは前回のアセンブル結果です。アセンブルすると更新されます。",
+  "workbench.editor.lastExecuted": "最後に実行"
 } as const satisfies PartialTranslationResource;

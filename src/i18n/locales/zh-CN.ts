@@ -630,5 +630,7 @@ export const zhCN = {
   "workbench.breakpoint.marker": "断点",
   "workbench.shortcut.spaceKey": "空格",
   "workbench.dock.collapse": "收起输出面板",
-  "workbench.dock.expand": "展开输出面板"
+  "workbench.dock.expand": "展开输出面板",
+  "workbench.stale.banner": "下方数据是上一次汇编的结果，汇编后更新。",
+  "workbench.editor.lastExecuted": "最后执行"
 } as const satisfies PartialTranslationResource;

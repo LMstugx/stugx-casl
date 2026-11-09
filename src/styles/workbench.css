@@ -529,11 +529,7 @@
   grid-template-columns: repeat(8, minmax(0, 1fr));
 }
 
-@media (max-width: 1439px) {
-  .app-shell.wb {
-    --wb-dock: clamp(112px, 16vh, 200px);
-  }
-
+@media (max-width: 1599px) {
   /* Secondary commands keep their icon; the name stays in the tooltip and the accessible name. */
   .wb .tool-button.secondary-action > span {
     display: none;
@@ -541,6 +537,12 @@
 
   .wb .tool-button.secondary-action {
     padding: 0 7px;
+  }
+}
+
+@media (max-width: 1439px) {
+  .app-shell.wb {
+    --wb-dock: clamp(112px, 16vh, 200px);
   }
 
   .wb .observation-workspace-utilities {
@@ -727,4 +729,117 @@
 
 .wb .dock-header > .tab-list {
   margin-right: auto;
+}
+
+/* CASL view: the datapath is alone in its column, so it takes exactly the height that is left. */
+.wb .casl-persistent-circuit {
+  display: flex;
+  flex-direction: column;
+}
+
+.wb .casl-persistent-circuit > .persistent-circuit-pane {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.wb .casl-persistent-circuit .persistent-circuit-canvas {
+  flex: 1 1 auto;
+  min-height: 306px;
+}
+
+.wb .casl-persistent-circuit .persistent-circuit-canvas > .dp {
+  height: 100%;
+  max-height: none;
+}
+
+/* CASL command band: compact commands, so format and reload share the first row. */
+.wb .casl-number-format button,
+.wb .casl-reload-actions .text-button,
+.wb .casl-destructive-actions .text-button,
+.wb .casl-mode-controls .reverse-instruction-control button {
+  min-height: 28px;
+  padding: 0 var(--space-8);
+  font-size: 12px;
+}
+
+.wb .casl-mode-top > .casl-mode-controls {
+  justify-content: flex-start;
+}
+
+@media (max-width: 1279px) {
+  /* The pane's own heading already names the selected data; the tabs need the room. */
+  .wb .observation-workspace-title h2 {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  /* The hint stays for assistive technology; the button's disabled state shows the same fact. */
+  .wb .wb-control-hint {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .app-shell.wb {
+    --wb-code: 232px;
+    --wb-right-wide: 320px;
+  }
+}
+
+/* The earlier interface moved the inspector under the circuit below 1240px. The workbench keeps
+   it beside the datapath at every supported width. */
+.wb .wb-studio > .right-column {
+  grid-column: auto;
+  grid-row: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.wb .wb-studio > .right-column > * {
+  flex: 1 0 auto;
+}
+
+/* After an edit the registers and memory on screen still belong to the previous assembly. */
+.wb-workspace > .wb-stale-banner {
+  flex: 0 0 auto;
+  margin: 0 0 var(--space-8);
+  padding: var(--space-4) 10px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-soft);
+  color: var(--color-text-strong);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+/* Messages tab: the count is text; the tint only draws the eye to it. */
+.wb .tab-button .tab-count {
+  margin-left: var(--space-4);
+  padding: 0 5px;
+  border-radius: var(--radius-pill);
+  background: var(--color-danger);
+  color: var(--color-surface);
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 16px;
+}
+
+/* Finished run: the instruction that ran last, named in words beside its line. */
+.monaco-editor .last-executed-line {
+  background: var(--color-success-soft);
+}
+
+.monaco-editor .last-executed-label {
+  color: var(--color-success);
+  font-size: 11px;
+  font-weight: 700;
 }

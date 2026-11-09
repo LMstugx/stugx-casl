@@ -631,5 +631,7 @@ export const en = {
   "workbench.breakpoint.marker": "Breakpoint",
   "workbench.shortcut.spaceKey": "Space",
   "workbench.dock.collapse": "Collapse the output panel",
-  "workbench.dock.expand": "Expand the output panel"
+  "workbench.dock.expand": "Expand the output panel",
+  "workbench.stale.banner": "The data below belongs to the previous assembly. Assemble to update it.",
+  "workbench.editor.lastExecuted": "last executed"
 } as const satisfies CompleteTranslationResource;

@@ -27,6 +27,8 @@ type ToolbarProps = {
   /** Whether the source pane of the workbench is shown. Omit to leave the toggle out. */
   isCodePaneOpen?: boolean;
   onToggleCodePane?: () => void;
+  /** After a finished or failed run, Reset is the command to reach for. */
+  isResetPrimary?: boolean;
   /** Shortcut hints shown in the tooltips of the commands that have one. */
   shortcutHints?: Partial<Record<"assemble" | "run" | "step" | "stop" | "save", string>>;
   /** Rendered between the commands and the language selector: the view switch of the workbench. */
@@ -98,6 +100,7 @@ export default function Toolbar({
   onStop,
   isCodePaneOpen,
   onToggleCodePane,
+  isResetPrimary = false,
   shortcutHints = {},
   viewSwitch
 }: ToolbarProps) {
@@ -189,7 +192,7 @@ export default function Toolbar({
         />
         <ToolButton label={isRunning ? t("toolbar.running") : t("toolbar.run")} icon={<Play size={18} />} variant="primary" emphasis disabled={!canRun} testId="run-button" onClick={onRun} title={withShortcut(canRun ? "Run with max step protection" : "Run is available after Assemble", shortcutHints.run)} accessibleLabel={canRun ? "Run with max step protection" : "Run is available after Assemble"} />
         <ToolButton label={t("toolbar.step")} icon={<StepForward size={18} />} variant="primary" emphasis disabled={!canStep} testId="step-button" onClick={onStep} title={withShortcut(t("toolbar.step"), shortcutHints.step)} accessibleLabel={t("toolbar.step")} />
-        <ToolButton label={t("toolbar.reset")} icon={<RotateCcw size={18} />} emphasis disabled={!canReset} testId="reset-button" onClick={onReset} />
+        <ToolButton label={t("toolbar.reset")} icon={<RotateCcw size={18} />} variant={isResetPrimary && canReset ? "primary" : undefined} emphasis disabled={!canReset} testId="reset-button" onClick={onReset} />
         <ToolButton label={t("toolbar.stop")} icon={<Square size={18} />} variant="danger" disabled={!isRunning} testId="stop-button" onClick={onStop} title={withShortcut("Stop is enabled only while running", shortcutHints.stop)} accessibleLabel="Stop is enabled only while running" />
       </nav>
 

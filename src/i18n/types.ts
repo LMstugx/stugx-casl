@@ -180,6 +180,8 @@ export type TranslationKey =
   | "workbench.shortcut.spaceKey"
   | "workbench.dock.collapse"
   | "workbench.dock.expand"
+  | "workbench.stale.banner"
+  | "workbench.editor.lastExecuted"
   | "caslMode.summary"
   | "caslMode.numericFormat"
   | "caslMode.hexadecimal"

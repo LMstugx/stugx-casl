@@ -137,6 +137,26 @@ export default function OutputPanel({
   const machineExplanation = selectedMachineRow ? explainMachineCodeRow(selectedMachineRow) : undefined;
   const selectedMachineEdge = selectedMachineRow ? selectControlFlowForMachineRow(selectedMachineRow, controlFlowGraph) : undefined;
 
+  const consoleInputRef = useRef<HTMLInputElement>(null);
+  const focusBeforeInputRef = useRef<HTMLElement | null>(null);
+  const wasWaitingRef = useRef(false);
+  const waitingForInput = state?.runState === "WaitingInput" && Boolean(onConsoleInput);
+  useEffect(() => {
+    if (waitingForInput && !wasWaitingRef.current) {
+      focusBeforeInputRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      setActiveTab("console");
+      if (collapsed) onToggleCollapsed?.();
+    }
+    if (!waitingForInput && wasWaitingRef.current) {
+      if (document.activeElement === consoleInputRef.current) focusBeforeInputRef.current?.focus();
+      focusBeforeInputRef.current = null;
+    }
+    wasWaitingRef.current = waitingForInput;
+  }, [waitingForInput]);
+  useEffect(() => {
+    if (waitingForInput && activeTab === "console" && !collapsed) consoleInputRef.current?.focus();
+  }, [activeTab, collapsed, waitingForInput]);
+
   return (
     <section className="output-panel" data-active-tab={toPreferenceTab(activeTab)} data-collapsed={collapsed ? "true" : "false"}>
       <header className="dock-header">
@@ -155,6 +175,7 @@ export default function OutputPanel({
               aria-label={t("accessibility.openOutputTab", { tab: label })}
               tabIndex={activeTab === tab.id ? 0 : -1}
               title={label}
+              data-count={tab.id === "messages" ? messages.length : undefined}
               onClick={() => {
                 setActiveTab(tab.id);
                 onActiveTabChange?.(toPreferenceTab(tab.id));
@@ -162,6 +183,7 @@ export default function OutputPanel({
               }}
             >
               {label}
+              {tab.id === "messages" && messages.length > 0 ? <span className="tab-count" aria-hidden="true">{messages.length}</span> : null}
             </button>
             );
           })}
@@ -229,6 +251,8 @@ export default function OutputPanel({
                   <label>
                     {t("caslMode.consoleInput")}
                     <input
+                      ref={consoleInputRef}
+                      data-testid="dock-console-input"
                       value={consoleInput}
                       maxLength={256}
                       disabled={state?.runState !== "WaitingInput"}

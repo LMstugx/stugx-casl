@@ -2,7 +2,7 @@
 
 - Audience: Keyboard users, testers, and UI maintainers
 - Status: Canonical
-- Last reviewed version: 0.1.0
+- Last reviewed version: 1.0.0
 - Classification: Canonical
 - Related: [Interface Overview](../user/interface-overview.md), [Diagnostics](../user/diagnostics.md)
 

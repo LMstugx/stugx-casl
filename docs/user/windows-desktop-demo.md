@@ -2,7 +2,7 @@
 
 - Audience: Users preparing a local Windows demonstration
 - Status: Canonical
-- Last reviewed version: 0.1.0
+- Last reviewed version: 1.0.0
 - Classification: Canonical
 - Related: [Tauri Integration](../developer/tauri-integration.md), [Tauri Demo Runbook](../tauri-build-and-demo-runbook.md)
 

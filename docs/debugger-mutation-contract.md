@@ -2,7 +2,7 @@
 
 - Audience: Runtime, store, WASM, and debugger UI maintainers
 - Status: Canonical
-- Last reviewed version: 0.1.0
+- Last reviewed version: 1.0.0
 - Classification: Canonical
 - Related: [History Barrier Contract](debugger-history-barrier-contract.md), [COMET II VM](developer/comet-vm.md)
 

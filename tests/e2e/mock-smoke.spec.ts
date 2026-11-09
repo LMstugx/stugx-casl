@@ -671,7 +671,7 @@ test("Changelog is offline, keyboard accessible, localized, and stable at 1280",
   const trigger = page.getByTestId("changelog-trigger");
   await trigger.click();
   await expect(page.getByRole("dialog", { name: "Changelog" })).toBeVisible();
-  await expect(page.getByTestId("changelog-current-version")).toHaveText("0.1.0");
+  await expect(page.getByTestId("changelog-current-version")).toHaveText("1.0.0");
   await expect(page.getByTestId("changelog-current-badge")).toHaveText("Current");
   const older = page.locator('[data-testid="changelog-release"][data-release-version="v1.0-rc10"]');
   await older.locator("summary").focus();

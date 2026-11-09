@@ -56,7 +56,7 @@ export default defineConfig({
       ? [
           {
             name: "mock",
-            testMatch: /(?:mock-smoke|debugger-editing)\.spec\.ts/,
+            testMatch: /(?:mock-smoke|debugger-editing|workbench)\.spec\.ts/,
             use: { baseURL: "http://127.0.0.1:5173" }
           }
         ]
@@ -65,7 +65,7 @@ export default defineConfig({
       ? [
         {
           name: "wasm",
-          testMatch: /(?:wasm-smoke|debugger-editing)\.spec\.ts/,
+          testMatch: /(?:wasm-smoke|debugger-editing|workbench)\.spec\.ts/,
           use: { baseURL: "http://127.0.0.1:5174" }
         }
         ]

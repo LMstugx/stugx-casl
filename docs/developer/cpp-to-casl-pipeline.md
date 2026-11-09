@@ -2,7 +2,7 @@
 
 - Audience: Transpiler and compiler maintainers
 - Status: Canonical
-- Last reviewed version: 0.1.0
+- Last reviewed version: 1.0.0
 - Classification: Canonical
 - Related: [C++ Subset Capabilities](../reference/cpp-subset-capabilities.md), [CASL Assembler](casl-assembler.md)
 

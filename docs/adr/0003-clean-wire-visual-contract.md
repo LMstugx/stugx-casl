@@ -2,7 +2,7 @@
 
 - Audience: Circuit and visual-design maintainers
 - Status: Canonical
-- Last reviewed version: 0.1.0
+- Last reviewed version: 1.0.0
 - Classification: Canonical
 - Related: [Circuit Visualization](../developer/circuit-visualization.md), [Observation Modes](../user/observation-modes.md)
 

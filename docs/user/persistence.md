@@ -2,7 +2,7 @@
 
 - Audience: Users who want to know what the application remembers
 - Status: Canonical
-- Last reviewed version: 0.1.0
+- Last reviewed version: 1.0.0
 - Classification: Canonical
 - Related: [Storage Keys](../reference/storage-keys.md), [Persistence Architecture](../developer/persistence-architecture.md)
 

@@ -4,6 +4,37 @@
 
 User-visible changes for [stugx.CASL](https://github.com/LMstugx/stugx-casl). The application also packages the same registry for offline EN, JA, and zh-CN viewing.
 
+## 1.0.0 - 2026-11-09 (Stable)
+
+The interface is rebuilt as one workbench around a redrawn COMET II datapath. The C++ core and its behaviour are unchanged.
+
+[Open the public Web application](https://stugx-casl.pages.dev/)
+
+### Added
+
+- One workbench frame for every view: tool bar, source pane, datapath with the data beside it, output dock, and control bar. The page no longer scrolls; each region scrolls on its own.
+- A redrawn datapath with real component shapes. Buses are always drawn, a path gets colour and an arrowhead only while the current step uses it, and a rewritten value keeps its previous value beside it.
+- Step animation: after a forward step the control signal, the value travelling along its path, and a pulse where it lands play once. Reverse steps play nothing, and nothing moves when the system asks for reduced motion.
+- Breakpoints and Run to breakpoint. Click a line number, or press F9 in the editor. Breakpoints belong to the page session and are never stored.
+- Global shortcuts: Space to step, Shift+Space to reverse one instruction, F5 to run, F6 to stop, Ctrl+Enter to assemble, Ctrl+S to save. They never act inside the editor, a text field, or a dialog.
+- The output dock can be collapsed, and it opens the Console and focuses its field when the program waits for input.
+
+### Improved
+
+- The source editor, its errors, and the project modules stay on screen in every view. The source pane can be hidden without losing the editor's text or undo history.
+- The datapath says in words what the run state means: not assembled, stale after an edit, waiting for input, finished, or stopped by an error. After a finished run the editor names the line that ran last.
+- In COMET Mode the phase track and the current phase sit directly under the datapath instead of above it.
+- Layouts for 1180, 1280, 1440 and 1920 pixel windows in English, Japanese and Simplified Chinese: no page overflow, a single-row tool bar, and a datapath that is never narrower than 600 pixels.
+
+### Fixed
+
+- The debugger edit dialog no longer shows the previous target's draft for one frame. Opening FR right after editing SP could show OF as already checked.
+
+### Known Issues
+
+- In CASL Mode on a window less than about 800 pixels high, the lower part of the datapath is reached by scrolling its column. Hiding the source pane or collapsing the dock makes room for it.
+- Windows narrower than 1180 pixels are not supported and scroll horizontally, as before.
+
 ## 0.1.0 - 2026-07-17 (Preview)
 
 The learning studio is available as a production WASM application on Cloudflare Pages, with the same release registry packaged for offline desktop use.

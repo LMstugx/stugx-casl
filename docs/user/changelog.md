@@ -2,7 +2,7 @@
 
 - Audience: Users reviewing product changes
 - Status: Canonical
-- Last reviewed version: 0.1.0
+- Last reviewed version: 1.0.0
 - Classification: Canonical
 - Related: [Repository Changelog](../../CHANGELOG.md), [Changelog Maintenance](../changelog-maintenance.md)
 

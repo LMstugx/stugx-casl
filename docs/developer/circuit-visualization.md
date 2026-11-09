@@ -2,7 +2,7 @@
 
 - Audience: UI and runtime-visualization maintainers
 - Status: Canonical
-- Last reviewed version: 0.1.0
+- Last reviewed version: 1.0.0
 - Classification: Canonical
 - Related: [Observation Modes](../user/observation-modes.md), [Clean-Wire ADR](../adr/0003-clean-wire-visual-contract.md)
 

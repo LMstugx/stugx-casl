@@ -2,7 +2,7 @@
 
 - Audience: CASL II source authors and assembler maintainers
 - Status: Canonical
-- Last reviewed version: 0.1.0
+- Last reviewed version: 1.0.0
 - Classification: Canonical
 - Related: [CASL Syntax Support](casl-syntax-support.md), [Macro Expansion](../developer/casl-macro-expansion.md)
 

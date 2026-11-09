@@ -2,7 +2,7 @@
 
 - Audience: Users, security reviewers, and persistence maintainers
 - Status: Canonical
-- Last reviewed version: 0.1.0
+- Last reviewed version: 1.0.0
 - Classification: Canonical
 - Related: [Persistence](../user/persistence.md), [Persistence Architecture](../developer/persistence-architecture.md)
 

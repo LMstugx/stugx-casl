@@ -2,7 +2,7 @@
 
 - Audience: Users presenting or studying runtime behavior
 - Status: Canonical
-- Last reviewed version: 0.1.0
+- Last reviewed version: 1.0.0
 - Classification: Canonical
 - Related: [Interface Overview](interface-overview.md), [Circuit Visualization](../developer/circuit-visualization.md)
 

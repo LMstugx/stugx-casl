@@ -10,11 +10,11 @@ The registry is compiled into both Web and Tauri frontend bundles. Reading relea
 
 `package.json` is the canonical current version source. Vite places the same value in `BUILD_METADATA`; production metadata and deployment manifests consume that value. The current release must appear exactly once in the registry, and the UI Current badge compares each entry with `BUILD_METADATA.version` rather than assuming the first entry is current.
 
-The present package version is `0.1.0`. Existing `v1.0-rcN` tags are a historical release-candidate namespace established before package-version unification. They remain valid historical entries but do not replace the current package version or imply a final `v1.0.0` release.
+The present package version is `1.0.0`, the first stable release; its tag is `v1.0.0`, set after the deployment has been verified. The `v1.0-rcN` tags are a historical release-candidate namespace established before package-version unification. They remain valid historical entries and are not candidates of `1.0.0`: `0.1.0` was released after them.
 
 ## Release Model
 
-Channels are `stable`, `preview`, and `desktop-demo`. A channel describes that entry; it is not inferred from position, tag shape, deployment host, or locale. The current public Web deployment is a Preview.
+Channels are `stable`, `preview`, and `desktop-demo`. A channel describes that entry; it is not inferred from position, tag shape, deployment host, or locale. The public Web deployment is Stable from `1.0.0` on; `0.1.0` was a Preview.
 
 Sections use this fixed order:
 

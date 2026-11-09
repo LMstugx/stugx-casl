@@ -2,7 +2,7 @@
 
 - Audience: Core bridge and production-build maintainers
 - Status: Canonical
-- Last reviewed version: 0.1.0
+- Last reviewed version: 1.0.0
 - Classification: Canonical
 - Related: [Architecture Overview](architecture-overview.md), [Build, Test, and Release](build-test-release.md)
 

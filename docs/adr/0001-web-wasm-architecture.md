@@ -2,7 +2,7 @@
 
 - Audience: Core, bridge, and build maintainers
 - Status: Canonical
-- Last reviewed version: 0.1.0
+- Last reviewed version: 1.0.0
 - Classification: Canonical
 - Related: [WASM Bridge](../developer/wasm-bridge.md), [Build, Test, and Release](../developer/build-test-release.md)
 

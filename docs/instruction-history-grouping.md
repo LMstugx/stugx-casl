@@ -2,7 +2,7 @@
 
 - Audience: Runtime and debugger maintainers
 - Status: Canonical
-- Last reviewed version: 0.1.0
+- Last reviewed version: 1.0.0
 - Classification: Canonical
 - Related: [Reverse Instruction Contract](reverse-instruction-runtime-contract.md), [Microcycle History](developer/microcycle-history.md), [COMET Runtime](comet-microcycle-runtime-contract.md)
 

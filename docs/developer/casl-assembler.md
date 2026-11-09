@@ -2,7 +2,7 @@
 
 - Audience: Assembler and bridge maintainers
 - Status: Canonical
-- Last reviewed version: 0.1.0
+- Last reviewed version: 1.0.0
 - Classification: Canonical
 - Related: [CASL Syntax Support](../reference/casl-syntax-support.md), [Diagnostic Codes](../reference/diagnostic-codes.md)
 

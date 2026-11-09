@@ -2,7 +2,7 @@
 
 - Audience: Desktop-build and security maintainers
 - Status: Canonical
-- Last reviewed version: 0.1.0
+- Last reviewed version: 1.0.0
 - Classification: Canonical
 - Related: [Windows Desktop Demo](../user/windows-desktop-demo.md), [Tauri Capability ADR](../adr/0008-tauri-minimal-capabilities.md)
 

@@ -2,7 +2,7 @@
 
 - Audience: Contributors navigating the repository
 - Status: Canonical
-- Last reviewed version: 0.1.0
+- Last reviewed version: 1.0.0
 - Classification: Canonical
 - Related: [Architecture Overview](architecture-overview.md), [Build Commands](../reference/build-commands.md)
 

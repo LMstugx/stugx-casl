@@ -2,7 +2,7 @@
 
 - Audience: Runtime, bridge, debugger, and visualization maintainers
 - Status: Canonical
-- Last reviewed version: 0.1.0
+- Last reviewed version: 1.0.0
 - Classification: Canonical
 - Related: [COMET II VM](../developer/comet-vm.md), [Debugger Mutation Contract](../debugger-mutation-contract.md)
 

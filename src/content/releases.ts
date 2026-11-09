@@ -41,6 +41,109 @@ export const PUBLIC_WEB_URL = "https://stugx-casl.pages.dev/";
 
 export const RELEASES: readonly ReleaseNote[] = [
   {
+    version: "1.0.0",
+    date: "2026-11-09",
+    channel: "stable",
+    title: {
+      en: "The workbench",
+      ja: "ワークベンチ",
+      "zh-CN": "工作台"
+    },
+    summary: {
+      en: "The interface is rebuilt as one workbench around a redrawn COMET II datapath. The C++ core and its behaviour are unchanged.",
+      ja: "インターフェースを、描き直した COMET II データパスを中心とする一つのワークベンチとして作り直しました。C++ コアとその動作は変わりません。",
+      "zh-CN": "界面重做为围绕全新 COMET II 数据通路的单一工作台。C++ 核心及其行为没有变化。"
+    },
+    sections: [
+      {
+        type: "added",
+        items: [
+          {
+            en: "One workbench frame for every view: tool bar, source pane, datapath with the data beside it, output dock, and control bar. The page no longer scrolls; each region scrolls on its own.",
+            ja: "すべてのビューに共通のワークベンチ枠：ツールバー、ソース欄、データパスとその横のデータ、出力ドック、コントロールバー。ページ全体はスクロールせず、各領域が個別にスクロールします。",
+            "zh-CN": "所有视图共用一个工作台外壳：工具栏、代码栏、数据通路及其旁边的数据、输出面板和控制栏。整页不再滚动，各区域各自滚动。"
+          },
+          {
+            en: "A redrawn datapath with real component shapes. Buses are always drawn, a path gets colour and an arrowhead only while the current step uses it, and a rewritten value keeps its previous value beside it.",
+            ja: "部品の形を持つ新しいデータパス。バスは常に描かれ、経路は現在のステップが使う間だけ色と矢印が付き、書き換えられた値の横には直前の値が残ります。",
+            "zh-CN": "重新绘制的数据通路，元件有各自的外形。总线始终画出，路径只在当前这一步用到时才着色并带箭头，被改写的值旁边保留原值。"
+          },
+          {
+            en: "Step animation: after a forward step the control signal, the value travelling along its path, and a pulse where it lands play once. Reverse steps play nothing, and nothing moves when the system asks for reduced motion.",
+            ja: "ステップのアニメーション：前進ステップの後に、制御信号、経路を移動する値、到着点のパルスを一度だけ再生します。逆方向のステップでは再生せず、システムが動きの軽減を求めている場合は何も動きません。",
+            "zh-CN": "单步动画：正向执行一步后，依次播放一次控制信号、沿路径移动的数值和落点的闪烁。回退不播放；系统要求减少动态效果时没有任何运动。"
+          },
+          {
+            en: "Breakpoints and Run to breakpoint. Click a line number, or press F9 in the editor. Breakpoints belong to the page session and are never stored.",
+            ja: "ブレークポイントと「ブレークポイントまで実行」。行番号をクリックするか、エディタで F9 を押します。ブレークポイントはページのセッションに属し、保存されません。",
+            "zh-CN": "断点与“运行到断点”。点击行号，或在编辑器里按 F9。断点只属于当前页面会话，不会被保存。"
+          },
+          {
+            en: "Global shortcuts: Space to step, Shift+Space to reverse one instruction, F5 to run, F6 to stop, Ctrl+Enter to assemble, Ctrl+S to save. They never act inside the editor, a text field, or a dialog.",
+            ja: "グローバルショートカット：Space でステップ、Shift+Space で 1 命令戻す、F5 で実行、F6 で停止、Ctrl+Enter でアセンブル、Ctrl+S で保存。エディタ、テキスト入力、ダイアログの中では働きません。",
+            "zh-CN": "全局快捷键：空格单步、Shift+空格回退一条指令、F5 运行、F6 停止、Ctrl+Enter 汇编、Ctrl+S 保存。在编辑器、输入框和对话框内不生效。"
+          },
+          {
+            en: "The output dock can be collapsed, and it opens the Console and focuses its field when the program waits for input.",
+            ja: "出力ドックを折りたためるようになりました。プログラムが入力を待つと、ドックはコンソールを開いて入力欄にフォーカスします。",
+            "zh-CN": "输出面板可以收起；程序等待输入时会自动打开控制台并聚焦输入框。"
+          }
+        ]
+      },
+      {
+        type: "improved",
+        items: [
+          {
+            en: "The source editor, its errors, and the project modules stay on screen in every view. The source pane can be hidden without losing the editor's text or undo history.",
+            ja: "ソースエディタ、エラー一覧、プロジェクトモジュールがどのビューでも表示されます。ソース欄はエディタの内容や取り消し履歴を失わずに隠せます。",
+            "zh-CN": "源码编辑器、错误列表和项目模块在所有视图里都保持可见。代码栏可以隐藏，编辑器的内容和撤销历史不会丢失。"
+          },
+          {
+            en: "The datapath says in words what the run state means: not assembled, stale after an edit, waiting for input, finished, or stopped by an error. After a finished run the editor names the line that ran last.",
+            ja: "データパスが実行状態の意味を言葉で示します：未アセンブル、編集後で古い、入力待ち、終了、エラーで停止。実行終了後、エディタは最後に実行した行を示します。",
+            "zh-CN": "数据通路用文字说明运行状态的含义：尚未汇编、修改后已过期、等待输入、已结束、因错误停止。运行结束后，编辑器标出最后执行的那一行。"
+          },
+          {
+            en: "In COMET Mode the phase track and the current phase sit directly under the datapath instead of above it.",
+            ja: "COMET モードでは、フェーズトラックと現在のフェーズがデータパスの上ではなく直下に表示されます。",
+            "zh-CN": "COMET 模式下，阶段轨道和当前阶段紧贴在数据通路下方，而不是在它上方。"
+          },
+          {
+            en: "Layouts for 1180, 1280, 1440 and 1920 pixel windows in English, Japanese and Simplified Chinese: no page overflow, a single-row tool bar, and a datapath that is never narrower than 600 pixels.",
+            ja: "1180、1280、1440、1920 ピクセル幅のウィンドウ向けレイアウト（英語・日本語・簡体字中国語）：ページのはみ出しなし、1 行のツールバー、データパスは 600 ピクセル未満になりません。",
+            "zh-CN": "针对 1180、1280、1440、1920 像素宽度的布局（英语、日语、简体中文）：无整页溢出，工具栏保持一行，数据通路不窄于 600 像素。"
+          }
+        ]
+      },
+      {
+        type: "fixed",
+        items: [
+          {
+            en: "The debugger edit dialog no longer shows the previous target's draft for one frame. Opening FR right after editing SP could show OF as already checked.",
+            ja: "デバッガの編集ダイアログが、直前の編集対象の下書きを 1 フレームだけ表示することがなくなりました。SP を編集した直後に FR を開くと、OF がチェック済みに見えることがありました。",
+            "zh-CN": "调试器编辑对话框不再有一帧显示上一个编辑对象的草稿。此前在编辑 SP 之后立即打开 FR，OF 可能显示为已勾选。"
+          }
+        ]
+      },
+      {
+        type: "known-issues",
+        items: [
+          {
+            en: "In CASL Mode on a window less than about 800 pixels high, the lower part of the datapath is reached by scrolling its column. Hiding the source pane or collapsing the dock makes room for it.",
+            ja: "高さが約 800 ピクセル未満のウィンドウで CASL モードを使うと、データパスの下部はその列をスクロールして表示します。ソース欄を隠すかドックを折りたたむと収まります。",
+            "zh-CN": "在高度小于约 800 像素的窗口里使用 CASL 模式时，数据通路的下半部分需要在其栏内滚动才能看到；收起代码栏或输出面板可以腾出空间。"
+          },
+          {
+            en: "Windows narrower than 1180 pixels are not supported and scroll horizontally, as before.",
+            ja: "幅 1180 ピクセル未満のウィンドウは従来どおり対象外で、横スクロールになります。",
+            "zh-CN": "宽度小于 1180 像素的窗口与之前一样不在支持范围内，会出现横向滚动。"
+          }
+        ]
+      }
+    ],
+    webUrl: PUBLIC_WEB_URL
+  },
+  {
     version: "0.1.0",
     date: "2026-07-17",
     channel: "preview",

@@ -4,7 +4,7 @@ stugx.CASL is an independent, unofficial, browser-based CASL II / COMET II learn
 
 ## Current Status
 
-- Version: `0.1.0`
+- Version: `1.0.0`
 - Web: static Vite/WASM deployment on Cloudflare Pages
 - Windows: offline Tauri 2 local demo and unsigned NSIS build
 - Languages: EN, JA, and zh-CN

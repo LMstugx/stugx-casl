@@ -2,7 +2,7 @@
 
 - Audience: Students, teachers, and users studying program execution
 - Status: Canonical
-- Last reviewed version: 0.1.0
+- Last reviewed version: 1.0.0
 - Classification: Canonical
 - Related: [Observation Modes](observation-modes.md), [COMET Mode](comet-mode.md), [Circuit Visualization](../developer/circuit-visualization.md)
 

@@ -2,7 +2,7 @@
 
 - Audience: Users and developers checking instruction coverage
 - Status: Canonical
-- Last reviewed version: 0.1.0
+- Last reviewed version: 1.0.0
 - Classification: Canonical
 - Related: [CASL Syntax Support](casl-syntax-support.md), [CASL Assembler](../developer/casl-assembler.md)
 

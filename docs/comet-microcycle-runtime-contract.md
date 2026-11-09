@@ -2,7 +2,7 @@
 
 - Audience: Runtime and compatibility maintainers
 - Status: Canonical
-- Last reviewed version: 0.1.0
+- Last reviewed version: 1.0.0
 - Classification: Canonical
 - Related: [Instruction-Cycle Matrix](comet-instruction-cycle-matrix-v1.json), [Teaching Microarchitecture ADR](adr/0016-comet-teaching-microarchitecture.md), [Developer Guide](developer/comet-microcycle-runtime.md)
 

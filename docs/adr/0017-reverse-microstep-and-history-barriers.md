@@ -2,7 +2,7 @@
 
 - Audience: Runtime and debugger maintainers
 - Status: Canonical
-- Last reviewed version: 0.1.0
+- Last reviewed version: 1.0.0
 - Classification: Canonical
 - Related: [Teaching Microarchitecture ADR](0016-comet-teaching-microarchitecture.md), [Reverse Runtime Contract](../reverse-microstep-runtime-contract.md), [History Integrity](../reverse-history-integrity.md)
 

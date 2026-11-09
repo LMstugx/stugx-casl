@@ -2,7 +2,7 @@
 
 - Audience: Claude、Codex、项目所有者与审查者
 - Status: Migration record
-- Last reviewed version: 0.1.0
+- Last reviewed version: 1.0.0
 - Classification: Migration record
 - Related: [v2 重构标准](v2-refactor-standard.md), [ADR 0023](../adr/0023-workbench-datapath-structural-buses-and-active-arrowheads.md), [ADR 0024](../adr/0024-workbench-datapath-motion.md)
 
@@ -308,7 +308,65 @@
 - 原因：测试点了保存、改了源码之后立刻调用 `__finishSave`，但写入可能还没走到被延迟的 `close()`，此时 `__finishSave` 还不存在，调用是空操作，保存永远不结束。`mock-smoke.spec.ts` 里同一流程的两条用例都先等了挂起状态，这一条漏了。
 - 处理：补上与 `mock-smoke` 相同的两个等待（保存按钮 `aria-busy`、`__finishSave` 已就绪），断言本身没有改。补完后连续 3 次通过。
 
-## 尚未处理
+## 工作台外壳（应用改为占满视口的工作台之后）
 
-- 旧组件及其专属文件（`CometCircuitSvg.tsx`、`circuitLayout.ts`、`wirePaths.ts`、`visualPathResolver.ts`、`instructionPathTemplates.ts`）已经不被应用引用，但文件与它们各自的单元测试还在。上线前按 ADR 0023 的迁移规则一并移除，并在这里补记。
-- `src/styles/app.css` 里旧电路的样式规则同样还在，随旧组件一起清理。
+外壳换掉之后，端到端 77 条里有 73 条不用改就通过。改动的只有下面这些，原因各不相同。
+
+### 选择器加上范围（9 行）
+
+代码栏现在在所有视图里都在屏幕上，编辑器里的帧符号标记和观察区里的帧槽位按钮带同一个 `data-slot-id`，原来唯一的选择器变成匹配到两个元素。这些断言原本指的都是栈帧视图里的槽位按钮，所以把范围限定到栈帧视图，断言内容不变。
+
+顺带修了一处不一致：以前编辑器和观察区不会同时出现，观察区里选中的槽位不会回传给编辑器。现在两边同屏，观察区里选中槽位后，编辑器里对应的标记也显示为选中。
+
+| 原断言 | 现断言 |
+| --- | --- |
+| `expect(page.locator('[data-slot-id="add:argument:a:1"]')).toHaveAttribute("aria-pressed", "true");` | `expect(page.getByTestId("focus-stack-frame-view").locator('[data-slot-id="add:argument:a:1"]')).toHaveAttribute("aria-pressed", "true");` |
+| `page.locator('[data-slot-id="add:argument:a:1"]').click();` | `page.getByTestId("focus-stack-frame-view").locator('[data-slot-id="add:argument:a:1"]').click();` |
+| `expect(page.locator('[data-slot-id="add:argument:a:1"]')).toHaveAttribute("aria-pressed", "true");` | `expect(page.getByTestId("focus-stack-frame-view").locator('[data-slot-id="add:argument:a:1"]')).toHaveAttribute("aria-pressed", "true");` |
+| `page.locator('[data-slot-id="add:argument:b:2"]').focus();` | `page.getByTestId("focus-stack-frame-view").locator('[data-slot-id="add:argument:b:2"]').focus();` |
+| `expect(page.locator('[data-slot-id="add:argument:b:2"]')).toBeFocused();` | `expect(page.getByTestId("focus-stack-frame-view").locator('[data-slot-id="add:argument:b:2"]')).toBeFocused();` |
+| `expect(page.locator('[data-slot-id="add:argument:b:2"]')).toHaveAttribute("aria-pressed", "true");` | `expect(page.getByTestId("focus-stack-frame-view").locator('[data-slot-id="add:argument:b:2"]')).toHaveAttribute("aria-pressed", "true");` |
+| `page.locator('[data-slot-id="main:local:result:1"]').click();` | `page.getByTestId("focus-stack-frame-view").locator('[data-slot-id="main:local:result:1"]').click();` |
+| `expect(page.locator('[data-slot-id="main:local:result:1"]')).toHaveAttribute("aria-pressed", "true");` | `expect(page.getByTestId("focus-stack-frame-view").locator('[data-slot-id="main:local:result:1"]')).toHaveAttribute("aria-pressed", "true");` |
+| `expect(page.locator('[data-slot-id="add:argument:a:1"]')).toHaveAttribute("aria-pressed", "true");` | `expect(page.getByTestId("focus-stack-frame-view").locator('[data-slot-id="add:argument:a:1"]')).toHaveAttribute("aria-pressed", "true");` |
+
+### `focus_mode_works_at_1280x720`：从“整页滚动”改为“所在栏滚动”
+
+这是一条冻结的布局测试。它原来守的是：1280×720 下放不下的内容不能被裁掉，要能滚动到。当时的做法是整页滚动。工作台外壳占满视口、各区域各自滚动（标准 3.1），所以守的东西不变，滚动的容器变了。
+
+| 原断言 | 现断言 |
+| --- | --- |
+| `document.documentElement.scrollHeight > window.innerHeight + 24` 为真（整页可滚动） | 观察数据栏的 `overflow-y` 为 `auto`，且它的 `scrollHeight > clientHeight + 24`（内容比栏长，可在栏内滚动到） |
+| `.app-shell` 的 `overflow-y` 不是 `hidden` | 整页在横向和纵向都没有溢出 |
+
+同一条测试里其余断言没有改：信号探针和栈帧视图自身不出现内部滚动条、五个面板没有横向溢出、三个折叠区的键盘操作。
+
+### Phase 14B 的工具栏文字检查没有改，改的是实现
+
+`Phase 14B short UI strings translate without changing program state` 检查工具栏每个按钮的文字没有被纵向裁切。1600px 以下次要命令只显示图标，最初用“裁成 1px”的办法隐藏文字，这条测试正确地把它判为被裁切。改成不渲染或 `display: none`，名称由 `aria-label` 和 tooltip 提供。测试一个字没动。
+
+### Phase 1 脚手架及其测试已移除
+
+`WorkbenchShell`、`PhasePills` 和开发预览页是 Phase 1 在本分支上加的脚手架，基线里没有。应用本身成为工作台之后它们不再有用，连同只测它们的 `src/components/workbench/__tests__/workbenchShell.test.tsx`（10 条）一起删除。它守的行为改由针对真实应用的测试来守：
+
+| 原来测脚手架的 | 现在测真实应用的 |
+| --- | --- |
+| 各面板在任何布局下都保持挂载，数据通路不重建 | `tests/e2e/workbench.spec.ts`：切换检查器标签、输出标签、语言、收起代码栏与输出面板、八个观察标签、三种布局之后，数据通路是同一个 DOM 节点，机器状态与历史数不变 |
+| 阶段药丸的状态与文字 | 由既有的 COMET 阶段轨道及其既有测试承担 |
+| 外壳的区域与标签 | `tests/e2e/workbench.spec.ts`：1180、1440、1920 三种宽度下各区域都在视口内，整页不滚动，工具栏一行，数据通路不低于 600px |
+
+`src/tests/v2WorkbenchBoundary.test.ts` 相应更新：展示层文件清单换成现有文件；“样例数据只被测试使用”；“入口不按查询串加载任何页面，`src/dev` 不存在”。
+
+### 新增的测试
+
+| 文件 | 条数 | 守什么 |
+| --- | --- | --- |
+| `src/tests/v1WorkbenchShell.test.tsx` | 16 | 快捷键的键位映射与失效范围；控制栏的文字、断点数与停在断点的播报；运行状态在电路上的文字；运行到断点（停在断点前、可继续、微周期粒度下只停在指令边界、不带断点时行为不变、不影响回退与 Dirty） |
+| `src/tests/v1WorkbenchDock.test.tsx` | 5 | 输出面板收起与展开；等待输入时打开控制台并聚焦、不写偏好；输入被取走后焦点归还；消息标签的错误数 |
+| `src/tests/v1DebuggerDialogDraft.test.tsx` | 3 | 编辑对话框提交的第一帧就是当前对象的值 |
+| `tests/e2e/workbench.spec.ts` | 6（mock 与 wasm 各跑一遍） | 外壳、代码栏与输出面板的收起、数据通路常驻、断点全流程且不写存储、运行途中可停止、全局快捷键 |
+
+## 留到 v1.1
+
+- 旧电路组件及其专属文件（`CometCircuitSvg.tsx`、`circuitLayout.ts`、`wirePaths.ts`、`visualPathResolver.ts`、`instructionPathTemplates.ts`）已经不被应用引用，也不进入生产产物，但文件与它们自己的测试（`circuitLayout.test.ts` 61 条、`cometCircuitSvg.snapshot.test.tsx` 23 条、两个 `visualPathResolver` 测试、`phase20cMicrocycleUi.test.tsx` 里用旧组件取连线名的辅助函数）还在，并且全部通过。按 ADR 0023 的迁移规则，旧组件在被删除之前保持它原来的契约。删除时要逐条列出这 84 条的替代覆盖，其中 `visualPathResolver` 的映射测试应改为指向 `fromCometState.ts` 里同一张映射表，而不是删除。
+- `src/styles/app.css` 里旧电路与旧页面流布局的样式规则还在，被 `workbench.css` 覆盖。随旧组件一起清理。

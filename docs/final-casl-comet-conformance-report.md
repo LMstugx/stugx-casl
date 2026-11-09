@@ -2,7 +2,7 @@
 
 - Audience: Teachers, maintainers, and conformance reviewers
 - Status: Canonical
-- Last reviewed version: 0.1.0
+- Last reviewed version: 1.0.0
 - Classification: Canonical
 - Related: [Supported Instructions](reference/supported-casl-instructions.md), [WCASL Final Gate](wcasl-replacement-final-gate.md)
 

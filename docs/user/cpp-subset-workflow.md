@@ -2,7 +2,7 @@
 
 - Audience: Users studying compiler lowering
 - Status: Canonical
-- Last reviewed version: 0.1.0
+- Last reviewed version: 1.0.0
 - Classification: Canonical
 - Related: [C++ Subset Capabilities](../reference/cpp-subset-capabilities.md), [Unsupported C++ Features](../reference/unsupported-cpp-features.md)
 

@@ -2,7 +2,7 @@
 
 - Audience: Runtime adapter, UI, and visualization maintainers
 - Status: Canonical
-- Last reviewed version: 0.1.0
+- Last reviewed version: 1.0.0
 - Classification: Canonical
 - Related: [Observation Workspace Layout](developer/observation-workspace-layout.md), [COMET Microcycle Runtime](developer/comet-microcycle-runtime.md), [Reverse History Integrity](reverse-history-integrity.md)
 

@@ -2,7 +2,7 @@
 
 - Audience: Runtime and visualization maintainers
 - Status: Canonical
-- Last reviewed version: 0.1.0
+- Last reviewed version: 1.0.0
 - Classification: Canonical
 - Related: [Application States](../reference/application-states.md), [Circuit Visualization](circuit-visualization.md)
 

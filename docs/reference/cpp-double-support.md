@@ -2,7 +2,7 @@
 
 - Audience: Users and maintainers checking the double boundary
 - Status: Canonical
-- Last reviewed version: 0.1.0
+- Last reviewed version: 1.0.0
 - Classification: Canonical
 - Related: [C++ Subset Capabilities](cpp-subset-capabilities.md), [Double Teaching ABI](../cpp-double-teaching-abi.md)
 

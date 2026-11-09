@@ -2,7 +2,7 @@
 
 - Audience: Users studying multi-word C++ storage
 - Status: Canonical
-- Last reviewed version: 0.1.0
+- Last reviewed version: 1.0.0
 - Classification: Canonical
 - Related: [C++ Subset Workflow](cpp-subset-workflow.md), [Double Reference](../reference/cpp-double-support.md)
 

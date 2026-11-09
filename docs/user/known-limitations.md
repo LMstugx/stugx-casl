@@ -2,7 +2,7 @@
 
 - Audience: Users evaluating current scope
 - Status: Canonical
-- Last reviewed version: 0.1.0
+- Last reviewed version: 1.0.0
 - Classification: Canonical
 - Related: [Technical Limitations](../reference/known-limitations.md), [Unsupported C++ Features](../reference/unsupported-cpp-features.md)
 

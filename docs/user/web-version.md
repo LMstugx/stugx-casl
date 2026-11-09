@@ -2,7 +2,7 @@
 
 - Audience: Users of the public browser application
 - Status: Canonical
-- Last reviewed version: 0.1.0
+- Last reviewed version: 1.0.0
 - Classification: Canonical
 - Related: [Getting Started](getting-started.md), [Cloudflare Deployment](../developer/cloudflare-deployment.md)
 

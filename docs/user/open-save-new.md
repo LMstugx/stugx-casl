@@ -2,7 +2,7 @@
 
 - Audience: Users working with local source files
 - Status: Canonical
-- Last reviewed version: 0.1.0
+- Last reviewed version: 1.0.0
 - Classification: Canonical
 - Related: [File Formats and Encoding](../reference/file-formats-and-encoding.md), [Document Lifecycle](../developer/document-lifecycle.md)
 

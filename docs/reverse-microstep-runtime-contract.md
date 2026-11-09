@@ -2,7 +2,7 @@
 
 - Audience: Runtime, bridge, debugger, and UI maintainers
 - Status: Canonical
-- Last reviewed version: 0.1.0
+- Last reviewed version: 1.0.0
 - Classification: Canonical
 - Related: [History Integrity](reverse-history-integrity.md), [COMET Runtime](comet-microcycle-runtime-contract.md), [History ADR](adr/0017-reverse-microstep-and-history-barriers.md)
 

@@ -2,7 +2,7 @@
 
 - Audience: Teachers, first-year course coordinators, and maintainers
 - Status: Canonical
-- Last reviewed version: 0.1.0
+- Last reviewed version: 1.0.0
 - Classification: Canonical
 - Related: [Getting Started](user/getting-started.md), [Teacher Demo Script](demo/teacher-demo-script-ja.md)
 

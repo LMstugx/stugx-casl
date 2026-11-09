@@ -9,7 +9,7 @@ The Pages build pins the official Emscripten SDK `6.0.2` source tag and Kitware 
 ## Configuration And Metadata
 
 - `VITE_BASE_PATH`: absolute URL path ending in `/`; default `/`.
-- `STUGX_BUILD_VERSION`: optional safe override; default `package.json` version `0.1.0`.
+- `STUGX_BUILD_VERSION`: optional safe override; default `package.json` version `1.0.0`.
 - `STUGX_BUILD_COMMIT`: CI-injected hexadecimal commit; fallback `local`.
 - `VITE_CORE_BACKEND`: forced to `wasm` by the production script.
 

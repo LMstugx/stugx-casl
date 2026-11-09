@@ -2,7 +2,7 @@
 
 - Audience: CASL II users and runtime maintainers
 - Status: Canonical
-- Last reviewed version: 0.1.0
+- Last reviewed version: 1.0.0
 - Classification: Canonical
 - Related: [Supported CASL Instructions](supported-casl-instructions.md), [COMET II VM](../developer/comet-vm.md)
 

@@ -2,7 +2,7 @@
 
 - Audience: CASL II users working with `IN` and `OUT`
 - Status: Canonical
-- Last reviewed version: 0.1.0
+- Last reviewed version: 1.0.0
 - Classification: Canonical
 - Related: [CASL Compatibility Mode](casl-compatibility-mode.md), [Directives and Macros](../reference/casl-ii-directives-macros.md)
 

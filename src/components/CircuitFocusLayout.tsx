@@ -2114,11 +2114,18 @@ export default function CircuitFocusLayout({
   }, [selectedFrameSlot, selectedFrameSlotMapping]);
 
   const reportedFrameSlotId = useRef(selectedFrameSlot?.mappingId);
+  // The id this layout reported last and has not yet seen come back as its initial selection.
+  const echoedFrameSlotId = useRef<string | undefined>();
   useEffect(() => {
     if (reportedFrameSlotId.current === selectedFrameSlot?.mappingId) return;
     reportedFrameSlotId.current = selectedFrameSlot?.mappingId;
     // A selection made here is passed on. Losing the selection is not: the source pane keeps its own.
-    if (selectedFrameSlot) onSelectedFrameSlotChange?.(selectedFrameSlot.mappingId);
+    if (!selectedFrameSlot) return;
+    // What is reported here comes back as the initial selection. It is remembered, so that the
+    // echo is recognised and never selects the slot again after the reader has moved on.
+    if (!onSelectedFrameSlotChange) return;
+    echoedFrameSlotId.current = selectedFrameSlot.mappingId;
+    onSelectedFrameSlotChange(selectedFrameSlot.mappingId);
   }, [onSelectedFrameSlotChange, selectedFrameSlot]);
 
   useEffect(() => {
@@ -2127,6 +2134,12 @@ export default function CircuitFocusLayout({
       return;
     }
     if (lastAppliedInitialFrameSlotId.current === initialSelectedFrameSlotId) return;
+    if (echoedFrameSlotId.current === initialSelectedFrameSlotId) {
+      // This layout's own report, coming back: nothing to apply.
+      echoedFrameSlotId.current = undefined;
+      lastAppliedInitialFrameSlotId.current = initialSelectedFrameSlotId;
+      return;
+    }
     if (selectedFrameSlot?.mappingId === initialSelectedFrameSlotId) {
       lastAppliedInitialFrameSlotId.current = initialSelectedFrameSlotId;
       return;

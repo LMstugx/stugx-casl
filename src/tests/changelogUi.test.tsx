@@ -74,8 +74,8 @@ describe("changelog dialog", () => {
   it("current_badge_matches_build_version", async () => {
     await renderGuide();
     await openChangelog();
-    expect(document.querySelector('[data-testid="changelog-current-version"]')?.textContent).toBe("0.1.0");
-    expect(document.querySelector('[data-testid="changelog-current-badge"]')?.closest("details")?.getAttribute("data-release-version")).toBe("0.1.0");
+    expect(document.querySelector('[data-testid="changelog-current-version"]')?.textContent).toBe("1.0.0");
+    expect(document.querySelector('[data-testid="changelog-current-badge"]')?.closest("details")?.getAttribute("data-release-version")).toBe("1.0.0");
   });
 
   it("external_link_is_safe", async () => {
@@ -93,7 +93,7 @@ describe("changelog dialog", () => {
   it("release_text_is_rendered_as_text", async () => {
     await renderGuide();
     await openChangelog();
-    expect(document.querySelector(".changelog-release-content")?.textContent).toContain("Cloudflare Pages");
+    expect(document.querySelector(".changelog-release-content")?.textContent).toContain("workbench");
     expect(document.querySelector(".changelog-release-content script")).toBeNull();
     expect(changelogSource).not.toContain("dangerouslySetInnerHTML");
   });
@@ -119,6 +119,6 @@ describe("changelog dialog", () => {
     await renderGuide(locale);
     await openChangelog();
     expect(document.getElementById("changelog-title")?.textContent).toBe(title);
-    expect(document.querySelectorAll('[data-testid="changelog-release"]')).toHaveLength(3);
+    expect(document.querySelectorAll('[data-testid="changelog-release"]')).toHaveLength(4);
   });
 });

@@ -2,7 +2,7 @@
 
 - Audience: Transpiler and visualization maintainers
 - Status: Canonical
-- Last reviewed version: 0.1.0
+- Last reviewed version: 1.0.0
 - Classification: Canonical
 - Related: [C++ to CASL Pipeline](cpp-to-casl-pipeline.md), [Double Teaching ABI](../cpp-double-teaching-abi.md)
 

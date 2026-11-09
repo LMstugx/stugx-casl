@@ -2,7 +2,7 @@
 
 - Audience: Core, WASM, Mock, store, and debugger maintainers
 - Status: Canonical
-- Last reviewed version: 0.1.0
+- Last reviewed version: 1.0.0
 - Classification: Canonical
 - Related: [Reverse Microstep Contract](../reverse-microstep-runtime-contract.md), [Reverse Instruction Contract](../reverse-instruction-runtime-contract.md), [History Integrity](../reverse-history-integrity.md)
 

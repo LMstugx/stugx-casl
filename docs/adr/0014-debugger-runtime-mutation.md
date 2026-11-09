@@ -2,7 +2,7 @@
 
 - Audience: Maintainers and compatibility reviewers
 - Status: Canonical
-- Last reviewed version: 0.1.0
+- Last reviewed version: 1.0.0
 - Classification: Canonical
 - Related: [Debugger Mutation Contract](../debugger-mutation-contract.md), [Document Ownership ADR](0005-document-source-ownership.md)
 

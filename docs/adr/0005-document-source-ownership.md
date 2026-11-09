@@ -2,7 +2,7 @@
 
 - Audience: Store, file, editor, and diagnostic maintainers
 - Status: Canonical
-- Last reviewed version: 0.1.0
+- Last reviewed version: 1.0.0
 - Classification: Canonical
 - Related: [Document Lifecycle](../developer/document-lifecycle.md), [Frontend State Management](../developer/frontend-state-management.md)
 

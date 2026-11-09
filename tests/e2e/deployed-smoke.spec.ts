@@ -61,7 +61,7 @@ test("Cloudflare Pages runs the verified WASM application", async ({ page, baseU
   const changelogTrigger = page.getByTestId("changelog-trigger");
   await changelogTrigger.click();
   await expect(page.getByRole("dialog", { name: "Changelog" })).toBeVisible();
-  await expect(page.getByTestId("changelog-current-version")).toHaveText("0.1.0");
+  await expect(page.getByTestId("changelog-current-version")).toHaveText("1.0.0");
   await page.keyboard.press("Escape");
   await expect(page.getByRole("dialog", { name: "Changelog" })).toBeHidden();
   await expect(changelogTrigger).toBeFocused();

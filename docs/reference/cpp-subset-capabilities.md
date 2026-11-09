@@ -2,7 +2,7 @@
 
 - Audience: C++ subset users and transpiler maintainers
 - Status: Canonical
-- Last reviewed version: 0.1.0
+- Last reviewed version: 1.0.0
 - Classification: Canonical
 - Related: [Unsupported C++ Features](unsupported-cpp-features.md), [C++ to CASL Pipeline](../developer/cpp-to-casl-pipeline.md)
 

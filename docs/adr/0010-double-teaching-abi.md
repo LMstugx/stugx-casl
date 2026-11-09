@@ -2,7 +2,7 @@
 
 - Audience: Transpiler, VM presentation, and compatibility maintainers
 - Status: Canonical
-- Last reviewed version: 0.1.0
+- Last reviewed version: 1.0.0
 - Classification: Canonical
 - Related: [Double Teaching ABI](../cpp-double-teaching-abi.md), [Double Lowering](../developer/double-lowering.md)
 

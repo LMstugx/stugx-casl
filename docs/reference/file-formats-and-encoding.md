@@ -2,7 +2,7 @@
 
 - Audience: Users and file-adapter maintainers
 - Status: Canonical
-- Last reviewed version: 0.1.0
+- Last reviewed version: 1.0.0
 - Classification: Canonical
 - Related: [Open, Save, and New](../user/open-save-new.md), [Document Lifecycle](../developer/document-lifecycle.md)
 

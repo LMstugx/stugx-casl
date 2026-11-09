@@ -2,7 +2,7 @@
 
 - Audience: Storage, bootstrap, and privacy maintainers
 - Status: Canonical
-- Last reviewed version: 0.1.0
+- Last reviewed version: 1.0.0
 - Classification: Canonical
 - Related: [Persistence Architecture](../developer/persistence-architecture.md), [Storage Keys](../reference/storage-keys.md)
 

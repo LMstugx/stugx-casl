@@ -2,7 +2,7 @@
 
 - Audience: File, editor, and store maintainers
 - Status: Canonical
-- Last reviewed version: 0.1.0
+- Last reviewed version: 1.0.0
 - Classification: Canonical
 - Related: [Open, Save, and New](../user/open-save-new.md), [Document Ownership ADR](../adr/0005-document-source-ownership.md)
 

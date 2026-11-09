@@ -2,7 +2,7 @@
 
 - Audience: Parser, semantic, and lowering maintainers
 - Status: Canonical
-- Last reviewed version: 0.1.0
+- Last reviewed version: 1.0.0
 - Classification: Canonical
 - Related: [C++ to CASL Pipeline](../developer/cpp-to-casl-pipeline.md), [C++ Subset Capabilities](../reference/cpp-subset-capabilities.md)
 

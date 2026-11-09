@@ -2,7 +2,7 @@
 
 - Audience: CASL II learners and instructors
 - Status: Canonical
-- Last reviewed version: 0.1.0
+- Last reviewed version: 1.0.0
 - Classification: Canonical
 - Related: [CASL State Editing](casl-state-editing.md), [Open, Save, and New](open-save-new.md)
 

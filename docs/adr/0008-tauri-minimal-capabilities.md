@@ -2,7 +2,7 @@
 
 - Audience: Desktop and security maintainers
 - Status: Canonical
-- Last reviewed version: 0.1.0
+- Last reviewed version: 1.0.0
 - Classification: Canonical
 - Related: [Tauri Integration](../developer/tauri-integration.md), [Windows Desktop Demo](../user/windows-desktop-demo.md)
 

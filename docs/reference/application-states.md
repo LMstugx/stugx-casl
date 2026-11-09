@@ -2,7 +2,7 @@
 
 - Audience: UI, store, and runtime maintainers
 - Status: Canonical
-- Last reviewed version: 0.1.0
+- Last reviewed version: 1.0.0
 - Classification: Canonical
 - Related: [Frontend State Management](../developer/frontend-state-management.md), [COMET II VM](../developer/comet-vm.md)
 

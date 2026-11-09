@@ -57,7 +57,7 @@ describe("canonical technical documentation", () => {
   it("documentation_contract_rejects_review_version_drift", () => {
     const root = createDocumentationFixture();
     const guidePath = join(root, "docs/user/getting-started.md");
-    writeFileSync(guidePath, readFileSync(guidePath, "utf8").replace("Last reviewed version: 0.1.0", "Last reviewed version: 9.9.9"), "utf8");
+    writeFileSync(guidePath, readFileSync(guidePath, "utf8").replace("Last reviewed version: 1.0.0", "Last reviewed version: 9.9.9"), "utf8");
     const result = spawnSync(process.execPath, ["scripts/verify-docs.mjs", "--root", root], { encoding: "utf8" });
     expect(result.status).not.toBe(0);
     expect(result.stderr).toContain("Last reviewed version must be");

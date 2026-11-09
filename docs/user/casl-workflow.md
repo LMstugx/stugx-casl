@@ -2,7 +2,7 @@
 
 - Audience: CASL II learners
 - Status: Canonical
-- Last reviewed version: 0.1.0
+- Last reviewed version: 1.0.0
 - Classification: Canonical
 - Related: [Supported CASL Instructions](../reference/supported-casl-instructions.md), [Generated CASL and Machine Code](generated-casl-machine-code.md)
 

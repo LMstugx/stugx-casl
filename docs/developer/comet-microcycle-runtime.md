@@ -2,7 +2,7 @@
 
 - Audience: Runtime, WASM, and visualization maintainers
 - Status: Canonical
-- Last reviewed version: 0.1.0
+- Last reviewed version: 1.0.0
 - Classification: Canonical
 - Related: [Runtime Contract](../comet-microcycle-runtime-contract.md), [COMET II VM](comet-vm.md), [Circuit Visualization](circuit-visualization.md)
 

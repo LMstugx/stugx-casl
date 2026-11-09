@@ -2,7 +2,7 @@
 
 - Audience: Assembler, VM, and source-mapping maintainers
 - Status: Canonical
-- Last reviewed version: 0.1.0
+- Last reviewed version: 1.0.0
 - Classification: Canonical
 - Related: [CASL Assembler](casl-assembler.md), [Directives and Macros](../reference/casl-ii-directives-macros.md)
 

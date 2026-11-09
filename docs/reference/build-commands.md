@@ -2,7 +2,7 @@
 
 - Audience: Contributors and release maintainers
 - Status: Canonical
-- Last reviewed version: 0.1.0
+- Last reviewed version: 1.0.0
 - Classification: Canonical
 - Related: [Build, Test, and Release](../developer/build-test-release.md), [Repository Structure](../developer/repository-structure.md)
 

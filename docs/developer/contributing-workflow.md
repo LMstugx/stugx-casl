@@ -2,7 +2,7 @@
 
 - Audience: Contributors and reviewers
 - Status: Canonical
-- Last reviewed version: 0.1.0
+- Last reviewed version: 1.0.0
 - Classification: Canonical
 - Related: [CONTRIBUTING.md](../../CONTRIBUTING.md), [Build, Test, and Release](build-test-release.md)
 

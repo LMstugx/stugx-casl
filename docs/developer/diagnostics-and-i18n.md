@@ -2,7 +2,7 @@
 
 - Audience: Diagnostic, i18n, and UI maintainers
 - Status: Canonical
-- Last reviewed version: 0.1.0
+- Last reviewed version: 1.0.0
 - Classification: Canonical
 - Related: [Diagnostic Codes](../reference/diagnostic-codes.md), [Diagnostic Identity ADR](../adr/0004-diagnostic-identity.md)
 

@@ -2,7 +2,7 @@
 
 - Audience: CASL II learners and instructors
 - Status: Canonical
-- Last reviewed version: 0.1.0
+- Last reviewed version: 1.0.0
 - Classification: Canonical
 - Related: [COMET Microcycle Mode](comet-microcycle-mode.md), [Reverse Instruction](reverse-instruction.md), [Known Limitations](known-limitations.md)
 

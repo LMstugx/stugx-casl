@@ -2,7 +2,7 @@
 
 - Audience: Runtime and debugger maintainers
 - Status: Canonical
-- Last reviewed version: 0.1.0
+- Last reviewed version: 1.0.0
 - Classification: Canonical
 - Related: [ADR 0017](0017-reverse-microstep-and-history-barriers.md), [Reverse Instruction Contract](../reverse-instruction-runtime-contract.md)
 

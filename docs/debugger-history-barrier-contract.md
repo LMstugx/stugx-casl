@@ -2,7 +2,7 @@
 
 - Audience: Debugger and asynchronous runtime maintainers
 - Status: Canonical
-- Last reviewed version: 0.1.0
+- Last reviewed version: 1.0.0
 - Classification: Canonical
 - Related: [Debugger Mutation Contract](debugger-mutation-contract.md), [Frontend State Management](developer/frontend-state-management.md)
 

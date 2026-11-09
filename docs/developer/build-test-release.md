@@ -2,7 +2,7 @@
 
 - Audience: Maintainers preparing verified builds
 - Status: Canonical
-- Last reviewed version: 0.1.0
+- Last reviewed version: 1.0.0
 - Classification: Canonical
 - Related: [Build Commands](../reference/build-commands.md), [Cloudflare Deployment](cloudflare-deployment.md)
 

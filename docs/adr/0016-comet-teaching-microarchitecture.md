@@ -2,7 +2,7 @@
 
 - Audience: Runtime and visualization maintainers
 - Status: Canonical
-- Last reviewed version: 0.1.0
+- Last reviewed version: 1.0.0
 - Classification: Canonical
 - Related: [Runtime Contract](../comet-microcycle-runtime-contract.md), [Clean-Wire ADR](0003-clean-wire-visual-contract.md), [Three-Bit FR ADR](0015-comet-flag-register-three-bit-contract.md)
 

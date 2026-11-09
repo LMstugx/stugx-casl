@@ -79,7 +79,7 @@ describe("ADR 0023 documentation", () => {
   const keyboard = readFileSync("docs/reference/keyboard-accessibility.md", "utf8");
 
   it("is a canonical record that is indexed and linked from the record it supersedes", () => {
-    for (const field of ["- Audience:", "- Status: Canonical", "- Last reviewed version: 0.1.0", "- Classification: Canonical", "- Related:"]) {
+    for (const field of ["- Audience:", "- Status: Canonical", "- Last reviewed version: 1.0.0", "- Classification: Canonical", "- Related:"]) {
       expect(adr).toContain(field);
     }
     expect(adrIndex).toContain("0023-workbench-datapath-structural-buses-and-active-arrowheads.md");
@@ -98,7 +98,7 @@ describe("ADR 0023 documentation", () => {
 
   it("motion is recorded in its own canonical record and in the contract", () => {
     const motionAdr = readFileSync("docs/adr/0024-workbench-datapath-motion.md", "utf8");
-    for (const field of ["- Audience:", "- Status: Canonical", "- Last reviewed version: 0.1.0", "- Classification: Canonical", "- Related:"]) {
+    for (const field of ["- Audience:", "- Status: Canonical", "- Last reviewed version: 1.0.0", "- Classification: Canonical", "- Related:"]) {
       expect(motionAdr).toContain(field);
     }
     expect(motionAdr).toContain("Motion never adds information.");

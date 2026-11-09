@@ -2,7 +2,7 @@
 
 - Audience: Teachers, maintainers, and technical evaluators
 - Status: Canonical
-- Last reviewed version: 0.1.0
+- Last reviewed version: 1.0.0
 - Classification: Canonical
 - Related: [Final CASL/COMET Conformance Report](final-casl-comet-conformance-report.md), [Known Limitations](reference/known-limitations.md)
 

@@ -2,7 +2,7 @@
 
 - Audience: Users, test authors, and diagnostic maintainers
 - Status: Canonical
-- Last reviewed version: 0.1.0
+- Last reviewed version: 1.0.0
 - Classification: Canonical
 - Related: [Diagnostics](../user/diagnostics.md), [Diagnostics and i18n](../developer/diagnostics-and-i18n.md)
 

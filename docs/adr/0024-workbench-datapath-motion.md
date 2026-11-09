@@ -2,7 +2,7 @@
 
 - Audience: Circuit, visual-design, and UI maintainers
 - Status: Canonical
-- Last reviewed version: 0.1.0
+- Last reviewed version: 1.0.0
 - Classification: Canonical
 - Related: [Workbench Datapath ADR](0023-workbench-datapath-structural-buses-and-active-arrowheads.md), [Circuit Visual Contract](../circuit-visual-contract.md), [Keyboard and Accessibility](../reference/keyboard-accessibility.md)
 

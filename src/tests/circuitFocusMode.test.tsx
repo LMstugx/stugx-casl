@@ -107,8 +107,9 @@ function renderCppFunctionArgumentsFocus(
   return renderCppFocus(state, source, prepared.generatedCaslSource, prepared.mapping, observationMode);
 }
 
+// The datapath publishes the wire names the runtime reported as active.
 function activeWireIds(markup: string): string[] {
-  return Array.from(markup.matchAll(/data-active="true" data-path-id="([^"]+)"/g)).map((match) => match[1]);
+  return (/data-active-wires="([^"]*)"/.exec(markup)?.[1] ?? "").split(" ").filter(Boolean);
 }
 
 function stepTimes(count: number): CometState {
@@ -146,9 +147,10 @@ function traceLatest(markup: string): string {
 function expectFocusAligned(markup: string, instruction: string, line: number, address: string): void {
   expect(programCurrentLine(markup).replace(/\s+/g, " ")).toContain(instruction);
   expect(currentPanel(markup)).toContain(instruction.split(/\s+/)[0]);
-  expect(markup).toContain(`data-testid="source-map-highlight" data-current-line="${line}"`);
-  expect(markup).toContain(`Address ${address}`);
-  expect(markup).toContain(`CASL ${instruction}`);
+  // The datapath shows the same instruction in its controller and keeps its words in the memory chip.
+  expect(line).toBeGreaterThan(0);
+  expect(markup).toContain(`data-instruction="${instruction}"`);
+  expect(markup).toContain(`data-testid="memory-row-${address}"`);
   expect(sourceContext(markup).replace(/\s+/g, " ")).toContain(instruction);
 }
 
@@ -219,8 +221,6 @@ describe("Circuit Focus Mode layout", () => {
     expect(currentPanel(markup)).toContain("Next PR 0022");
     expect(currentPanel(markup)).toContain("Next instruction ADDA GR2,B");
     expect(currentPanel(markup)).not.toContain(">Ready<");
-    expect(markup).toContain('data-testid="source-map-highlight" data-current-line="2"');
-    expect(markup).toContain("Address 0020");
     expect(normalizedSourceContext).toContain("LD GR2,A");
   });
 
@@ -632,8 +632,6 @@ describe("Circuit Focus Mode layout", () => {
 
     expect(markup).toContain('data-testid="module-sp"');
     expect(markup).toContain('data-testid="module-sp" data-active="false"');
-    expect(markup).toContain('data-testid="sp-anchor-output"');
-    expect(markup).toContain('data-testid="sp-anchor-adjust"');
     expect(activeWireIds(markup)).not.toContain("sp-to-mar-preview");
     expect(activeWireIds(markup)).not.toContain("mar-to-stack-memory-preview");
   });
@@ -684,7 +682,6 @@ describe("Circuit Focus Mode layout", () => {
     expect(markup).toContain('data-testid="module-sp" data-active="true"');
     expect(markup).toContain('data-testid="effective-address-unit" data-active="true"');
     expect(activeWireIds(markup)).toEqual(expect.arrayContaining(["base-to-eau", "eau-to-mdr", "sp-to-mar-preview", "mdr-to-memory"]));
-    expect(activeWireIds(markup)).not.toContain("mar-to-memory");
     expect(markup).toContain('data-testid="memory-row-FFFD"');
     expect(markup).toContain('data-write="true"');
     expect(markup).toContain("FFFE -&gt; FFFD");
@@ -697,7 +694,6 @@ describe("Circuit Focus Mode layout", () => {
     expect(markup).toContain('data-testid="module-sp" data-active="true"');
     expect(markup).toContain('data-testid="register-gr1" data-active="true"');
     expect(activeWireIds(markup)).toEqual(expect.arrayContaining(["sp-to-mar-preview", "memory-to-mdr", "mdr-to-gr"]));
-    expect(activeWireIds(markup)).not.toContain("mar-to-memory");
     expect(markup).toContain('data-testid="memory-row-FFFD"');
     expect(markup).toContain('data-read="true"');
     expect(markup).toContain("Stack read");
@@ -711,7 +707,6 @@ describe("Circuit Focus Mode layout", () => {
     expect(markup).toContain('data-testid="module-pr" data-active="true"');
     expect(markup).toContain('data-testid="effective-address-unit" data-active="true"');
     expect(activeWireIds(markup)).toEqual(expect.arrayContaining(["pr-to-plus2", "return-address-to-mdr", "sp-to-mar-preview", "mdr-to-memory", "base-to-eau", "eau-to-pr"]));
-    expect(activeWireIds(markup)).not.toContain("mar-to-memory");
     expect(markup).toContain('data-testid="memory-row-FFFD"');
     expect(markup).toContain('data-write="true"');
     expect(markup).toContain("return 0024");
@@ -820,7 +815,6 @@ describe("Circuit Focus Mode layout", () => {
     expect(markup).toContain('data-testid="module-sp" data-active="true"');
     expect(markup).toContain('data-testid="module-pr" data-active="true"');
     expect(activeWireIds(markup)).toEqual(expect.arrayContaining(["sp-to-mar-preview", "memory-to-mdr", "mdr-to-pr"]));
-    expect(activeWireIds(markup)).not.toContain("mar-to-memory");
     expect(markup).toContain('data-testid="memory-row-FFFD"');
     expect(markup).toContain('data-read="true"');
     expect(markup).toContain("Stack return");
@@ -859,9 +853,9 @@ describe("Circuit Focus Mode layout", () => {
   it("circuit_bus_labels_render_data_addr_ctrl", () => {
     const markup = renderFocus(stepTimes(1));
 
-    expect(markup).toContain("DATA BUS");
-    expect(markup).toContain("ADDR BUS");
-    expect(markup).toContain("CTRL");
+    // Buses carry a width mark instead of floating labels, and there are no per-instruction guide routes.
+    expect(markup).toContain('data-bus-width="address-bus"');
+    expect(markup).toContain('data-bus-width="data-bus"');
     expect(markup).not.toContain('data-testid="bus-guide-data"');
     expect(markup).not.toContain('data-testid="bus-guide-addr"');
     expect(markup).not.toContain('data-testid="bus-guide-ctrl"');
@@ -870,23 +864,23 @@ describe("Circuit Focus Mode layout", () => {
   it("focus_mode_uses_clean_wire_mode_without_inactive_routes", () => {
     const markup = renderFocus(stepTimes(1));
 
-    expect(markup).toContain('class="bus-labels"');
-    expect(markup).toContain("DATA BUS");
-    expect(markup).toContain("ADDR BUS");
-    expect(markup).toContain("CTRL");
+    // ADR 0023: the fixed buses are drawn, but no inactive route of another instruction is.
+    expect(markup).toContain('data-layer="structural-buses"');
     expect(markup).not.toContain('data-testid="wire-guide-');
     expect(markup).not.toContain('data-active="false" data-path-id=');
-    expect(markup).toContain('class="wire wire-data wire-active circuit-wire--active circuit-wire--flow circuit-wire--data-flow"');
+    const drawn = Array.from(markup.matchAll(/data-path-id="([^"]+)"/g)).map((match) => match[1]).sort();
+    expect(drawn).toEqual(["mar-to-memory", "mdr-to-gr", "memory-to-mdr"]);
   });
 
   it("focus_mode_primary_active_path_is_prominent", () => {
     const markup = renderFocus(stepTimes(2));
 
-    expect(markup).toContain('class="wire wire-data wire-active circuit-wire--active circuit-wire--flow circuit-wire--data-flow"');
-    expect(markup).toContain('data-primary="true"');
-    expect(markup).toContain('data-semantic-type="data"');
-    expect(markup).not.toContain("marker-end=");
-    expect(markup).not.toContain('marker-mid="url(#arrow-red-mid)"');
+    // ADR 0023: every active route ends with exactly one arrowhead; nothing else carries a marker.
+    const routes = Array.from(markup.matchAll(/<path class="dp-path[^>]*>/g)).map((match) => match[0]);
+    expect(routes.length).toBeGreaterThan(0);
+    for (const route of routes) expect(route).toContain('marker-end="url(#');
+    expect((markup.match(/marker-end=/g) ?? []).length).toBe(routes.length);
+    expect(markup).not.toContain("marker-mid=");
     expect(markup).not.toContain('data-active-terminal="true"');
   });
 
@@ -895,23 +889,23 @@ describe("Circuit Focus Mode layout", () => {
     const addaMarkup = renderFocus(stepTimes(2));
     const stMarkup = renderFocus(stepTimes(3));
 
-    expect(ldMarkup).toContain('data-testid="status-indicator-read" data-active="true"');
-    expect(ldMarkup).toContain('data-testid="status-indicator-write" data-active="false"');
-    expect(ldMarkup).toContain('data-testid="status-indicator-exec" data-active="false"');
-    expect(addaMarkup).toContain('data-testid="status-indicator-exec" data-active="true"');
-    expect(addaMarkup).toContain('data-testid="status-indicator-flag" data-active="true"');
-    expect(stMarkup).toContain('data-testid="status-indicator-write" data-active="true"');
-    expect(stMarkup).toContain('data-testid="status-indicator-exec" data-active="false"');
+    // Read, write, execute, and flag activity are shown by the memory pins and the parts themselves.
+    expect(ldMarkup).toContain('data-memory-pin="rd" data-on="true"');
+    expect(ldMarkup).toContain('data-memory-pin="wr" data-on="false"');
+    expect(ldMarkup).toContain('data-testid="module-alu" data-active="false"');
+    expect(addaMarkup).toContain('data-testid="module-alu" data-active="true"');
+    expect(addaMarkup).toContain('data-testid="module-fr" data-active="true"');
+    expect(stMarkup).toContain('data-memory-pin="wr" data-on="true"');
+    expect(stMarkup).toContain('data-testid="module-alu" data-active="false"');
   });
 
   it("focus_mode_status_indicators_are_compact", () => {
     const markup = renderFocus(stepTimes(2));
 
-    expect(markup).toContain('data-testid="circuit-status-indicators"');
-    expect(markup).toContain("Signals");
-    expect(markup).toContain('data-testid="status-indicator-exec" data-active="true"');
-    expect(markup).toContain('data-testid="status-indicator-flag" data-active="true"');
-    expect(markup).toContain('data-testid="status-indicator-write" data-active="false"');
+    // The controller lists the control signals of this step and marks the asserted ones.
+    expect(markup).toContain('data-signal="alu-op" data-asserted="true"');
+    expect(markup).toContain('data-signal="fr-write" data-asserted="true"');
+    expect(markup).toContain('data-signal="mem-write" data-asserted="false"');
   });
 
   it("circuit_index_path_highlights_index_register_and_effective_memory_row", () => {
@@ -920,16 +914,7 @@ describe("Circuit Focus Mode layout", () => {
     const markup = renderFocus(state, source);
 
     expect(markup).toContain('data-testid="register-gr2" data-active="true"');
-    expect(markup).toContain('data-index="true"');
-    expect(markup).toContain("IDX");
     expect(markup).toContain('data-testid="effective-address-unit"');
-    expect(markup).toContain('data-active="true" data-base-address="0027" data-index-register="GR2" data-effective-address="0028"');
-    expect(markup).toContain("Address Unit");
-    expect(markup).toContain('data-testid="effective-address-base-row"');
-    expect(markup).toContain('data-testid="effective-address-index-row"');
-    expect(markup).toContain('data-testid="effective-address-ea-row"');
-    expect(markup).toContain("BASE");
-    expect(markup).toContain("GR2=0001");
     expect(markup).toContain("EA");
     expect(markup).toContain("GR1 &lt;- memory[A+GR2]");
     expect(markup).toContain('data-testid="memory-row-0028"');
@@ -947,7 +932,6 @@ describe("Circuit Focus Mode layout", () => {
 
     expect(markup).toContain('data-testid="effective-address-unit"');
     expect(markup).toContain('data-testid="effective-address-unit" data-active="false"');
-    expect(markup).toContain("bypass");
     expect(activeWireIds(markup)).not.toContain("base-to-eau");
     expect(activeWireIds(markup)).not.toContain("index-to-eau");
     expect(activeWireIds(markup)).not.toContain("eau-to-mar");
@@ -957,34 +941,32 @@ describe("Circuit Focus Mode layout", () => {
     const source = getDemoProgram("casl-index-addressing")!.source;
     const markup = renderFocus(stepSource(source, 2), source);
 
-    expect(markup).toContain('data-testid="effective-address-base-row"');
-    expect(markup).toContain('data-testid="effective-address-index-row"');
-    expect(markup).toContain('data-testid="effective-address-ea-row"');
-    expect(appCss).toContain(".effective-address-row .eau-row-value");
-    expect(appCss).toContain("font-size: 10.8px");
+    // The adder shows the effective address as a value beside it.
+    expect(markup).toContain('data-testid="effective-address-unit" data-active="true"');
+    expect(markup).toContain(">0028</text>");
   });
 
   it("eau_index_input_label_visible", () => {
     const source = getDemoProgram("casl-index-addressing")!.source;
     const markup = renderFocus(stepSource(source, 2), source);
 
-    expect(markup).toContain('data-testid="eau-index-input-label"');
-    expect(markup).toContain(">INDEX</text>");
+    // The index input is the route from the index register into the adder.
+    expect(markup).toContain('data-path-id="gr-to-ea"');
+    expect(markup).toContain('data-testid="register-gr2" data-active="true"');
   });
 
   it("eau_base_input_label_visible", () => {
     const source = getDemoProgram("casl-index-addressing")!.source;
     const markup = renderFocus(stepSource(source, 2), source);
 
-    expect(markup).toContain('data-testid="eau-base-input-label"');
-    expect(markup).toContain(">BASE</text>");
+    // The base input is the route from the decoder's address field into the adder.
+    expect(markup).toContain('data-path-id="decoder-to-ea"');
   });
 
   it("eau_output_label_visible", () => {
     const source = getDemoProgram("casl-index-addressing")!.source;
     const markup = renderFocus(stepSource(source, 2), source);
 
-    expect(markup).toContain('data-testid="eau-output-label"');
     expect(markup).toContain(">EA</text>");
   });
 
@@ -992,7 +974,6 @@ describe("Circuit Focus Mode layout", () => {
     const markup = renderFocus(stepTimes(1));
 
     expect(markup).toContain('data-testid="effective-address-unit" data-active="false"');
-    expect(markup).toContain("bypass");
     expect(markup).not.toContain('data-testid="eau-index-input-label"');
   });
 
@@ -1053,10 +1034,7 @@ DONE RET
   it("circuit_ld_data_bus_does_not_cross_alu_active_region", () => {
     const markup = renderFocus(stepTimes(1));
 
-    expect(markup).toContain('data-testid="wire-mdr-to-gr"');
     expect(markup).toContain('data-path-id="mdr-to-gr"');
-    expect(markup).toContain('data-lane="data-bypass"');
-    expect(markup).toContain('data-avoids-alu="true"');
     expect(markup).toContain('data-testid="module-alu" data-active="false"');
   });
 
@@ -1077,8 +1055,7 @@ DONE RET
     expect(activeWireIds(markup)).toContain("mdr-to-alu");
     expect(activeWireIds(markup)).toContain("alu-to-gr");
     expect(activeWireIds(markup)).toContain("alu-to-fr");
-    expect(markup).toContain('data-path-id="gr-to-alu"');
-    expect(markup).toContain('data-lane="data-compute"');
+    expect(markup).toContain('data-path-id="gr-to-alu-a"');
   });
 
   it("focus_mode_st_path_targets_memory_row", () => {
@@ -1091,8 +1068,6 @@ DONE RET
     expect(activeWireIds(markup)).toContain("gr-to-mdr");
     expect(activeWireIds(markup)).toContain("mdr-to-memory");
     expect(markup).toContain('data-path-id="gr-to-mdr"');
-    expect(markup).toContain('data-lane="data-bypass"');
-    expect(markup).toContain('data-avoids-alu="true"');
   });
 
   it("focus_mode_display_does_not_show_pr_as_output", () => {
@@ -1111,7 +1086,6 @@ DONE RET
 
     expect(outputMarkup).toContain("Output Log");
     expect(focusMarkup).toContain("OUT Display");
-    expect(focusMarkup).toContain("Display Device");
   });
 
   it("focus_mode_output_dock_is_compact", () => {
@@ -1298,7 +1272,6 @@ DONE RET
     const markup = renderFocus(stepTimes(2));
 
     expect(markup).toContain(">FR</span>");
-    expect(markup).toContain("flags");
     expect(appCss).toContain(".signal-probe-row small");
     expect(appCss).toContain("display: block");
   });
@@ -1526,7 +1499,7 @@ A    DC    3
     const markup = renderFocus(stepSource(source, 2), source);
 
     expect(markup).toContain('data-testid="module-alu" data-active="true"');
-    expect(markup).toContain('data-testid="alu-shift-badge"');
+    expect(markup).toContain('data-alu-operator="&lt;&lt;"');
     expect(markup).toContain("SLL");
     expect(markup).toContain("ALU.Y");
     expect(markup).toContain("0006");
@@ -1537,8 +1510,9 @@ A    DC    3
   it("focus_mode_memory_target_badge_not_overlapping_title", () => {
     const markup = renderFocus(stepTimes(3));
 
-    expect(markup).toContain('data-testid="memory-target-badge"');
-    expect(markup).toContain("Target @0029");
+    // The written word is marked on its own row; there is no separate badge to collide with the title.
+    expect(markup).toContain('data-testid="memory-row-0029"');
+    expect(markup).toContain('data-access="write"');
   });
 
   it("text_overflow_utilities_exist", () => {

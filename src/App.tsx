@@ -10,7 +10,7 @@ import CircuitFocusLayout from "./components/CircuitFocusLayout";
 import CaslCompatibilityMode from "./components/CaslCompatibilityMode";
 import CometMicrocyclePanel from "./components/CometMicrocyclePanel";
 import ProjectModulesPanel from "./components/ProjectModulesPanel";
-import CometCircuitSvg from "./visual/CometCircuitSvg";
+import { LiveDatapath } from "./visual/datapath/LiveDatapath";
 import { formatWord } from "./core/types";
 import { summarizeCurrentInstruction } from "./visual/visualState";
 import { AppStoreProvider, useAppStore } from "./store/useAppStore";
@@ -1058,7 +1058,9 @@ function StudioShell({
               </div>
               <span className={`run-pill ${state.runState.toLowerCase()}`}>{translateRunState(t, state.runState)}</span>
             </header>
-            <CometCircuitSvg state={state} />
+            <div className="persistent-circuit-canvas">
+              <LiveDatapath state={state} />
+            </div>
           </section>
 
           <LearningFlowPanel state={state} sourceMode={sourceMode} sourceText={sourceText} generatedCaslSource={generatedCaslSource} cppToCaslMapping={cppToCaslMapping} />

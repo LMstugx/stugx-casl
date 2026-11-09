@@ -256,8 +256,16 @@ describe("Phase 20G WCASL replacement final gate", () => {
     }
   });
 
+  // Historical audit of Phase 20G: that phase changed no production source. The comparison is
+  // pinned to the two frozen tags, so it keeps stating that fact after later work changes `src`.
+  // The behaviour itself, that the application opens no network connection, is checked on the
+  // current source by "production source makes no network request" in v2WorkbenchBoundary.test.ts.
   it("no_new_network_request", () => {
-    const changed = execFileSync("git", ["diff", "--name-only", "multi-program-linker-baseline-phase20f", "--", "src"], { encoding: "utf8" })
+    const changed = execFileSync(
+      "git",
+      ["diff", "--name-only", "multi-program-linker-baseline-phase20f", "wcasl-replacement-final-gate-phase20g", "--", "src"],
+      { encoding: "utf8" }
+    )
       .trim().split(/\r?\n/).filter(Boolean);
     expect(changed.filter((path) => path.startsWith("src/") && !path.startsWith("src/tests/"))).toEqual([]);
   });

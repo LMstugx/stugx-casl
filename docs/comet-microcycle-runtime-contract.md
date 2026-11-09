@@ -26,6 +26,8 @@ The relation is Source -> expanded Machine Instruction -> Microcycle. A macro li
 
 Circuit Focus is active-flow-only. It cannot light mutually exclusive memory/register paths, show inactive ghost wires, or invent an FPU, 64-bit bus, cache, pipeline, or speculative state.
 
+The v2 workbench datapath may draw its fixed structural buses at low contrast ([ADR 0023](adr/0023-workbench-datapath-structural-buses-and-active-arrowheads.md)). Those buses are part of the diagram and never count as active flow; only runtime state can make a path active.
+
 ## History And Barriers
 
 Microcycle history is bounded to 1000 entries and records verified before/after architectural and teaching state, sparse memory-write deltas, and exact Trace deltas. It is not persisted. Reset, Reload, debugger mutation, source replacement, Full Clear, SVC, and input/output establish hard barriers.

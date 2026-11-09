@@ -2,11 +2,12 @@ import type { ReactNode } from "react";
 import type { CometState } from "../core/types";
 import { translateRunState } from "../i18n/locale";
 import { useI18n } from "../i18n/useI18n";
-import CometCircuitSvg from "../visual/CometCircuitSvg";
+import { LiveDatapath } from "../visual/datapath/LiveDatapath";
 
 type PersistentCircuitPaneProps = {
   state: CometState;
   subtitle: string;
+  /** Kept for callers. The workbench datapath shows source text inside its memory chip instead. */
   sourceMapFocus?: {
     line?: number;
     address?: number;
@@ -19,7 +20,6 @@ type PersistentCircuitPaneProps = {
 export default function PersistentCircuitPane({
   state,
   subtitle,
-  sourceMapFocus,
   compact = false,
   status
 }: PersistentCircuitPaneProps) {
@@ -43,7 +43,9 @@ export default function PersistentCircuitPane({
           </span>
         )}
       </header>
-      <CometCircuitSvg state={state} sourceMapFocus={sourceMapFocus} />
+      <div className="persistent-circuit-canvas">
+        <LiveDatapath state={state} compact={compact} />
+      </div>
     </section>
   );
 }

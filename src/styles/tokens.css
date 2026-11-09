@@ -58,6 +58,51 @@
   --color-circuit-read-fill: var(--color-register-highlight);
   --color-circuit-write-fill: var(--color-state-write-bg);
 
+  /* Workbench datapath (ADR 0023). Datapath styles use these tokens only. */
+  --cv-zone: #f3f5f8;
+  --cv-zone-label: #5b687a;
+  --cv-text: var(--color-text-primary);
+  --cv-text-muted: var(--color-text-muted);
+  --cv-body-fill: #fbfcfd;
+  --cv-body-stroke: #475569;
+  --cv-body-on-fill: #f6f9ff;
+  --cv-body-on: #1d4ed8;
+  --cv-pin: #64748b;
+  --cv-win: #eef2f7;
+  --cv-win-border: #d5dce6;
+  --cv-win-hot: #e6eeff;
+  --cv-win-hot-border: #9db9e6;
+  --cv-win-chg: #fff1c7;
+  --cv-win-chg-border: #c48a1a;
+  --cv-bus: #cbd5e1;
+  --cv-junction: #94a3b8;
+  --cv-path-addr: #1d4ed8;
+  --cv-path-data: #c2410c;
+  --cv-path-flag: #a16207;
+  --cv-ctl: #c4b5fd;
+  --cv-ctl-on: #7c3aed;
+  --cv-sig-fill: #f1f5f9;
+  --cv-sig-border: #e2e8f0;
+  --cv-sig-text: #5b687a;
+  --cv-sig-on-fill: #ede9fe;
+  --cv-sig-on-border: #a78bfa;
+  --cv-sig-on-text: #5b21b6;
+  --cv-bit: #f1f5f9;
+  --cv-bit-border: #d5dce6;
+  --cv-bit-lit: #fde68a;
+  --cv-bit-lit-border: #a16207;
+  --cv-row-current: #eef3ff;
+  --cv-row-read: #dbe7ff;
+  --cv-row-write: #ffe4d6;
+  --cv-grid: #e2e8f0;
+  --cv-label: #9a3412;
+  --cv-path-flow: rgba(255, 255, 255, 0.72);
+  --cv-token-text: #ffffff;
+  --cv-motion-signal: 260ms;
+  --cv-motion-travel: 700ms;
+  --cv-motion-pulse: 600ms;
+  --cv-motion-flow: 900ms;
+
   /* Backward-compatible aliases */
   --color-bg: var(--color-background);
   --color-text: var(--color-text-primary);

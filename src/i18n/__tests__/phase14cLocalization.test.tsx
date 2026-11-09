@@ -91,10 +91,10 @@ describe("Phase 14C Circuit Focus compact localization", () => {
     const japanese = renderCaslFocus("ja");
     const chinese = renderCaslFocus("zh-CN");
 
-    for (const label of ["回路フォーカスモード", "現在の命令", "ステップタイムライン", "信号プローブ", "現在のソース対応"]) {
+    for (const label of ["回路フォーカスモード", "現在の命令", "ステップタイムライン", "信号プローブ", "制御部"]) {
       expect(japanese).toContain(label);
     }
-    for (const label of ["电路聚焦模式", "当前指令", "单步时间线", "信号探针", "当前源码映射"]) {
+    for (const label of ["电路聚焦模式", "当前指令", "单步时间线", "信号探针", "控制部"]) {
       expect(chinese).toContain(label);
     }
   });

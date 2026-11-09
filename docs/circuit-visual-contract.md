@@ -72,6 +72,8 @@ Circuit Focus UI should use shared design tokens from `src/styles/tokens.css` fo
 
 The token layer must preserve the Phase 12D clean-wire rules: no arrows, no circular marker, no ghost inactive wires, active-flow only, and no SVG line for Memory target-highlight relations.
 
+The `--cv-*` tokens belong to the v2 workbench datapath, which follows section 8.1. Datapath styles reference those tokens and contain no literal colours.
+
 ## 3. Lane Definitions
 
 The circuit uses named lanes so future instructions can reuse the same visual grammar.
@@ -357,7 +359,31 @@ Rules:
 
 When unsure, prefer showing less active state rather than implying false hardware participation.
 
-## 8. Arrowless Wire Rules
+## 8. Wire Direction Rules (supersedes Arrowless Wire Rules)
+
+Two components draw wires, and each follows its own rule set. The rule sets are never mixed inside one component.
+
+### 8.1 Workbench Datapath
+
+The v2 workbench datapath in `src/visual/datapath` follows [ADR 0023](adr/0023-workbench-datapath-structural-buses-and-active-arrowheads.md).
+
+- Structural buses are always drawn: thin, low contrast, fixed geometry. They do not change with the instruction.
+- Structural buses never render an arrow marker and never animate.
+- Junction dots appear only where a structural bus really splits or merges, and they sit on the segment. Orphan dots, endpoint dots, and Memory-side terminal circles are not rendered.
+- Each active path renders exactly one terminal arrowhead at its destination end. Mid-segment arrows and floating arrowheads are not rendered.
+- An idle datapath renders no arrowhead at all.
+- Active paths come from runtime state only. Mutually exclusive paths are never active together.
+- Control lines are dashed and low contrast while idle and solid only while that signal is asserted.
+- Address, data, and flag paths may use different colours, but each is also identified by a text marker at its destination.
+- Motion follows [ADR 0024](adr/0024-workbench-datapath-motion.md). A step may play, once and in this order: asserted control lines drawing from the controller, the carried word travelling along each active path, and a pulse on each value the step rewrote. A low-contrast flow may then continue on active paths.
+- Motion never adds information: every animated path, word, and rewritten value is already in the view model. The picture is correct from the first frame.
+- A reverse step plays no motion and nothing ever plays backward.
+- Structural buses, idle control lines, and inactive parts never move. Motion never changes route geometry or layout.
+- The reduced-motion preference and visual review static mode remove all motion and leave no element half-way.
+
+### 8.2 Legacy Circuit Focus Component
+
+Until the workbench datapath replaces it, `CometCircuitSvg` keeps the original arrowless rules without change.
 
 Wire direction is explained by route endpoints plus the surrounding teaching context, not by terminal arrows.
 

@@ -15,6 +15,8 @@ The frozen clean-wire contract is:
 - no inactive ghost wires
 - active-flow-only wires
 
+That list binds `CometCircuitSvg`. The v2 workbench datapath in `src/visual/datapath` follows [ADR 0023](../adr/0023-workbench-datapath-structural-buses-and-active-arrowheads.md) instead: fixed structural buses are always drawn, junction dots mark real splits, and an arrowhead appears on active paths only. Both components derive active paths from runtime state and nothing else.
+
 The Circuit is persistent across auxiliary observation tabs. Registers, Memory, Stack, Code / Machine, Source Mapping, Trace, Console, and Inspector are sibling data projections, not alternate Circuit runtimes. Compact and full Circuit presentation share `CometCircuitSvg` and the same runtime DTO.
 
 Address relationships use target highlights and Effective Address Unit context instead of decorative long wires. Reduced-motion preference disables nonessential signal animation.

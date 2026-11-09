@@ -39,6 +39,9 @@ This directory separates current product documentation from historical implement
 
 ## Final Evaluation and Teacher Demo
 
+- [Frontend Handover Pack (Chinese, snapshot)](handoff/README.md)
+- [v2 Refactor Standard: C++ core, workbench UI, Claude/Codex split (Chinese)](refactor/v2-refactor-standard.md)
+
 - [WCASL Replacement Final Gate](wcasl-replacement-final-gate.md)
 - [Final CASL II / COMET II Conformance Report](final-casl-comet-conformance-report.md)
 - [First-year Student Usability Check](first-year-usability-check.md)

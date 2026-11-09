@@ -1,0 +1,227 @@
+/*
+ * v2 workbench layout shell. Sizes follow docs/refactor/v2-refactor-standard.md, section 3.1.
+ * Colours and spacing come from the shared tokens.
+ */
+
+.wb {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  height: 100vh;
+  min-height: 560px;
+  background: var(--color-background);
+  color: var(--color-text-primary);
+  font-family: var(--font-family-ui);
+  font-size: var(--font-size-body);
+}
+
+.wb-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-6) var(--space-8);
+  min-height: 44px;
+  padding: 0 var(--space-12);
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.wb-main {
+  position: relative;
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr) 320px;
+  gap: var(--space-8);
+  min-height: 0;
+  padding: var(--space-8) var(--space-8) 0;
+}
+
+.wb[data-code="closed"] .wb-main {
+  grid-template-columns: minmax(0, 1fr) 320px;
+}
+
+.wb[data-layout="circuit-focus"] .wb-main {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* Data focus gives the data more room. The datapath keeps its readable minimum and scrolls. */
+.wb[data-layout="data-focus"] .wb-main {
+  grid-template-columns: 300px minmax(0, 1fr) minmax(0, 1.2fr);
+}
+
+.wb[data-layout="data-focus"][data-code="closed"] .wb-main {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+}
+
+.wb-pane {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+/* A hidden pane stays mounted; only its box goes away. */
+.wb-pane[hidden] {
+  display: none;
+}
+
+/* The datapath keeps a readable minimum width and scrolls inside its own pane. */
+.wb-datapath {
+  overflow-x: auto;
+}
+
+.wb-datapath .dp {
+  min-width: 600px;
+}
+
+.wb-dock {
+  height: 132px;
+  margin: var(--space-8) var(--space-8) 0;
+}
+
+.wb-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-6) var(--space-8);
+  min-height: 40px;
+  margin-top: var(--space-8);
+  padding: var(--space-4) var(--space-12);
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+}
+
+/* Phase pills */
+
+.wb-phases {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-6);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.wb-phase {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-4);
+  height: 22px;
+  padding: 0 var(--space-8);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-soft);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-section-title);
+  white-space: nowrap;
+}
+
+.wb-phase[data-state="done"] {
+  border-color: var(--color-success);
+  background: var(--color-success-soft);
+  color: var(--color-success);
+}
+
+.wb-phase[data-state="current"] {
+  border-color: var(--color-state-selected-border);
+  background: var(--color-state-selected-bg);
+  color: var(--color-text-strong);
+  font-weight: 700;
+}
+
+.wb-phase-position {
+  font-family: var(--font-family-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.wb-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* 1280 to 1439: narrower side columns. */
+@media (max-width: 1439px) {
+  .wb-main {
+    grid-template-columns: 260px minmax(0, 1fr) 280px;
+  }
+
+  .wb[data-code="closed"] .wb-main {
+    grid-template-columns: minmax(0, 1fr) 280px;
+  }
+
+  .wb[data-layout="circuit-focus"] .wb-main {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .wb[data-layout="data-focus"] .wb-main {
+    grid-template-columns: 260px minmax(0, 1fr) minmax(0, 1.2fr);
+  }
+
+  .wb[data-layout="data-focus"][data-code="closed"] .wb-main {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  }
+}
+
+/* 1180 to 1279: the source pane becomes a drawer over the datapath. */
+@media (max-width: 1279px) {
+  .wb-main,
+  .wb[data-code="closed"] .wb-main {
+    grid-template-columns: minmax(0, 1fr) 280px;
+  }
+
+  .wb[data-layout="circuit-focus"] .wb-main {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .wb[data-layout="data-focus"] .wb-main,
+  .wb[data-layout="data-focus"][data-code="closed"] .wb-main {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  }
+
+  .wb-code {
+    position: absolute;
+    z-index: 2;
+    top: var(--space-8);
+    bottom: 0;
+    left: var(--space-8);
+    width: 300px;
+    box-shadow: var(--shadow-floating);
+  }
+}
+
+/* Below 1180: one column, datapath first. The page scrolls; nothing is squeezed. */
+@media (max-width: 1179px) {
+  .wb {
+    height: auto;
+    min-height: 100vh;
+  }
+
+  .wb-main,
+  .wb[data-code="closed"] .wb-main,
+  .wb[data-layout="data-focus"] .wb-main,
+  .wb[data-layout="data-focus"][data-code="closed"] .wb-main {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .wb-pane {
+    overflow: visible;
+  }
+
+  /* The source pane is an ordinary block again, below the datapath. */
+  .wb-code {
+    position: static;
+    width: auto;
+    box-shadow: none;
+  }
+
+  .wb-datapath {
+    order: -1;
+    overflow-x: auto;
+  }
+}

@@ -29,5 +29,7 @@ ADRs record decisions that protect compatibility, security, and teaching behavio
 | [0019](0019-persistent-circuit-with-auxiliary-data.md) | One live Circuit remains visible beside switchable auxiliary data |
 | [0020](0020-deterministic-casl-multi-program-linker.md) | CASL modules link through structured symbols and relocations, never source concatenation |
 | [0021](0021-project-session-without-proprietary-project-format.md) | Multi-module sessions use standard files without inventing a proprietary project format |
+| [0023](0023-workbench-datapath-structural-buses-and-active-arrowheads.md) | The v2 workbench datapath draws fixed structural buses and arrowheads on active paths only |
+| [0024](0024-workbench-datapath-motion.md) | Workbench datapath motion shows only what the runtime did, once per step, and never in reverse |
 
 To supersede an ADR, add a new numbered record, link the old record, state migration and compatibility effects, and update affected baselines and tests explicitly.

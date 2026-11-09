@@ -75,6 +75,8 @@ describe("Focus Mode boundary rendering", () => {
     );
 
     expect(markup).toContain("Modified source; assemble before stepping.");
-    expect(markup).toContain("No output");
+    // No stale activity: the datapath marks no memory word as read or written.
+    expect(markup).not.toContain('data-read="true"');
+    expect(markup).not.toContain('data-write="true"');
   });
 });

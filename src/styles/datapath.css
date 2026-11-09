@@ -1,0 +1,452 @@
+/*
+ * Workbench datapath (ADR 0023). Every colour comes from a --cv-* token or a shared
+ * design token; this file contains no literal colours.
+ */
+
+.dp {
+  display: block;
+  width: 100%;
+  height: auto;
+  font-family: var(--font-family-ui);
+}
+
+.dp text {
+  font-family: inherit;
+}
+
+.dp-zone {
+  fill: var(--cv-zone);
+}
+
+.dp-zone-label {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  fill: var(--cv-zone-label);
+}
+
+/* Parts */
+
+.dp-body {
+  fill: var(--cv-body-fill);
+  stroke: var(--cv-body-stroke);
+  stroke-width: 1.25;
+}
+
+.dp-part[data-active="true"] .dp-body {
+  fill: var(--cv-body-on-fill);
+  stroke: var(--cv-body-on);
+  stroke-width: 1.9;
+}
+
+.dp-tag {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  fill: var(--cv-text);
+}
+
+.dp-part[data-active="true"] .dp-tag {
+  fill: var(--cv-body-on);
+}
+
+.dp .dp-bits,
+.dp .dp-prev {
+  font-family: var(--font-family-mono);
+  font-size: 8.5px;
+  fill: var(--cv-text-muted);
+}
+
+.dp .dp-prev {
+  font-weight: 700;
+  fill: var(--cv-text);
+}
+
+.dp-key {
+  font-size: 9.5px;
+  fill: var(--cv-text-muted);
+}
+
+.dp-key--strong {
+  font-weight: 700;
+  fill: var(--cv-body-on);
+}
+
+.dp-pin,
+.dp-mpin {
+  fill: var(--cv-pin);
+}
+
+.dp-part[data-active="true"] .dp-pin,
+[data-memory-pin][data-on="true"] .dp-mpin {
+  fill: var(--cv-body-on);
+}
+
+[data-memory-pin][data-on="true"] .dp-key {
+  font-weight: 700;
+  fill: var(--cv-body-on);
+}
+
+/* Value windows */
+
+.dp-win {
+  fill: var(--cv-win);
+  stroke: var(--cv-win-border);
+  stroke-width: 0.8;
+}
+
+.dp-win[data-cell-state="selected"] {
+  fill: var(--cv-win-hot);
+  stroke: var(--cv-win-hot-border);
+}
+
+.dp-win[data-cell-state="changed"] {
+  fill: var(--cv-win-chg);
+  stroke: var(--cv-win-chg-border);
+  stroke-width: 1.2;
+}
+
+.dp .dp-val {
+  font-family: var(--font-family-mono);
+  font-size: 15px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.06em;
+  fill: var(--cv-text);
+}
+
+.dp .dp-val--sm {
+  font-size: 12.5px;
+}
+
+.dp .dp-val--xs {
+  font-size: 11px;
+}
+
+.dp .dp-val--changed {
+  font-weight: 700;
+}
+
+/* ALU, adder, selector */
+
+.dp-op-badge {
+  fill: var(--color-surface);
+  stroke: var(--cv-win-border);
+  stroke-width: 1.1;
+}
+
+.dp-op {
+  font-size: 14px;
+  font-weight: 700;
+  fill: var(--cv-text-muted);
+}
+
+.dp-part[data-active="true"] .dp-op {
+  fill: var(--cv-body-on);
+}
+
+/* Controller signals */
+
+.dp-sig rect {
+  fill: var(--cv-sig-fill);
+  stroke: var(--cv-sig-border);
+}
+
+.dp .dp-sig text {
+  font-family: var(--font-family-mono);
+  font-size: 10px;
+  fill: var(--cv-sig-text);
+}
+
+.dp-sig[data-asserted="true"] rect {
+  fill: var(--cv-sig-on-fill);
+  stroke: var(--cv-sig-on-border);
+}
+
+.dp .dp-sig[data-asserted="true"] text {
+  font-weight: 700;
+  fill: var(--cv-sig-on-text);
+}
+
+/* Flag register */
+
+.dp-bit {
+  fill: var(--cv-bit);
+  stroke: var(--cv-bit-border);
+  stroke-width: 0.8;
+}
+
+[data-flag][data-lit="true"] .dp-bit {
+  fill: var(--cv-bit-lit);
+  stroke: var(--cv-bit-lit-border);
+  stroke-width: 1.2;
+}
+
+.dp .dp-bit-value {
+  font-family: var(--font-family-mono);
+  font-size: 13px;
+  font-weight: 500;
+  fill: var(--cv-text);
+}
+
+.dp [data-flag][data-lit="true"] .dp-bit-value {
+  font-weight: 800;
+}
+
+/* Memory chip */
+
+.dp-row--current {
+  fill: var(--cv-row-current);
+}
+
+.dp-row--read {
+  fill: var(--cv-row-read);
+}
+
+.dp-row--write {
+  fill: var(--cv-row-write);
+}
+
+.dp-grid {
+  fill: none;
+  stroke: var(--cv-grid);
+  stroke-width: 1;
+}
+
+.dp-mem-head {
+  font-size: 9.5px;
+  fill: var(--cv-text-muted);
+}
+
+.dp .dp-mem {
+  font-family: var(--font-family-mono);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  fill: var(--cv-text);
+}
+
+.dp .dp-mem--addr {
+  fill: var(--cv-text-muted);
+}
+
+.dp .dp-mem--label {
+  font-weight: 600;
+  fill: var(--cv-label);
+}
+
+.dp .dp-access {
+  font-family: var(--font-family-mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  fill: var(--cv-path-addr);
+}
+
+.dp .dp-access[data-access="write"] {
+  fill: var(--cv-path-data);
+}
+
+/* Wires */
+
+.dp-bus {
+  fill: none;
+  stroke: var(--cv-bus);
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+}
+
+.dp-bus-width {
+  fill: none;
+  stroke: var(--cv-junction);
+  stroke-width: 1;
+}
+
+.dp-junction {
+  fill: var(--cv-junction);
+}
+
+.dp-junction[data-kind="address"] {
+  fill: var(--cv-path-addr);
+}
+
+.dp-junction[data-kind="data"] {
+  fill: var(--cv-path-data);
+}
+
+.dp-junction[data-kind="flag"] {
+  fill: var(--cv-path-flag);
+}
+
+.dp-control {
+  fill: none;
+  stroke: var(--cv-ctl);
+  stroke-width: 1.1;
+  stroke-dasharray: 3 3;
+}
+
+.dp-control[data-asserted="true"] {
+  stroke: var(--cv-ctl-on);
+  stroke-width: 1.6;
+  stroke-dasharray: none;
+}
+
+.dp-path {
+  fill: none;
+  stroke-width: 2.8;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.dp-path--address {
+  stroke: var(--cv-path-addr);
+}
+
+.dp-path--data {
+  stroke: var(--cv-path-data);
+}
+
+.dp-path--flag {
+  stroke: var(--cv-path-flag);
+}
+
+.dp-arrow--address {
+  fill: var(--cv-path-addr);
+}
+
+.dp-arrow--data {
+  fill: var(--cv-path-data);
+}
+
+.dp-arrow--flag {
+  fill: var(--cv-path-flag);
+}
+
+/*
+ * Motion (ADR 0024). It is laid over a picture that is already correct. Every motion-only
+ * element is invisible unless its animation runs, and an asserted control line is fully drawn
+ * without its animation, so removing motion leaves nothing half-way.
+ */
+
+.dp-control--signal {
+  animation: dp-signal var(--cv-motion-signal) var(--ease-standard) both;
+}
+
+@keyframes dp-signal {
+  from {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+  }
+
+  to {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 0;
+  }
+}
+
+.dp-flow {
+  fill: none;
+  stroke: var(--cv-path-flow);
+  stroke-width: 1.3;
+  stroke-linecap: round;
+  stroke-dasharray: 3 12;
+  opacity: 0;
+  animation: dp-flow var(--cv-motion-flow) linear infinite;
+}
+
+@keyframes dp-flow {
+  from {
+    stroke-dashoffset: 15;
+    opacity: 1;
+  }
+
+  to {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+}
+
+.dp-token {
+  opacity: 0;
+  offset-rotate: 0deg;
+  animation: dp-travel var(--cv-motion-travel) var(--ease-standard) both;
+  animation-delay: calc(var(--cv-motion-signal) + var(--dp-stage, 0) * var(--cv-motion-travel));
+}
+
+@keyframes dp-travel {
+  0% {
+    offset-distance: 0%;
+    opacity: 0;
+  }
+
+  10% {
+    opacity: 1;
+  }
+
+  88% {
+    opacity: 1;
+  }
+
+  100% {
+    offset-distance: 100%;
+    opacity: 0;
+  }
+}
+
+.dp-token--address rect {
+  fill: var(--cv-path-addr);
+}
+
+.dp-token--data rect {
+  fill: var(--cv-path-data);
+}
+
+.dp-token--flag rect {
+  fill: var(--cv-path-flag);
+}
+
+.dp .dp-token text {
+  font-family: var(--font-family-mono);
+  font-size: 9.5px;
+  font-weight: 700;
+  fill: var(--cv-token-text);
+}
+
+.dp-pulse {
+  fill: none;
+  stroke: var(--cv-win-chg-border);
+  stroke-width: 2;
+  opacity: 0;
+  animation: dp-pulse var(--cv-motion-pulse) ease-out both;
+  animation-delay: calc(var(--cv-motion-signal) + var(--dp-stage, 0) * var(--cv-motion-travel));
+}
+
+@keyframes dp-pulse {
+  0% {
+    opacity: 0;
+    stroke-width: 7;
+  }
+
+  20% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    stroke-width: 1.5;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dp-control--signal,
+  .dp-flow,
+  .dp-token,
+  .dp-pulse {
+    animation: none;
+  }
+}
+
+.visual-review-static .dp-control--signal,
+.visual-review-static .dp-flow,
+.visual-review-static .dp-token,
+.visual-review-static .dp-pulse {
+  animation: none;
+}
